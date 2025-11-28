@@ -6,7 +6,19 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(pnpm install:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(pnpm dlx shadcn@latest add:*)",
+      "Bash(npx drizzle-kit push:*)",
+      "Bash(pnpm drizzle-kit push:*)",
+      "Bash(pnpm exec drizzle-kit push:*)",
+      "Bash(pnpm dlx drizzle-kit push:*)",
+      "Bash(./node_modules/.bin/drizzle-kit push:*)",
+      "Bash(pnpm drizzle-kit:*)",
+      "Bash(pnpm add:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(printf:*)",
+      "Bash(pnpm db:reset:*)"
     ],
     "deny": [],
     "ask": []

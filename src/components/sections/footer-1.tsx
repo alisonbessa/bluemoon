@@ -17,16 +17,16 @@ const FooterSection = () => {
 
           <nav className="flex items-center gap-6 text-muted-foreground">
             <Link href="/about" className="hover:text-primary">
-              About
+              Sobre
             </Link>
             <Link href="/terms" className="hover:text-primary">
-              Terms
+              Termos
             </Link>
             <Link href="/privacy" className="hover:text-primary">
-              Privacy
+              Privacidade
             </Link>
             <Link href="/contact" className="hover:text-primary">
-              Contact
+              Contato
             </Link>
           </nav>
         </div>

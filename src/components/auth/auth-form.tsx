@@ -45,13 +45,13 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
       });
 
       if (result?.error) {
-        toast.error("Failed to impersonate user");
+        toast.error("Falha ao personificar usuário");
       } else if (result?.url) {
         router.push(result.url);
       }
     } catch (error) {
       console.error("Impersonation error:", error);
-      toast.error("Failed to impersonate user");
+      toast.error("Falha ao personificar usuário");
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +73,7 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
       });
     } catch (error) {
       console.error("Authentication error:", error);
-      toast.error("Failed to continue with Google");
+      toast.error("Falha ao continuar com Google");
     } finally {
       setIsLoading(false);
     }
@@ -91,13 +91,13 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
       });
 
       if (result?.error) {
-        toast.error("Invalid email or password");
+        toast.error("Email ou senha inválidos");
       } else if (result?.url) {
         router.push(result.url);
       }
     } catch (error) {
       console.error("Authentication error:", error);
-      toast.error("Something went wrong");
+      toast.error("Algo deu errado");
     } finally {
       setIsLoading(false);
     }
@@ -115,14 +115,14 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
       });
 
       if (result?.error) {
-        toast.error("Failed to send login email");
+        toast.error("Falha ao enviar email de login");
       } else {
-        toast.success("Check your email for the login link");
+        toast.success("Verifique seu email para o link de login");
         setEmail("");
       }
     } catch (error) {
       console.error("Authentication error:", error);
-      toast.error("Something went wrong");
+      toast.error("Algo deu errado");
     } finally {
       setIsLoading(false);
     }
@@ -142,7 +142,7 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
         ) : (
           <FaGoogle className="mr-2 h-4 w-4" />
         )}
-        Continue with Google
+        Continuar com Google
       </Button>
 
       <div className="relative">
@@ -151,7 +151,7 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
-            Or continue with {showPasswordAuth ? "password" : "email"}
+            Ou continue com {showPasswordAuth ? "senha" : "email"}
           </span>
         </div>
       </div>
@@ -159,10 +159,10 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
       {showPasswordAuth ? (
         <form onSubmit={handleSubmit(handlePasswordSignIn)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email address</Label>
+            <Label htmlFor="email">Endereço de email</Label>
             <Input
               id="email"
-              placeholder="name@example.com"
+              placeholder="seu@email.com"
               type="email"
               autoCapitalize="none"
               autoComplete="email"
@@ -178,17 +178,17 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Senha</Label>
               <Link
                 href="/reset-password"
                 className="text-xs text-primary hover:text-primary/90 underline underline-offset-4"
               >
-                Forgot password?
+                Esqueceu a senha?
               </Link>
             </div>
             <Input
               id="password"
-              placeholder="Enter your password"
+              placeholder="Digite sua senha"
               type="password"
               autoComplete="current-password"
               disabled={isLoading}
@@ -202,16 +202,16 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
 
           <Button type="submit" disabled={isLoading} className="w-full py-6">
             {isLoading && <FaSpinner className="mr-2 h-4 w-4 animate-spin" />}
-            Sign In
+            Entrar
           </Button>
         </form>
       ) : (
         <form onSubmit={handleEmailSignIn} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email address</Label>
+            <Label htmlFor="email">Endereço de email</Label>
             <Input
               id="email"
-              placeholder="name@example.com"
+              placeholder="seu@email.com"
               type="email"
               autoCapitalize="none"
               autoComplete="email"
@@ -225,7 +225,7 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
           </div>
           <Button type="submit" disabled={isLoading} className="w-full py-6">
             {isLoading && <FaSpinner className="mr-2 h-4 w-4 animate-spin" />}
-            Continue with Email
+            Continuar com Email
           </Button>
         </form>
       )}

@@ -2,6 +2,7 @@
 
 import { Footer } from "@/components/layout/footer";
 import { AppHeader } from "@/components/layout/app-header";
+import { OnboardingModal } from "@/components/onboarding";
 import React from "react";
 import useUser from "@/lib/users/useUser";
 
@@ -80,7 +81,13 @@ function DashboardSkeleton() {
 }
 
 function AppLayout({ children }: { children: React.ReactNode }) {
-  const { isLoading } = useUser();
+  const { user, isLoading, mutate } = useUser();
+
+  const showOnboarding = !isLoading && user && !user.onboardingCompletedAt;
+
+  const handleOnboardingComplete = () => {
+    mutate();
+  };
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -91,6 +98,10 @@ function AppLayout({ children }: { children: React.ReactNode }) {
       <AppHeader />
       <div className="grow p-4 sm:p-2 max-w-7xl mx-auto w-full">{children}</div>
       <Footer />
+
+      {showOnboarding && (
+        <OnboardingModal onComplete={handleOnboardingComplete} />
+      )}
     </div>
   );
 }

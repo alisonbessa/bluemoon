@@ -39,15 +39,15 @@ export function ResetPasswordForm({ className, ...props }: React.HTMLAttributes<
       const result = await response.json();
 
       if (!response.ok) {
-        toast.error(result.error || "Failed to send reset email");
+        toast.error(result.error || "Falha ao enviar email de recuperação");
         return;
       }
 
       setEmailSent(true);
-      toast.success("Check your email for password reset instructions");
+      toast.success("Verifique seu email para instruções de recuperação de senha");
     } catch (error) {
       console.error("Reset password error:", error);
-      toast.error("Something went wrong");
+      toast.error("Algo deu errado");
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +58,7 @@ export function ResetPasswordForm({ className, ...props }: React.HTMLAttributes<
       <div className={cn("flex flex-col gap-6", className)} {...props}>
         <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-4">
           <p className="text-sm text-green-700 dark:text-green-400">
-            📧 Check your email! If an account exists with that email address, you&apos;ll receive instructions to reset your password.
+            📧 Verifique seu email! Se existir uma conta com esse endereço de email, você receberá instruções para redefinir sua senha.
           </p>
         </div>
       </div>
@@ -69,10 +69,10 @@ export function ResetPasswordForm({ className, ...props }: React.HTMLAttributes<
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="email">Email address</Label>
+          <Label htmlFor="email">Endereço de email</Label>
           <Input
             id="email"
-            placeholder="name@example.com"
+            placeholder="seu@email.com"
             type="email"
             autoCapitalize="none"
             autoComplete="email"
@@ -88,7 +88,7 @@ export function ResetPasswordForm({ className, ...props }: React.HTMLAttributes<
 
         <Button type="submit" disabled={isLoading} className="w-full py-6">
           {isLoading && <FaSpinner className="mr-2 h-4 w-4 animate-spin" />}
-          Send Reset Link
+          Enviar Link de Recuperação
         </Button>
       </form>
     </div>

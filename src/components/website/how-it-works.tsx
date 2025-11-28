@@ -1,86 +1,130 @@
 "use client";
 
-import { Github, Code, Upload } from "lucide-react";
-import HeroVideoDialog from "@/components/ui/hero-video-dialog";
+import React from "react";
+import { DollarSign, Target, TrendingUp, CheckCircle } from "lucide-react";
+import { motion } from "motion/react";
 
 const steps = [
   {
-    title: "Clone github repo",
-    description: "Simply clone the github repo and install the dependencies.",
-    icon: Github,
+    number: "1",
+    icon: DollarSign,
+    title: "Planeje seu dinheiro",
+    description:
+      "Informe suas rendas e distribua cada real para categorias (alimentação, moradia, lazer). Atribua ANTES de gastar.",
+    color: "emerald",
+    badge: "Planejamento",
   },
   {
-    title: "Make changes to the code",
-    description: "Make changes to the code and test it locally.",
-    icon: Code,
+    number: "2",
+    icon: Target,
+    title: "Registre seus gastos",
+    description:
+      "Conforme você gasta no dia a dia, registre as despesas. Cada gasto é deduzido do valor planejado da categoria.",
+    color: "blue",
+    badge: "Acompanhamento",
   },
   {
-    title: "Deploy to Vercel",
-    description: "Deploy to Vercel and start marketing your product.",
-    icon: Upload,
+    number: "3",
+    icon: TrendingUp,
+    title: "Compare planejado vs. real",
+    description:
+      "Veja dashboards claros mostrando quanto você planejou gastar e quanto realmente gastou. Identifique onde está desviando.",
+    color: "purple",
+    badge: "Acompanhamento",
+  },
+  {
+    number: "4",
+    icon: CheckCircle,
+    title: "Ajuste e melhore",
+    description:
+      "Analise os relatórios e ajuste o planejamento do próximo mês. Aprenda seus padrões de consumo e melhore continuamente.",
+    color: "amber",
+    badge: "Melhoria",
   },
 ];
 
-export function HowItWorks() {
+const HowItWorks: React.FC = () => {
   return (
-    <section className="py-16 sm:py-24" aria-label="How It Works">
-      <div className="mx-auto max-w-(--breakpoint-xl) px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            How it works
+    <section id="como-funciona" className="bg-white py-16 dark:bg-gray-900 md:py-24">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-16 text-center">
+          <h2 className="mb-4 text-3xl font-bold text-gray-900 dark:text-white md:text-4xl">
+            Veja como funciona na prática
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Just 3 steps to get started with Indiekit (5 minutes)
+          <p className="mx-auto max-w-2xl text-lg text-gray-600 dark:text-gray-300">
+            Planeje primeiro, acompanhe depois. É assim que você toma controle do seu dinheiro.
           </p>
         </div>
 
-        <div className="mx-auto mt-16 grid max-w-sm gap-8 sm:max-w-none sm:grid-cols-3 sm:gap-12">
-          {steps.map((step, index) => (
-            <div
-              key={step.title}
-              className="relative flex flex-col items-center text-center"
-            >
-              {/* Step Number */}
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                <step.icon className="h-8 w-8 text-primary" />
-              </div>
+        {/* Steps */}
+        <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-2 lg:gap-12">
+          {steps.map((step, index) => {
+            const Icon = step.icon;
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.15 }}
+                className="group relative"
+              >
+                {/* Card */}
+                <div className="relative z-10 flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition-shadow hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                  {/* Badge */}
+                  <div className="mb-4 inline-block w-fit rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                    {step.badge}
+                  </div>
 
-              {/* Step Content */}
-              <div>
-                <h3 className="text-xl font-bold">
-                  {index + 1}. {step.title}
-                </h3>
-                <p className="mt-2 text-muted-foreground">{step.description}</p>
-              </div>
+                  {/* Step Number & Icon */}
+                  <div className="mb-6 flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-100 text-lg font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                      {step.number}
+                    </div>
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-md ${
+                        step.color === "emerald"
+                          ? "from-emerald-500 to-emerald-600"
+                          : step.color === "blue"
+                            ? "from-blue-500 to-blue-600"
+                            : step.color === "purple"
+                              ? "from-purple-500 to-purple-600"
+                              : "from-amber-500 to-amber-600"
+                      }`}
+                    >
+                      <Icon className="h-8 w-8 text-white" />
+                    </motion.div>
+                  </div>
 
-              {/* Connector Line */}
-              {index < steps.length - 1 && (
-                <div className="absolute left-[calc(50%+4rem)] top-8 hidden h-[2px] w-[calc(100%-8rem)] bg-border sm:block" />
-              )}
-            </div>
-          ))}
+                  {/* Title */}
+                  <h3 className="mb-3 text-xl font-bold text-gray-900 dark:text-white">
+                    {step.title}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {step.description}
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
 
-        {/* Visual Example */}
-        <div className="mt-16 rounded-3xl bg-muted/40 p-8 sm:p-12">
-          <div className="relative mx-auto max-w-3xl">
-            <HeroVideoDialog
-              className="dark:hidden block"
-              animationStyle="top-in-bottom-out"
-              videoSrc="https://www.youtube.com/embed/qh3NGpYRG3I?si=4rb-zSdDkVK9qxxb"
-              thumbnailSrc="https://startup-template-sage.vercel.app/hero-light.png"
-              thumbnailAlt="Product Demo"
-            />
-            <HeroVideoDialog
-              className="hidden dark:block"
-              animationStyle="top-in-bottom-out"
-              videoSrc="https://www.youtube.com/embed/qh3NGpYRG3I?si=4rb-zSdDkVK9qxxb"
-              thumbnailSrc="https://startup-template-sage.vercel.app/hero-dark.png"
-              thumbnailAlt="Product Demo"
-            />
-          </div>
+        {/* Bottom CTA */}
+        <div className="mt-16 text-center">
+          <p className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+            Planeje primeiro, gaste depois.
+          </p>
+          <p className="text-gray-600 dark:text-gray-300">
+            É o método mais eficaz para ter controle financeiro. Sem planilhas complicadas, sem surpresas.
+          </p>
         </div>
       </div>
     </section>
   );
-}
+};
+
+export default HowItWorks;

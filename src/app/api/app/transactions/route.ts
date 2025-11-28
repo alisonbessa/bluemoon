@@ -1,0 +1,271 @@
+import withAuthRequired from "@/lib/auth/withAuthRequired";
+import { db } from "@/db";
+import { transactions, budgetMembers, financialAccounts, categories } from "@/db/schema";
+import { eq, and, inArray, desc, gte, lte } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { financialTransactionTypeEnum, financialTransactionStatusEnum } from "@/db/schema/transactions";
+
+const createTransactionSchema = z.object({
+  budgetId: z.string().uuid(),
+  accountId: z.string().uuid(),
+  categoryId: z.string().uuid().optional(),
+  memberId: z.string().uuid().optional(),
+  toAccountId: z.string().uuid().optional(), // For transfers
+  type: financialTransactionTypeEnum,
+  amount: z.number().int(), // In cents
+  description: z.string().optional(),
+  notes: z.string().optional(),
+  date: z.string().datetime().or(z.date()),
+  // Installment fields
+  isInstallment: z.boolean().optional(),
+  totalInstallments: z.number().int().min(2).max(72).optional(),
+});
+
+// Helper to get user's budget IDs
+async function getUserBudgetIds(userId: string) {
+  const memberships = await db
+    .select({ budgetId: budgetMembers.budgetId })
+    .from(budgetMembers)
+    .where(eq(budgetMembers.userId, userId));
+  return memberships.map((m) => m.budgetId);
+}
+
+// GET - Get transactions for user's budgets
+export const GET = withAuthRequired(async (req, context) => {
+  const { session } = context;
+  const { searchParams } = new URL(req.url);
+
+  const budgetId = searchParams.get("budgetId");
+  const accountId = searchParams.get("accountId");
+  const categoryId = searchParams.get("categoryId");
+  const startDate = searchParams.get("startDate");
+  const endDate = searchParams.get("endDate");
+  const limit = parseInt(searchParams.get("limit") || "50");
+  const offset = parseInt(searchParams.get("offset") || "0");
+
+  const budgetIds = await getUserBudgetIds(session.user.id);
+  if (budgetIds.length === 0) {
+    return NextResponse.json({ transactions: [], total: 0 });
+  }
+
+  // Build conditions
+  const conditions = [
+    budgetId
+      ? and(eq(transactions.budgetId, budgetId), inArray(transactions.budgetId, budgetIds))
+      : inArray(transactions.budgetId, budgetIds),
+  ];
+
+  if (accountId) {
+    conditions.push(eq(transactions.accountId, accountId));
+  }
+
+  if (categoryId) {
+    conditions.push(eq(transactions.categoryId, categoryId));
+  }
+
+  if (startDate) {
+    conditions.push(gte(transactions.date, new Date(startDate)));
+  }
+
+  if (endDate) {
+    conditions.push(lte(transactions.date, new Date(endDate)));
+  }
+
+  const userTransactions = await db
+    .select({
+      transaction: transactions,
+      account: financialAccounts,
+      category: categories,
+    })
+    .from(transactions)
+    .leftJoin(financialAccounts, eq(transactions.accountId, financialAccounts.id))
+    .leftJoin(categories, eq(transactions.categoryId, categories.id))
+    .where(and(...conditions))
+    .orderBy(desc(transactions.date))
+    .limit(limit)
+    .offset(offset);
+
+  return NextResponse.json({
+    transactions: userTransactions.map((t) => ({
+      ...t.transaction,
+      account: t.account,
+      category: t.category,
+    })),
+  });
+});
+
+// POST - Create a new transaction (with installment support)
+export const POST = withAuthRequired(async (req, context) => {
+  const { session } = context;
+  const body = await req.json();
+
+  const validation = createTransactionSchema.safeParse(body);
+  if (!validation.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: validation.error.errors },
+      { status: 400 }
+    );
+  }
+
+  const {
+    budgetId,
+    accountId,
+    categoryId,
+    toAccountId,
+    type,
+    amount,
+    description,
+    notes,
+    date,
+    isInstallment,
+    totalInstallments,
+    memberId,
+  } = validation.data;
+
+  // Check user has access to budget
+  const budgetIds = await getUserBudgetIds(session.user.id);
+  if (!budgetIds.includes(budgetId)) {
+    return NextResponse.json(
+      { error: "Budget not found or access denied" },
+      { status: 404 }
+    );
+  }
+
+  // Validate transfer has toAccountId
+  if (type === "transfer" && !toAccountId) {
+    return NextResponse.json(
+      { error: "Transfer requires toAccountId" },
+      { status: 400 }
+    );
+  }
+
+  const transactionDate = typeof date === "string" ? new Date(date) : date;
+
+  // Handle installments
+  if (isInstallment && totalInstallments && totalInstallments > 1) {
+    const installmentAmount = Math.round(amount / totalInstallments);
+    const createdTransactions = [];
+
+    // Create parent transaction (first installment)
+    const [parentTransaction] = await db
+      .insert(transactions)
+      .values({
+        budgetId,
+        accountId,
+        categoryId,
+        memberId,
+        type,
+        amount: installmentAmount,
+        description,
+        notes,
+        date: transactionDate,
+        isInstallment: true,
+        installmentNumber: 1,
+        totalInstallments,
+        source: "web",
+      })
+      .returning();
+
+    createdTransactions.push(parentTransaction);
+
+    // Create remaining installments
+    for (let i = 2; i <= totalInstallments; i++) {
+      const installmentDate = new Date(transactionDate);
+      installmentDate.setMonth(installmentDate.getMonth() + (i - 1));
+
+      const [installment] = await db
+        .insert(transactions)
+        .values({
+          budgetId,
+          accountId,
+          categoryId,
+          memberId,
+          type,
+          amount: installmentAmount,
+          description,
+          notes,
+          date: installmentDate,
+          isInstallment: true,
+          installmentNumber: i,
+          totalInstallments,
+          parentTransactionId: parentTransaction.id,
+          source: "web",
+        })
+        .returning();
+
+      createdTransactions.push(installment);
+    }
+
+    // Update account balance
+    await db
+      .update(financialAccounts)
+      .set({
+        balance: financialAccounts.balance,
+        updatedAt: new Date(),
+      })
+      .where(eq(financialAccounts.id, accountId));
+
+    return NextResponse.json(
+      { transactions: createdTransactions },
+      { status: 201 }
+    );
+  }
+
+  // Create single transaction
+  const [newTransaction] = await db
+    .insert(transactions)
+    .values({
+      budgetId,
+      accountId,
+      categoryId,
+      memberId,
+      toAccountId,
+      type,
+      amount,
+      description,
+      notes,
+      date: transactionDate,
+      source: "web",
+    })
+    .returning();
+
+  // Update account balance(s)
+  // Note: In a production app, this should be done in a database transaction
+  const balanceChange = type === "income" ? amount : -Math.abs(amount);
+
+  const [currentAccount] = await db
+    .select()
+    .from(financialAccounts)
+    .where(eq(financialAccounts.id, accountId));
+
+  if (currentAccount) {
+    await db
+      .update(financialAccounts)
+      .set({
+        balance: currentAccount.balance + balanceChange,
+        updatedAt: new Date(),
+      })
+      .where(eq(financialAccounts.id, accountId));
+  }
+
+  // For transfers, update destination account
+  if (type === "transfer" && toAccountId) {
+    const [destAccount] = await db
+      .select()
+      .from(financialAccounts)
+      .where(eq(financialAccounts.id, toAccountId));
+
+    if (destAccount) {
+      await db
+        .update(financialAccounts)
+        .set({
+          balance: destAccount.balance + Math.abs(amount),
+          updatedAt: new Date(),
+        })
+        .where(eq(financialAccounts.id, toAccountId));
+    }
+  }
+
+  return NextResponse.json({ transaction: newTransaction }, { status: 201 });
+});

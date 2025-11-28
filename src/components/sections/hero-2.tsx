@@ -1,55 +1,88 @@
-import { Star } from "lucide-react";
+import { Star, Wallet, CreditCard, Users, MessageCircle } from "lucide-react";
 import React from "react";
+import Link from "next/link";
 
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const Hero2 = () => {
   return (
     <section className="py-32">
-      <div className="container text-center">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="mx-auto flex max-w-(--breakpoint-lg) flex-col gap-6">
+          <Badge variant="secondary" className="mx-auto w-fit">
+            Feito para o Brasil
+          </Badge>
           <h1 className="text-3xl font-extrabold lg:text-6xl">
-            Generate your website in minutes with AI in your browser
+            Dê trabalho a cada{" "}
+            <span className="text-primary">real</span> do seu dinheiro
           </h1>
           <p className="text-balance text-muted-foreground lg:text-lg">
-            We are a team of developers who are passionate about creating
-            beautiful and functional websites with AI in your browser.
+            HiveBudget é a plataforma de gestão financeira pessoal e familiar
+            inspirada no YNAB, mas adaptada para o contexto brasileiro.
+            Parcelamentos, cartões de crédito e entrada de gastos via Telegram.
           </p>
         </div>
-        <Button size="lg" className="mt-10">
-            Get Started
-        </Button>
+
+        <div className="mx-auto mt-8 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Wallet className="size-4 text-primary" />
+            <span>Orçamento inteligente</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CreditCard className="size-4 text-primary" />
+            <span>Cartões de crédito</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users className="size-4 text-primary" />
+            <span>Compartilhe com parceiro(a)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MessageCircle className="size-4 text-primary" />
+            <span>Integração Telegram</span>
+          </div>
+        </div>
+
+        <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+          <Button size="lg" asChild>
+            <Link href="/sign-in">Começar Grátis</Link>
+          </Button>
+          <Button size="lg" variant="outline" asChild>
+            <Link href="#features">Ver Funcionalidades</Link>
+          </Button>
+        </div>
+
         <div className="mx-auto mt-10 flex w-fit flex-col items-center gap-4 sm:flex-row">
           <span className="mx-4 inline-flex items-center -space-x-4">
             <Avatar className="size-14 border bg-white">
               <AvatarImage
-                src="https://api.dicebear.com/9.x/lorelei/svg?seed=John"
-                alt="placeholder"
+                src="https://api.dicebear.com/9.x/lorelei/svg?seed=Maria"
+                alt="Maria"
               />
             </Avatar>
             <Avatar className="size-14 border bg-white">
               <AvatarImage
-                src="https://api.dicebear.com/9.x/lorelei/svg?seed=Jane"
-                alt="placeholder"
+                src="https://api.dicebear.com/9.x/lorelei/svg?seed=João"
+                alt="João"
               />
             </Avatar>
             <Avatar className="size-14 border bg-white">
               <AvatarImage
-                src="https://api.dicebear.com/9.x/lorelei/svg?seed=David"
-                alt="placeholder"
+                src="https://api.dicebear.com/9.x/lorelei/svg?seed=Ana"
+                alt="Ana"
               />
             </Avatar>
             <Avatar className="size-14 border bg-white">
               <AvatarImage
-                src="https://api.dicebear.com/9.x/lorelei/svg?seed=Emily"
-                alt="placeholder"
+                src="https://api.dicebear.com/9.x/lorelei/svg?seed=Carlos"
+                alt="Carlos"
               />
             </Avatar>
             <Avatar className="size-14 border bg-white">
               <AvatarImage
-                src="https://api.dicebear.com/9.x/lorelei/svg?seed=Michael"
-                alt="placeholder"
+                src="https://api.dicebear.com/9.x/lorelei/svg?seed=Lucia"
+                alt="Lucia"
               />
             </Avatar>
           </span>
@@ -63,7 +96,7 @@ const Hero2 = () => {
               <span className="font-semibold">5.0</span>
             </div>
             <p className="text-left font-medium text-muted-foreground">
-              from 200+ reviews
+              Famílias organizando suas finanças
             </p>
           </div>
         </div>

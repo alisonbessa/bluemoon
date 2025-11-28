@@ -22,11 +22,14 @@ export const users = pgTable("app_user", {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   name: text("name"),
+  displayName: text("display_name"),
   email: text("email").unique().notNull(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
   password: text("password"), // Hashed password for credential-based auth
   createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
+
+  onboardingCompletedAt: timestamp("onboarding_completed_at", { mode: "date" }),
 
   credits: jsonb("credits").$type<CreditRecord>().default({}),
 

@@ -8,75 +8,75 @@ interface ComparisonItem {
 export function WithWithout() {
   const withProduct: ComparisonItem[] = [
     {
-      title: "Ready-to-Use Components",
+      title: "Orçamento Inteligente",
       description:
-        "Get access to 100s of pre-built, responsive UI components (powered by shadcn/ui) and email templates",
+        "Categorias organizadas em grupos (Essencial, Estilo de Vida, Prazeres, Investimentos, Metas) para você saber exatamente para onde vai seu dinheiro.",
     },
     {
-      title: "Authentication & Payments",
+      title: "Cartões de Crédito Brasileiros",
       description:
-        "Secure login system and payment processing ready out of the box",
+        "Suporte completo a datas de fechamento e vencimento de faturas. Entenda exatamente quando cada compra vai impactar seu orçamento.",
     },
     {
-      title: "Background Processing",
+      title: "Parcelamentos Organizados",
       description:
-        "Efficient job queues and scheduled tasks handled automatically",
+        "Acompanhe todas as suas compras parceladas automaticamente. Saiba quanto ainda falta pagar em cada compra.",
     },
     {
-      title: "SEO Optimization",
+      title: "Finanças em Casal",
       description:
-        "Built-in SEO features, sitemaps, and structured data for better rankings",
+        "Compartilhe o orçamento com seu parceiro(a). Cada um tem sua categoria de Prazeres pessoal.",
     },
     {
-      title: "Database & Storage",
+      title: "Entrada Rápida via Telegram",
       description:
-        "Pre-configured database setup with migrations and file storage solutions",
+        "Registre gastos em segundos enviando uma mensagem: 'gastei 50 no mercado'. A IA entende e categoriza automaticamente.",
     },
     {
-      title: "Developer Experience",
+      title: "Flexibilidade Total",
       description:
-        "Well-documented codebase with TypeScript and best practices implemented",
+        "Mova dinheiro entre categorias quando a vida acontece. Seu orçamento se adapta à sua realidade.",
     },
   ];
 
   const withoutProduct: ComparisonItem[] = [
     {
-      title: "Start From Scratch",
+      title: "Planilhas Confusas",
       description:
-        "Spend weeks building basic components and designing email templates",
+        "Gaste horas criando e mantendo planilhas que nunca ficam atualizadas.",
     },
     {
-      title: "Complex Integrations",
+      title: "Cartão de Crédito = Dor de Cabeça",
       description:
-        "Struggle with authentication providers and payment gateway setups",
+        "Sem controle de quando cada compra cai na fatura. Surpresas todo mês.",
     },
     {
-      title: "Manual Processing",
+      title: "Parcelamentos Esquecidos",
       description:
-        "Build your own job scheduling system and handle background tasks",
+        "Perca o controle de quantas parcelas faltam. Comprometa o orçamento futuro sem saber.",
     },
     {
-      title: "Basic SEO",
+      title: "Brigas por Dinheiro",
       description:
-        "Miss out on important SEO features and struggle with search rankings",
+        "Sem visibilidade compartilhada, casais brigam por gastos que não foram comunicados.",
     },
     {
-      title: "Database Headaches",
+      title: "Esquece de Registrar",
       description:
-        "Deal with database setup, migrations, and storage configuration manually",
+        "Abrir app, criar transação, categorizar... é muito trabalho. Você desiste.",
     },
     {
-      title: "Technical Debt",
+      title: "Orçamento Rígido",
       description:
-        "Risk building without proper structure, leading to maintenance issues",
+        "Apps inflexíveis que não permitem ajustes. Você abandona no primeiro imprevisto.",
     },
   ];
 
   return (
-    <section className="py-16 px-4 md:px-6 lg:px-8" aria-label="Comparison">
+    <section className="py-16 px-4 md:px-6 lg:px-8" aria-label="Comparison" id="how-it-works">
       <div className="max-w-7xl mx-auto">
         <h2 className="text-3xl font-bold text-center mb-12">
-          Experience the Difference
+          Sinta a Diferença
         </h2>
 
         <div className="grid md:grid-cols-2 gap-8">
@@ -87,7 +87,7 @@ export function WithWithout() {
                 <X className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-red-700 dark:text-red-400">
-                Without Indie Kit
+                Sem HiveBudget
               </h3>
             </div>
             <div className="space-y-6">
@@ -110,7 +110,7 @@ export function WithWithout() {
                 <Check className="w-6 h-6 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-green-700 dark:text-green-400">
-                With Indie Kit
+                Com HiveBudget
               </h3>
             </div>
             <div className="space-y-6">

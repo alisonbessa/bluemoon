@@ -12,19 +12,19 @@ const MonthlyAnnualPricing = () => {
   const [isAnnually, setIsAnnually] = useState(false);
   return (
     <section className="py-32">
-      <div className="container">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto mb-20 max-w-(--breakpoint-md) text-center">
-          <p className="text-primary font-medium mb-4">Special Launch Offer</p>
+          <p className="text-primary font-medium mb-4">Oferta Especial de Lançamento</p>
           <h2 className="mb-4 text-4xl tracking-tight font-bold lg:text-5xl">
-            Simple, Transparent Pricing
+            Preços Simples e Transparentes
           </h2>
           <p className="text-muted-foreground text-lg">
-            Choose the perfect plan for your needs. No hidden fees.
+            Escolha o plano perfeito para suas necessidades. Sem taxas ocultas.
           </p>
         </div>
 
         <div className="flex flex-col items-center gap-2">
-          <span className="text-base font-medium">Billing cycle</span>
+          <span className="text-base font-medium">Ciclo de cobrança</span>
           <div className="flex h-12 items-center rounded-md bg-muted p-1 text-lg">
             <RadioGroup
               defaultValue="monthly"
@@ -43,7 +43,7 @@ const MonthlyAnnualPricing = () => {
                   htmlFor="monthly"
                   className="flex h-full cursor-pointer items-center justify-center px-7 font-semibold text-muted-foreground peer-data-[state=checked]:text-primary"
                 >
-                  Monthly
+                  Mensal
                 </Label>
               </div>
               <div className='h-full rounded-md transition-all has-[button[data-state="checked"]]:bg-white'>
@@ -56,7 +56,7 @@ const MonthlyAnnualPricing = () => {
                   htmlFor="annually"
                   className="flex h-full cursor-pointer items-center justify-center gap-1 px-7 font-semibold text-muted-foreground peer-data-[state=checked]:text-primary"
                 >
-                  Yearly
+                  Anual
                   <Badge
                     variant="outline"
                     className="border-green-200 bg-green-100 px-1.5 text-green-600"
@@ -71,89 +71,89 @@ const MonthlyAnnualPricing = () => {
             <div className="rounded-xl border border-2 border-gray-400 p-8 hover:border-primary transition-colors">
               <div className="flex h-full flex-col justify-between gap-6">
                 <div>
-                  <h3 className="mb-4 text-2xl font-bold">Basic Plan</h3>
+                  <h3 className="mb-4 text-2xl font-bold">Plano Básico</h3>
                   <div className="mb-6">
                     <span className="text-5xl font-bold">
-                      {isAnnually ? "$63" : "$79"}
+                      {isAnnually ? "R$ 63" : "R$ 79"}
                     </span>
                     <span className="ml-2 font-medium text-muted-foreground">
-                      per month
+                      por mês
                     </span>
                   </div>
                   <p className="text-muted-foreground font-medium">
-                    Good for small teams, or small businesses just starting out.
+                    Ideal para pequenas equipes ou negócios que estão começando.
                   </p>
-                  <p className="mb-4 mt-8 font-bold text-lg">Includes</p>
+                  <p className="mb-4 mt-8 font-bold text-lg">Inclui</p>
                   <ul className="flex flex-col gap-4">
                     <li className="flex gap-3">
                       <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">5 projects limit</span>
+                      <span className="font-medium">Limite de 5 projetos</span>
                     </li>
                     <li className="flex gap-3">
                       <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">5GB storage</span>
+                      <span className="font-medium">5GB de armazenamento</span>
                     </li>
                     <li className="flex gap-3">
                       <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">Up to 3 users</span>
+                      <span className="font-medium">Até 3 usuários</span>
                     </li>
                     <li className="flex gap-3">
                       <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">Support by email only</span>
+                      <span className="font-medium">Suporte apenas por email</span>
                     </li>
                     <li className="flex gap-3">
                       <Check className="mt-1 size-5 shrink-0 text-primary" />
                       <span className="font-medium">
-                        No time tracking feature
+                        Sem rastreamento de tempo
                       </span>
                     </li>
                   </ul>
                 </div>
                 <Button size="lg" className="mt-8">
-                  Start a free trial
+                  Iniciar teste grátis
                 </Button>
               </div>
             </div>
             <div className="rounded-xl border border-gray-400 border-2 p-8 hover:border-primary transition-colors">
               <div className="flex h-full flex-col justify-between gap-6">
                 <div>
-                  <h3 className="mb-4 text-2xl font-bold">Pro Plan</h3>
+                  <h3 className="mb-4 text-2xl font-bold">Plano Pro</h3>
                   <div className="mb-6">
                     <span className="text-5xl font-bold">
-                      {isAnnually ? "$239" : "$299"}
+                      {isAnnually ? "R$ 239" : "R$ 299"}
                     </span>
                     <span className="ml-2 font-medium text-muted-foreground">
-                      per month
+                      por mês
                     </span>
                   </div>
                   <p className="text-muted-foreground font-medium">
-                    Good for medium to large businesses. Get all the features
-                    you need.
+                    Ideal para negócios de médio a grande porte. Tenha todos os recursos
+                    que você precisa.
                   </p>
                   <p className="mb-4 mt-8 font-bold text-lg">
-                    Everything in Basic, plus
+                    Tudo do Básico, mais
                   </p>
                   <ul className="flex flex-col gap-4">
                     <li className="flex gap-3">
                       <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">Unlimited projects</span>
+                      <span className="font-medium">Projetos ilimitados</span>
                     </li>
                     <li className="flex gap-3">
                       <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">50GB storage</span>
+                      <span className="font-medium">50GB de armazenamento</span>
                     </li>
                     <li className="flex gap-3">
                       <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">Unlimited users</span>
+                      <span className="font-medium">Usuários ilimitados</span>
                     </li>
                     <li className="flex gap-3">
                       <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">Priority support</span>
+                      <span className="font-medium">Suporte prioritário</span>
                     </li>
                   </ul>
                 </div>
                 <Button size="lg" className="mt-8">
-                  Start a free trial
+                  Iniciar teste grátis
                 </Button>
               </div>
             </div>

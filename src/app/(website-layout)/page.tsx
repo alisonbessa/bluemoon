@@ -1,24 +1,173 @@
+import type { Metadata } from "next";
 import { WebsiteFAQs } from "@/components/website/faqs";
 import { CTA2 } from "@/components/website/cta-2";
-import { WithWithout } from "@/components/website/with-without";
 import Hero2 from "@/components/sections/hero-2";
 import CTA1 from "@/components/website/cta-1";
 import MonthlyAnnualPricing from "@/components/website/monthly-annual-pricing";
 import TextRevealByWord from "@/components/ui/text-reveal";
-import WebsiteCreditsSection from "@/components/website/website-credits-section";
+import { StructuredData } from "@/components/seo/StructuredData";
+import { PainPoints } from "@/components/website/pain-points";
+import HowItWorks from "@/components/website/how-it-works";
+import { BudgetExample } from "@/components/website/budget-example";
+import { TelegramFeature } from "@/components/website/telegram-feature";
+import { ForCouples } from "@/components/website/for-couples";
+import { TestimonialsGrid } from "@/components/website/testimonials-grid";
+
+export const metadata: Metadata = {
+  title: "HiveBudget - Controle Financeiro Colaborativo para Casais e Famílias",
+  description:
+    "Planeje suas finanças em grupo com o HiveBudget. Dashboards claros, orçamento inteligente e colaboração em tempo real. Perfeito para casais, famílias e freelancers. Comece grátis!",
+  keywords: [
+    "controle financeiro",
+    "orçamento familiar",
+    "planejamento financeiro",
+    "finanças colaborativas",
+    "orçamento casal",
+    "gestão financeira",
+    "app orçamento",
+    "dashboard financeiro",
+    "controle de gastos",
+    "hivebudget",
+  ],
+  openGraph: {
+    title: "HiveBudget - Controle Financeiro Colaborativo",
+    description:
+      "Organize suas finanças em grupo com dashboards claros e colaboração em tempo real. Perfeito para casais, famílias e freelancers brasileiros.",
+    type: "website",
+    url: process.env.NEXT_PUBLIC_APP_URL,
+    images: [
+      {
+        url: "/images/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "HiveBudget - Dashboard de Planejamento Financeiro Colaborativo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "HiveBudget - Controle Financeiro Colaborativo",
+    description: "Organize suas finanças em grupo. Comece grátis!",
+    images: ["/images/og-image.png"],
+  },
+  alternates: {
+    canonical: "/",
+  },
+};
+
+const faqItems = [
+  {
+    question: "Como funciona o orçamento compartilhado?",
+    answer:
+      "Você cria um orçamento e pode adicionar membros da família (parceiro, filhos). Todos veem as mesmas contas, categorias e transações em tempo real. Perfeito para casais e famílias organizarem as finanças juntos.",
+  },
+  {
+    question: "Como funciona o trial de 7 dias?",
+    answer:
+      "Você testa todas as funcionalidades por 7 dias sem pagar nada e sem precisar colocar cartão de crédito. Depois, escolhe se quer continuar com um dos nossos planos.",
+  },
+  {
+    question: "O plano inclui membros ilimitados?",
+    answer:
+      "Sim! Você pode adicionar quantos membros quiser (parceiro, filhos, etc.) sem custo adicional. Apenas quem cria a conta paga - membros convidados têm acesso grátis ao orçamento compartilhado.",
+  },
+  {
+    question: "Como funciona o planejamento do orçamento?",
+    answer:
+      "Você atribui cada real do seu dinheiro ANTES de gastar. Diferente de apps que apenas rastreiam gastos, você planeja ativamente para onde cada centavo vai, evitando surpresas no fim do mês.",
+  },
+  {
+    question: "Como convido alguém para o orçamento?",
+    answer:
+      "Gere um link de convite ou envie por e-mail diretamente da área de membros. Apenas você (quem criou a conta) paga - membros convidados têm acesso grátis.",
+  },
+  {
+    question: "Quais métodos de pagamento vocês aceitam?",
+    answer:
+      "Cartão de crédito via Stripe, com cobrança mensal ou anual. Processamento 100% seguro.",
+  },
+  {
+    question: "Posso cancelar quando quiser?",
+    answer:
+      "Sim! Cancele a qualquer momento sem burocracia. Seus dados são preservados se quiser voltar depois.",
+  },
+  {
+    question: "Tem integração com bancos brasileiros?",
+    answer:
+      "Em breve via Open Banking para importação automática de transações. Por enquanto, você adiciona transações manualmente (é rápido e simples).",
+  },
+  {
+    question: "O que significa 'orçamento primeiro'?",
+    answer:
+      "Diferente de apps que só rastreiam gastos, no HiveBudget você define ANTES para onde cada real vai. Assim você toma decisões conscientes e não tem surpresa no fim do mês.",
+  },
+  {
+    question: "Como funciona a integração com Telegram?",
+    answer:
+      "Você conecta seu Telegram e pode registrar gastos mandando mensagem, foto de comprovante ou até áudio. O HiveBudget entende e categoriza automaticamente com IA. Também pode consultar seu saldo e orçamento por lá.",
+  },
+  {
+    question: "Meu parceiro(a) precisa pagar também?",
+    answer:
+      "Não! Quem cria a conta é o único que paga. Você pode convidar quantas pessoas quiser (parceiro, filhos, etc.) e elas têm acesso grátis ao orçamento compartilhado.",
+  },
+  {
+    question: "É seguro colocar minhas informações financeiras?",
+    answer:
+      "Sim! Usamos criptografia de ponta a ponta e nunca pedimos senha de banco. Você registra as transações manualmente ou via Telegram, não conectamos direto na sua conta bancária.",
+  },
+];
 
 export default function WebsiteHomepage() {
   return (
     <>
-      <Hero2 />
+      <StructuredData type="WebSite" />
+      <StructuredData type="SoftwareApplication" />
+      <StructuredData type="Organization" />
+
+      <div className="relative bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950/30 dark:via-purple-950/20 dark:to-pink-950/20">
+        <Hero2 />
+      </div>
+
+      <div className="relative bg-background">
+        <PainPoints />
+      </div>
+
+      <div id="como-funciona" className="relative bg-muted/5 dark:bg-muted/5">
+        <HowItWorks />
+      </div>
+
+      <div className="relative bg-background">
+        <BudgetExample />
+      </div>
+
       <CTA1 />
-      <MonthlyAnnualPricing />
-      <TextRevealByWord text="Still not sure? My users are able to create their own blogs and websites with ease. It was very difficult to find a solution that was easy to use and affordable." />
-      <WithWithout />
-      <WebsiteCreditsSection />
-      <MonthlyAnnualPricing />
-      <WebsiteFAQs />
-      <CTA2 />
+
+      <TextRevealByWord text="Com o HiveBudget, finalmente consegui entender para onde ia meu dinheiro. Hoje, eu e minha esposa planejamos juntos e não brigamos mais por gastos surpresa." />
+
+      <div className="relative bg-background">
+        <TelegramFeature />
+      </div>
+
+      <div className="relative bg-muted/5 dark:bg-muted/5">
+        <ForCouples />
+      </div>
+
+      <div id="pricing" className="relative pt-16 bg-background">
+        <MonthlyAnnualPricing />
+      </div>
+
+      <div id="depoimentos" className="relative bg-muted/5 dark:bg-muted/5">
+        <TestimonialsGrid />
+      </div>
+
+      <div id="faq" className="relative bg-background">
+        <WebsiteFAQs items={faqItems} />
+      </div>
+
+      <div className="relative bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
+        <CTA2 />
+      </div>
     </>
   );
 }

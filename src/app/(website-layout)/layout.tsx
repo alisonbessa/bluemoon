@@ -34,12 +34,10 @@ export const metadata: Metadata = {
 
 function WebsiteLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative flex min-h-screen flex-col">
+    <div className="relative min-h-screen">
       <Header />
-      <main className="flex-1">
-        <div className="mx-auto max-w-(--breakpoint-xl) px-4 sm:px-6 lg:px-8">
-          {children}
-        </div>
+      <main className="-mt-14">
+        {children}
       </main>
       <FooterSection />
     </div>

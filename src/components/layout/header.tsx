@@ -11,7 +11,7 @@ const navItems: { label: string; href: string }[] = [
   // { label: "Pricing", href: "/#pricing" },
 ];
 
-const CTAText = "Get Started";
+const CTAText = "Começar";
 const CTAHref = "/#pricing";
 
 const signInEnabled = process.env.NEXT_PUBLIC_SIGNIN_ENABLED === "true";
@@ -51,7 +51,7 @@ export function Header() {
                 href="/sign-in"
                 className="text-sm font-medium text-muted-foreground hover:text-primary"
               >
-                Sign In
+                Entrar
               </Link>
             )}
             <Button asChild>
@@ -66,7 +66,7 @@ export function Header() {
               className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              <span className="sr-only">Open main menu</span>
+              <span className="sr-only">Abrir menu principal</span>
               <Menu className="h-6 w-6" />
             </button>
           </div>
@@ -76,33 +76,17 @@ export function Header() {
         {isMenuOpen && (
           <div className="border-t border-border/40 md:hidden">
             <div className="space-y-1 px-2 pb-3 pt-2">
-              <Link
-                href="/features"
-                className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                Features
-              </Link>
-              <Link
-                href="/solutions"
-                className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                Solutions
-              </Link>
-              <Link
-                href="/blog"
-                className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                Blog
-              </Link>
-              <Link
-                href="/sign-in"
-                className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                Sign In
-              </Link>
+              {signInEnabled && (
+                <Link
+                  href="/sign-in"
+                  className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                >
+                  Entrar
+                </Link>
+              )}
               <div className="px-3 py-2">
                 <Button className="w-full" asChild>
-                  <Link href="/get-started">Get Started</Link>
+                  <Link href={CTAHref}>{CTAText}</Link>
                 </Button>
               </div>
             </div>

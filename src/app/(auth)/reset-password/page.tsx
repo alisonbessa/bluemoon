@@ -4,8 +4,8 @@ import { appConfig } from "@/lib/config";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 
 export const metadata: Metadata = {
-  title: "Reset Password",
-  description: `Reset your ${appConfig.projectName} password`,
+  title: "Redefinir Senha",
+  description: `Redefina sua senha do ${appConfig.projectName}`,
 };
 
 export default function ResetPasswordPage() {
@@ -13,10 +13,10 @@ export default function ResetPasswordPage() {
     <>
       <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight mb-2">
-          Reset Password
+          Redefinir Senha
         </h1>
         <p className="text-sm text-muted-foreground">
-          Enter your email address and we&apos;ll send you a link to reset your password
+          Digite seu endereço de email e enviaremos um link para redefinir sua senha
         </p>
       </div>
 
@@ -27,7 +27,7 @@ export default function ResetPasswordPage() {
           href="/sign-in"
           className="text-sm text-primary hover:text-primary/90 underline underline-offset-4"
         >
-          Back to Sign In
+          Voltar para Entrar
         </Link>
       </div>
     </>

@@ -83,9 +83,11 @@ const withAuthRequired = (handler: WithManagerHandler) => {
         .select({
           id: users.id,
           name: users.name,
+          displayName: users.displayName,
           email: users.email,
           image: users.image,
           createdAt: users.createdAt,
+          onboardingCompletedAt: users.onboardingCompletedAt,
           planId: users.planId,
           stripeCustomerId: users.stripeCustomerId,
           stripeSubscriptionId: users.stripeSubscriptionId,

@@ -5,8 +5,8 @@ import { SignUpForm } from "@/components/auth/signup-form"
 import { AuthForm } from "@/components/auth/auth-form"
 
 export const metadata: Metadata = {
-  title: "Sign Up",
-  description: `Create your ${appConfig.projectName} account`,
+  title: "Cadastrar",
+  description: `Crie sua conta no ${appConfig.projectName}`,
 }
 
 export default function SignUpPage() {
@@ -16,10 +16,10 @@ export default function SignUpPage() {
     <>
       <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight mb-2">
-          Create an account
+          Criar uma conta
         </h1>
         <p className="text-sm text-muted-foreground">
-          Get started with {appConfig.projectName} today
+          Comece a usar o {appConfig.projectName} hoje
         </p>
       </div>
 
@@ -30,7 +30,7 @@ export default function SignUpPage() {
           href="/sign-in"
           className="text-sm text-primary hover:text-primary/90 underline underline-offset-4"
         >
-          Already have an account? Sign in
+          Já tem uma conta? Entre
         </Link>
       </div>
     </>
