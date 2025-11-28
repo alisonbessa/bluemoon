@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"next dev --turbopack\" \"inngest-cli dev -p 8288\" \"npx react-email dev --dir ./src/emails --port 3001\"",
+    "dev:no-inngest": "concurrently \"next dev --turbopack\" \"npx react-email dev --dir ./src/emails --port 3001\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
