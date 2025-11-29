@@ -27,12 +27,7 @@ function Providers({ children }: { children: React.ReactNode }) {
             />
 
             {children}
-            <Toaster position="top-center" className="dark:hidden" richColors />
-            <Toaster
-              position="top-center"
-              className="hidden dark:block"
-              richColors
-            />
+            <Toaster position="top-center" richColors theme="system" />
           </SWRConfig>
         </SessionProvider>
       </Suspense>

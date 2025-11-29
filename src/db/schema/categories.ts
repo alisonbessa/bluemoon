@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text, integer, boolean } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, boolean, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { groups } from "./groups";
@@ -36,7 +36,10 @@ export const categories = pgTable("categories", {
 
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-});
+}, (table) => [
+  index("idx_categories_budget_id").on(table.budgetId),
+  index("idx_categories_group_id").on(table.groupId),
+]);
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({
   budget: one(budgets, {

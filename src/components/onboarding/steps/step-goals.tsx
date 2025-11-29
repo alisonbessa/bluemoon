@@ -74,6 +74,13 @@ export function StepGoals({
 }: StepGoalsProps) {
   const showCustomInput = goals.includes("other");
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      onNext();
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 px-4 overflow-y-auto">
@@ -105,8 +112,10 @@ export function StepGoals({
             <Input
               value={customGoal}
               onChange={(e) => onCustomGoalChange(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Qual e sua meta personalizada?"
               className="w-full"
+              autoFocus
             />
           </div>
         )}

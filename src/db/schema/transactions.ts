@@ -1,9 +1,10 @@
-import { timestamp, pgTable, text, integer, boolean } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, boolean, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { financialAccounts } from "./accounts";
 import { categories } from "./categories";
 import { budgetMembers } from "./budget-members";
+import { incomeSources } from "./income-sources";
 import { z } from "zod";
 
 export const financialTransactionTypeEnum = z.enum(["income", "expense", "transfer"]);
@@ -22,7 +23,8 @@ export const transactions = pgTable("transactions", {
   accountId: text("account_id")
     .notNull()
     .references(() => financialAccounts.id, { onDelete: "cascade" }),
-  categoryId: text("category_id").references(() => categories.id, { onDelete: "set null" }), // null for transfers
+  categoryId: text("category_id").references(() => categories.id, { onDelete: "set null" }), // For expense transactions (null for transfers and income)
+  incomeSourceId: text("income_source_id").references(() => incomeSources.id, { onDelete: "set null" }), // For income transactions
   memberId: text("member_id").references(() => budgetMembers.id, { onDelete: "set null" }), // Who made the transaction
 
   // For transfers
@@ -48,7 +50,13 @@ export const transactions = pgTable("transactions", {
 
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-});
+}, (table) => [
+  index("idx_transactions_budget_id").on(table.budgetId),
+  index("idx_transactions_account_id").on(table.accountId),
+  index("idx_transactions_category_id").on(table.categoryId),
+  index("idx_transactions_date").on(table.date),
+  index("idx_transactions_income_source_id").on(table.incomeSourceId),
+]);
 
 export const transactionsRelations = relations(transactions, ({ one, many }) => ({
   budget: one(budgets, {
@@ -67,6 +75,10 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
   category: one(categories, {
     fields: [transactions.categoryId],
     references: [categories.id],
+  }),
+  incomeSource: one(incomeSources, {
+    fields: [transactions.incomeSourceId],
+    references: [incomeSources.id],
   }),
   member: one(budgetMembers, {
     fields: [transactions.memberId],

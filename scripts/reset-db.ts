@@ -1,8 +1,7 @@
-import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import * as schema from "../src/db/schema";
 import * as dotenv from "dotenv";
 import * as path from "path";
+import { execSync } from "child_process";
 
 // Load .env.local
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
@@ -18,125 +17,27 @@ if (!DATABASE_URL) {
 async function resetDatabase() {
   console.log("🗑️  Starting database reset...\n");
 
-  const client = postgres(DATABASE_URL);
-  const db = drizzle(client);
+  const client = postgres(DATABASE_URL as string);
 
   try {
-    // Drop all schemas (CASCADE drops all objects)
-    console.log("📋 Dropping all schemas...");
+    // Drop and recreate the public schema to completely reset
+    console.log("📋 Dropping and recreating schema...");
     await client`DROP SCHEMA IF EXISTS public CASCADE`;
     await client`CREATE SCHEMA public`;
-    console.log("✅ Schemas dropped and recreated\n");
+    console.log("✅ Schema reset complete\n");
 
-    // Recreate tables
-    console.log("🔨 Recreating tables from schema...");
-    await client`
-      CREATE TABLE IF NOT EXISTS "groups" (
-        "id" text PRIMARY KEY,
-        "code" text UNIQUE NOT NULL,
-        "name" text NOT NULL,
-        "description" text,
-        "icon" text,
-        "display_order" integer NOT NULL DEFAULT 0,
-        "created_at" timestamp DEFAULT now()
-      )
-    `;
-
-    await client`
-      CREATE TABLE IF NOT EXISTS "app_user" (
-        "id" text PRIMARY KEY,
-        "name" text,
-        "display_name" text,
-        "email" text UNIQUE NOT NULL,
-        "emailVerified" timestamp,
-        "image" text,
-        "password" text,
-        "createdAt" timestamp DEFAULT now(),
-        "onboarding_completed_at" timestamp,
-        "credits" jsonb DEFAULT '{}',
-        "stripeCustomerId" text,
-        "stripeSubscriptionId" text,
-        "planId" text
-      )
-    `;
-
-    await client`
-      CREATE TABLE IF NOT EXISTS "plans" (
-        "id" text PRIMARY KEY,
-        "name" text NOT NULL,
-        "codename" text NOT NULL,
-        "default" boolean DEFAULT false,
-        "quotas" jsonb,
-        "createdAt" timestamp DEFAULT now()
-      )
-    `;
-
-    await client`
-      CREATE TABLE IF NOT EXISTS "budgets" (
-        "id" text PRIMARY KEY,
-        "name" text NOT NULL,
-        "description" text,
-        "currency" text DEFAULT 'BRL',
-        "createdAt" timestamp DEFAULT now(),
-        "updatedAt" timestamp DEFAULT now()
-      )
-    `;
-
-    await client`
-      CREATE TABLE IF NOT EXISTS "budget_members" (
-        "id" text PRIMARY KEY,
-        "budget_id" text NOT NULL REFERENCES "budgets"("id") ON DELETE CASCADE,
-        "user_id" text REFERENCES "app_user"("id") ON DELETE CASCADE,
-        "name" text NOT NULL,
-        "type" text NOT NULL DEFAULT 'owner',
-        "color" text DEFAULT '#6366f1',
-        "monthly_pleasure_budget" integer DEFAULT 0,
-        "created_at" timestamp DEFAULT now(),
-        "updated_at" timestamp DEFAULT now()
-      )
-    `;
-
-    await client`
-      CREATE TABLE IF NOT EXISTS "financial_accounts" (
-        "id" text PRIMARY KEY,
-        "budget_id" text NOT NULL REFERENCES "budgets"("id") ON DELETE CASCADE,
-        "name" text NOT NULL,
-        "type" text NOT NULL,
-        "color" text DEFAULT '#6366f1',
-        "icon" text,
-        "balance" integer NOT NULL DEFAULT 0,
-        "cleared_balance" integer NOT NULL DEFAULT 0,
-        "credit_limit" integer,
-        "closing_day" integer,
-        "due_day" integer,
-        "is_archived" boolean DEFAULT false,
-        "display_order" integer NOT NULL DEFAULT 0,
-        "created_at" timestamp DEFAULT now(),
-        "updated_at" timestamp DEFAULT now()
-      )
-    `;
-
-    await client`
-      CREATE TABLE IF NOT EXISTS "categories" (
-        "id" text PRIMARY KEY,
-        "budget_id" text NOT NULL REFERENCES "budgets"("id") ON DELETE CASCADE,
-        "group_id" text NOT NULL REFERENCES "groups"("id"),
-        "member_id" text REFERENCES "budget_members"("id") ON DELETE CASCADE,
-        "name" text NOT NULL,
-        "icon" text,
-        "color" text DEFAULT '#6366f1',
-        "behavior" text NOT NULL DEFAULT 'refill_up',
-        "planned_amount" integer NOT NULL DEFAULT 0,
-        "target_amount" integer,
-        "target_date" timestamp,
-        "is_archived" boolean DEFAULT false,
-        "display_order" integer NOT NULL DEFAULT 0,
-        "created_at" timestamp DEFAULT now(),
-        "updated_at" timestamp DEFAULT now()
-      )
-    `;
-
-    console.log("✅ Tables created\n");
+    // Recreate all tables using drizzle-kit push (non-interactive)
+    console.log("🔨 Recreating tables with drizzle-kit...");
+    try {
+      execSync("pnpm drizzle-kit push", {
+        stdio: "inherit",
+        cwd: process.cwd(),
+      });
+      console.log("✅ Tables created\n");
+    } catch (error) {
+      console.error("⚠️  drizzle-kit push encountered an error");
+      throw error;
+    }
 
     // Seed default groups
     console.log("🌱 Seeding default groups...");
@@ -203,7 +104,7 @@ async function resetDatabase() {
     console.log("  • Test the onboarding flow from scratch");
     console.log("  • Create new budgets and accounts");
     console.log("  • Verify data relationships\n");
-    console.log("To run your app: pnpm dev\n");
+    console.log("To run your app: pnpm dev:no-inngest\n");
   } catch (error) {
     console.error("❌ Error resetting database:");
     console.error(error);

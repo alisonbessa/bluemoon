@@ -38,7 +38,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/assets/logo.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
-      <body className={`${inter.variable} antialiased bg-background`}>
+      <body className={`${inter.variable} antialiased bg-background`} suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

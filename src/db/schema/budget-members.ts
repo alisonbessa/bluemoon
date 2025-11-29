@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text, integer } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { users } from "./user";
@@ -21,7 +21,10 @@ export const budgetMembers = pgTable("budget_members", {
   monthlyPleasureBudget: integer("monthly_pleasure_budget").default(0), // Monthly "Prazeres" budget in cents
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-});
+}, (table) => [
+  index("idx_budget_members_user_id").on(table.userId),
+  index("idx_budget_members_budget_id").on(table.budgetId),
+]);
 
 export const budgetMembersRelations = relations(budgetMembers, ({ one, many }) => ({
   budget: one(budgets, {

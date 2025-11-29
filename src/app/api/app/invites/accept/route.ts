@@ -4,6 +4,7 @@ import { invites, budgetMembers, groups, categories } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { capitalizeWords } from "@/lib/utils";
 
 const acceptInviteSchema = z.object({
   token: z.string().uuid(),
@@ -79,12 +80,13 @@ export const POST = withAuthRequired(async (req, context) => {
   }
 
   // Create partner membership
+  const memberName = capitalizeWords(user?.name || invite.name || "Partner");
   const [newMember] = await db
     .insert(budgetMembers)
     .values({
       budgetId: invite.budgetId,
       userId: session.user.id,
-      name: user?.name || invite.name || "Partner",
+      name: memberName,
       type: "partner",
     })
     .returning();

@@ -7,8 +7,7 @@ import { HouseholdData } from "../hooks/use-onboarding";
 interface StepHouseholdProps {
   household: HouseholdData;
   onTogglePartner: () => void;
-  onToggleKids: () => void;
-  onToggleTeens: () => void;
+  onToggleChildren: () => void;
   onToggleOtherAdults: () => void;
   onTogglePets: () => void;
   onNext: () => void;
@@ -20,45 +19,38 @@ const HOUSEHOLD_OPTIONS = [
     key: "myself",
     icon: "👤",
     label: "Eu mesmo(a)",
-    description: "Voce e o dono do orcamento",
+    description: "Você é o dono do orçamento",
   },
   {
     key: "partner",
     icon: "💑",
     label: "Meu/minha parceiro(a)",
-    description: "Compartilhe o orcamento",
+    description: "Compartilhe o orçamento",
   },
   {
-    key: "kids",
+    key: "children",
     icon: "👶",
-    label: "Filhos(as)",
-    description: "Criancas pequenas",
-  },
-  {
-    key: "teens",
-    icon: "🧑",
-    label: "Adolescentes",
-    description: "Jovens da familia",
+    label: "Filhos",
+    description: "Crianças ou adolescentes",
   },
   {
     key: "otherAdults",
     icon: "👨‍👩‍👧",
     label: "Outros adultos",
-    description: "Pais, irmaos, etc",
+    description: "Pais, irmãos, etc",
   },
   {
     key: "pets",
     icon: "🐕",
     label: "Pets",
-    description: "Animais de estimacao",
+    description: "Animais de estimação",
   },
 ] as const;
 
 export function StepHousehold({
   household,
   onTogglePartner,
-  onToggleKids,
-  onToggleTeens,
+  onToggleChildren,
   onToggleOtherAdults,
   onTogglePets,
   onNext,
@@ -70,10 +62,8 @@ export function StepHousehold({
         return true;
       case "partner":
         return household.hasPartner;
-      case "kids":
-        return household.kids.length > 0;
-      case "teens":
-        return household.teens.length > 0;
+      case "children":
+        return household.children.length > 0;
       case "otherAdults":
         return household.otherAdults.length > 0;
       case "pets":
@@ -88,11 +78,8 @@ export function StepHousehold({
       case "partner":
         onTogglePartner();
         break;
-      case "kids":
-        onToggleKids();
-        break;
-      case "teens":
-        onToggleTeens();
+      case "children":
+        onToggleChildren();
         break;
       case "otherAdults":
         onToggleOtherAdults();
@@ -108,10 +95,10 @@ export function StepHousehold({
       <div className="flex-1 px-4">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold mb-2">
-            Quem faz parte do seu orcamento?
+            Quem faz parte do seu orçamento?
           </h2>
           <p className="text-muted-foreground">
-            Selecione todos que compartilham as financas com voce
+            Selecione todos que compartilham as finanças com você
           </p>
         </div>
 

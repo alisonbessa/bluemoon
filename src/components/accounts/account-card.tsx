@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, CreditCard, Landmark, Wallet, PiggyBank, TrendingUp } from "lucide-react";
+import { Pencil, Trash2, CreditCard, Landmark, Wallet, PiggyBank, TrendingUp, UtensilsCrossed } from "lucide-react";
 import type { AccountType } from "@/db/schema/accounts";
 import { cn } from "@/lib/utils";
 import type { Account } from "./types";
@@ -43,6 +43,11 @@ const TYPE_CONFIG: Record<
     icon: <TrendingUp className="h-5 w-5" />,
     defaultIcon: "📈",
   },
+  benefit: {
+    label: "Benefício",
+    icon: <UtensilsCrossed className="h-5 w-5" />,
+    defaultIcon: "🍽️",
+  },
 };
 
 function formatCurrency(cents: number): string {
@@ -55,6 +60,7 @@ function formatCurrency(cents: number): string {
 export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
   const config = TYPE_CONFIG[account.type];
   const isCreditCard = account.type === "credit_card";
+  const isBenefit = account.type === "benefit";
 
   const availableCredit = isCreditCard && account.creditLimit
     ? account.creditLimit - account.balance
@@ -73,9 +79,20 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             </div>
             <div>
               <h3 className="font-semibold">{account.name}</h3>
-              <Badge variant="secondary" className="mt-1">
-                {config.label}
-              </Badge>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="secondary">
+                  {config.label}
+                </Badge>
+                {account.owner && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: account.owner.color || "#6366f1" }}
+                    />
+                    {account.owner.name}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -173,6 +190,25 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                 <div>
                   <span className="text-muted-foreground">Vence dia </span>
                   <span className="font-medium">{account.dueDay}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isBenefit && (account.monthlyDeposit || account.depositDay) && (
+            <div className="mt-3 flex gap-4 border-t pt-3 text-sm">
+              {account.monthlyDeposit && (
+                <div>
+                  <span className="text-muted-foreground">Recebe </span>
+                  <span className="font-medium">
+                    {formatCurrency(account.monthlyDeposit)}
+                  </span>
+                </div>
+              )}
+              {account.depositDay && (
+                <div>
+                  <span className="text-muted-foreground">Dia </span>
+                  <span className="font-medium">{account.depositDay}</span>
                 </div>
               )}
             </div>

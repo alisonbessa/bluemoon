@@ -20,9 +20,10 @@ import {
 
 interface OnboardingModalProps {
   onComplete?: () => void;
+  onSkip?: () => void;
 }
 
-export function OnboardingModal({ onComplete }: OnboardingModalProps) {
+export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
   const router = useRouter();
   const {
     data,
@@ -40,7 +41,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   } = useOnboarding();
 
   const handleToggleHouseholdItem = useCallback(
-    (type: "kids" | "teens" | "otherAdults" | "pets") => {
+    (type: "children" | "otherAdults" | "pets") => {
       const current = data.household[type];
       if (current.length > 0) {
         updateHousehold(type, []);
@@ -72,6 +73,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
             displayName={data.displayName}
             onDisplayNameChange={(value) => updateData("displayName", value)}
             onNext={goToNext}
+            onSkip={onSkip}
           />
         );
 
@@ -82,8 +84,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
             onTogglePartner={() =>
               updateHousehold("hasPartner", !data.household.hasPartner)
             }
-            onToggleKids={() => handleToggleHouseholdItem("kids")}
-            onToggleTeens={() => handleToggleHouseholdItem("teens")}
+            onToggleChildren={() => handleToggleHouseholdItem("children")}
             onToggleOtherAdults={() => handleToggleHouseholdItem("otherAdults")}
             onTogglePets={() => handleToggleHouseholdItem("pets")}
             onNext={goToNext}
@@ -96,8 +97,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           <StepMemberNames
             household={data.household}
             onUpdatePartnerName={(name) => updateHousehold("partnerName", name)}
-            onUpdateKids={(names) => updateHousehold("kids", names)}
-            onUpdateTeens={(names) => updateHousehold("teens", names)}
+            onUpdateChildren={(names) => updateHousehold("children", names)}
             onUpdateOtherAdults={(names) =>
               updateHousehold("otherAdults", names)
             }
@@ -194,7 +194,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           />
         </div>
 
-        <div className="flex-1 overflow-hidden py-6">{renderStep()}</div>
+        <div className="flex-1 overflow-hidden pt-6">{renderStep()}</div>
       </div>
     </div>
   );

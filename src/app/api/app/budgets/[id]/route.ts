@@ -4,6 +4,7 @@ import { budgets, budgetMembers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { capitalizeWords } from "@/lib/utils";
 
 const updateBudgetSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -81,12 +82,15 @@ export const PATCH = withAuthRequired(async (req, context) => {
     );
   }
 
+  const updateData = {
+    ...validation.data,
+    ...(validation.data.name && { name: capitalizeWords(validation.data.name) }),
+    updatedAt: new Date(),
+  };
+
   const [updatedBudget] = await db
     .update(budgets)
-    .set({
-      ...validation.data,
-      updatedAt: new Date(),
-    })
+    .set(updateData)
     .where(eq(budgets.id, budgetId))
     .returning();
 

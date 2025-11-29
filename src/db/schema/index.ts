@@ -15,3 +15,5 @@ export * from "./categories";
 export * from "./accounts";
 export * from "./transactions";
 export * from "./invites";
+export * from "./income-sources";
+export * from "./monthly-allocations";

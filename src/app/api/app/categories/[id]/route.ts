@@ -5,6 +5,7 @@ import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { categoryBehaviorEnum } from "@/db/schema/categories";
+import { capitalizeWords } from "@/lib/utils";
 
 const updateCategorySchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -91,6 +92,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
 
   const updateData: Record<string, unknown> = {
     ...validation.data,
+    ...(validation.data.name && { name: capitalizeWords(validation.data.name) }),
     updatedAt: new Date(),
   };
 

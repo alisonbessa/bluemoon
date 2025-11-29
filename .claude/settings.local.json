@@ -18,7 +18,11 @@
       "Bash(ls:*)",
       "Bash(cat:*)",
       "Bash(printf:*)",
-      "Bash(pnpm db:reset:*)"
+      "Bash(pnpm db:reset:*)",
+      "Bash(pkill:*)",
+      "Bash(pnpm tsc:*)",
+      "Bash(npx drizzle-kit generate:*)",
+      "Bash(npx tsx scripts/add-income-source-column.ts)"
     ],
     "deny": [],
     "ask": []

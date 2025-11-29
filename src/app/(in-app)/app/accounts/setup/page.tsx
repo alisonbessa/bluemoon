@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,39 +13,105 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AccountForm, AccountCard, type Account, type AccountFormData } from "@/components/accounts";
-import { Plus, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { AccountForm, type Account, type AccountFormData } from "@/components/accounts";
+import {
+  Plus,
+  ArrowRight,
+  Loader2,
+  Sparkles,
+  Wallet,
+  CreditCard,
+  PiggyBank,
+} from "lucide-react";
+import {
+  COMPACT_TABLE_STYLES,
+  GroupToggleRow,
+  HoverActions,
+  useExpandedGroups,
+} from "@/components/ui/compact-table";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface Budget {
   id: string;
   name: string;
 }
 
+interface Member {
+  id: string;
+  name: string;
+  type: string;
+  color?: string | null;
+}
+
+interface AccountWithOwner extends Account {
+  owner?: Member | null;
+}
+
+function formatCurrency(cents: number): string {
+  return (cents / 100).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function formatCurrencyCompact(cents: number): string {
+  return (cents / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+const GRID_COLS = "24px 1fr 100px 100px 120px";
+
+const TYPE_CONFIG = {
+  checking: { label: "Contas Correntes", icon: "🏦" },
+  savings: { label: "Poupança", icon: "🐷" },
+  credit_card: { label: "Cartões de Crédito", icon: "💳" },
+  cash: { label: "Dinheiro", icon: "💵" },
+  investment: { label: "Investimentos", icon: "📈" },
+  benefit: { label: "Benefícios", icon: "🍽️" },
+};
+
 export default function AccountsSetupPage() {
   const router = useRouter();
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accounts, setAccounts] = useState<AccountWithOwner[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
+  const { isExpanded, toggleGroup } = useExpandedGroups([
+    "checking",
+    "savings",
+    "credit_card",
+    "cash",
+    "investment",
+    "benefit",
+  ]);
 
   const fetchData = useCallback(async () => {
     try {
-      const [accountsRes, budgetsRes] = await Promise.all([
+      const [accountsRes, budgetsRes, membersRes] = await Promise.all([
         fetch("/api/app/accounts"),
         fetch("/api/app/budgets"),
+        fetch("/api/app/members"),
       ]);
 
       if (accountsRes.ok) {
-        const accountsData = await accountsRes.json();
-        setAccounts(accountsData.accounts || []);
+        const data = await accountsRes.json();
+        setAccounts(data.accounts || []);
       }
 
       if (budgetsRes.ok) {
-        const budgetsData = await budgetsRes.json();
-        setBudgets(budgetsData.budgets || []);
+        const data = await budgetsRes.json();
+        setBudgets(data.budgets || []);
+      }
+
+      if (membersRes.ok) {
+        const data = await membersRes.json();
+        setMembers(data.members || []);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -62,17 +127,14 @@ export default function AccountsSetupPage() {
 
   const handleCreateAccount = async (data: AccountFormData) => {
     if (budgets.length === 0) {
-      toast.error("Nenhum orçamento encontrado");
+      toast.error("Nenhum orcamento encontrado");
       return;
     }
 
     const response = await fetch("/api/app/accounts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...data,
-        budgetId: budgets[0].id,
-      }),
+      body: JSON.stringify({ ...data, budgetId: budgets[0].id }),
     });
 
     if (!response.ok) {
@@ -116,26 +178,31 @@ export default function AccountsSetupPage() {
         throw new Error(error.message || "Erro ao excluir conta");
       }
 
-      toast.success("Conta excluída com sucesso!");
+      toast.success("Conta excluida com sucesso!");
       setDeletingAccount(null);
       fetchData();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Erro ao excluir conta"
-      );
+      toast.error(error instanceof Error ? error.message : "Erro ao excluir conta");
     }
   };
 
   const handleContinue = () => {
-    router.push("/app");
+    router.push("/app/income/setup");
+  };
+
+  const handleSkip = () => {
+    router.push("/app/income/setup");
   };
 
   // Group accounts by type
-  const checkingAccounts = accounts.filter((a) => a.type === "checking");
-  const savingsAccounts = accounts.filter((a) => a.type === "savings");
-  const creditCards = accounts.filter((a) => a.type === "credit_card");
-  const cashAccounts = accounts.filter((a) => a.type === "cash");
-  const investmentAccounts = accounts.filter((a) => a.type === "investment");
+  const accountsByType = {
+    checking: accounts.filter((a) => a.type === "checking"),
+    savings: accounts.filter((a) => a.type === "savings"),
+    credit_card: accounts.filter((a) => a.type === "credit_card"),
+    cash: accounts.filter((a) => a.type === "cash"),
+    investment: accounts.filter((a) => a.type === "investment"),
+    benefit: accounts.filter((a) => a.type === "benefit"),
+  };
 
   const totalBalance = accounts
     .filter((a) => a.type !== "credit_card")
@@ -144,6 +211,10 @@ export default function AccountsSetupPage() {
   const totalDebt = accounts
     .filter((a) => a.type === "credit_card")
     .reduce((sum, a) => sum + a.balance, 0);
+
+  const typesWithAccounts = Object.entries(accountsByType).filter(
+    ([_, accts]) => accts.length > 0
+  );
 
   if (isLoading) {
     return (
@@ -154,172 +225,215 @@ export default function AccountsSetupPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="flex flex-col gap-4 p-4">
       {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Configure suas Contas</h1>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h1 className="text-2xl font-bold">Configure suas Contas</h1>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Adicione e personalize suas contas bancarias, cartoes e investimentos
+          </p>
         </div>
-        <p className="text-muted-foreground">
-          Adicione suas contas bancárias e cartões de crédito para começar a
-          controlar seu orçamento. Informe o saldo atual de cada conta.
-        </p>
-      </div>
-
-      {/* Summary Card */}
-      {accounts.length > 0 && (
-        <Card>
-          <CardContent className="flex items-center justify-between p-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Patrimônio Líquido</p>
-              <p className="text-2xl font-bold">
-                {((totalBalance - totalDebt) / 100).toLocaleString("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                })}
-              </p>
-            </div>
-            <div className="flex gap-8 text-sm">
-              <div>
-                <p className="text-muted-foreground">Saldo em Contas</p>
-                <p className="font-semibold text-green-600 dark:text-green-400">
-                  {(totalBalance / 100).toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  })}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Fatura dos Cartões</p>
-                <p className="font-semibold text-destructive">
-                  {(totalDebt / 100).toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  })}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Accounts List */}
-      <div className="space-y-6">
-        {/* Checking Accounts */}
-        {checkingAccounts.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold">Contas Correntes</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {checkingAccounts.map((account) => (
-                <AccountCard
-                  key={account.id}
-                  account={account}
-                  onEdit={setEditingAccount}
-                  onDelete={setDeletingAccount}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Savings Accounts */}
-        {savingsAccounts.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold">Poupança</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {savingsAccounts.map((account) => (
-                <AccountCard
-                  key={account.id}
-                  account={account}
-                  onEdit={setEditingAccount}
-                  onDelete={setDeletingAccount}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Credit Cards */}
-        {creditCards.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold">Cartões de Crédito</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {creditCards.map((account) => (
-                <AccountCard
-                  key={account.id}
-                  account={account}
-                  onEdit={setEditingAccount}
-                  onDelete={setDeletingAccount}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Cash */}
-        {cashAccounts.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold">Dinheiro</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {cashAccounts.map((account) => (
-                <AccountCard
-                  key={account.id}
-                  account={account}
-                  onEdit={setEditingAccount}
-                  onDelete={setDeletingAccount}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Investments */}
-        {investmentAccounts.length > 0 && (
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold">Investimentos</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {investmentAccounts.map((account) => (
-                <AccountCard
-                  key={account.id}
-                  account={account}
-                  onEdit={setEditingAccount}
-                  onDelete={setDeletingAccount}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {accounts.length === 0 && (
-          <Card className="border-dashed">
-            <CardHeader className="text-center">
-              <CardTitle>Nenhuma conta cadastrada</CardTitle>
-              <CardDescription>
-                Adicione suas contas bancárias e cartões para começar a
-                organizar suas finanças
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center pb-6">
-              <Button onClick={() => setIsFormOpen(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar Primeira Conta
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center justify-between border-t pt-6">
-        <Button variant="outline" onClick={() => setIsFormOpen(true)}>
+        <Button onClick={() => setIsFormOpen(true)} size="sm">
           <Plus className="mr-2 h-4 w-4" />
           Nova Conta
         </Button>
+      </div>
 
-        <Button onClick={handleContinue} disabled={accounts.length === 0}>
-          Continuar para o App
+      {/* Summary */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-lg border bg-card p-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Wallet className="h-4 w-4" />
+            <span>Patrimônio Líquido</span>
+          </div>
+          <div className="mt-1 text-xl font-bold">
+            {formatCurrency(totalBalance - totalDebt)}
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-card p-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <PiggyBank className="h-4 w-4 text-green-500" />
+            <span>Saldo em Contas</span>
+          </div>
+          <div className="mt-1 text-xl font-bold text-green-600">
+            {formatCurrency(totalBalance)}
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-card p-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CreditCard className="h-4 w-4 text-red-500" />
+            <span>Fatura dos Cartões</span>
+          </div>
+          <div className="mt-1 text-xl font-bold text-red-600">
+            {formatCurrency(totalDebt)}
+          </div>
+        </div>
+      </div>
+
+      {/* Compact Accounts Table */}
+      {accounts.length > 0 ? (
+        <div className="rounded-lg border bg-card">
+          {/* Table Header */}
+          <div
+            className={COMPACT_TABLE_STYLES.header}
+            style={{ gridTemplateColumns: GRID_COLS }}
+          >
+            <div></div>
+            <div>Conta</div>
+            <div>Proprietário</div>
+            <div className="text-right">Limite</div>
+            <div className="text-right">Saldo</div>
+          </div>
+
+          {/* Grouped by Type */}
+          {typesWithAccounts.map(([type, typeAccounts]) => {
+            const config = TYPE_CONFIG[type as keyof typeof TYPE_CONFIG];
+            const expanded = isExpanded(type);
+            const isCreditCard = type === "credit_card";
+            const typeTotal = typeAccounts.reduce((sum, a) => sum + a.balance, 0);
+
+            return (
+              <div key={type}>
+                <GroupToggleRow
+                  isExpanded={expanded}
+                  onToggle={() => toggleGroup(type)}
+                  icon={config.icon}
+                  label={config.label}
+                  count={typeAccounts.length}
+                  gridCols={GRID_COLS}
+                  emptyColsCount={2}
+                  summary={
+                    <>
+                      {isCreditCard && typeTotal > 0 && "-"}
+                      {formatCurrencyCompact(Math.abs(typeTotal))}
+                    </>
+                  }
+                  summaryClassName={cn(
+                    isCreditCard
+                      ? typeTotal > 0
+                        ? "text-red-600"
+                        : "text-foreground"
+                      : "text-green-600"
+                  )}
+                />
+
+                {/* Account Rows */}
+                {expanded &&
+                  typeAccounts.map((account) => {
+                    const isCreditCardAccount = account.type === "credit_card";
+
+                    return (
+                      <div
+                        key={account.id}
+                        className={COMPACT_TABLE_STYLES.itemRow}
+                        style={{ gridTemplateColumns: GRID_COLS }}
+                      >
+                        <div className="flex items-center justify-center">
+                          <span className="text-base">
+                            {account.icon || config.icon}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="truncate font-medium">{account.name}</span>
+                          {isCreditCardAccount && account.closingDay && (
+                            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                              Fecha dia {account.closingDay}
+                            </span>
+                          )}
+                          {account.type === "benefit" && account.depositDay && (
+                            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                              Recebe dia {account.depositDay}
+                            </span>
+                          )}
+                          <HoverActions
+                            onEdit={() => setEditingAccount(account)}
+                            onDelete={() => setDeletingAccount(account)}
+                            editTitle="Editar conta"
+                            deleteTitle="Excluir conta"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          {account.owner ? (
+                            <>
+                              <span
+                                className="h-2 w-2 rounded-full flex-shrink-0"
+                                style={{
+                                  backgroundColor: account.owner.color || "#6366f1",
+                                }}
+                              />
+                              <span className="truncate text-xs">
+                                {account.owner.name}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-xs">Compartilhado</span>
+                          )}
+                        </div>
+                        <div className="text-right text-muted-foreground">
+                          {isCreditCardAccount && account.creditLimit ? (
+                            <span className="text-xs">
+                              {formatCurrencyCompact(account.creditLimit)}
+                            </span>
+                          ) : account.type === "benefit" && account.monthlyDeposit ? (
+                            <span className="text-xs">
+                              {formatCurrencyCompact(account.monthlyDeposit)}/mês
+                            </span>
+                          ) : (
+                            <span className="text-xs">-</span>
+                          )}
+                        </div>
+                        <div
+                          className={cn(
+                            "text-right font-medium tabular-nums",
+                            isCreditCardAccount
+                              ? account.balance > 0
+                                ? "text-red-600"
+                                : "text-foreground"
+                              : account.balance >= 0
+                              ? "text-green-600"
+                              : "text-red-600"
+                          )}
+                        >
+                          {isCreditCardAccount && account.balance > 0 && "-"}
+                          {formatCurrencyCompact(Math.abs(account.balance))}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-dashed bg-card p-8 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+            <Wallet className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <h3 className="font-semibold">Nenhuma conta cadastrada</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Adicione suas contas bancarias e cartoes para comecar a organizar suas financas
+          </p>
+          <Button className="mt-4" onClick={() => setIsFormOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar Primeira Conta
+          </Button>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex items-center justify-between border-t pt-4">
+        <Button variant="ghost" onClick={handleSkip}>
+          Pular
+        </Button>
+
+        <Button onClick={handleContinue}>
+          Continuar
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
@@ -330,6 +444,7 @@ export default function AccountsSetupPage() {
         onOpenChange={setIsFormOpen}
         onSubmit={handleCreateAccount}
         mode="create"
+        members={members}
       />
 
       {/* Edit Account Form */}
@@ -342,13 +457,17 @@ export default function AccountsSetupPage() {
             name: editingAccount.name,
             type: editingAccount.type,
             balance: editingAccount.balance,
+            ownerId: editingAccount.ownerId || undefined,
             creditLimit: editingAccount.creditLimit || undefined,
             closingDay: editingAccount.closingDay || undefined,
             dueDay: editingAccount.dueDay || undefined,
+            monthlyDeposit: editingAccount.monthlyDeposit || undefined,
+            depositDay: editingAccount.depositDay || undefined,
             icon: editingAccount.icon || undefined,
             color: editingAccount.color || undefined,
           }}
           mode="edit"
+          members={members}
         />
       )}
 
@@ -361,8 +480,8 @@ export default function AccountsSetupPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir conta?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir a conta &quot;{deletingAccount?.name}
-              &quot;? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir a conta &quot;{deletingAccount?.name}&quot;?
+              Esta acao nao pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

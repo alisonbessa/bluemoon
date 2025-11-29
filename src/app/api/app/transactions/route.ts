@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { transactions, budgetMembers, financialAccounts, categories } from "@/db/schema";
+import { transactions, budgetMembers, financialAccounts, categories, incomeSources } from "@/db/schema";
 import { eq, and, inArray, desc, gte, lte } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -9,7 +9,8 @@ import { financialTransactionTypeEnum, financialTransactionStatusEnum } from "@/
 const createTransactionSchema = z.object({
   budgetId: z.string().uuid(),
   accountId: z.string().uuid(),
-  categoryId: z.string().uuid().optional(),
+  categoryId: z.string().uuid().optional(), // For expense transactions
+  incomeSourceId: z.string().uuid().optional(), // For income transactions
   memberId: z.string().uuid().optional(),
   toAccountId: z.string().uuid().optional(), // For transfers
   type: financialTransactionTypeEnum,
@@ -77,10 +78,12 @@ export const GET = withAuthRequired(async (req, context) => {
       transaction: transactions,
       account: financialAccounts,
       category: categories,
+      incomeSource: incomeSources,
     })
     .from(transactions)
     .leftJoin(financialAccounts, eq(transactions.accountId, financialAccounts.id))
     .leftJoin(categories, eq(transactions.categoryId, categories.id))
+    .leftJoin(incomeSources, eq(transactions.incomeSourceId, incomeSources.id))
     .where(and(...conditions))
     .orderBy(desc(transactions.date))
     .limit(limit)
@@ -91,6 +94,7 @@ export const GET = withAuthRequired(async (req, context) => {
       ...t.transaction,
       account: t.account,
       category: t.category,
+      incomeSource: t.incomeSource,
     })),
   });
 });
@@ -112,6 +116,7 @@ export const POST = withAuthRequired(async (req, context) => {
     budgetId,
     accountId,
     categoryId,
+    incomeSourceId,
     toAccountId,
     type,
     amount,
@@ -153,7 +158,8 @@ export const POST = withAuthRequired(async (req, context) => {
       .values({
         budgetId,
         accountId,
-        categoryId,
+        categoryId: type === "expense" ? categoryId : undefined,
+        incomeSourceId: type === "income" ? incomeSourceId : undefined,
         memberId,
         type,
         amount: installmentAmount,
@@ -179,7 +185,8 @@ export const POST = withAuthRequired(async (req, context) => {
         .values({
           budgetId,
           accountId,
-          categoryId,
+          categoryId: type === "expense" ? categoryId : undefined,
+          incomeSourceId: type === "income" ? incomeSourceId : undefined,
           memberId,
           type,
           amount: installmentAmount,
@@ -212,60 +219,65 @@ export const POST = withAuthRequired(async (req, context) => {
     );
   }
 
-  // Create single transaction
-  const [newTransaction] = await db
-    .insert(transactions)
-    .values({
-      budgetId,
-      accountId,
-      categoryId,
-      memberId,
-      toAccountId,
-      type,
-      amount,
-      description,
-      notes,
-      date: transactionDate,
-      source: "web",
-    })
-    .returning();
-
-  // Update account balance(s)
-  // Note: In a production app, this should be done in a database transaction
-  const balanceChange = type === "income" ? amount : -Math.abs(amount);
-
-  const [currentAccount] = await db
-    .select()
-    .from(financialAccounts)
-    .where(eq(financialAccounts.id, accountId));
-
-  if (currentAccount) {
-    await db
-      .update(financialAccounts)
-      .set({
-        balance: currentAccount.balance + balanceChange,
-        updatedAt: new Date(),
+  // Create transaction and update balances atomically
+  const newTransaction = await db.transaction(async (tx) => {
+    // Create the transaction
+    const [created] = await tx
+      .insert(transactions)
+      .values({
+        budgetId,
+        accountId,
+        categoryId: type === "expense" ? categoryId : undefined,
+        incomeSourceId: type === "income" ? incomeSourceId : undefined,
+        memberId,
+        toAccountId,
+        type,
+        amount,
+        description,
+        notes,
+        date: transactionDate,
+        source: "web",
       })
-      .where(eq(financialAccounts.id, accountId));
-  }
+      .returning();
 
-  // For transfers, update destination account
-  if (type === "transfer" && toAccountId) {
-    const [destAccount] = await db
+    // Update account balance
+    const balanceChange = type === "income" ? amount : -Math.abs(amount);
+
+    const [currentAccount] = await tx
       .select()
       .from(financialAccounts)
-      .where(eq(financialAccounts.id, toAccountId));
+      .where(eq(financialAccounts.id, accountId));
 
-    if (destAccount) {
-      await db
+    if (currentAccount) {
+      await tx
         .update(financialAccounts)
         .set({
-          balance: destAccount.balance + Math.abs(amount),
+          balance: currentAccount.balance + balanceChange,
           updatedAt: new Date(),
         })
-        .where(eq(financialAccounts.id, toAccountId));
+        .where(eq(financialAccounts.id, accountId));
     }
-  }
+
+    // For transfers, update destination account
+    if (type === "transfer" && toAccountId) {
+      const [destAccount] = await tx
+        .select()
+        .from(financialAccounts)
+        .where(eq(financialAccounts.id, toAccountId));
+
+      if (destAccount) {
+        await tx
+          .update(financialAccounts)
+          .set({
+            balance: destAccount.balance + Math.abs(amount),
+            updatedAt: new Date(),
+          })
+          .where(eq(financialAccounts.id, toAccountId));
+      }
+    }
+
+    return created;
+  });
 
   return NextResponse.json({ transaction: newTransaction }, { status: 201 });
 });

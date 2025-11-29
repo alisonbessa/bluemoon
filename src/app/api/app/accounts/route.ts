@@ -5,6 +5,7 @@ import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { accountTypeEnum } from "@/db/schema/accounts";
+import { capitalizeWords } from "@/lib/utils";
 
 const createAccountSchema = z.object({
   budgetId: z.string().uuid(),
@@ -13,10 +14,14 @@ const createAccountSchema = z.object({
   color: z.string().optional(),
   icon: z.string().optional(),
   balance: z.number().int().default(0),
+  ownerId: z.string().uuid().optional().nullable(),
   // Credit card fields
   creditLimit: z.number().int().optional(),
   closingDay: z.number().int().min(1).max(31).optional(),
   dueDay: z.number().int().min(1).max(31).optional(),
+  // Benefit fields
+  monthlyDeposit: z.number().int().optional(),
+  depositDay: z.number().int().min(1).max(31).optional(),
 });
 
 // Helper to get user's budget IDs
@@ -40,16 +45,40 @@ export const GET = withAuthRequired(async (req, context) => {
     return NextResponse.json({ accounts: [] });
   }
 
-  let query = db
-    .select()
-    .from(financialAccounts)
-    .where(
-      budgetId
-        ? and(eq(financialAccounts.budgetId, budgetId), inArray(financialAccounts.budgetId, budgetIds))
-        : inArray(financialAccounts.budgetId, budgetIds)
-    );
+  const whereCondition = budgetId
+    ? and(eq(financialAccounts.budgetId, budgetId), inArray(financialAccounts.budgetId, budgetIds))
+    : inArray(financialAccounts.budgetId, budgetIds);
 
-  const userAccounts = await query;
+  const userAccounts = await db
+    .select({
+      id: financialAccounts.id,
+      budgetId: financialAccounts.budgetId,
+      ownerId: financialAccounts.ownerId,
+      name: financialAccounts.name,
+      type: financialAccounts.type,
+      color: financialAccounts.color,
+      icon: financialAccounts.icon,
+      balance: financialAccounts.balance,
+      clearedBalance: financialAccounts.clearedBalance,
+      creditLimit: financialAccounts.creditLimit,
+      closingDay: financialAccounts.closingDay,
+      dueDay: financialAccounts.dueDay,
+      monthlyDeposit: financialAccounts.monthlyDeposit,
+      depositDay: financialAccounts.depositDay,
+      isArchived: financialAccounts.isArchived,
+      displayOrder: financialAccounts.displayOrder,
+      createdAt: financialAccounts.createdAt,
+      updatedAt: financialAccounts.updatedAt,
+      owner: {
+        id: budgetMembers.id,
+        name: budgetMembers.name,
+        type: budgetMembers.type,
+        color: budgetMembers.color,
+      },
+    })
+    .from(financialAccounts)
+    .leftJoin(budgetMembers, eq(financialAccounts.ownerId, budgetMembers.id))
+    .where(whereCondition);
 
   return NextResponse.json({ accounts: userAccounts });
 });
@@ -88,6 +117,7 @@ export const POST = withAuthRequired(async (req, context) => {
     .insert(financialAccounts)
     .values({
       ...accountData,
+      name: capitalizeWords(accountData.name),
       budgetId,
       displayOrder: existingAccounts.length,
     })

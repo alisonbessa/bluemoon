@@ -106,12 +106,8 @@ export function StepSummary({
       members.push({ icon: "💑", name: data.household.partnerName });
     }
 
-    data.household.kids.forEach((name) => {
+    data.household.children.forEach((name) => {
       if (name) members.push({ icon: "👶", name });
-    });
-
-    data.household.teens.forEach((name) => {
-      if (name) members.push({ icon: "🧑", name });
     });
 
     data.household.otherAdults.forEach((name) => {
@@ -227,7 +223,7 @@ export function StepSummary({
       <OnboardingFooter
         onNext={onSubmit}
         onBack={onBack}
-        nextLabel="Comecar a usar o HiveBudget"
+        nextLabel="Começar a usar o HiveBudget"
         isLoading={isSubmitting}
       />
     </div>

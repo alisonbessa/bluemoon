@@ -4,6 +4,7 @@ import { budgets, budgetMembers, groups, categories, defaultGroups } from "@/db/
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { capitalizeWords } from "@/lib/utils";
 
 const createBudgetSchema = z.object({
   name: z.string().min(1).max(100),
@@ -51,7 +52,7 @@ export const POST = withAuthRequired(async (req, context) => {
   const [newBudget] = await db
     .insert(budgets)
     .values({
-      name,
+      name: capitalizeWords(name),
       description,
       currency,
     })

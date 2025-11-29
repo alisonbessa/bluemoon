@@ -1,9 +1,9 @@
 "use client";
 
-import { Footer } from "@/components/layout/footer";
 import { AppHeader } from "@/components/layout/app-header";
 import { OnboardingModal } from "@/components/onboarding";
-import React from "react";
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import useUser from "@/lib/users/useUser";
 
 function DashboardSkeleton() {
@@ -56,32 +56,13 @@ function DashboardSkeleton() {
           </div>
         </div>
       </div>
-
-      {/* Footer Shimmer */}
-      <div className="border-t border-border/40 bg-background">
-        <div className="flex items-center justify-between p-4 max-w-7xl mx-auto">
-          {/* Footer left side */}
-          <div className="flex items-center gap-4">
-            <div className="h-4 w-24 bg-gray-200 rounded-md animate-pulse" />
-            <div className="h-4 w-32 bg-gray-200 rounded-md animate-pulse" />
-          </div>
-          {/* Footer right side */}
-          <div className="flex items-center gap-4">
-            {[1, 2].map((i) => (
-              <div
-                key={i}
-                className="h-4 w-20 bg-gray-200 rounded-md animate-pulse"
-              />
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
 
 function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, isLoading, mutate } = useUser();
+  const router = useRouter();
+  const { user, isLoading, error, mutate } = useUser();
 
   const showOnboarding = !isLoading && user && !user.onboardingCompletedAt;
 
@@ -89,7 +70,19 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     mutate();
   };
 
+  // Redirect to home if user is not authenticated, session expired, or error occurred
+  useEffect(() => {
+    if (!isLoading && (!user || error)) {
+      router.replace("/");
+    }
+  }, [isLoading, user, error, router]);
+
   if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  // Show skeleton while redirecting (user not authenticated or error)
+  if (!user || error) {
     return <DashboardSkeleton />;
   }
 
@@ -97,7 +90,6 @@ function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col h-screen gap-4">
       <AppHeader />
       <div className="grow p-4 sm:p-2 max-w-7xl mx-auto w-full">{children}</div>
-      <Footer />
 
       {showOnboarding && (
         <OnboardingModal onComplete={handleOnboardingComplete} />

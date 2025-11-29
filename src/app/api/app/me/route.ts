@@ -12,8 +12,17 @@ export const GET = withAuthRequired(async (req, context) => {
   // You can also use context.session to get user id and email
   // from the jwt token (no database call is made in that case)
 
-  const currentPlan = await getCurrentPlan();
   const userFromDb = await getUser();
+
+  // If user doesn't exist in database, return 401 to force re-login
+  if (!userFromDb) {
+    return NextResponse.json(
+      { error: "User not found", message: "Please sign in again" },
+      { status: 401 }
+    );
+  }
+
+  const currentPlan = await getCurrentPlan();
   return NextResponse.json<MeResponse>({
     user: userFromDb,
     currentPlan,

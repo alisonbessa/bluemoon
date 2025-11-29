@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
 import type { AccountType } from "@/db/schema/accounts";
-import type { AccountFormData } from "./types";
+import type { AccountFormData, AccountOwner } from "./types";
 
 interface AccountFormProps {
   open: boolean;
@@ -29,6 +29,7 @@ interface AccountFormProps {
   onSubmit: (data: AccountFormData) => Promise<void>;
   initialData?: Partial<AccountFormData>;
   mode?: "create" | "edit";
+  members?: AccountOwner[];
 }
 
 const ACCOUNT_TYPES: { value: AccountType; label: string; icon: string }[] = [
@@ -37,6 +38,7 @@ const ACCOUNT_TYPES: { value: AccountType; label: string; icon: string }[] = [
   { value: "credit_card", label: "Cartão de Crédito", icon: "💳" },
   { value: "cash", label: "Dinheiro", icon: "💵" },
   { value: "investment", label: "Investimento", icon: "📈" },
+  { value: "benefit", label: "Benefício", icon: "🍽️" },
 ];
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -46,6 +48,14 @@ function formatCurrency(cents: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function formatCurrencyFromDigits(digits: string): string {
+  // Remove all non-digits
+  const onlyDigits = digits.replace(/\D/g, "");
+  // Parse as integer (cents)
+  const cents = parseInt(onlyDigits || "0", 10);
+  return formatCurrency(cents);
 }
 
 function parseCurrency(value: string): number {
@@ -60,15 +70,20 @@ export function AccountForm({
   onSubmit,
   initialData,
   mode = "create",
+  members = [],
 }: AccountFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState<AccountFormData>({
     name: initialData?.name || "",
     type: initialData?.type || "checking",
     balance: initialData?.balance || 0,
+    ownerId: initialData?.ownerId,
     creditLimit: initialData?.creditLimit,
     closingDay: initialData?.closingDay,
     dueDay: initialData?.dueDay,
+    monthlyDeposit: initialData?.monthlyDeposit,
+    depositDay: initialData?.depositDay,
     icon: initialData?.icon,
     color: initialData?.color,
   });
@@ -78,11 +93,31 @@ export function AccountForm({
   const [creditLimitInput, setCreditLimitInput] = useState(
     formatCurrency(initialData?.creditLimit || 0)
   );
+  const [monthlyDepositInput, setMonthlyDepositInput] = useState(
+    formatCurrency(initialData?.monthlyDeposit || 0)
+  );
 
   const isCreditCard = formData.type === "credit_card";
+  const isBenefit = formData.type === "benefit";
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, boolean> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = true;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -95,20 +130,29 @@ export function AccountForm({
         dataToSubmit.creditLimit = parseCurrency(creditLimitInput);
       }
 
+      if (isBenefit) {
+        dataToSubmit.monthlyDeposit = parseCurrency(monthlyDepositInput);
+      }
+
       await onSubmit(dataToSubmit);
       onOpenChange(false);
+      setErrors({});
 
       // Reset form
       setFormData({
         name: "",
         type: "checking",
         balance: 0,
+        ownerId: undefined,
         creditLimit: undefined,
         closingDay: undefined,
         dueDay: undefined,
+        monthlyDeposit: undefined,
+        depositDay: undefined,
       });
       setBalanceInput("0,00");
       setCreditLimitInput("0,00");
+      setMonthlyDepositInput("0,00");
     } finally {
       setIsSubmitting(false);
     }
@@ -120,11 +164,15 @@ export function AccountForm({
       ...prev,
       type,
       icon: accountType?.icon,
-      // Reset credit card fields if not credit card
+      // Reset type-specific fields
       ...(type !== "credit_card" && {
         creditLimit: undefined,
         closingDay: undefined,
         dueDay: undefined,
+      }),
+      ...(type !== "benefit" && {
+        monthlyDeposit: undefined,
+        depositDay: undefined,
       }),
     }));
   };
@@ -182,17 +230,74 @@ export function AccountForm({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="name">Nome</Label>
+              <Label htmlFor="name" className={errors.name ? "text-destructive" : ""}>
+                Nome
+              </Label>
               <Input
                 id="name"
-                placeholder={isCreditCard ? "Ex: Nubank" : "Ex: Banco do Brasil"}
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                placeholder={
+                  isCreditCard
+                    ? "Ex: Nubank"
+                    : isBenefit
+                      ? "Ex: VR, VA, Alelo"
+                      : "Ex: Banco do Brasil"
                 }
-                required
+                value={formData.name}
+                onChange={(e) => {
+                  setFormData((prev) => ({ ...prev, name: e.target.value }));
+                  if (errors.name && e.target.value.trim()) {
+                    setErrors((prev) => ({ ...prev, name: false }));
+                  }
+                }}
+                className={errors.name ? "border-destructive" : ""}
               />
             </div>
+
+            {members.length > 0 && (
+              <div className="grid gap-2">
+                <Label htmlFor="owner">Proprietário</Label>
+                <Select
+                  value={formData.ownerId || "shared"}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      ownerId: value === "shared" ? undefined : value,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o dono da conta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="shared">
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: "#9ca3af" }}
+                        />
+                        <span>Compartilhado</span>
+                      </span>
+                    </SelectItem>
+                    {members
+                      .filter((member) => member.type !== "pet")
+                      .map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          <span className="flex items-center gap-2">
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: member.color || "#6366f1" }}
+                            />
+                            <span>{member.name}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Quem é responsável por esta conta
+                </p>
+              </div>
+            )}
 
             <div className="grid gap-2">
               <Label htmlFor="balance">{getBalanceLabel()}</Label>
@@ -205,10 +310,25 @@ export function AccountForm({
                   className="pl-10"
                   placeholder="0,00"
                   value={balanceInput}
-                  onChange={(e) => setBalanceInput(e.target.value)}
-                  onBlur={() =>
-                    setBalanceInput(formatCurrency(parseCurrency(balanceInput)))
-                  }
+                  onChange={(e) => {
+                    // Format as user types - only accept digits
+                    const formatted = formatCurrencyFromDigits(e.target.value);
+                    setBalanceInput(formatted);
+                  }}
+                  onFocus={(e) => {
+                    // Clear the input on focus if it's 0,00
+                    if (parseCurrency(balanceInput) === 0) {
+                      setBalanceInput("");
+                    }
+                    // Select all text
+                    e.target.select();
+                  }}
+                  onBlur={() => {
+                    // Ensure proper formatting on blur
+                    if (!balanceInput.trim()) {
+                      setBalanceInput("0,00");
+                    }
+                  }}
                 />
               </div>
               <p className="text-xs text-muted-foreground">
@@ -229,12 +349,21 @@ export function AccountForm({
                       className="pl-10"
                       placeholder="0,00"
                       value={creditLimitInput}
-                      onChange={(e) => setCreditLimitInput(e.target.value)}
-                      onBlur={() =>
-                        setCreditLimitInput(
-                          formatCurrency(parseCurrency(creditLimitInput))
-                        )
-                      }
+                      onChange={(e) => {
+                        const formatted = formatCurrencyFromDigits(e.target.value);
+                        setCreditLimitInput(formatted);
+                      }}
+                      onFocus={(e) => {
+                        if (parseCurrency(creditLimitInput) === 0) {
+                          setCreditLimitInput("");
+                        }
+                        e.target.select();
+                      }}
+                      onBlur={() => {
+                        if (!creditLimitInput.trim()) {
+                          setCreditLimitInput("0,00");
+                        }
+                      }}
                     />
                   </div>
                 </div>
@@ -293,6 +422,70 @@ export function AccountForm({
                       Dia do pagamento
                     </p>
                   </div>
+                </div>
+              </>
+            )}
+
+            {isBenefit && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="monthlyDeposit">Valor Mensal</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                      R$
+                    </span>
+                    <Input
+                      id="monthlyDeposit"
+                      className="pl-10"
+                      placeholder="0,00"
+                      value={monthlyDepositInput}
+                      onChange={(e) => {
+                        const formatted = formatCurrencyFromDigits(e.target.value);
+                        setMonthlyDepositInput(formatted);
+                      }}
+                      onFocus={(e) => {
+                        if (parseCurrency(monthlyDepositInput) === 0) {
+                          setMonthlyDepositInput("");
+                        }
+                        e.target.select();
+                      }}
+                      onBlur={() => {
+                        if (!monthlyDepositInput.trim()) {
+                          setMonthlyDepositInput("0,00");
+                        }
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Valor depositado todo mês
+                  </p>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="depositDay">Dia do Depósito</Label>
+                  <Select
+                    value={formData.depositDay?.toString() || ""}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        depositDay: parseInt(value),
+                      }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o dia" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DAYS.map((day) => (
+                        <SelectItem key={day} value={day.toString()}>
+                          Dia {day}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Dia que o benefício é creditado
+                  </p>
                 </div>
               </>
             )}

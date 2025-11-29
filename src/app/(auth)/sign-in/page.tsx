@@ -2,13 +2,32 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { appConfig } from "@/lib/config";
 import { AuthForm } from "@/components/auth/auth-form";
+import { auth, signOut } from "@/auth";
+import { db } from "@/db";
+import { users } from "@/db/schema/user";
+import { eq } from "drizzle-orm";
 
 export const metadata: Metadata = {
   title: "Entrar",
   description: `Entre na sua conta ${appConfig.projectName}`,
 };
 
-export default function SignInPage() {
+export default async function SignInPage() {
+  // Check if user has a session but doesn't exist in database
+  const session = await auth();
+  if (session?.user?.id) {
+    const existingUser = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1);
+
+    // If user has session but doesn't exist in DB, sign them out
+    if (existingUser.length === 0) {
+      await signOut({ redirect: false });
+    }
+  }
+
   return (
     <>
       <div className="mb-8">

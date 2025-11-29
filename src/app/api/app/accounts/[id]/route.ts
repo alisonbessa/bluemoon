@@ -5,6 +5,7 @@ import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { accountTypeEnum } from "@/db/schema/accounts";
+import { capitalizeWords } from "@/lib/utils";
 
 const updateAccountSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -13,9 +14,14 @@ const updateAccountSchema = z.object({
   icon: z.string().optional(),
   balance: z.number().int().optional(),
   clearedBalance: z.number().int().optional(),
+  ownerId: z.string().uuid().optional().nullable(),
+  // Credit card fields
   creditLimit: z.number().int().optional(),
   closingDay: z.number().int().min(1).max(31).optional(),
   dueDay: z.number().int().min(1).max(31).optional(),
+  // Benefit fields
+  monthlyDeposit: z.number().int().optional(),
+  depositDay: z.number().int().min(1).max(31).optional(),
   isArchived: z.boolean().optional(),
 });
 
@@ -91,12 +97,15 @@ export const PATCH = withAuthRequired(async (req, context) => {
     );
   }
 
+  const updateData = {
+    ...validation.data,
+    ...(validation.data.name && { name: capitalizeWords(validation.data.name) }),
+    updatedAt: new Date(),
+  };
+
   const [updatedAccount] = await db
     .update(financialAccounts)
-    .set({
-      ...validation.data,
-      updatedAt: new Date(),
-    })
+    .set(updateData)
     .where(eq(financialAccounts.id, accountId))
     .returning();
 

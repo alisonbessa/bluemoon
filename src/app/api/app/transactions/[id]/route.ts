@@ -100,34 +100,39 @@ export const PATCH = withAuthRequired(async (req, context) => {
         : validation.data.date;
   }
 
-  // If amount changed, update account balance
-  if (validation.data.amount !== undefined && validation.data.amount !== existingTransaction.amount) {
-    const amountDiff = validation.data.amount - existingTransaction.amount;
+  // Use transaction for atomic update of transaction and balance
+  const updatedTransaction = await db.transaction(async (tx) => {
+    // If amount changed, update account balance
+    if (validation.data.amount !== undefined && validation.data.amount !== existingTransaction.amount) {
+      const amountDiff = validation.data.amount - existingTransaction.amount;
 
-    const [account] = await db
-      .select()
-      .from(financialAccounts)
-      .where(eq(financialAccounts.id, existingTransaction.accountId));
-
-    if (account) {
-      const balanceChange =
-        existingTransaction.type === "income" ? amountDiff : -amountDiff;
-
-      await db
-        .update(financialAccounts)
-        .set({
-          balance: account.balance + balanceChange,
-          updatedAt: new Date(),
-        })
+      const [account] = await tx
+        .select()
+        .from(financialAccounts)
         .where(eq(financialAccounts.id, existingTransaction.accountId));
-    }
-  }
 
-  const [updatedTransaction] = await db
-    .update(transactions)
-    .set(updateData)
-    .where(eq(transactions.id, transactionId))
-    .returning();
+      if (account) {
+        const balanceChange =
+          existingTransaction.type === "income" ? amountDiff : -amountDiff;
+
+        await tx
+          .update(financialAccounts)
+          .set({
+            balance: account.balance + balanceChange,
+            updatedAt: new Date(),
+          })
+          .where(eq(financialAccounts.id, existingTransaction.accountId));
+      }
+    }
+
+    const [updated] = await tx
+      .update(transactions)
+      .set(updateData)
+      .where(eq(transactions.id, transactionId))
+      .returning();
+
+    return updated;
+  });
 
   return NextResponse.json({ transaction: updatedTransaction });
 });
@@ -157,36 +162,39 @@ export const DELETE = withAuthRequired(async (req, context) => {
     return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
   }
 
-  // Reverse the balance change
-  const [account] = await db
-    .select()
-    .from(financialAccounts)
-    .where(eq(financialAccounts.id, existingTransaction.accountId));
-
-  if (account) {
-    const balanceChange =
-      existingTransaction.type === "income"
-        ? -existingTransaction.amount
-        : Math.abs(existingTransaction.amount);
-
-    await db
-      .update(financialAccounts)
-      .set({
-        balance: account.balance + balanceChange,
-        updatedAt: new Date(),
-      })
+  // Use transaction for atomic delete and balance update
+  await db.transaction(async (tx) => {
+    // Reverse the balance change
+    const [account] = await tx
+      .select()
+      .from(financialAccounts)
       .where(eq(financialAccounts.id, existingTransaction.accountId));
-  }
 
-  // Delete the transaction
-  await db.delete(transactions).where(eq(transactions.id, transactionId));
+    if (account) {
+      const balanceChange =
+        existingTransaction.type === "income"
+          ? -existingTransaction.amount
+          : Math.abs(existingTransaction.amount);
 
-  // If this is a parent installment, delete child installments too
-  if (existingTransaction.isInstallment && !existingTransaction.parentTransactionId) {
-    await db
-      .delete(transactions)
-      .where(eq(transactions.parentTransactionId, transactionId));
-  }
+      await tx
+        .update(financialAccounts)
+        .set({
+          balance: account.balance + balanceChange,
+          updatedAt: new Date(),
+        })
+        .where(eq(financialAccounts.id, existingTransaction.accountId));
+    }
+
+    // If this is a parent installment, delete child installments first
+    if (existingTransaction.isInstallment && !existingTransaction.parentTransactionId) {
+      await tx
+        .delete(transactions)
+        .where(eq(transactions.parentTransactionId, transactionId));
+    }
+
+    // Delete the transaction
+    await tx.delete(transactions).where(eq(transactions.id, transactionId));
+  });
 
   return NextResponse.json({ success: true });
 });

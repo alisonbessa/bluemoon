@@ -4,6 +4,7 @@ import { budgetMembers, categories } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { capitalizeWords } from "@/lib/utils";
 
 const updateMemberSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -103,10 +104,13 @@ export const PATCH = withAuthRequired(async (req, context) => {
     );
   }
 
+  const capitalizedName = validation.data.name ? capitalizeWords(validation.data.name) : undefined;
+
   const [updatedMember] = await db
     .update(budgetMembers)
     .set({
       ...validation.data,
+      ...(capitalizedName && { name: capitalizedName }),
       updatedAt: new Date(),
     })
     .where(eq(budgetMembers.id, memberId))
@@ -124,11 +128,11 @@ export const PATCH = withAuthRequired(async (req, context) => {
   }
 
   // Update category name if member name changed
-  if (validation.data.name) {
+  if (capitalizedName) {
     await db
       .update(categories)
       .set({
-        name: `Prazeres - ${validation.data.name}`,
+        name: `Prazeres - ${capitalizedName}`,
         updatedAt: new Date(),
       })
       .where(eq(categories.memberId, memberId));

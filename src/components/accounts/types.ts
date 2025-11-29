@@ -1,8 +1,17 @@
 import type { AccountType } from "@/db/schema/accounts";
 
+export interface AccountOwner {
+  id: string;
+  name: string;
+  type: string;
+  color?: string | null;
+}
+
 export interface Account {
   id: string;
   budgetId: string;
+  ownerId?: string | null;
+  owner?: AccountOwner | null;
   name: string;
   type: AccountType;
   balance: number;
@@ -11,6 +20,8 @@ export interface Account {
   creditLimit?: number | null;
   closingDay?: number | null;
   dueDay?: number | null;
+  monthlyDeposit?: number | null;
+  depositDay?: number | null;
   clearedBalance?: number;
   isArchived?: boolean | null;
   displayOrder?: number;
@@ -22,9 +33,12 @@ export interface AccountFormData {
   name: string;
   type: AccountType;
   balance: number;
+  ownerId?: string;
   creditLimit?: number;
   closingDay?: number;
   dueDay?: number;
+  monthlyDeposit?: number;
+  depositDay?: number;
   icon?: string;
   color?: string;
 }

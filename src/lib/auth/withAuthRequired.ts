@@ -50,7 +50,7 @@ const withAuthRequired = (handler: WithManagerHandler) => {
     const getCurrentPlan = async () => {
       const user = await db.select().from(users).where(eq(users.id, userId));
 
-      if (!user) {
+      if (!user || user.length === 0 || !user[0]) {
         return null;
       }
 

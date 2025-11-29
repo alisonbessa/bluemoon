@@ -12,12 +12,12 @@ import {
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { capitalizeWords } from "@/lib/utils";
 
 const householdSchema = z.object({
   hasPartner: z.boolean(),
   partnerName: z.string(),
-  kids: z.array(z.string()),
-  teens: z.array(z.string()),
+  children: z.array(z.string()), // Unified children array (was kids + teens)
   otherAdults: z.array(z.string()),
   pets: z.array(z.string()),
 });
@@ -100,12 +100,12 @@ const GOAL_CATEGORIES: Record<string, { name: string; icon: string }> = {
 
 const ACCOUNT_CONFIG: Record<
   string,
-  { name: string; type: "checking" | "savings" | "credit_card" | "cash" | "investment"; icon: string }
+  { name: string; type: "checking" | "savings" | "credit_card" | "cash" | "investment" | "benefit"; icon: string }
 > = {
   checking: { name: "Conta Corrente", type: "checking", icon: "🏦" },
   credit_card: { name: "Cartão de Crédito", type: "credit_card", icon: "💳" },
-  vr: { name: "Vale Refeição", type: "checking", icon: "🍽️" },
-  va: { name: "Vale Alimentação", type: "checking", icon: "🛒" },
+  vr: { name: "Vale Refeição", type: "benefit", icon: "🍽️" },
+  va: { name: "Vale Alimentação", type: "benefit", icon: "🛒" },
   cash: { name: "Dinheiro", type: "cash", icon: "💵" },
   investment: { name: "Investimentos", type: "investment", icon: "📈" },
 };
@@ -125,11 +125,19 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const { data } = validation.data;
 
+  // Capitalize all names
+  const displayName = capitalizeWords(data.displayName);
+  const partnerName = data.household.partnerName ? capitalizeWords(data.household.partnerName) : "";
+  const childrenNames = data.household.children.map((name) => name ? capitalizeWords(name) : "");
+  const otherAdultNames = data.household.otherAdults.map((name) => name ? capitalizeWords(name) : "");
+  const petNames = data.household.pets.map((name) => name ? capitalizeWords(name) : "");
+  const customGoal = data.customGoal ? capitalizeWords(data.customGoal) : "";
+
   // 1. Update user with displayName and mark onboarding as complete
   await db
     .update(users)
     .set({
-      displayName: data.displayName,
+      displayName,
       onboardingCompletedAt: new Date(),
     })
     .where(eq(users.id, session.user.id));
@@ -138,7 +146,7 @@ export const POST = withAuthRequired(async (req, context) => {
   const [newBudget] = await db
     .insert(budgets)
     .values({
-      name: `Orçamento de ${data.displayName}`,
+      name: `Orçamento De ${displayName}`,
       description: "Orçamento criado durante o onboarding",
       currency: "BRL",
     })
@@ -151,7 +159,7 @@ export const POST = withAuthRequired(async (req, context) => {
     .values({
       budgetId: newBudget.id,
       userId: session.user.id,
-      name: data.displayName,
+      name: displayName,
       type: "owner",
     })
     .returning();
@@ -163,27 +171,27 @@ export const POST = withAuthRequired(async (req, context) => {
   }> = [];
 
   // Partner
-  if (data.household.hasPartner && data.household.partnerName) {
+  if (data.household.hasPartner && partnerName) {
     memberInserts.push({
       budgetId: newBudget.id,
-      name: data.household.partnerName,
+      name: partnerName,
       type: "partner",
     });
   }
 
-  // Kids and teens
-  for (const kidName of [...data.household.kids, ...data.household.teens]) {
-    if (kidName) {
+  // Children
+  for (const childName of childrenNames) {
+    if (childName) {
       memberInserts.push({
         budgetId: newBudget.id,
-        name: kidName,
+        name: childName,
         type: "child",
       });
     }
   }
 
   // Other adults (as partner type since they share expenses)
-  for (const adultName of data.household.otherAdults) {
+  for (const adultName of otherAdultNames) {
     if (adultName) {
       memberInserts.push({
         budgetId: newBudget.id,
@@ -194,7 +202,7 @@ export const POST = withAuthRequired(async (req, context) => {
   }
 
   // Pets
-  for (const petName of data.household.pets) {
+  for (const petName of petNames) {
     if (petName) {
       memberInserts.push({
         budgetId: newBudget.id,
@@ -226,6 +234,12 @@ export const POST = withAuthRequired(async (req, context) => {
   }
 
   const allGroups = await db.select().from(groups);
+  if (allGroups.length === 0) {
+    return NextResponse.json(
+      { error: "Grupos não encontrados. Por favor, execute o seed do banco de dados." },
+      { status: 500 }
+    );
+  }
   const groupByCode = Object.fromEntries(allGroups.map((g) => [g.code, g]));
 
   // 5. Create financial accounts
@@ -343,11 +357,11 @@ export const POST = withAuthRequired(async (req, context) => {
 
   // Goal categories
   for (const goal of data.goals) {
-    if (goal === "other" && data.customGoal) {
+    if (goal === "other" && customGoal) {
       categoryInserts.push({
         budgetId: newBudget.id,
         groupId: groupByCode.goals.id,
-        name: data.customGoal,
+        name: customGoal,
         icon: "🎯",
         behavior: "set_aside",
         plannedAmount: 0,

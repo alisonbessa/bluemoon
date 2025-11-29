@@ -1,0 +1,133 @@
+"use client";
+
+import { useState, ReactNode } from "react";
+import { ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+// Styles constants for consistent padding across all tables
+export const COMPACT_TABLE_STYLES = {
+  header: "grid gap-2 border-b px-4 py-2 text-xs font-medium text-muted-foreground",
+  groupHeader: "grid gap-2 px-2 py-2 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors border-b",
+  itemRow: "group/row grid gap-2 pl-12 pr-4 py-2 text-sm hover:bg-muted/30 transition-colors border-b last:border-b-0",
+} as const;
+
+// Reusable group toggle row component
+interface GroupToggleRowProps {
+  isExpanded: boolean;
+  onToggle: () => void;
+  icon: ReactNode;
+  label: string;
+  count?: number;
+  summary?: ReactNode;
+  summaryClassName?: string;
+  gridCols: string;
+  emptyColsCount?: number; // Number of empty middle columns
+}
+
+export function GroupToggleRow({
+  isExpanded,
+  onToggle,
+  icon,
+  label,
+  count,
+  summary,
+  summaryClassName,
+  gridCols,
+  emptyColsCount = 2,
+}: GroupToggleRowProps) {
+  return (
+    <div
+      className={COMPACT_TABLE_STYLES.groupHeader}
+      style={{ gridTemplateColumns: gridCols }}
+      onClick={onToggle}
+    >
+      <div className="flex items-center justify-center">
+        {isExpanded ? (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-lg">{icon}</span>
+        <span className="font-semibold text-sm">{label}</span>
+        {count !== undefined && (
+          <span className="text-xs text-muted-foreground">({count})</span>
+        )}
+      </div>
+      {/* Empty middle columns */}
+      {Array.from({ length: emptyColsCount }).map((_, i) => (
+        <div key={i}></div>
+      ))}
+      {/* Summary on the right */}
+      {summary !== undefined && (
+        <div className={cn("text-right text-sm font-semibold", summaryClassName)}>
+          {summary}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Reusable hover action buttons
+interface HoverActionsProps {
+  onEdit?: () => void;
+  onDelete?: () => void;
+  editTitle?: string;
+  deleteTitle?: string;
+}
+
+export function HoverActions({
+  onEdit,
+  onDelete,
+  editTitle = "Editar",
+  deleteTitle = "Excluir",
+}: HoverActionsProps) {
+  if (!onEdit && !onDelete) return null;
+
+  return (
+    <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+      {onEdit && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          className="p-1 rounded hover:bg-muted"
+          title={editTitle}
+        >
+          <Pencil className="h-3 w-3 text-muted-foreground" />
+        </button>
+      )}
+      {onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="p-1 rounded hover:bg-destructive/10"
+          title={deleteTitle}
+        >
+          <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Hook to manage expanded state
+export function useExpandedGroups(initialGroups: string[]) {
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(initialGroups);
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups((prev) =>
+      prev.includes(groupId)
+        ? prev.filter((id) => id !== groupId)
+        : [...prev, groupId]
+    );
+  };
+
+  const isExpanded = (groupId: string) => expandedGroups.includes(groupId);
+
+  return { expandedGroups, toggleGroup, isExpanded, setExpandedGroups };
+}

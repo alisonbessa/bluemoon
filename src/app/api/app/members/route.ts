@@ -5,6 +5,7 @@ import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { memberTypeEnum } from "@/db/schema/budget-members";
+import { capitalizeWords } from "@/lib/utils";
 
 const createMemberSchema = z.object({
   budgetId: z.string().uuid(),
@@ -86,12 +87,14 @@ export const POST = withAuthRequired(async (req, context) => {
     );
   }
 
+  const capitalizedName = capitalizeWords(name);
+
   // Create the dependent member (no userId)
   const [newMember] = await db
     .insert(budgetMembers)
     .values({
       budgetId,
-      name,
+      name: capitalizedName,
       type,
       color,
       monthlyPleasureBudget,
@@ -111,7 +114,7 @@ export const POST = withAuthRequired(async (req, context) => {
       budgetId,
       groupId: pleasuresGroup[0].id,
       memberId: newMember.id,
-      name: `Prazeres - ${name}`,
+      name: `Prazeres - ${capitalizedName}`,
       icon: type === "pet" ? "🐾" : "🎮",
       behavior: "refill_up",
       plannedAmount: monthlyPleasureBudget,

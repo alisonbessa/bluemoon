@@ -5,8 +5,7 @@ import { useState, useCallback } from "react";
 export interface HouseholdData {
   hasPartner: boolean;
   partnerName: string;
-  kids: string[];
-  teens: string[];
+  children: string[];
   otherAdults: string[];
   pets: string[];
 }
@@ -52,8 +51,7 @@ const initialData: OnboardingData = {
   household: {
     hasPartner: false,
     partnerName: "",
-    kids: [],
-    teens: [],
+    children: [],
     otherAdults: [],
     pets: [],
   },
@@ -105,8 +103,7 @@ export function useOnboarding() {
     const { household } = data;
     return (
       household.hasPartner ||
-      household.kids.length > 0 ||
-      household.teens.length > 0 ||
+      household.children.length > 0 ||
       household.otherAdults.length > 0 ||
       household.pets.length > 0
     );
@@ -116,8 +113,7 @@ export function useOnboarding() {
     const { household } = data;
     return (
       household.hasPartner ||
-      household.kids.length > 0 ||
-      household.teens.length > 0 ||
+      household.children.length > 0 ||
       household.otherAdults.length > 0 ||
       household.pets.length > 0
     );
