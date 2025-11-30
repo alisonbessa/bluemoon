@@ -1,6 +1,7 @@
 // Tutorial step definitions for each flow
-// Steps are grouped by page - all steps for a page run sequentially,
-// then user can interact, and clicking "Avançar" moves to the next page
+// Steps are grouped by page - user sees all steps for a page,
+// then clicks "Entendi" to dismiss and interact with the page.
+// When navigating to the next tutorial page, tutorial auto-reopens.
 
 export interface TutorialStep {
   id: string;
@@ -9,9 +10,6 @@ export interface TutorialStep {
   targetSelector?: string; // CSS selector for spotlight effect
   placement?: "top" | "bottom" | "left" | "right" | "center";
   route: string; // The route this step belongs to
-  isPageTransition?: boolean; // If true, clicking next goes to nextRoute
-  nextRoute?: string; // Route to navigate to after this step
-  nextLabel?: string; // Custom label for the next button
 }
 
 export interface TutorialFlow {
@@ -55,13 +53,10 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "accounts-done",
         route: "/app/accounts/setup",
-        title: "Pronto para Continuar?",
+        title: "Agora é sua vez!",
         content:
-          "Personalize suas contas como preferir. Quando terminar, clique em 'Ir para Rendas' para configurar suas fontes de renda.",
+          "Personalize suas contas: edite nomes, ajuste saldos e adicione novas se precisar. Quando terminar, vá para a página de Rendas no menu.",
         placement: "center",
-        isPageTransition: true,
-        nextRoute: "/app/income/setup",
-        nextLabel: "Ir para Rendas",
       },
 
       // ===== INCOME PAGE =====
@@ -94,13 +89,10 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "income-done",
         route: "/app/income/setup",
-        title: "Pronto para o Orçamento?",
+        title: "Agora é sua vez!",
         content:
-          "Adicione suas rendas e quando terminar, vamos para a parte mais importante: montar seu orçamento!",
+          "Adicione suas fontes de renda. Quando terminar, vá para a página de Orçamento no menu para distribuir seu dinheiro.",
         placement: "center",
-        isPageTransition: true,
-        nextRoute: "/app/budget",
-        nextLabel: "Ir para Orçamento",
       },
 
       // ===== BUDGET PAGE =====
@@ -133,13 +125,10 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "budget-done",
         route: "/app/budget",
-        title: "Quase lá!",
+        title: "Agora é sua vez!",
         content:
-          "Distribua seu dinheiro entre as categorias. Quando terminar, vamos conhecer a navegação do app.",
+          "Distribua seu dinheiro entre as categorias até zerar o valor disponível. Quando terminar, volte para o Dashboard.",
         placement: "center",
-        isPageTransition: true,
-        nextRoute: "/app",
-        nextLabel: "Conhecer Navegação",
       },
 
       // ===== NAVIGATION/HEADER =====
@@ -185,8 +174,6 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         content:
           "Parabéns! Você conheceu as principais funcionalidades do HiveBudget. Agora é hora de organizar suas finanças!",
         placement: "center",
-        isPageTransition: true,
-        nextLabel: "Começar a Usar",
       },
     ],
   },

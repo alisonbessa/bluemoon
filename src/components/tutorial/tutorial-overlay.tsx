@@ -13,7 +13,7 @@ interface SpotlightRect {
 }
 
 export function TutorialOverlay() {
-  const { isActive, currentStep } = useTutorial();
+  const { isVisible, currentStep } = useTutorial();
   const [mounted, setMounted] = useState(false);
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
 
@@ -43,7 +43,7 @@ export function TutorialOverlay() {
   }, []);
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isVisible) return;
 
     // Initial update
     updateSpotlight();
@@ -65,9 +65,9 @@ export function TutorialOverlay() {
       window.removeEventListener("scroll", updateSpotlight, true);
       observer.disconnect();
     };
-  }, [isActive, updateSpotlight]);
+  }, [isVisible, updateSpotlight]);
 
-  if (!mounted || !isActive) return null;
+  if (!mounted || !isVisible) return null;
 
   const overlayContent = (
     <div

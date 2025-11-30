@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useTutorial } from "./tutorial-provider";
-import { ChevronRight, X } from "lucide-react";
+import { ChevronRight, X, Check } from "lucide-react";
 
 interface SpotlightRect {
   top: number;
@@ -23,8 +23,11 @@ export function TutorialTooltip({ spotlightRect }: TutorialTooltipProps) {
     totalSteps,
     pageStepIndex,
     pageStepsTotal,
+    isLastPageStep,
     nextStep,
+    dismissPageTutorial,
     skipTutorial,
+    completeTutorial,
   } = useTutorial();
 
   const position = useMemo(() => {
@@ -78,7 +81,36 @@ export function TutorialTooltip({ spotlightRect }: TutorialTooltipProps) {
   if (!currentStep) return null;
 
   const isLastStep = stepIndex === totalSteps - 1;
-  const isLastPageStep = pageStepIndex === pageStepsTotal - 1;
+
+  // Determine button action and label
+  const getButtonConfig = () => {
+    if (isLastStep) {
+      // Last step of entire tutorial
+      return {
+        label: "Concluir",
+        icon: <Check className="h-4 w-4" />,
+        action: completeTutorial,
+      };
+    }
+
+    if (isLastPageStep) {
+      // Last step of current page - dismiss and let user interact
+      return {
+        label: "Entendi",
+        icon: <Check className="h-4 w-4" />,
+        action: dismissPageTutorial,
+      };
+    }
+
+    // More steps on this page
+    return {
+      label: "Próximo",
+      icon: <ChevronRight className="h-4 w-4" />,
+      action: nextStep,
+    };
+  };
+
+  const buttonConfig = getButtonConfig();
 
   return (
     <div
@@ -105,6 +137,13 @@ export function TutorialTooltip({ spotlightRect }: TutorialTooltipProps) {
       {/* Content */}
       <div className="p-4">
         <p className="text-sm text-muted-foreground">{currentStep.content}</p>
+
+        {/* Show hint for last page step */}
+        {isLastPageStep && !isLastStep && (
+          <p className="text-xs text-primary mt-3">
+            Após clicar em &quot;Entendi&quot;, explore a página. O tutorial continua quando você navegar para a próxima seção.
+          </p>
+        )}
       </div>
 
       {/* Footer */}
@@ -131,14 +170,9 @@ export function TutorialTooltip({ spotlightRect }: TutorialTooltipProps) {
           </span>
         </div>
 
-        <Button size="sm" onClick={nextStep} className="gap-1">
-          {currentStep.nextLabel ||
-            (isLastStep
-              ? "Concluir"
-              : isLastPageStep
-                ? "Avançar"
-                : "Próximo")}
-          <ChevronRight className="h-4 w-4" />
+        <Button size="sm" onClick={buttonConfig.action} className="gap-1">
+          {buttonConfig.label}
+          {buttonConfig.icon}
         </Button>
       </div>
     </div>
