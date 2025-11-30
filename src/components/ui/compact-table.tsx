@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, ReactNode } from "react";
-import { ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Styles constants for consistent padding across all tables
@@ -22,6 +22,8 @@ interface GroupToggleRowProps {
   summaryClassName?: string;
   gridCols: string;
   emptyColsCount?: number; // Number of empty middle columns
+  onAdd?: () => void; // Optional add button action
+  addTitle?: string;
 }
 
 export function GroupToggleRow({
@@ -34,37 +36,53 @@ export function GroupToggleRow({
   summaryClassName,
   gridCols,
   emptyColsCount = 2,
+  onAdd,
+  addTitle = "Adicionar",
 }: GroupToggleRowProps) {
   return (
-    <div
-      className={COMPACT_TABLE_STYLES.groupHeader}
-      style={{ gridTemplateColumns: gridCols }}
-      onClick={onToggle}
-    >
-      <div className="flex items-center justify-center">
-        {isExpanded ? (
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        ) : (
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="text-lg">{icon}</span>
-        <span className="font-semibold text-sm">{label}</span>
-        {count !== undefined && (
-          <span className="text-xs text-muted-foreground">({count})</span>
-        )}
-      </div>
-      {/* Empty middle columns */}
-      {Array.from({ length: emptyColsCount }).map((_, i) => (
-        <div key={i}></div>
-      ))}
-      {/* Summary on the right */}
-      {summary !== undefined && (
-        <div className={cn("text-right text-sm font-semibold", summaryClassName)}>
-          {summary}
+    <div className="group/header">
+      <div
+        className={COMPACT_TABLE_STYLES.groupHeader}
+        style={{ gridTemplateColumns: gridCols }}
+        onClick={onToggle}
+      >
+        <div className="flex items-center justify-center">
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{icon}</span>
+          <span className="font-semibold text-sm">{label}</span>
+          {count !== undefined && (
+            <span className="text-xs text-muted-foreground">({count})</span>
+          )}
+          {onAdd && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAdd();
+              }}
+              className="ml-1 p-1 rounded hover:bg-muted opacity-0 group-hover/header:opacity-100 transition-opacity"
+              title={addTitle}
+            >
+              <Plus className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+            </button>
+          )}
+        </div>
+        {/* Empty middle columns */}
+        {Array.from({ length: emptyColsCount }).map((_, i) => (
+          <div key={i}></div>
+        ))}
+        {/* Summary on the right */}
+        {summary !== undefined && (
+          <div className={cn("text-right text-sm font-semibold", summaryClassName)}>
+            {summary}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

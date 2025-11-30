@@ -64,14 +64,20 @@ function formatCurrencyCompact(cents: number): string {
 
 const GRID_COLS = "24px 1fr 100px 100px 120px";
 
-const TYPE_CONFIG = {
-  checking: { label: "Contas Correntes", icon: "🏦" },
-  savings: { label: "Poupança", icon: "🐷" },
-  credit_card: { label: "Cartões de Crédito", icon: "💳" },
-  cash: { label: "Dinheiro", icon: "💵" },
-  investment: { label: "Investimentos", icon: "📈" },
-  benefit: { label: "Benefícios", icon: "🍽️" },
+// Type configuration with display order (investment always last)
+const TYPE_CONFIG: Record<string, { label: string; icon: string; order: number }> = {
+  checking: { label: "Contas Correntes", icon: "🏦", order: 1 },
+  savings: { label: "Poupança", icon: "🐷", order: 2 },
+  credit_card: { label: "Cartões de Crédito", icon: "💳", order: 3 },
+  cash: { label: "Dinheiro", icon: "💵", order: 4 },
+  benefit: { label: "Benefícios", icon: "🍽️", order: 5 },
+  investment: { label: "Investimentos", icon: "📈", order: 6 }, // Always last
 };
+
+// Ordered type keys for consistent display
+const ORDERED_TYPES = Object.entries(TYPE_CONFIG)
+  .sort((a, b) => a[1].order - b[1].order)
+  .map(([key]) => key) as Array<keyof typeof TYPE_CONFIG>;
 
 export default function AccountsSetupPage() {
   const router = useRouter();
@@ -80,6 +86,7 @@ export default function AccountsSetupPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [defaultAccountType, setDefaultAccountType] = useState<string | undefined>(undefined);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const { isExpanded, toggleGroup } = useExpandedGroups([
@@ -194,15 +201,11 @@ export default function AccountsSetupPage() {
     router.push("/app/income/setup");
   };
 
-  // Group accounts by type
-  const accountsByType = {
-    checking: accounts.filter((a) => a.type === "checking"),
-    savings: accounts.filter((a) => a.type === "savings"),
-    credit_card: accounts.filter((a) => a.type === "credit_card"),
-    cash: accounts.filter((a) => a.type === "cash"),
-    investment: accounts.filter((a) => a.type === "investment"),
-    benefit: accounts.filter((a) => a.type === "benefit"),
-  };
+  // Group accounts by type (using ordered types for consistent display)
+  const accountsByType: Record<string, AccountWithOwner[]> = {};
+  for (const type of ORDERED_TYPES) {
+    accountsByType[type] = accounts.filter((a) => a.type === type);
+  }
 
   const totalBalance = accounts
     .filter((a) => a.type !== "credit_card")
@@ -212,9 +215,16 @@ export default function AccountsSetupPage() {
     .filter((a) => a.type === "credit_card")
     .reduce((sum, a) => sum + a.balance, 0);
 
-  const typesWithAccounts = Object.entries(accountsByType).filter(
-    ([_, accts]) => accts.length > 0
-  );
+  // Get types with accounts, maintaining the order from ORDERED_TYPES
+  const typesWithAccounts = ORDERED_TYPES
+    .filter((type) => accountsByType[type].length > 0)
+    .map((type) => [type, accountsByType[type]] as [string, AccountWithOwner[]]);
+
+  // Function to open form with pre-selected type
+  const openFormWithType = (type: string) => {
+    setDefaultAccountType(type);
+    setIsFormOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -241,6 +251,13 @@ export default function AccountsSetupPage() {
           <Plus className="mr-2 h-4 w-4" />
           Nova Conta
         </Button>
+      </div>
+
+      {/* Welcome Message */}
+      <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+        <p className="text-sm text-foreground">
+          Configure suas contas financeiras. Você pode editar os nomes, criar novas contas ou remover as que não precisa.
+        </p>
       </div>
 
       {/* Summary */}
@@ -308,6 +325,8 @@ export default function AccountsSetupPage() {
                   count={typeAccounts.length}
                   gridCols={GRID_COLS}
                   emptyColsCount={2}
+                  onAdd={() => openFormWithType(type)}
+                  addTitle={`Adicionar ${config.label.toLowerCase()}`}
                   summary={
                     <>
                       {isCreditCard && typeTotal > 0 && "-"}
@@ -441,8 +460,12 @@ export default function AccountsSetupPage() {
       {/* Create Account Form */}
       <AccountForm
         open={isFormOpen}
-        onOpenChange={setIsFormOpen}
+        onOpenChange={(open) => {
+          setIsFormOpen(open);
+          if (!open) setDefaultAccountType(undefined);
+        }}
         onSubmit={handleCreateAccount}
+        initialData={defaultAccountType ? { type: defaultAccountType as "checking" | "savings" | "credit_card" | "cash" | "investment" | "benefit" } : undefined}
         mode="create"
         members={members}
       />

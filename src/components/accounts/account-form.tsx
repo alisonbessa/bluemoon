@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -99,6 +99,29 @@ export function AccountForm({
 
   const isCreditCard = formData.type === "credit_card";
   const isBenefit = formData.type === "benefit";
+
+  // Sync form data when initialData changes (e.g., when opening form with pre-selected type)
+  useEffect(() => {
+    if (initialData) {
+      const accountType = ACCOUNT_TYPES.find((t) => t.value === (initialData.type || "checking"));
+      setFormData({
+        name: initialData.name || "",
+        type: initialData.type || "checking",
+        balance: initialData.balance || 0,
+        ownerId: initialData.ownerId,
+        creditLimit: initialData.creditLimit,
+        closingDay: initialData.closingDay,
+        dueDay: initialData.dueDay,
+        monthlyDeposit: initialData.monthlyDeposit,
+        depositDay: initialData.depositDay,
+        icon: initialData.icon || accountType?.icon,
+        color: initialData.color,
+      });
+      setBalanceInput(formatCurrency(initialData.balance || 0));
+      setCreditLimitInput(formatCurrency(initialData.creditLimit || 0));
+      setMonthlyDepositInput(formatCurrency(initialData.monthlyDeposit || 0));
+    }
+  }, [initialData]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, boolean> = {};

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CurrencyInput, formatCentsToCurrency, formatCentsToDisplay } from "@/components/ui/currency-input";
 import {
   Select,
   SelectContent,
@@ -108,19 +109,15 @@ const frequencyLabels: Record<string, string> = {
   weekly: "Semanal",
 };
 
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
-function formatCurrencyCompact(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
+// Account types allowed for each income type
+const ALLOWED_ACCOUNT_TYPES_BY_INCOME: Record<string, string[]> = {
+  salary: ["checking", "savings"],
+  freelance: ["checking", "savings"],
+  rental: ["checking", "savings"],
+  investment: ["checking", "savings", "investment"],
+  benefit: ["benefit"],
+  other: ["checking", "savings", "credit_card", "cash", "investment", "benefit"],
+};
 
 export default function IncomeSetupPage() {
   const router = useRouter();
@@ -194,10 +191,17 @@ export default function IncomeSetupPage() {
     fetchData();
   }, [fetchData]);
 
+  // Filter accounts based on selected income type
+  const filteredAccounts = useMemo(() => {
+    const allowedTypes = ALLOWED_ACCOUNT_TYPES_BY_INCOME[formData.type] || [];
+    return accounts.filter((account) => allowedTypes.includes(account.type));
+  }, [accounts, formData.type]);
+
   const openCreateForm = (type?: string) => {
+    const incomeType = (type as IncomeFormData["type"]) || "salary";
     setFormData({
       name: "",
-      type: (type as IncomeFormData["type"]) || "salary",
+      type: incomeType,
       amount: 0,
       frequency: "monthly",
       dayOfMonth: undefined,
@@ -212,7 +216,7 @@ export default function IncomeSetupPage() {
     setFormData({
       name: source.name,
       type: source.type,
-      amount: source.amount / 100, // Convert from cents for display
+      amount: source.amount, // Already in cents
       frequency: source.frequency,
       dayOfMonth: source.dayOfMonth || undefined,
       memberId: source.member?.id,
@@ -253,7 +257,7 @@ export default function IncomeSetupPage() {
       const payload = {
         ...formData,
         budgetId: budgets[0].id,
-        amount: Math.round(formData.amount * 100), // Convert to cents
+        amount: formData.amount, // Already in cents
       };
 
       if (editingSource) {
@@ -372,7 +376,7 @@ export default function IncomeSetupPage() {
             <span>Renda Mensal Total</span>
           </div>
           <div className="mt-1 text-xl font-bold text-green-600">
-            {formatCurrency(totalMonthlyIncome)}
+            {formatCentsToCurrency(totalMonthlyIncome)}
           </div>
         </div>
 
@@ -416,7 +420,7 @@ export default function IncomeSetupPage() {
                   count={sources.length}
                   gridCols={GRID_COLS}
                   emptyColsCount={2}
-                  summary={`+${formatCurrencyCompact(typeTotal)}`}
+                  summary={`+${formatCentsToDisplay(typeTotal)}`}
                   summaryClassName="text-green-600"
                 />
 
@@ -468,7 +472,7 @@ export default function IncomeSetupPage() {
                         )}
                       </div>
                       <div className="text-right font-medium tabular-nums text-green-600">
-                        +{formatCurrencyCompact(source.amount)}
+                        +{formatCentsToDisplay(source.amount)}
                       </div>
                     </div>
                   ))}
@@ -552,9 +556,17 @@ export default function IncomeSetupPage() {
                 <Label htmlFor="type">Tipo</Label>
                 <Select
                   value={formData.type}
-                  onValueChange={(value: IncomeFormData["type"]) =>
-                    setFormData({ ...formData, type: value })
-                  }
+                  onValueChange={(value: IncomeFormData["type"]) => {
+                    // Clear accountId if the new type doesn't allow the current account
+                    const allowedTypes = ALLOWED_ACCOUNT_TYPES_BY_INCOME[value] || [];
+                    const currentAccount = accounts.find((a) => a.id === formData.accountId);
+                    const shouldClearAccount = currentAccount && !allowedTypes.includes(currentAccount.type);
+                    setFormData({
+                      ...formData,
+                      type: value,
+                      accountId: shouldClearAccount ? undefined : formData.accountId,
+                    });
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -602,19 +614,15 @@ export default function IncomeSetupPage() {
                   htmlFor="amount"
                   className={errors.amount ? "text-destructive" : ""}
                 >
-                  Valor (R$)
+                  Valor
                 </Label>
-                <Input
+                <CurrencyInput
                   id="amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
                   placeholder="0,00"
-                  value={formData.amount || ""}
-                  onChange={(e) => {
-                    const value = parseFloat(e.target.value) || 0;
-                    setFormData({ ...formData, amount: value });
-                    if (errors.amount && value > 0) {
+                  value={formData.amount}
+                  onChange={(valueInCents) => {
+                    setFormData({ ...formData, amount: valueInCents });
+                    if (errors.amount && valueInCents > 0) {
                       setErrors((prev) => ({ ...prev, amount: false }));
                     }
                   }}
@@ -664,7 +672,7 @@ export default function IncomeSetupPage() {
               </div>
             )}
 
-            {accounts.length > 0 && (
+            {filteredAccounts.length > 0 && (
               <div className="space-y-2">
                 <Label htmlFor="account">Conta de Destino</Label>
                 <Select
@@ -677,13 +685,20 @@ export default function IncomeSetupPage() {
                     <SelectValue placeholder="Selecione (opcional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {accounts.map((account) => (
+                    {filteredAccounts.map((account) => (
                       <SelectItem key={account.id} value={account.id}>
                         {account.icon || "🏦"} {account.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  {formData.type === "benefit"
+                    ? "Apenas contas de benefício"
+                    : formData.type === "other"
+                    ? "Todas as contas disponíveis"
+                    : "Contas correntes e poupança"}
+                </p>
               </div>
             )}
           </div>
