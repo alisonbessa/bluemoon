@@ -18,26 +18,31 @@ const navItems = [
     href: "/app",
     label: "Dashboard",
     icon: LayoutDashboardIcon,
+    tutorialId: "nav-dashboard",
   },
   {
     href: "/app/planning",
     label: "Planejamento",
     icon: LayoutGridIcon,
+    tutorialId: "nav-planning",
   },
   {
     href: "/app/transactions",
     label: "Transações",
     icon: ReceiptIcon,
+    tutorialId: "nav-transactions",
   },
   {
     href: "/app/accounts",
     label: "Contas",
     icon: CreditCardIcon,
+    tutorialId: "nav-accounts",
   },
   {
     href: "/app/settings",
     label: "Config",
     icon: SettingsIcon,
+    tutorialId: "nav-settings",
   },
 ];
 
@@ -66,6 +71,7 @@ export function AppHeader() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    data-tutorial={item.tutorialId}
                     className={cn(
                       "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       isActive
@@ -99,6 +105,7 @@ export function AppHeader() {
               <Link
                 key={item.href}
                 href={item.href}
+                data-tutorial={`${item.tutorialId}-mobile`}
                 className={cn(
                   "flex flex-col items-center gap-1 px-3 py-1 text-xs font-medium transition-colors",
                   isActive

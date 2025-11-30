@@ -5,6 +5,8 @@ export {
   TUTORIAL_FLOWS,
   getTutorialFlow,
   getNextStep,
+  getStepsByRoute,
+  getStepIndex,
   type TutorialStep,
   type TutorialFlow,
 } from "./tutorial-steps";

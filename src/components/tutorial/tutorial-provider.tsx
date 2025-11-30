@@ -12,6 +12,8 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   getTutorialFlow,
   getNextStep,
+  getStepsByRoute,
+  getStepIndex,
   type TutorialStep,
   type TutorialFlow,
 } from "./tutorial-steps";
@@ -22,6 +24,8 @@ interface TutorialContextValue {
   currentStep: TutorialStep | null;
   stepIndex: number;
   totalSteps: number;
+  pageStepIndex: number; // Index within the current page's steps
+  pageStepsTotal: number; // Total steps for current page
   startTutorial: (flowId: string) => void;
   nextStep: () => void;
   skipTutorial: () => void;
@@ -31,6 +35,7 @@ interface TutorialContextValue {
 const TutorialContext = createContext<TutorialContextValue | null>(null);
 
 const TUTORIAL_STORAGE_KEY = "hivebudget_tutorial_completed";
+const TUTORIAL_STEP_KEY = "hivebudget_tutorial_step";
 
 export function TutorialProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -39,49 +44,62 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
   const [currentFlow, setCurrentFlow] = useState<TutorialFlow | null>(null);
   const [currentStep, setCurrentStep] = useState<TutorialStep | null>(null);
-  const [stepIndex, setStepIndex] = useState(0);
 
-  // Determine current step based on URL params AND current pathname
+  // Initialize tutorial state from URL params
   useEffect(() => {
     const tutorialFlow = searchParams.get("tutorial");
+    const stepId = searchParams.get("step");
 
     if (tutorialFlow) {
       const flow = getTutorialFlow(tutorialFlow);
       if (flow) {
         setCurrentFlow(flow);
 
-        // Find the step that matches the current pathname
-        const matchingStep = flow.steps.find((step) => pathname === step.route);
+        // If we have a step ID, use it
+        if (stepId) {
+          const step = flow.steps.find((s) => s.id === stepId);
+          if (step && step.route === pathname) {
+            setCurrentStep(step);
+            return;
+          }
+        }
 
-        if (matchingStep) {
-          setCurrentStep(matchingStep);
-          setStepIndex(flow.steps.findIndex((s) => s.id === matchingStep.id));
+        // Otherwise, find the first step for the current route
+        const pageSteps = getStepsByRoute(tutorialFlow, pathname);
+        if (pageSteps.length > 0) {
+          setCurrentStep(pageSteps[0]);
+          // Update URL with step
+          updateStepInUrl(tutorialFlow, pageSteps[0].id);
         } else {
-          // If no matching step, use the first step
-          setCurrentStep(flow.steps[0]);
-          setStepIndex(0);
+          // No steps for this page, clear tutorial
+          setCurrentStep(null);
         }
       }
     } else {
       setCurrentFlow(null);
       setCurrentStep(null);
-      setStepIndex(0);
     }
   }, [searchParams, pathname]);
 
-  const updateUrlParams = useCallback(
-    (flowId: string | null, targetPath?: string) => {
-      if (flowId && targetPath) {
-        router.push(`${targetPath}?tutorial=${flowId}`);
-      } else {
-        // Remove tutorial param
-        const params = new URLSearchParams(searchParams.toString());
-        params.delete("tutorial");
-        const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
-        router.replace(newUrl, { scroll: false });
-      }
+  const updateStepInUrl = useCallback(
+    (flowId: string, stepId: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("tutorial", flowId);
+      params.set("step", stepId);
+      const newUrl = `${pathname}?${params.toString()}`;
+      router.replace(newUrl, { scroll: false });
     },
     [pathname, router, searchParams]
+  );
+
+  const navigateToStep = useCallback(
+    (flowId: string, step: TutorialStep) => {
+      const params = new URLSearchParams();
+      params.set("tutorial", flowId);
+      params.set("step", step.id);
+      router.push(`${step.route}?${params.toString()}`);
+    },
+    [router]
   );
 
   const startTutorial = useCallback(
@@ -92,53 +110,68 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       const firstStep = flow.steps[0];
       setCurrentFlow(flow);
       setCurrentStep(firstStep);
-      setStepIndex(0);
 
       // Navigate to the first step's route
-      router.push(`${firstStep.route}?tutorial=${flowId}`);
+      navigateToStep(flowId, firstStep);
     },
-    [router]
+    [navigateToStep]
   );
 
   const nextStep = useCallback(() => {
     if (!currentFlow || !currentStep) return;
 
     const next = getNextStep(currentFlow.id, currentStep.id);
+
     if (next) {
-      // Navigate to the next step's route
-      if (next.nextRoute) {
-        updateUrlParams(currentFlow.id, next.nextRoute);
+      // Check if we're transitioning to a new page
+      if (next.route !== currentStep.route) {
+        // Navigate to the next page with the step
+        navigateToStep(currentFlow.id, next);
       } else {
-        updateUrlParams(currentFlow.id, next.route);
+        // Same page, just update the step
+        setCurrentStep(next);
+        updateStepInUrl(currentFlow.id, next.id);
       }
     } else {
-      // No more steps - go to final destination and complete
-      if (currentStep.nextRoute) {
-        completeTutorial();
-      }
+      // No more steps - complete the tutorial
+      completeTutorial();
     }
-  }, [currentFlow, currentStep, updateUrlParams]);
+  }, [currentFlow, currentStep, navigateToStep, updateStepInUrl]);
 
   const skipTutorial = useCallback(() => {
     localStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
+    localStorage.removeItem(TUTORIAL_STEP_KEY);
     setCurrentFlow(null);
     setCurrentStep(null);
-    setStepIndex(0);
 
-    // Remove tutorial param from URL
+    // Remove tutorial params from URL
     const params = new URLSearchParams(searchParams.toString());
     params.delete("tutorial");
-    const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+    params.delete("step");
+    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
     router.replace(newUrl, { scroll: false });
   }, [pathname, router, searchParams]);
 
   const completeTutorial = useCallback(() => {
     localStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
+    localStorage.removeItem(TUTORIAL_STEP_KEY);
     setCurrentFlow(null);
     setCurrentStep(null);
-    setStepIndex(0);
     router.push("/app");
   }, [router]);
+
+  // Calculate indices
+  const stepIndex = currentFlow && currentStep
+    ? getStepIndex(currentFlow.id, currentStep.id)
+    : 0;
+
+  const pageSteps = currentFlow && currentStep
+    ? getStepsByRoute(currentFlow.id, currentStep.route)
+    : [];
+
+  const pageStepIndex = currentStep
+    ? pageSteps.findIndex((s) => s.id === currentStep.id)
+    : 0;
 
   const value: TutorialContextValue = {
     isActive: !!currentFlow && !!currentStep,
@@ -146,6 +179,8 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     currentStep,
     stepIndex,
     totalSteps: currentFlow?.steps.length ?? 0,
+    pageStepIndex,
+    pageStepsTotal: pageSteps.length,
     startTutorial,
     nextStep,
     skipTutorial,

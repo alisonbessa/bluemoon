@@ -584,11 +584,14 @@ export default function BudgetPage() {
           </div>
 
           {/* Summary */}
-          <div className={cn(
-            "flex items-center gap-2 px-3 py-1 rounded text-sm",
-            unallocated === 0 && totalIncome > 0 ? "bg-green-100 dark:bg-green-900/30 text-green-700" :
-            unallocated < 0 ? "bg-red-100 dark:bg-red-900/30 text-red-700" : "bg-muted"
-          )}>
+          <div
+            data-tutorial="budget-available"
+            className={cn(
+              "flex items-center gap-2 px-3 py-1 rounded text-sm",
+              unallocated === 0 && totalIncome > 0 ? "bg-green-100 dark:bg-green-900/30 text-green-700" :
+              unallocated < 0 ? "bg-red-100 dark:bg-red-900/30 text-red-700" : "bg-muted"
+            )}
+          >
             <span className="font-bold">{formatCurrency(Math.abs(unallocated))}</span>
             <span className="text-xs">
               {unallocated === 0 && totalIncome > 0 ? "Alocado" : unallocated < 0 ? "Excedido" : "Para Alocar"}

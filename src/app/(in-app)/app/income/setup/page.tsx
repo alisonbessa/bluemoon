@@ -369,7 +369,7 @@ export default function IncomeSetupPage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4" data-tutorial="income-summary">
         <div className="rounded-lg border bg-card p-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Wallet className="h-4 w-4 text-green-500" />
