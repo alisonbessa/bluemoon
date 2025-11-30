@@ -2,13 +2,19 @@
 
 import { OnboardingCard } from "../onboarding-card";
 import { OnboardingFooter } from "../onboarding-footer";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface StepExpensesProps {
   expenses: {
     essential: string[];
     lifestyle: string[];
+    utilitiesDetailed: boolean;
+    utilitiesItems: string[];
   };
   onToggleExpense: (type: "essential" | "lifestyle", value: string) => void;
+  onToggleUtilitiesDetailed: (detailed: boolean) => void;
+  onToggleUtilityItem: (item: string) => void;
   onNext: () => void;
   onBack: () => void;
 }
@@ -38,6 +44,16 @@ const ESSENTIAL_OPTIONS = [
     label: "Educacao",
     description: "Escola, cursos, materiais",
   },
+];
+
+const UTILITY_ITEMS = [
+  { value: "electricity", icon: "⚡", label: "Energia" },
+  { value: "water", icon: "💧", label: "Água" },
+  { value: "gas", icon: "🔥", label: "Gás" },
+  { value: "internet", icon: "🌐", label: "Internet" },
+  { value: "phone", icon: "📱", label: "Telefone" },
+  { value: "condominium", icon: "🏢", label: "Condomínio" },
+  { value: "iptu", icon: "🏠", label: "IPTU" },
 ];
 
 const LIFESTYLE_OPTIONS = [
@@ -82,11 +98,15 @@ const LIFESTYLE_OPTIONS = [
 export function StepExpenses({
   expenses,
   onToggleExpense,
+  onToggleUtilitiesDetailed,
+  onToggleUtilityItem,
   onNext,
   onBack,
 }: StepExpensesProps) {
   const hasAnyExpense =
     expenses.essential.length > 0 || expenses.lifestyle.length > 0;
+  const hasUtilities = expenses.essential.includes("utilities");
+  const showUtilitiesDetail = hasUtilities && expenses.utilitiesDetailed;
 
   return (
     <div className="flex flex-col h-full">
@@ -118,6 +138,44 @@ export function StepExpenses({
                 />
               ))}
             </div>
+
+            {hasUtilities && (
+              <div className="mt-4 p-4 rounded-lg border bg-muted/30">
+                <div className="flex items-center justify-between mb-3">
+                  <Label htmlFor="utilities-detailed" className="text-sm font-medium">
+                    Detalhar contas de casa?
+                  </Label>
+                  <Switch
+                    id="utilities-detailed"
+                    checked={expenses.utilitiesDetailed}
+                    onCheckedChange={onToggleUtilitiesDetailed}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Controle cada conta separadamente para ter mais visibilidade
+                </p>
+
+                {showUtilitiesDetail && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {UTILITY_ITEMS.map((item) => (
+                      <button
+                        key={item.value}
+                        type="button"
+                        onClick={() => onToggleUtilityItem(item.value)}
+                        className={`flex items-center gap-2 p-2 rounded-md border text-sm transition-colors ${
+                          expenses.utilitiesItems.includes(item.value)
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <span>{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div>

@@ -36,6 +36,8 @@ const onboardingSchema = z.object({
     expenses: z.object({
       essential: z.array(z.string()),
       lifestyle: z.array(z.string()),
+      utilitiesDetailed: z.boolean().optional(),
+      utilitiesItems: z.array(z.string()).optional(),
     }),
     debts: z.array(z.string()),
     goals: z.array(z.string()),
@@ -77,6 +79,17 @@ const EXPENSE_CATEGORIES: Record<
   beauty: { name: "Beleza/Cuidados", icon: "💅", group: "lifestyle" },
   hobbies: { name: "Hobbies", icon: "🎨", group: "lifestyle" },
   subscriptions: { name: "Assinaturas", icon: "📦", group: "lifestyle" },
+};
+
+// Detailed utility categories (when user wants to track each utility separately)
+const UTILITY_CATEGORIES: Record<string, { name: string; icon: string }> = {
+  electricity: { name: "Energia", icon: "⚡" },
+  water: { name: "Água", icon: "💧" },
+  gas: { name: "Gás", icon: "🔥" },
+  internet: { name: "Internet", icon: "🌐" },
+  phone: { name: "Telefone", icon: "📱" },
+  condominium: { name: "Condomínio", icon: "🏢" },
+  iptu: { name: "IPTU", icon: "🏠" },
 };
 
 const DEBT_CATEGORIES: Record<string, { name: string; icon: string }> = {
@@ -309,7 +322,41 @@ export const POST = withAuthRequired(async (req, context) => {
     ...data.expenses.essential,
     ...data.expenses.lifestyle,
   ]) {
-    if (EXPENSE_CATEGORIES[expense]) {
+    // Handle utilities specially if detailed
+    if (expense === "utilities") {
+      const utilitiesDetailed = data.expenses.utilitiesDetailed;
+      const utilitiesItems = data.expenses.utilitiesItems || [];
+
+      if (utilitiesDetailed && utilitiesItems.length > 0) {
+        // Create separate category for each selected utility
+        for (const utilityItem of utilitiesItems) {
+          if (UTILITY_CATEGORIES[utilityItem]) {
+            const cat = UTILITY_CATEGORIES[utilityItem];
+            categoryInserts.push({
+              budgetId: newBudget.id,
+              groupId: groupByCode.essential.id,
+              name: cat.name,
+              icon: cat.icon,
+              behavior: "refill_up",
+              plannedAmount: 0,
+              displayOrder: displayOrder++,
+            });
+          }
+        }
+      } else {
+        // Create single "Contas de Casa" category
+        const cat = EXPENSE_CATEGORIES.utilities;
+        categoryInserts.push({
+          budgetId: newBudget.id,
+          groupId: groupByCode.essential.id,
+          name: cat.name,
+          icon: cat.icon,
+          behavior: "refill_up",
+          plannedAmount: 0,
+          displayOrder: displayOrder++,
+        });
+      }
+    } else if (EXPENSE_CATEGORIES[expense]) {
       const cat = EXPENSE_CATEGORIES[expense];
       categoryInserts.push({
         budgetId: newBudget.id,

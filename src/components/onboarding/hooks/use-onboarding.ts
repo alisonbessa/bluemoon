@@ -38,6 +38,8 @@ export interface OnboardingData {
   expenses: {
     essential: string[];
     lifestyle: string[];
+    utilitiesDetailed: boolean;
+    utilitiesItems: string[];
   };
 
   debts: string[];
@@ -61,6 +63,8 @@ const initialData: OnboardingData = {
   expenses: {
     essential: [],
     lifestyle: [],
+    utilitiesDetailed: false,
+    utilitiesItems: [],
   },
   debts: [],
   goals: [],
@@ -196,11 +200,17 @@ export function useOnboarding() {
       setData((prev) => {
         const array = prev.expenses[type];
         if (array.includes(item)) {
+          // If removing "utilities", also reset detailed utilities
+          const additionalUpdates =
+            item === "utilities"
+              ? { utilitiesDetailed: false, utilitiesItems: [] }
+              : {};
           return {
             ...prev,
             expenses: {
               ...prev.expenses,
               [type]: array.filter((i) => i !== item),
+              ...additionalUpdates,
             },
           };
         }
@@ -215,6 +225,40 @@ export function useOnboarding() {
     },
     []
   );
+
+  const toggleUtilitiesDetailed = useCallback((detailed: boolean) => {
+    setData((prev) => ({
+      ...prev,
+      expenses: {
+        ...prev.expenses,
+        utilitiesDetailed: detailed,
+        // Reset items when toggling off
+        utilitiesItems: detailed ? prev.expenses.utilitiesItems : [],
+      },
+    }));
+  }, []);
+
+  const toggleUtilityItem = useCallback((item: string) => {
+    setData((prev) => {
+      const items = prev.expenses.utilitiesItems;
+      if (items.includes(item)) {
+        return {
+          ...prev,
+          expenses: {
+            ...prev.expenses,
+            utilitiesItems: items.filter((i) => i !== item),
+          },
+        };
+      }
+      return {
+        ...prev,
+        expenses: {
+          ...prev.expenses,
+          utilitiesItems: [...items, item],
+        },
+      };
+    });
+  }, []);
 
   const submit = useCallback(async () => {
     setIsSubmitting(true);
@@ -250,6 +294,8 @@ export function useOnboarding() {
     updateHousehold,
     toggleArrayItem,
     toggleExpense,
+    toggleUtilitiesDetailed,
+    toggleUtilityItem,
     hasAdditionalMembers,
     submit,
   };

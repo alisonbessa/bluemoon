@@ -37,6 +37,8 @@ export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
     updateHousehold,
     toggleArrayItem,
     toggleExpense,
+    toggleUtilitiesDetailed,
+    toggleUtilityItem,
     submit,
   } = useOnboarding();
 
@@ -142,6 +144,8 @@ export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
           <StepExpenses
             expenses={data.expenses}
             onToggleExpense={toggleExpense}
+            onToggleUtilitiesDetailed={toggleUtilitiesDetailed}
+            onToggleUtilityItem={toggleUtilityItem}
             onNext={goToNext}
             onBack={goToPrevious}
           />
