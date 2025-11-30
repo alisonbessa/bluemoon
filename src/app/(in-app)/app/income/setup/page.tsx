@@ -362,7 +362,7 @@ export default function IncomeSetupPage() {
             </p>
           </div>
         </div>
-        <Button onClick={() => openCreateForm()} size="sm">
+        <Button onClick={() => openCreateForm()} size="sm" data-tutorial="add-income-button">
           <Plus className="mr-2 h-4 w-4" />
           Nova Renda
         </Button>

@@ -834,6 +834,7 @@ export default function BudgetPage() {
                         isSelected && "bg-primary/5"
                       )}
                       onClick={() => openEditModal(item.category, item.allocated)}
+                      data-tutorial="category-row"
                     >
                       <Checkbox
                         checked={isSelected}

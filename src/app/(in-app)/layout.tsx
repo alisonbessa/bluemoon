@@ -2,7 +2,8 @@
 
 import { AppHeader } from "@/components/layout/app-header";
 import { OnboardingModal } from "@/components/onboarding";
-import React, { useEffect } from "react";
+import { TutorialProvider, TutorialOverlay } from "@/components/tutorial";
+import React, { Suspense, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import useUser from "@/lib/users/useUser";
 
@@ -87,14 +88,20 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex flex-col h-screen gap-4">
-      <AppHeader />
-      <div className="grow p-4 sm:p-2 max-w-7xl mx-auto w-full">{children}</div>
+    <Suspense fallback={<DashboardSkeleton />}>
+      <TutorialProvider>
+        <div className="flex flex-col h-screen gap-4">
+          <AppHeader />
+          <div className="grow p-4 sm:p-2 max-w-7xl mx-auto w-full">{children}</div>
 
-      {showOnboarding && (
-        <OnboardingModal onComplete={handleOnboardingComplete} />
-      )}
-    </div>
+          {showOnboarding && (
+            <OnboardingModal onComplete={handleOnboardingComplete} />
+          )}
+
+          <TutorialOverlay />
+        </div>
+      </TutorialProvider>
+    </Suspense>
   );
 }
 

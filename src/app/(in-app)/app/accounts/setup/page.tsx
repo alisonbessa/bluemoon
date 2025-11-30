@@ -247,7 +247,7 @@ export default function AccountsSetupPage() {
             Adicione e personalize suas contas bancarias, cartoes e investimentos
           </p>
         </div>
-        <Button onClick={() => setIsFormOpen(true)} size="sm">
+        <Button onClick={() => setIsFormOpen(true)} size="sm" data-tutorial="add-account-button">
           <Plus className="mr-2 h-4 w-4" />
           Nova Conta
         </Button>
@@ -352,6 +352,7 @@ export default function AccountsSetupPage() {
                         key={account.id}
                         className={COMPACT_TABLE_STYLES.itemRow}
                         style={{ gridTemplateColumns: GRID_COLS }}
+                        data-tutorial="account-item"
                       >
                         <div className="flex items-center justify-center">
                           <span className="text-base">

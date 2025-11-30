@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { OnboardingProgress } from "./onboarding-progress";
 import { useOnboarding } from "./hooks/use-onboarding";
+import { useTutorial } from "@/components/tutorial";
 import {
   StepWelcome,
   StepHousehold,
@@ -25,6 +26,7 @@ interface OnboardingModalProps {
 
 export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
   const router = useRouter();
+  const { startTutorial } = useTutorial();
   const {
     data,
     currentStep,
@@ -59,7 +61,8 @@ export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
       await submit();
       toast.success("Orçamento criado com sucesso!");
       onComplete?.();
-      router.push("/app/accounts/setup");
+      // Start the tutorial after onboarding
+      startTutorial("post-onboarding");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Erro ao criar orçamento"
