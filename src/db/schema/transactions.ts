@@ -13,6 +13,9 @@ export type FinancialTransactionType = z.infer<typeof financialTransactionTypeEn
 export const financialTransactionStatusEnum = z.enum(["pending", "cleared", "reconciled"]);
 export type FinancialTransactionStatus = z.infer<typeof financialTransactionStatusEnum>;
 
+export const recurrenceTypeEnum = z.enum(["weekly", "monthly", "yearly"]);
+export type RecurrenceType = z.infer<typeof recurrenceTypeEnum>;
+
 export const transactions = pgTable("transactions", {
   id: text("id")
     .primaryKey()
@@ -44,6 +47,13 @@ export const transactions = pgTable("transactions", {
   installmentNumber: integer("installment_number"), // Current installment (e.g., 3 of 12)
   totalInstallments: integer("total_installments"), // Total installments (e.g., 12)
   parentTransactionId: text("parent_transaction_id"), // Reference to original installment transaction
+
+  // Recurrence tracking
+  isRecurring: boolean("is_recurring").default(false),
+  recurrenceType: text("recurrence_type").$type<RecurrenceType>(), // weekly, monthly, yearly
+  recurrenceDay: integer("recurrence_day"), // Day of month (1-31) or day of week (0-6)
+  recurrenceEndDate: timestamp("recurrence_end_date", { mode: "date" }), // When recurrence ends (null = never)
+  recurrenceParentId: text("recurrence_parent_id"), // Reference to the original recurring transaction
 
   // Source tracking (telegram, web, etc.)
   source: text("source").default("web"),
@@ -89,5 +99,11 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
     fields: [transactions.parentTransactionId],
     references: [transactions.id],
     relationName: "parentTransaction",
+  }),
+  childRecurrences: many(transactions, { relationName: "recurrenceParent" }),
+  recurrenceParent: one(transactions, {
+    fields: [transactions.recurrenceParentId],
+    references: [transactions.id],
+    relationName: "recurrenceParent",
   }),
 }));
