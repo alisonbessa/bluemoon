@@ -4,9 +4,7 @@ export { TutorialTooltip } from "./tutorial-tooltip";
 export {
   TUTORIAL_FLOWS,
   getTutorialFlow,
-  getTutorialStep,
   getNextStep,
-  getPreviousStep,
   type TutorialStep,
   type TutorialFlow,
 } from "./tutorial-steps";

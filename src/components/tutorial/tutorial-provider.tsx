@@ -11,7 +11,6 @@ import {
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
   getTutorialFlow,
-  getTutorialStep,
   getNextStep,
   type TutorialStep,
   type TutorialFlow,
@@ -25,7 +24,6 @@ interface TutorialContextValue {
   totalSteps: number;
   startTutorial: (flowId: string) => void;
   nextStep: () => void;
-  previousStep: () => void;
   skipTutorial: () => void;
   completeTutorial: () => void;
 }
@@ -43,21 +41,25 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const [currentStep, setCurrentStep] = useState<TutorialStep | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
 
-  // Check URL for tutorial params
+  // Determine current step based on URL params AND current pathname
   useEffect(() => {
     const tutorialFlow = searchParams.get("tutorial");
-    const tutorialStep = searchParams.get("step");
 
     if (tutorialFlow) {
       const flow = getTutorialFlow(tutorialFlow);
       if (flow) {
         setCurrentFlow(flow);
-        const step = tutorialStep
-          ? getTutorialStep(tutorialFlow, tutorialStep)
-          : flow.steps[0];
-        if (step) {
-          setCurrentStep(step);
-          setStepIndex(flow.steps.findIndex((s) => s.id === step.id));
+
+        // Find the step that matches the current pathname
+        const matchingStep = flow.steps.find((step) => pathname === step.route);
+
+        if (matchingStep) {
+          setCurrentStep(matchingStep);
+          setStepIndex(flow.steps.findIndex((s) => s.id === matchingStep.id));
+        } else {
+          // If no matching step, use the first step
+          setCurrentStep(flow.steps[0]);
+          setStepIndex(0);
         }
       }
     } else {
@@ -65,22 +67,19 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       setCurrentStep(null);
       setStepIndex(0);
     }
-  }, [searchParams]);
+  }, [searchParams, pathname]);
 
   const updateUrlParams = useCallback(
-    (flowId: string | null, stepId: string | null) => {
-      const params = new URLSearchParams(searchParams.toString());
-
-      if (flowId && stepId) {
-        params.set("tutorial", flowId);
-        params.set("step", stepId);
+    (flowId: string | null, targetPath?: string) => {
+      if (flowId && targetPath) {
+        router.push(`${targetPath}?tutorial=${flowId}`);
       } else {
+        // Remove tutorial param
+        const params = new URLSearchParams(searchParams.toString());
         params.delete("tutorial");
-        params.delete("step");
+        const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+        router.replace(newUrl, { scroll: false });
       }
-
-      const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
-      router.replace(newUrl, { scroll: false });
     },
     [pathname, router, searchParams]
   );
@@ -95,14 +94,10 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       setCurrentStep(firstStep);
       setStepIndex(0);
 
-      // Navigate to the first step's route if specified
-      if (firstStep.nextRoute) {
-        router.push(`${firstStep.nextRoute}?tutorial=${flowId}&step=${firstStep.id}`);
-      } else {
-        updateUrlParams(flowId, firstStep.id);
-      }
+      // Navigate to the first step's route
+      router.push(`${firstStep.route}?tutorial=${flowId}`);
     },
-    [router, updateUrlParams]
+    [router]
   );
 
   const nextStep = useCallback(() => {
@@ -110,47 +105,40 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
     const next = getNextStep(currentFlow.id, currentStep.id);
     if (next) {
-      setCurrentStep(next);
-      setStepIndex((prev) => prev + 1);
-
+      // Navigate to the next step's route
       if (next.nextRoute) {
-        router.push(`${next.nextRoute}?tutorial=${currentFlow.id}&step=${next.id}`);
+        updateUrlParams(currentFlow.id, next.nextRoute);
       } else {
-        updateUrlParams(currentFlow.id, next.id);
+        updateUrlParams(currentFlow.id, next.route);
       }
     } else {
-      // No more steps - complete the tutorial
-      completeTutorial();
+      // No more steps - go to final destination and complete
+      if (currentStep.nextRoute) {
+        completeTutorial();
+      }
     }
-  }, [currentFlow, currentStep, router, updateUrlParams]);
-
-  const previousStep = useCallback(() => {
-    if (!currentFlow || !currentStep || stepIndex === 0) return;
-
-    const prevStep = currentFlow.steps[stepIndex - 1];
-    if (prevStep) {
-      setCurrentStep(prevStep);
-      setStepIndex((prev) => prev - 1);
-      updateUrlParams(currentFlow.id, prevStep.id);
-    }
-  }, [currentFlow, currentStep, stepIndex, updateUrlParams]);
+  }, [currentFlow, currentStep, updateUrlParams]);
 
   const skipTutorial = useCallback(() => {
     localStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
     setCurrentFlow(null);
     setCurrentStep(null);
     setStepIndex(0);
-    updateUrlParams(null, null);
-  }, [updateUrlParams]);
+
+    // Remove tutorial param from URL
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("tutorial");
+    const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+    router.replace(newUrl, { scroll: false });
+  }, [pathname, router, searchParams]);
 
   const completeTutorial = useCallback(() => {
     localStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
     setCurrentFlow(null);
     setCurrentStep(null);
     setStepIndex(0);
-    updateUrlParams(null, null);
     router.push("/app");
-  }, [router, updateUrlParams]);
+  }, [router]);
 
   const value: TutorialContextValue = {
     isActive: !!currentFlow && !!currentStep,
@@ -160,7 +148,6 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     totalSteps: currentFlow?.steps.length ?? 0,
     startTutorial,
     nextStep,
-    previousStep,
     skipTutorial,
     completeTutorial,
   };
