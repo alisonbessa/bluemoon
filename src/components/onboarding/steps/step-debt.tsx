@@ -14,31 +14,31 @@ const DEBT_OPTIONS = [
   {
     value: "credit_card",
     icon: "💳",
-    label: "Cartao de credito",
+    label: "Cartão de crédito",
     description: "Parcelado ou rotativo",
   },
   {
     value: "personal_loan",
     icon: "🏦",
-    label: "Emprestimo pessoal",
+    label: "Empréstimo pessoal",
     description: "Banco ou financeira",
   },
   {
     value: "car_loan",
     icon: "🚗",
-    label: "Financiamento de veiculo",
+    label: "Financiamento de veículo",
     description: "Carro ou moto",
   },
   {
     value: "student_loan",
     icon: "🎓",
-    label: "Emprestimo estudantil",
-    description: "FIES, credito universitario",
+    label: "Empréstimo estudantil",
+    description: "FIES, crédito universitário",
   },
   {
     value: "medical",
     icon: "🏥",
-    label: "Divida medica",
+    label: "Dívida médica",
     description: "Hospital, tratamentos",
   },
   {
@@ -61,7 +61,7 @@ export function StepDebt({
         <div className="text-center mb-8">
           <div className="text-4xl mb-4">💰</div>
           <h2 className="text-2xl font-bold mb-2">
-            Voce tem alguma divida atualmente?
+            Você tem alguma dívida atualmente?
           </h2>
           <p className="text-muted-foreground">
             Vamos criar categorias para acompanhar seus pagamentos
@@ -87,7 +87,7 @@ export function StepDebt({
             onClick={onNext}
             className="text-sm text-primary hover:text-primary/80 underline underline-offset-4"
           >
-            Nao tenho dividas no momento
+            Não tenho dívidas no momento
           </button>
         </div>
       </div>

@@ -27,8 +27,14 @@ import {
   PiggyBank,
   Eye,
   EyeOff,
+  HelpCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
@@ -257,6 +263,14 @@ export default function AccountsPage() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Wallet className="h-4 w-4" />
             <span>Patrimônio Líquido</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-3.5 w-3.5 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Soma de todas as suas contas menos as dívidas (faturas de cartão de crédito)
+              </TooltipContent>
+            </Tooltip>
           </div>
           <div className="mt-1 text-xl font-bold">
             {formatCurrency(totalBalance - totalDebt)}
@@ -267,6 +281,14 @@ export default function AccountsPage() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <PiggyBank className="h-4 w-4 text-green-500" />
             <span>Saldo em Contas</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-3.5 w-3.5 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Soma de contas correntes, poupança{includeInvestments ? ", investimentos" : ""} e benefícios. Não inclui cartões de crédito.
+              </TooltipContent>
+            </Tooltip>
           </div>
           <div className="mt-1 text-xl font-bold text-green-600">
             {formatCurrency(totalBalance)}
@@ -277,6 +299,14 @@ export default function AccountsPage() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <CreditCard className="h-4 w-4 text-red-500" />
             <span>Fatura dos Cartões</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-3.5 w-3.5 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Soma das faturas de todos os cartões de crédito
+              </TooltipContent>
+            </Tooltip>
           </div>
           <div className="mt-1 text-xl font-bold text-red-600">
             {formatCurrency(totalDebt)}

@@ -9,6 +9,16 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   User,
   Bell,
   Shield,
@@ -22,16 +32,33 @@ import {
   Moon,
   Sun,
   Smartphone,
+  RefreshCw,
 } from "lucide-react";
+import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const [darkMode, setDarkMode] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboardingConfirm, setShowOnboardingConfirm] = useState(false);
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
     billReminders: true,
     weeklyReport: true,
   });
+
+  const handleRestartOnboarding = () => {
+    setShowOnboardingConfirm(false);
+    setShowOnboarding(true);
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    toast.success("Configuração inicial atualizada!");
+    // Reload the page to refresh data
+    window.location.reload();
+  };
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -317,6 +344,18 @@ export default function SettingsPage() {
                 </div>
                 <Badge variant="secondary" className="ml-2">Em breve</Badge>
               </Button>
+              <Separator className="my-2" />
+              <Button
+                variant="ghost"
+                className="w-full justify-between"
+                onClick={() => setShowOnboardingConfirm(true)}
+              >
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  <span>Refazer configuração inicial</span>
+                </div>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </CardContent>
           </Card>
 
@@ -366,6 +405,33 @@ export default function SettingsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Onboarding Confirmation Dialog */}
+      <AlertDialog open={showOnboardingConfirm} onOpenChange={setShowOnboardingConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Refazer configuração inicial?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso permitirá que você reconfigure suas categorias, contas e fontes de renda.
+              Os dados existentes serão mantidos, mas novas categorias podem ser adicionadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRestartOnboarding}>
+              Continuar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Onboarding Modal */}
+      {showOnboarding && (
+        <OnboardingModal
+          onComplete={handleOnboardingComplete}
+          onSkip={() => setShowOnboarding(false)}
+        />
+      )}
     </div>
   );
 }

@@ -164,9 +164,9 @@ export function TutorialTooltip({ spotlightRect }: TutorialTooltipProps) {
               />
             ))}
           </div>
-          {/* Overall progress text */}
+          {/* Page progress text */}
           <span className="text-xs text-muted-foreground">
-            {stepIndex + 1} de {totalSteps}
+            {pageStepIndex + 1} de {pageStepsTotal}
           </span>
         </div>
 

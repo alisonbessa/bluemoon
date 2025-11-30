@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources } from "@/db/schema";
+import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations } from "@/db/schema";
 import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -83,12 +83,12 @@ export const GET = withAuthRequired(async (req, context) => {
         eq(transactions.budgetId, budgetId),
         gte(transactions.date, startDate),
         lte(transactions.date, endDate),
-        inArray(transactions.status, ["cleared", "reconciled"])
+        inArray(transactions.status, ["pending", "cleared", "reconciled"])
       )
     )
     .groupBy(transactions.categoryId);
 
-  const spendingMap = new Map(spending.map((s) => [s.categoryId, s.totalSpent || 0]));
+  const spendingMap = new Map(spending.map((s) => [s.categoryId, Number(s.totalSpent) || 0]));
   const allocationsMap = new Map(allocations.map((a) => [a.categoryId, a]));
 
   // Group categories by group
@@ -164,6 +164,22 @@ export const GET = withAuthRequired(async (req, context) => {
     )
     .orderBy(incomeSources.displayOrder);
 
+  // Get monthly income allocations (overrides for this month)
+  const incomeAllocations = await db
+    .select()
+    .from(monthlyIncomeAllocations)
+    .where(
+      and(
+        eq(monthlyIncomeAllocations.budgetId, budgetId),
+        eq(monthlyIncomeAllocations.year, year),
+        eq(monthlyIncomeAllocations.month, month)
+      )
+    );
+
+  const incomeAllocationsMap = new Map(
+    incomeAllocations.map((a) => [a.incomeSourceId, a.planned])
+  );
+
   // Get income received per income source for this month
   const incomeReceived = await db
     .select({
@@ -177,13 +193,13 @@ export const GET = withAuthRequired(async (req, context) => {
         eq(transactions.type, "income"),
         gte(transactions.date, startDate),
         lte(transactions.date, endDate),
-        inArray(transactions.status, ["cleared", "reconciled"])
+        inArray(transactions.status, ["pending", "cleared", "reconciled"])
       )
     )
     .groupBy(transactions.incomeSourceId);
 
   const incomeReceivedMap = new Map(
-    incomeReceived.map((i) => [i.incomeSourceId, i.totalReceived || 0])
+    incomeReceived.map((i) => [i.incomeSourceId, Number(i.totalReceived) || 0])
   );
 
   // Group income sources by member
@@ -192,6 +208,7 @@ export const GET = withAuthRequired(async (req, context) => {
     sources: Array<{
       incomeSource: typeof incomeSources.$inferSelect;
       planned: number;
+      defaultAmount: number;
       received: number;
     }>;
     totals: { planned: number; received: number };
@@ -208,13 +225,18 @@ export const GET = withAuthRequired(async (req, context) => {
       });
     }
 
-    const planned = incomeSource.amount || 0;
+    // Use monthly allocation if it exists, otherwise use default amount
+    const defaultAmount = incomeSource.amount || 0;
+    const planned = incomeAllocationsMap.has(incomeSource.id)
+      ? incomeAllocationsMap.get(incomeSource.id)!
+      : defaultAmount;
     const received = incomeReceivedMap.get(incomeSource.id) || 0;
 
     const memberData = incomeByMember.get(memberId)!;
     memberData.sources.push({
       incomeSource,
       planned,
+      defaultAmount,
       received,
     });
     memberData.totals.planned += planned;

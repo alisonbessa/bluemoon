@@ -1,3 +1,4 @@
+export { StepIntro } from "./step-intro";
 export { StepWelcome } from "./step-welcome";
 export { StepHousehold } from "./step-household";
 export { StepMemberNames } from "./step-member-names";

@@ -23,6 +23,8 @@ import {
   SettingsIcon,
   CalendarIcon,
   CheckCircle2Icon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 import useUser from "@/lib/users/useUser";
@@ -44,6 +46,17 @@ interface Budget {
   id: string;
   name: string;
 }
+
+interface MonthSummary {
+  income: { planned: number; received: number };
+  expenses: { allocated: number; spent: number };
+  available: number;
+}
+
+const monthNames = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
 
 function formatCurrency(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", {
@@ -92,8 +105,39 @@ function AppHomepage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [commitments, setCommitments] = useState<Commitment[]>([]);
   const [commitmentsLoading, setCommitmentsLoading] = useState(true);
+  const [monthSummary, setMonthSummary] = useState<MonthSummary | null>(null);
+
+  // Month navigation
+  const today = new Date();
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
 
   const hasCompletedOnboarding = !!user?.onboardingCompletedAt;
+
+  const isCurrentMonth = currentYear === today.getFullYear() && currentMonth === today.getMonth() + 1;
+
+  const handlePrevMonth = () => {
+    if (currentMonth === 1) {
+      setCurrentYear((y) => y - 1);
+      setCurrentMonth(12);
+    } else {
+      setCurrentMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 12) {
+      setCurrentYear((y) => y + 1);
+      setCurrentMonth(1);
+    } else {
+      setCurrentMonth((m) => m + 1);
+    }
+  };
+
+  const goToCurrentMonth = () => {
+    setCurrentYear(today.getFullYear());
+    setCurrentMonth(today.getMonth() + 1);
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -103,14 +147,41 @@ function AppHomepage() {
         const data = await budgetsRes.json();
         setBudgets(data.budgets || []);
 
-        // If we have a budget, fetch commitments
+        // If we have a budget, fetch allocations and commitments
         if (data.budgets?.length > 0) {
-          const commitmentsRes = await fetch(
-            `/api/app/commitments?budgetId=${data.budgets[0].id}&days=30`
+          const budgetId = data.budgets[0].id;
+
+          // Fetch allocations for the month (includes income data)
+          const allocationsRes = await fetch(
+            `/api/app/allocations?budgetId=${budgetId}&year=${currentYear}&month=${currentMonth}`
           );
-          if (commitmentsRes.ok) {
-            const commitmentsData = await commitmentsRes.json();
-            setCommitments(commitmentsData.commitments || []);
+          if (allocationsRes.ok) {
+            const allocData = await allocationsRes.json();
+
+            // Calculate summary from allocations
+            const income = allocData.income?.totals || { planned: 0, received: 0 };
+            const expenses = allocData.totals || { allocated: 0, spent: 0 };
+            const available = income.planned - expenses.allocated;
+
+            setMonthSummary({
+              income,
+              expenses,
+              available,
+            });
+          }
+
+          // Fetch commitments (only for current/future months)
+          if (currentYear > today.getFullYear() ||
+              (currentYear === today.getFullYear() && currentMonth >= today.getMonth() + 1)) {
+            const commitmentsRes = await fetch(
+              `/api/app/commitments?budgetId=${budgetId}&days=30&year=${currentYear}&month=${currentMonth}`
+            );
+            if (commitmentsRes.ok) {
+              const commitmentsData = await commitmentsRes.json();
+              setCommitments(commitmentsData.commitments || []);
+            }
+          } else {
+            setCommitments([]);
           }
         }
       }
@@ -119,10 +190,11 @@ function AppHomepage() {
     } finally {
       setCommitmentsLoading(false);
     }
-  }, []);
+  }, [currentYear, currentMonth]);
 
   useEffect(() => {
     if (user && hasCompletedOnboarding) {
+      setCommitmentsLoading(true);
       fetchData();
     } else {
       setCommitmentsLoading(false);
@@ -153,14 +225,37 @@ function AppHomepage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      {/* Header */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Olá, {firstName}!
-        </h1>
-        <p className="text-muted-foreground">
-          Bem-vindo ao seu painel financeiro. Aqui você tem uma visão geral das suas finanças.
-        </p>
+      {/* Header with Month Navigation */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-bold tracking-tight">
+            Olá, {firstName}!
+          </h1>
+          <p className="text-muted-foreground">
+            Visão geral das suas finanças
+          </p>
+        </div>
+
+        {/* Month Navigation */}
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevMonth}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex flex-col items-center min-w-[140px]">
+            <span className="text-lg font-semibold">
+              {monthNames[currentMonth - 1]}
+            </span>
+            <span className="text-xs text-muted-foreground">{currentYear}</span>
+          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNextMonth}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          {!isCurrentMonth && (
+            <Button variant="outline" size="sm" onClick={goToCurrentMonth} className="ml-2">
+              Hoje
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Quick Stats */}
@@ -173,9 +268,11 @@ function AppHomepage() {
             <WalletIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">R$ 0,00</div>
+            <div className={`text-2xl font-bold ${(monthSummary?.available ?? 0) >= 0 ? "text-primary" : "text-red-600"}`}>
+              {formatCurrency(monthSummary?.available ?? 0)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Dinheiro sem categoria
+              {(monthSummary?.available ?? 0) === 0 ? "Tudo alocado!" : "Dinheiro sem categoria"}
             </p>
           </CardContent>
         </Card>
@@ -188,9 +285,13 @@ function AppHomepage() {
             <TrendingUpIcon className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">R$ 0,00</div>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(monthSummary?.income.received ?? 0)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Total de entradas
+              {monthSummary?.income.received === monthSummary?.income.planned
+                ? "Meta atingida!"
+                : `Faltam ${formatCurrency(Math.max(0, (monthSummary?.income.planned ?? 0) - (monthSummary?.income.received ?? 0)))}`}
             </p>
           </CardContent>
         </Card>
@@ -203,9 +304,13 @@ function AppHomepage() {
             <TrendingDownIcon className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">R$ 0,00</div>
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrency(monthSummary?.expenses.spent ?? 0)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Total de saídas
+              {(monthSummary?.expenses.spent ?? 0) <= (monthSummary?.expenses.allocated ?? 0)
+                ? `Restam ${formatCurrency((monthSummary?.expenses.allocated ?? 0) - (monthSummary?.expenses.spent ?? 0))}`
+                : `Excedido em ${formatCurrency((monthSummary?.expenses.spent ?? 0) - (monthSummary?.expenses.allocated ?? 0))}`}
             </p>
           </CardContent>
         </Card>
@@ -213,14 +318,16 @@ function AppHomepage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Fatura Cartões
+              Saldo Livre
             </CardTitle>
             <CreditCardIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 0,00</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency((monthSummary?.expenses.allocated ?? 0) - (monthSummary?.expenses.spent ?? 0))}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Próximo vencimento
+              Alocado menos gasto
             </p>
           </CardContent>
         </Card>
@@ -256,9 +363,9 @@ function AppHomepage() {
               </Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">
-              <Link href="/app/planning">
+              <Link href="/app/budget">
                 <LayoutGridIcon className="mr-2 h-4 w-4" />
-                Planejamento Mensal
+                Orçamento Mensal
               </Link>
             </Button>
           </CardContent>
@@ -303,7 +410,9 @@ function AppHomepage() {
                                 ? "Vence hoje!"
                                 : daysUntil === 1
                                   ? "Vence amanhã"
-                                  : `Vence em ${daysUntil} dias`}{" "}
+                                  : daysUntil < 0
+                                    ? "Vencido"
+                                    : `Vence em ${daysUntil} dias`}{" "}
                               ({formatDate(commitment.targetDate)})
                             </div>
                           </div>
@@ -394,11 +503,11 @@ function AppHomepage() {
       {/* Navigation Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-          <Link href="/app/planning">
+          <Link href="/app/budget">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <LayoutGridIcon className="h-5 w-5 text-primary" />
-                Planejamento
+                Orçamento
               </CardTitle>
               <CardDescription>
                 Visualize e edite suas categorias e valores planejados

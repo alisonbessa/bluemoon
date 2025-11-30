@@ -72,6 +72,7 @@ const initialData: OnboardingData = {
 };
 
 export type OnboardingStep =
+  | "intro"
   | "welcome"
   | "household"
   | "member-names"
@@ -84,6 +85,7 @@ export type OnboardingStep =
   | "summary";
 
 const STEP_ORDER: OnboardingStep[] = [
+  "intro",
   "welcome",
   "household",
   "member-names",

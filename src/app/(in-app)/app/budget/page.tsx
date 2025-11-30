@@ -96,6 +96,7 @@ interface Member {
 interface IncomeSourceData {
   incomeSource: IncomeSource;
   planned: number;
+  defaultAmount: number;
   received: number;
 }
 
@@ -178,6 +179,14 @@ export default function BudgetPage() {
   // Copy budget state
   const [isCopyingBudget, setIsCopyingBudget] = useState(false);
   const [showCopyConfirm, setShowCopyConfirm] = useState(false);
+
+  // Edit income source state
+  const [editingIncome, setEditingIncome] = useState<{
+    incomeSource: IncomeSource;
+    planned: number;
+    defaultAmount: number;
+  } | null>(null);
+  const [editIncomeValue, setEditIncomeValue] = useState("");
 
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -506,6 +515,46 @@ export default function BudgetPage() {
     });
   };
 
+  const openEditIncomeModal = (item: IncomeSourceData) => {
+    setEditingIncome({
+      incomeSource: item.incomeSource,
+      planned: item.planned,
+      defaultAmount: item.defaultAmount,
+    });
+    setEditIncomeValue((item.planned / 100).toFixed(2).replace(".", ","));
+  };
+
+  const handleSaveIncomeAllocation = async () => {
+    if (!editingIncome || budgets.length === 0) return;
+
+    const cleanValue = editIncomeValue.replace(/[^\d,-]/g, "").replace(",", ".");
+    const newValue = Math.round(parseFloat(cleanValue || "0") * 100);
+
+    try {
+      const response = await fetch("/api/app/income-allocations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          budgetId: budgets[0].id,
+          incomeSourceId: editingIncome.incomeSource.id,
+          year: currentYear,
+          month: currentMonth,
+          planned: newValue,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao atualizar receita");
+      }
+
+      toast.success("Receita atualizada!");
+      setEditingIncome(null);
+      fetchData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar");
+    }
+  };
+
   const toggleCategorySelection = (categoryId: string) => {
     setSelectedCategories((prev) =>
       prev.includes(categoryId)
@@ -638,69 +687,70 @@ export default function BudgetPage() {
           </div>
         </div>
 
-        {/* Table Header for Expenses */}
-        <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
-          <div />
-          <div>Categoria</div>
-          <div className="text-right">Alocado</div>
-          <div className="text-right">Atividade</div>
-          <div className="text-right">Disponível</div>
-        </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        {/* Receivables Section */}
+        {/* Explanatory Banner */}
+        <div className="mx-4 mt-3 mb-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            <strong>Planejamento:</strong> Aqui você define quanto pretende gastar em cada categoria.
+            É como criar um orçamento doméstico! Para registrar gastos reais, vá em{" "}
+            <span className="font-medium">Transações</span>.
+          </p>
+        </div>
+
+        {/* Income Section */}
         {incomeData && incomeData.byMember.length > 0 && (
-          <div className="border-b-2 border-green-200 dark:border-green-900">
-            {/* Receivables Table Header */}
-            <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
+          <div className="border-b-4 border-green-200 dark:border-green-900">
+            {/* Income Section Header */}
+            <div className="px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">💰</span>
+                <span className="font-bold text-sm text-green-800 dark:text-green-200">RECEITAS</span>
+              </div>
+              <div className="text-xs text-green-700 dark:text-green-300">
+                Fontes de renda do mês
+              </div>
+            </div>
+
+            {/* Income Table Header */}
+            <div className="grid grid-cols-[24px_1fr_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
               <div />
               <div>Fonte</div>
               <div className="text-right">Planejado</div>
-              <div className="text-right">Recebido</div>
-              <div className="text-right">Falta</div>
             </div>
 
-            {/* Receivables Group Header */}
-            <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-2 items-center bg-green-50 dark:bg-green-950/30 border-b">
+            {/* Income Totals Row */}
+            <div className="grid grid-cols-[24px_1fr_110px] px-4 py-2 items-center bg-green-50 dark:bg-green-950/30 border-b">
               <div />
               <div className="flex items-center gap-2">
-                <span className="text-lg">💰</span>
-                <span className="font-bold text-sm">Recebíveis</span>
+                <span className="font-semibold text-sm">Total de Receitas</span>
               </div>
               <div className="text-right text-xs tabular-nums font-bold">{formatCurrency(incomeData.totals.planned)}</div>
-              <div className="text-right text-xs tabular-nums font-bold">{formatCurrency(incomeData.totals.received)}</div>
-              <div className={cn(
-                "text-right text-xs tabular-nums font-bold",
-                incomeData.totals.received >= incomeData.totals.planned ? "text-green-600" : "text-amber-600"
-              )}>
-                {formatCurrency(Math.max(0, incomeData.totals.planned - incomeData.totals.received))}
-              </div>
             </div>
 
             {/* If only one member (or no member), show sources directly */}
             {incomeData.byMember.length === 1 ? (
               incomeData.byMember[0].sources.map((item) => {
-                const remaining = Math.max(0, item.planned - item.received);
+                const isEdited = item.planned !== item.defaultAmount;
                 return (
                   <div
                     key={item.incomeSource.id}
-                    className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm"
+                    className="grid grid-cols-[24px_1fr_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm cursor-pointer"
+                    onClick={() => openEditIncomeModal(item)}
                   >
                     <div />
                     <div className="flex items-center gap-1.5 pl-5">
                       <span>{item.incomeSource.type === "salary" ? "💼" : item.incomeSource.type === "benefit" ? "🎁" : item.incomeSource.type === "freelance" ? "💻" : "💵"}</span>
                       <span>{item.incomeSource.name}</span>
+                      {isEdited && (
+                        <span className="text-[10px] text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1 rounded">
+                          editado
+                        </span>
+                      )}
                     </div>
                     <div className="text-right text-xs tabular-nums">{formatCurrency(item.planned)}</div>
-                    <div className="text-right text-xs tabular-nums">{formatCurrency(item.received)}</div>
-                    <div className={cn(
-                      "text-right text-xs tabular-nums font-medium",
-                      remaining === 0 ? "text-green-600" : "text-amber-600"
-                    )}>
-                      {formatCurrency(remaining)}
-                    </div>
                   </div>
                 );
               })
@@ -709,13 +759,12 @@ export default function BudgetPage() {
               incomeData.byMember.map((memberGroup) => {
                 const memberId = memberGroup.member?.id || "no-member";
                 const isExpanded = expandedIncomeMembers.includes(memberId);
-                const memberRemaining = Math.max(0, memberGroup.totals.planned - memberGroup.totals.received);
 
                 return (
                   <div key={memberId}>
                     {/* Member Row */}
                     <div
-                      className="group grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center bg-green-50/50 dark:bg-green-950/20 border-b cursor-pointer hover:bg-green-100/50 dark:hover:bg-green-950/40 text-sm"
+                      className="group grid grid-cols-[24px_1fr_110px] px-4 py-1.5 items-center bg-green-50/50 dark:bg-green-950/20 border-b cursor-pointer hover:bg-green-100/50 dark:hover:bg-green-950/40 text-sm"
                       onClick={() => toggleIncomeMember(memberId)}
                     >
                       <div />
@@ -731,36 +780,28 @@ export default function BudgetPage() {
                         <span className="text-xs text-muted-foreground">({memberGroup.sources.length})</span>
                       </div>
                       <div className="text-right text-xs tabular-nums font-bold">{formatCurrency(memberGroup.totals.planned)}</div>
-                      <div className="text-right text-xs tabular-nums font-bold">{formatCurrency(memberGroup.totals.received)}</div>
-                      <div className={cn(
-                        "text-right text-xs tabular-nums font-bold",
-                        memberRemaining === 0 ? "text-green-600" : "text-amber-600"
-                      )}>
-                        {formatCurrency(memberRemaining)}
-                      </div>
                     </div>
 
                     {/* Income Sources for this member */}
                     {isExpanded && memberGroup.sources.map((item) => {
-                      const remaining = Math.max(0, item.planned - item.received);
+                      const isEdited = item.planned !== item.defaultAmount;
                       return (
                         <div
                           key={item.incomeSource.id}
-                          className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm"
+                          className="grid grid-cols-[24px_1fr_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm cursor-pointer"
+                          onClick={() => openEditIncomeModal(item)}
                         >
                           <div />
                           <div className="flex items-center gap-1.5 pl-10">
                             <span>{item.incomeSource.type === "salary" ? "💼" : item.incomeSource.type === "benefit" ? "🎁" : item.incomeSource.type === "freelance" ? "💻" : "💵"}</span>
                             <span>{item.incomeSource.name}</span>
+                            {isEdited && (
+                              <span className="text-[10px] text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1 rounded">
+                                editado
+                              </span>
+                            )}
                           </div>
                           <div className="text-right text-xs tabular-nums">{formatCurrency(item.planned)}</div>
-                          <div className="text-right text-xs tabular-nums">{formatCurrency(item.received)}</div>
-                          <div className={cn(
-                            "text-right text-xs tabular-nums font-medium",
-                            remaining === 0 ? "text-green-600" : "text-amber-600"
-                          )}>
-                            {formatCurrency(remaining)}
-                          </div>
                         </div>
                       );
                     })}
@@ -769,6 +810,31 @@ export default function BudgetPage() {
               })
             )}
           </div>
+        )}
+
+        {/* Expenses Section */}
+        {groupsData.length > 0 && (
+          <>
+            {/* Expenses Section Header */}
+            <div className="px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">💸</span>
+                <span className="font-bold text-sm text-red-800 dark:text-red-200">DESPESAS</span>
+              </div>
+              <div className="text-xs text-red-700 dark:text-red-300">
+                Alocação por categoria
+              </div>
+            </div>
+
+            {/* Expenses Table Header */}
+            <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
+              <div />
+              <div>Categoria</div>
+              <div className="text-right">Alocado</div>
+              <div className="text-right">Gasto</div>
+              <div className="text-right">Disponível</div>
+            </div>
+          </>
         )}
 
         {groupsData.length > 0 ? (
@@ -1414,6 +1480,76 @@ export default function BudgetPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Income Modal */}
+      <Dialog open={!!editingIncome} onOpenChange={(open) => !open && setEditingIncome(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span>{editingIncome?.incomeSource.type === "salary" ? "💼" : editingIncome?.incomeSource.type === "benefit" ? "🎁" : editingIncome?.incomeSource.type === "freelance" ? "💻" : "💵"}</span>
+              <span>{editingIncome?.incomeSource.name}</span>
+            </DialogTitle>
+            <DialogDescription>
+              Ajuste o valor previsto para {monthNamesFull[currentMonth - 1]} {currentYear}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            {/* Valor */}
+            <div className="grid gap-2">
+              <Label htmlFor="income-planned">Valor Previsto</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                  R$
+                </span>
+                <Input
+                  id="income-planned"
+                  className="pl-9"
+                  placeholder="0,00"
+                  value={editIncomeValue}
+                  onChange={(e) => setEditIncomeValue(formatInputValue(e.target.value))}
+                  onFocus={(e) => e.target.select()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSaveIncomeAllocation();
+                    }
+                  }}
+                  autoFocus
+                />
+              </div>
+              {editingIncome && editingIncome.planned !== editingIncome.defaultAmount && (
+                <p className="text-xs text-muted-foreground">
+                  Valor padrão: {formatCurrency(editingIncome.defaultAmount)}
+                </p>
+              )}
+            </div>
+
+            {/* Reset to default button */}
+            {editingIncome && editingIncome.planned !== editingIncome.defaultAmount && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start text-muted-foreground"
+                onClick={() => {
+                  setEditIncomeValue((editingIncome.defaultAmount / 100).toFixed(2).replace(".", ","));
+                }}
+              >
+                <Undo2 className="h-4 w-4 mr-2" />
+                Restaurar valor padrão
+              </Button>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingIncome(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveIncomeAllocation}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { OnboardingProgress } from "./onboarding-progress";
 import { useOnboarding } from "./hooks/use-onboarding";
 import { useTutorial } from "@/components/tutorial";
 import {
+  StepIntro,
   StepWelcome,
   StepHousehold,
   StepMemberNames,
@@ -70,15 +71,30 @@ export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
     }
   };
 
+  const handleSkipWithToast = useCallback(() => {
+    toast.info(
+      "Você pode refazer o onboarding a qualquer momento em Configurações > Refazer configuração inicial",
+      { duration: 5000 }
+    );
+    onSkip?.();
+  }, [onSkip]);
+
   const renderStep = () => {
     switch (currentStep) {
+      case "intro":
+        return (
+          <StepIntro
+            onNext={goToNext}
+            onSkip={handleSkipWithToast}
+          />
+        );
+
       case "welcome":
         return (
           <StepWelcome
             displayName={data.displayName}
             onDisplayNameChange={(value) => updateData("displayName", value)}
             onNext={goToNext}
-            onSkip={onSkip}
           />
         );
 
@@ -191,17 +207,21 @@ export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
     }
   };
 
+  const showProgress = currentStep !== "intro";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="relative flex h-[90vh] max-h-[700px] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-background shadow-2xl mx-4">
-        <div className="p-4 pb-0">
-          <OnboardingProgress
-            currentStep={currentStepIndex}
-            totalSteps={totalSteps}
-          />
-        </div>
+        {showProgress && (
+          <div className="p-4 pb-0">
+            <OnboardingProgress
+              currentStep={currentStepIndex - 1}
+              totalSteps={totalSteps - 1}
+            />
+          </div>
+        )}
 
-        <div className="flex-1 overflow-hidden pt-6">{renderStep()}</div>
+        <div className={`flex-1 overflow-hidden ${showProgress ? "pt-6" : ""}`}>{renderStep()}</div>
       </div>
     </div>
   );
