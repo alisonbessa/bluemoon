@@ -41,4 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 .source/
-old/
+
+# Old code reference (not for production)
+/old/

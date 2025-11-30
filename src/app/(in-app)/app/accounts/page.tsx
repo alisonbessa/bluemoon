@@ -80,6 +80,7 @@ export default function AccountsPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [preselectedType, setPreselectedType] = useState<string | undefined>(undefined);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const [includeInvestments, setIncludeInvestments] = useState(true);
@@ -343,9 +344,13 @@ export default function AccountsPage() {
                   onToggle={() => toggleGroup(type)}
                   icon={config.icon}
                   label={config.label}
-                  count={typeAccounts.length}
                   gridCols={GRID_COLS}
                   emptyColsCount={2}
+                  onAdd={() => {
+                    setPreselectedType(type);
+                    setIsFormOpen(true);
+                  }}
+                  addTitle={`Adicionar ${config.label.toLowerCase().replace(/s$/, "")}`}
                   summary={
                     <>
                       {isCreditCard && typeTotal > 0 && "-"}
@@ -467,10 +472,14 @@ export default function AccountsPage() {
       {/* Forms and Dialogs */}
       <AccountForm
         open={isFormOpen}
-        onOpenChange={setIsFormOpen}
+        onOpenChange={(open) => {
+          setIsFormOpen(open);
+          if (!open) setPreselectedType(undefined);
+        }}
         onSubmit={handleCreateAccount}
         mode="create"
         members={members}
+        initialData={preselectedType ? { type: preselectedType as "checking" | "savings" | "credit_card" | "cash" | "investment" | "benefit" } : undefined}
       />
 
       {editingAccount && (

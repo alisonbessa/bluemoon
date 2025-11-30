@@ -35,6 +35,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
+import { TelegramConnectionCard } from "@/components/telegram/TelegramConnectionCard";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
@@ -308,6 +309,9 @@ export default function SettingsPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Telegram Connection */}
+          <TelegramConnectionCard />
+
           {/* Quick Links */}
           <Card>
             <CardHeader>

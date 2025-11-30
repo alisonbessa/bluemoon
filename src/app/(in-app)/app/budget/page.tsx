@@ -137,6 +137,8 @@ export default function BudgetPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [expandedIncomeMembers, setExpandedIncomeMembers] = useState<string[]>([]);
+  const [isIncomeExpanded, setIsIncomeExpanded] = useState(true);
+  const [isExpensesExpanded, setIsExpensesExpanded] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [editingCategory, setEditingCategory] = useState<{
@@ -691,47 +693,35 @@ export default function BudgetPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        {/* Explanatory Banner */}
-        <div className="mx-4 mt-3 mb-2 p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg">
-          <p className="text-sm text-blue-800 dark:text-blue-200">
-            <strong>Planejamento:</strong> Aqui você define quanto pretende gastar em cada categoria.
-            É como criar um orçamento doméstico! Para registrar gastos reais, vá em{" "}
-            <span className="font-medium">Transações</span>.
-          </p>
-        </div>
-
         {/* Income Section */}
         {incomeData && incomeData.byMember.length > 0 && (
           <div className="border-b-4 border-green-200 dark:border-green-900">
-            {/* Income Section Header */}
-            <div className="px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b flex items-center justify-between">
+            {/* Income Section Header - Clickable Toggle */}
+            <div
+              className="px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-green-200/50 dark:hover:bg-green-950/70 transition-colors"
+              onClick={() => setIsIncomeExpanded(!isIncomeExpanded)}
+            >
               <div className="flex items-center gap-2">
+                <ChevronDown className={cn("h-4 w-4 text-green-700 dark:text-green-300 transition-transform", !isIncomeExpanded && "-rotate-90")} />
                 <span className="text-lg">💰</span>
                 <span className="font-bold text-sm text-green-800 dark:text-green-200">RECEITAS</span>
               </div>
-              <div className="text-xs text-green-700 dark:text-green-300">
-                Fontes de renda do mês
+              <div className="text-sm font-bold text-green-800 dark:text-green-200">
+                {formatCurrency(incomeData.totals.planned)}
               </div>
             </div>
 
-            {/* Income Table Header */}
-            <div className="grid grid-cols-[24px_1fr_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
-              <div />
-              <div>Fonte</div>
-              <div className="text-right">Planejado</div>
-            </div>
+            {isIncomeExpanded && (
+              <>
+                {/* Income Table Header */}
+                <div className="grid grid-cols-[24px_1fr_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
+                  <div />
+                  <div>Fonte</div>
+                  <div className="text-right">Planejado</div>
+                </div>
 
-            {/* Income Totals Row */}
-            <div className="grid grid-cols-[24px_1fr_110px] px-4 py-2 items-center bg-green-50 dark:bg-green-950/30 border-b">
-              <div />
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm">Total de Receitas</span>
-              </div>
-              <div className="text-right text-xs tabular-nums font-bold">{formatCurrency(incomeData.totals.planned)}</div>
-            </div>
-
-            {/* If only one member (or no member), show sources directly */}
-            {incomeData.byMember.length === 1 ? (
+                {/* If only one member (or no member), show sources directly */}
+                {incomeData.byMember.length === 1 ? (
               incomeData.byMember[0].sources.map((item) => {
                 const isEdited = item.planned !== item.defaultAmount;
                 return (
@@ -809,35 +799,45 @@ export default function BudgetPage() {
                 );
               })
             )}
+              </>
+            )}
           </div>
         )}
 
         {/* Expenses Section */}
         {groupsData.length > 0 && (
           <>
-            {/* Expenses Section Header */}
-            <div className="px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b flex items-center justify-between">
+            {/* Expenses Section Header - Clickable Toggle */}
+            <div
+              className="px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-red-200/50 dark:hover:bg-red-950/70 transition-colors"
+              onClick={() => setIsExpensesExpanded(!isExpensesExpanded)}
+            >
               <div className="flex items-center gap-2">
+                <ChevronDown className={cn("h-4 w-4 text-red-700 dark:text-red-300 transition-transform", !isExpensesExpanded && "-rotate-90")} />
                 <span className="text-lg">💸</span>
                 <span className="font-bold text-sm text-red-800 dark:text-red-200">DESPESAS</span>
               </div>
-              <div className="text-xs text-red-700 dark:text-red-300">
-                Alocação por categoria
+              <div className="text-sm font-bold text-red-800 dark:text-red-200">
+                {formatCurrency(totals.allocated)}
               </div>
             </div>
 
-            {/* Expenses Table Header */}
-            <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
-              <div />
-              <div>Categoria</div>
-              <div className="text-right">Alocado</div>
-              <div className="text-right">Gasto</div>
-              <div className="text-right">Disponível</div>
-            </div>
+            {isExpensesExpanded && (
+              <>
+                {/* Expenses Table Header */}
+                <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
+                  <div />
+                  <div>Categoria</div>
+                  <div className="text-right">Alocado</div>
+                  <div className="text-right">Gasto</div>
+                  <div className="text-right">Disponível</div>
+                </div>
+              </>
+            )}
           </>
         )}
 
-        {groupsData.length > 0 ? (
+        {groupsData.length > 0 && isExpensesExpanded ? (
           groupsData.map(({ group, categories, totals: groupTotals }) => {
             const isExpanded = expandedGroups.includes(group.id);
             const filteredCategories = filterCategories(categories);
@@ -952,13 +952,13 @@ export default function BudgetPage() {
               </div>
             );
           })
-        ) : (
+        ) : groupsData.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <PiggyBank className="h-12 w-12 text-muted-foreground" />
             <h3 className="font-semibold">Nenhuma categoria configurada</h3>
             <Button onClick={() => router.push("/app/categories/setup")}>Configurar Categorias</Button>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Edit Allocation Modal */}
