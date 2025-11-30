@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,9 +21,51 @@ import {
   LayoutGridIcon,
   ReceiptIcon,
   SettingsIcon,
+  CalendarIcon,
+  CheckCircle2Icon,
 } from "lucide-react";
 import Link from "next/link";
 import useUser from "@/lib/users/useUser";
+
+interface Commitment {
+  id: string;
+  name: string;
+  icon: string | null;
+  targetDate: string;
+  allocated: number;
+  group: {
+    id: string;
+    name: string;
+    code: string;
+  };
+}
+
+interface Budget {
+  id: string;
+  name: string;
+}
+
+function formatCurrency(cents: number): string {
+  return (cents / 100).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+function getDaysUntil(dateString: string): number {
+  const target = new Date(dateString);
+  const now = new Date();
+  const diff = target.getTime() - now.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
 
 function DashboardSkeleton() {
   return (
@@ -47,6 +89,45 @@ function DashboardSkeleton() {
 
 function AppHomepage() {
   const { user, isLoading, error } = useUser();
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [commitments, setCommitments] = useState<Commitment[]>([]);
+  const [commitmentsLoading, setCommitmentsLoading] = useState(true);
+
+  const hasCompletedOnboarding = !!user?.onboardingCompletedAt;
+
+  const fetchData = useCallback(async () => {
+    try {
+      // Fetch budgets first
+      const budgetsRes = await fetch("/api/app/budgets");
+      if (budgetsRes.ok) {
+        const data = await budgetsRes.json();
+        setBudgets(data.budgets || []);
+
+        // If we have a budget, fetch commitments
+        if (data.budgets?.length > 0) {
+          const commitmentsRes = await fetch(
+            `/api/app/commitments?budgetId=${data.budgets[0].id}&days=30`
+          );
+          if (commitmentsRes.ok) {
+            const commitmentsData = await commitmentsRes.json();
+            setCommitments(commitmentsData.commitments || []);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+    } finally {
+      setCommitmentsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user && hasCompletedOnboarding) {
+      fetchData();
+    } else {
+      setCommitmentsLoading(false);
+    }
+  }, [user, hasCompletedOnboarding, fetchData]);
 
   if (isLoading) {
     return (
@@ -183,56 +264,131 @@ function AppHomepage() {
           </CardContent>
         </Card>
 
-        {/* Getting Started */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Primeiros Passos</CardTitle>
-            <CardDescription>
-              Configure seu orçamento em 3 passos simples
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex items-start gap-4">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                1
+        {/* Commitments or Getting Started */}
+        {hasCompletedOnboarding ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5" />
+                Próximos Compromissos
+              </CardTitle>
+              <CardDescription>
+                Contas e pagamentos dos próximos 30 dias
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              {commitmentsLoading ? (
+                <div className="flex flex-col gap-2">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-12 w-full" />
+                  ))}
+                </div>
+              ) : commitments.length > 0 ? (
+                <>
+                  {commitments.slice(0, 5).map((commitment) => {
+                    const daysUntil = getDaysUntil(commitment.targetDate);
+                    const isUrgent = daysUntil <= 3;
+
+                    return (
+                      <div
+                        key={commitment.id}
+                        className="flex items-center justify-between p-2 rounded-lg border bg-muted/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">{commitment.icon || "📌"}</span>
+                          <div>
+                            <div className="font-medium text-sm">{commitment.name}</div>
+                            <div className={`text-xs ${isUrgent ? "text-red-500" : "text-muted-foreground"}`}>
+                              {daysUntil === 0
+                                ? "Vence hoje!"
+                                : daysUntil === 1
+                                  ? "Vence amanhã"
+                                  : `Vence em ${daysUntil} dias`}{" "}
+                              ({formatDate(commitment.targetDate)})
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-sm">
+                            {formatCurrency(commitment.allocated)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {commitments.length > 5 && (
+                    <Button asChild variant="ghost" size="sm" className="mt-1">
+                      <Link href="/app/budget">
+                        Ver todos ({commitments.length})
+                        <ArrowRightIcon className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-4 text-center">
+                  <CheckCircle2Icon className="h-10 w-10 text-green-500 mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum compromisso nos próximos 30 dias
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Configure datas de vencimento no orçamento
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Primeiros Passos</CardTitle>
+              <CardDescription>
+                Configure seu orçamento em 3 passos simples
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex items-start gap-4">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                  1
+                </div>
+                <div>
+                  <h4 className="font-medium">Crie um Orçamento</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Dê um nome e configure as categorias iniciais
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-medium">Crie um Orçamento</h4>
-                <p className="text-sm text-muted-foreground">
-                  Dê um nome e configure as categorias iniciais
-                </p>
+              <div className="flex items-start gap-4">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground text-sm font-bold">
+                  2
+                </div>
+                <div>
+                  <h4 className="font-medium">Adicione suas Contas</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Conta corrente, poupança e cartões de crédito
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground text-sm font-bold">
-                2
+              <div className="flex items-start gap-4">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground text-sm font-bold">
+                  3
+                </div>
+                <div>
+                  <h4 className="font-medium">Distribua seu Dinheiro</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Aloque cada real em uma categoria
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-medium">Adicione suas Contas</h4>
-                <p className="text-sm text-muted-foreground">
-                  Conta corrente, poupança e cartões de crédito
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-4">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground text-sm font-bold">
-                3
-              </div>
-              <div>
-                <h4 className="font-medium">Distribua seu Dinheiro</h4>
-                <p className="text-sm text-muted-foreground">
-                  Aloque cada real em uma categoria
-                </p>
-              </div>
-            </div>
-            <Button asChild className="mt-2">
-              <Link href="/app/budgets/create">
-                Começar Agora
-                <ArrowRightIcon className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+              <Button asChild className="mt-2">
+                <Link href="/app/budgets/create">
+                  Começar Agora
+                  <ArrowRightIcon className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Navigation Cards */}
