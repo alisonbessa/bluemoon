@@ -154,7 +154,17 @@ export default function BudgetPage() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryIcon, setNewCategoryIcon] = useState("");
   const [newCategoryIconMode, setNewCategoryIconMode] = useState<"recent" | "food" | "transport" | "home" | "health" | "entertainment" | "money" | "other">("recent");
+  const [newCategoryBehavior, setNewCategoryBehavior] = useState<"set_aside" | "refill_up">("refill_up");
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+
+  // Mapping of group codes to default behaviors
+  const GROUP_DEFAULT_BEHAVIORS: Record<string, "set_aside" | "refill_up"> = {
+    essential: "refill_up",
+    lifestyle: "set_aside",
+    pleasures: "set_aside",
+    goals: "set_aside",
+    investments: "set_aside",
+  };
 
   // Edit/Delete category
   const [editCategoryData, setEditCategoryData] = useState<Category | null>(null);
@@ -353,6 +363,7 @@ export default function BudgetPage() {
           groupId: newCategoryGroupId,
           name: newCategoryName.trim(),
           icon: newCategoryIcon || null,
+          behavior: newCategoryBehavior,
           suggestIcon: !newCategoryIcon, // Auto-suggest if no icon selected
         }),
       });
@@ -367,6 +378,7 @@ export default function BudgetPage() {
       setNewCategoryName("");
       setNewCategoryIcon("");
       setNewCategoryIconMode("recent");
+      setNewCategoryBehavior("refill_up");
       fetchData();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao criar categoria");
@@ -623,7 +635,7 @@ export default function BudgetPage() {
           </div>
         </div>
 
-        {/* Table Header */}
+        {/* Table Header for Expenses */}
         <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
           <div />
           <div>Categoria</div>
@@ -638,7 +650,16 @@ export default function BudgetPage() {
         {/* Receivables Section */}
         {incomeData && incomeData.byMember.length > 0 && (
           <div className="border-b-2 border-green-200 dark:border-green-900">
-            {/* Receivables Header */}
+            {/* Receivables Table Header */}
+            <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
+              <div />
+              <div>Fonte</div>
+              <div className="text-right">Planejado</div>
+              <div className="text-right">Recebido</div>
+              <div className="text-right">Falta</div>
+            </div>
+
+            {/* Receivables Group Header */}
             <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-2 items-center bg-green-50 dark:bg-green-950/30 border-b">
               <div />
               <div className="flex items-center gap-2">
@@ -651,37 +672,41 @@ export default function BudgetPage() {
                 "text-right text-xs tabular-nums font-bold",
                 incomeData.totals.received >= incomeData.totals.planned ? "text-green-600" : "text-amber-600"
               )}>
-                {formatCurrency(incomeData.totals.received - incomeData.totals.planned)}
+                {formatCurrency(Math.max(0, incomeData.totals.planned - incomeData.totals.received))}
               </div>
             </div>
 
             {/* If only one member (or no member), show sources directly */}
             {incomeData.byMember.length === 1 ? (
-              incomeData.byMember[0].sources.map((item) => (
-                <div
-                  key={item.incomeSource.id}
-                  className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm"
-                >
-                  <div />
-                  <div className="flex items-center gap-1.5 pl-5">
-                    <span>{item.incomeSource.type === "salary" ? "💼" : item.incomeSource.type === "benefit" ? "🎁" : item.incomeSource.type === "freelance" ? "💻" : "💵"}</span>
-                    <span>{item.incomeSource.name}</span>
+              incomeData.byMember[0].sources.map((item) => {
+                const remaining = Math.max(0, item.planned - item.received);
+                return (
+                  <div
+                    key={item.incomeSource.id}
+                    className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm"
+                  >
+                    <div />
+                    <div className="flex items-center gap-1.5 pl-5">
+                      <span>{item.incomeSource.type === "salary" ? "💼" : item.incomeSource.type === "benefit" ? "🎁" : item.incomeSource.type === "freelance" ? "💻" : "💵"}</span>
+                      <span>{item.incomeSource.name}</span>
+                    </div>
+                    <div className="text-right text-xs tabular-nums">{formatCurrency(item.planned)}</div>
+                    <div className="text-right text-xs tabular-nums">{formatCurrency(item.received)}</div>
+                    <div className={cn(
+                      "text-right text-xs tabular-nums font-medium",
+                      remaining === 0 ? "text-green-600" : "text-amber-600"
+                    )}>
+                      {formatCurrency(remaining)}
+                    </div>
                   </div>
-                  <div className="text-right text-xs tabular-nums">{formatCurrency(item.planned)}</div>
-                  <div className="text-right text-xs tabular-nums">{formatCurrency(item.received)}</div>
-                  <div className={cn(
-                    "text-right text-xs tabular-nums font-medium",
-                    item.received >= item.planned ? "text-green-600" : "text-amber-600"
-                  )}>
-                    {formatCurrency(item.received - item.planned)}
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               /* Multiple members - show with collapsible sections */
               incomeData.byMember.map((memberGroup) => {
                 const memberId = memberGroup.member?.id || "no-member";
                 const isExpanded = expandedIncomeMembers.includes(memberId);
+                const memberRemaining = Math.max(0, memberGroup.totals.planned - memberGroup.totals.received);
 
                 return (
                   <div key={memberId}>
@@ -706,33 +731,36 @@ export default function BudgetPage() {
                       <div className="text-right text-xs tabular-nums font-bold">{formatCurrency(memberGroup.totals.received)}</div>
                       <div className={cn(
                         "text-right text-xs tabular-nums font-bold",
-                        memberGroup.totals.received >= memberGroup.totals.planned ? "text-green-600" : "text-amber-600"
+                        memberRemaining === 0 ? "text-green-600" : "text-amber-600"
                       )}>
-                        {formatCurrency(memberGroup.totals.received - memberGroup.totals.planned)}
+                        {formatCurrency(memberRemaining)}
                       </div>
                     </div>
 
                     {/* Income Sources for this member */}
-                    {isExpanded && memberGroup.sources.map((item) => (
-                      <div
-                        key={item.incomeSource.id}
-                        className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm"
-                      >
-                        <div />
-                        <div className="flex items-center gap-1.5 pl-10">
-                          <span>{item.incomeSource.type === "salary" ? "💼" : item.incomeSource.type === "benefit" ? "🎁" : item.incomeSource.type === "freelance" ? "💻" : "💵"}</span>
-                          <span>{item.incomeSource.name}</span>
+                    {isExpanded && memberGroup.sources.map((item) => {
+                      const remaining = Math.max(0, item.planned - item.received);
+                      return (
+                        <div
+                          key={item.incomeSource.id}
+                          className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm"
+                        >
+                          <div />
+                          <div className="flex items-center gap-1.5 pl-10">
+                            <span>{item.incomeSource.type === "salary" ? "💼" : item.incomeSource.type === "benefit" ? "🎁" : item.incomeSource.type === "freelance" ? "💻" : "💵"}</span>
+                            <span>{item.incomeSource.name}</span>
+                          </div>
+                          <div className="text-right text-xs tabular-nums">{formatCurrency(item.planned)}</div>
+                          <div className="text-right text-xs tabular-nums">{formatCurrency(item.received)}</div>
+                          <div className={cn(
+                            "text-right text-xs tabular-nums font-medium",
+                            remaining === 0 ? "text-green-600" : "text-amber-600"
+                          )}>
+                            {formatCurrency(remaining)}
+                          </div>
                         </div>
-                        <div className="text-right text-xs tabular-nums">{formatCurrency(item.planned)}</div>
-                        <div className="text-right text-xs tabular-nums">{formatCurrency(item.received)}</div>
-                        <div className={cn(
-                          "text-right text-xs tabular-nums font-medium",
-                          item.received >= item.planned ? "text-green-600" : "text-amber-600"
-                        )}>
-                          {formatCurrency(item.received - item.planned)}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 );
               })
@@ -775,6 +803,9 @@ export default function BudgetPage() {
                         setNewCategoryName("");
                         setNewCategoryIcon("");
                         setNewCategoryIconMode("recent");
+                        // Pre-select behavior based on group
+                        const defaultBehavior = GROUP_DEFAULT_BEHAVIORS[group.code] || "refill_up";
+                        setNewCategoryBehavior(defaultBehavior);
                       }}
                       title="Adicionar categoria"
                     >
@@ -1165,6 +1196,48 @@ export default function BudgetPage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Behavior Selection */}
+            <div className="grid gap-2">
+              <Label>Sobra do mês</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNewCategoryBehavior("refill_up")}
+                  className={cn(
+                    "flex flex-col items-start gap-0.5 rounded-lg border p-3 text-left transition-colors",
+                    newCategoryBehavior === "refill_up"
+                      ? "border-primary bg-primary/5"
+                      : "border-muted hover:bg-muted/50"
+                  )}
+                >
+                  <span className="font-medium text-sm">Zera</span>
+                  <span className="text-[11px] text-muted-foreground leading-tight">
+                    Reinicia todo mês
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewCategoryBehavior("set_aside")}
+                  className={cn(
+                    "flex flex-col items-start gap-0.5 rounded-lg border p-3 text-left transition-colors",
+                    newCategoryBehavior === "set_aside"
+                      ? "border-primary bg-primary/5"
+                      : "border-muted hover:bg-muted/50"
+                  )}
+                >
+                  <span className="font-medium text-sm">Acumula</span>
+                  <span className="text-[11px] text-muted-foreground leading-tight">
+                    Passa pro próximo
+                  </span>
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {newCategoryBehavior === "set_aside"
+                  ? "Ideal para prazeres, viagens e metas de economia"
+                  : "Ideal para gastos fixos como aluguel e contas"}
+              </p>
             </div>
           </div>
 
