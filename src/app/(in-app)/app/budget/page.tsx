@@ -959,6 +959,38 @@ export default function BudgetPage() {
             <Button onClick={() => router.push("/app/categories/setup")}>Configurar Categorias</Button>
           </div>
         ) : null}
+
+        {/* Empty allocations state - show when there are categories but no allocations */}
+        {groupsData.length > 0 && totals.allocated === 0 && !isLoading && (
+          <div className="mx-4 my-6 p-6 rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/30">
+            <div className="flex flex-col items-center text-center gap-4">
+              <div className="p-3 rounded-full bg-primary/10">
+                <Copy className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Nenhum planejamento para {monthNamesFull[currentMonth - 1]}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Você pode copiar o planejamento de {monthNamesFull[getPreviousMonth().month - 1]} para começar rapidamente.
+                </p>
+              </div>
+              <Button
+                onClick={() => handleCopyFromPreviousMonth()}
+                disabled={isCopyingBudget}
+                className="mt-2"
+              >
+                {isCopyingBudget ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Copy className="mr-2 h-4 w-4" />
+                )}
+                Copiar de {monthNamesFull[getPreviousMonth().month - 1]}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Ou clique em qualquer categoria para definir valores manualmente
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Edit Allocation Modal */}
