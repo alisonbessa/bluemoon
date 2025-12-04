@@ -1,7 +1,9 @@
-import { NextRequest } from "next/server";
-
 import { NextResponse } from "next/server";
 
-export const GET = (req: NextRequest) => {
-  return NextResponse.json({ message: "Hello World", headers: req.headers });
+// Health check endpoint - does not expose sensitive information
+export const GET = () => {
+  return NextResponse.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+  });
 };

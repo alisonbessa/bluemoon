@@ -39,54 +39,57 @@ export const GET = withAuthRequired(async (req, context) => {
     return NextResponse.json({ error: "Budget not found or access denied" }, { status: 404 });
   }
 
-  // Get all categories with their groups
-  const budgetCategories = await db
-    .select({
-      category: categories,
-      group: groups,
-    })
-    .from(categories)
-    .innerJoin(groups, eq(categories.groupId, groups.id))
-    .where(
-      and(
-        eq(categories.budgetId, budgetId),
-        eq(categories.isArchived, false)
-      )
-    )
-    .orderBy(groups.displayOrder, categories.displayOrder);
-
-  // Get allocations for this month
-  const allocations = await db
-    .select()
-    .from(monthlyAllocations)
-    .where(
-      and(
-        eq(monthlyAllocations.budgetId, budgetId),
-        eq(monthlyAllocations.year, year),
-        eq(monthlyAllocations.month, month)
-      )
-    );
-
   // Calculate date range for this month
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
 
-  // Get spending per category for this month
-  const spending = await db
-    .select({
-      categoryId: transactions.categoryId,
-      totalSpent: sql<number>`SUM(CASE WHEN ${transactions.type} = 'expense' THEN ${transactions.amount} ELSE 0 END)`,
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.budgetId, budgetId),
-        gte(transactions.date, startDate),
-        lte(transactions.date, endDate),
-        inArray(transactions.status, ["pending", "cleared", "reconciled"])
+  // PERFORMANCE: Run independent queries in parallel
+  const [budgetCategories, allocations, spending] = await Promise.all([
+    // Get all categories with their groups
+    db
+      .select({
+        category: categories,
+        group: groups,
+      })
+      .from(categories)
+      .innerJoin(groups, eq(categories.groupId, groups.id))
+      .where(
+        and(
+          eq(categories.budgetId, budgetId),
+          eq(categories.isArchived, false)
+        )
       )
-    )
-    .groupBy(transactions.categoryId);
+      .orderBy(groups.displayOrder, categories.displayOrder),
+
+    // Get allocations for this month
+    db
+      .select()
+      .from(monthlyAllocations)
+      .where(
+        and(
+          eq(monthlyAllocations.budgetId, budgetId),
+          eq(monthlyAllocations.year, year),
+          eq(monthlyAllocations.month, month)
+        )
+      ),
+
+    // Get spending per category for this month
+    db
+      .select({
+        categoryId: transactions.categoryId,
+        totalSpent: sql<number>`SUM(CASE WHEN ${transactions.type} = 'expense' THEN ${transactions.amount} ELSE 0 END)`,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.budgetId, budgetId),
+          gte(transactions.date, startDate),
+          lte(transactions.date, endDate),
+          inArray(transactions.status, ["pending", "cleared", "reconciled"])
+        )
+      )
+      .groupBy(transactions.categoryId),
+  ]);
 
   const spendingMap = new Map(spending.map((s) => [s.categoryId, Number(s.totalSpent) || 0]));
   const allocationsMap = new Map(allocations.map((a) => [a.categoryId, a]));
@@ -148,55 +151,58 @@ export const GET = withAuthRequired(async (req, context) => {
       return g;
     });
 
-  // Get income sources with member data
-  const budgetIncomeSources = await db
-    .select({
-      incomeSource: incomeSources,
-      member: budgetMembers,
-    })
-    .from(incomeSources)
-    .leftJoin(budgetMembers, eq(incomeSources.memberId, budgetMembers.id))
-    .where(
-      and(
-        eq(incomeSources.budgetId, budgetId),
-        eq(incomeSources.isActive, true)
+  // PERFORMANCE: Run income-related queries in parallel
+  const [budgetIncomeSources, incomeAllocations, incomeReceived] = await Promise.all([
+    // Get income sources with member data
+    db
+      .select({
+        incomeSource: incomeSources,
+        member: budgetMembers,
+      })
+      .from(incomeSources)
+      .leftJoin(budgetMembers, eq(incomeSources.memberId, budgetMembers.id))
+      .where(
+        and(
+          eq(incomeSources.budgetId, budgetId),
+          eq(incomeSources.isActive, true)
+        )
       )
-    )
-    .orderBy(incomeSources.displayOrder);
+      .orderBy(incomeSources.displayOrder),
 
-  // Get monthly income allocations (overrides for this month)
-  const incomeAllocations = await db
-    .select()
-    .from(monthlyIncomeAllocations)
-    .where(
-      and(
-        eq(monthlyIncomeAllocations.budgetId, budgetId),
-        eq(monthlyIncomeAllocations.year, year),
-        eq(monthlyIncomeAllocations.month, month)
+    // Get monthly income allocations (overrides for this month)
+    db
+      .select()
+      .from(monthlyIncomeAllocations)
+      .where(
+        and(
+          eq(monthlyIncomeAllocations.budgetId, budgetId),
+          eq(monthlyIncomeAllocations.year, year),
+          eq(monthlyIncomeAllocations.month, month)
+        )
+      ),
+
+    // Get income received per income source for this month
+    db
+      .select({
+        incomeSourceId: transactions.incomeSourceId,
+        totalReceived: sql<number>`SUM(${transactions.amount})`,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.budgetId, budgetId),
+          eq(transactions.type, "income"),
+          gte(transactions.date, startDate),
+          lte(transactions.date, endDate),
+          inArray(transactions.status, ["pending", "cleared", "reconciled"])
+        )
       )
-    );
+      .groupBy(transactions.incomeSourceId),
+  ]);
 
   const incomeAllocationsMap = new Map(
     incomeAllocations.map((a) => [a.incomeSourceId, a.planned])
   );
-
-  // Get income received per income source for this month
-  const incomeReceived = await db
-    .select({
-      incomeSourceId: transactions.incomeSourceId,
-      totalReceived: sql<number>`SUM(${transactions.amount})`,
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.budgetId, budgetId),
-        eq(transactions.type, "income"),
-        gte(transactions.date, startDate),
-        lte(transactions.date, endDate),
-        inArray(transactions.status, ["pending", "cleared", "reconciled"])
-      )
-    )
-    .groupBy(transactions.incomeSourceId);
 
   const incomeReceivedMap = new Map(
     incomeReceived.map((i) => [i.incomeSourceId, Number(i.totalReceived) || 0])

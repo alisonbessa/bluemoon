@@ -6,6 +6,7 @@ import {
   primaryKey,
   integer,
   jsonb,
+  index,
 } from "drizzle-orm/pg-core";
 
 import type { AdapterAccountType } from "next-auth/adapters";
@@ -37,7 +38,11 @@ export const users = pgTable("app_user", {
   stripeSubscriptionId: text("stripeSubscriptionId"),
 
   planId: text("planId").references(() => plans.id),
-});
+}, (table) => [
+  // PERFORMANCE: Index for Stripe webhook lookups
+  index("idx_users_stripe_customer_id").on(table.stripeCustomerId),
+  index("idx_users_stripe_subscription_id").on(table.stripeSubscriptionId),
+]);
 
 export const accounts = pgTable(
   "account",

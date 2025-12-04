@@ -80,7 +80,15 @@ export const GET = withAuthRequired(async (req, context) => {
     .leftJoin(budgetMembers, eq(financialAccounts.ownerId, budgetMembers.id))
     .where(whereCondition);
 
-  return NextResponse.json({ accounts: userAccounts });
+  return NextResponse.json(
+    { accounts: userAccounts },
+    {
+      // PERFORMANCE: Cache for 30 seconds, stale-while-revalidate for 5 minutes
+      headers: {
+        "Cache-Control": "private, max-age=30, stale-while-revalidate=300",
+      },
+    }
+  );
 });
 
 // POST - Create a new account

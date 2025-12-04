@@ -29,7 +29,15 @@ export const GET = withAuthRequired(async (req, context) => {
     .innerJoin(budgets, eq(budgetMembers.budgetId, budgets.id))
     .where(eq(budgetMembers.userId, session.user.id));
 
-  return NextResponse.json({ budgets: userBudgets });
+  return NextResponse.json(
+    { budgets: userBudgets },
+    {
+      // PERFORMANCE: Cache for 60 seconds, stale-while-revalidate for 5 minutes
+      headers: {
+        "Cache-Control": "private, max-age=60, stale-while-revalidate=300",
+      },
+    }
+  );
 });
 
 // POST - Create a new budget

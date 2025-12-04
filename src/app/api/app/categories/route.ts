@@ -157,13 +157,21 @@ export const GET = withAuthRequired(async (req, context) => {
       .map((c) => c.category),
   }));
 
-  return NextResponse.json({
-    groups: categoriesByGroup,
-    flatCategories: userCategories.map((c) => ({
-      ...c.category,
-      group: c.group,
-    })),
-  });
+  return NextResponse.json(
+    {
+      groups: categoriesByGroup,
+      flatCategories: userCategories.map((c) => ({
+        ...c.category,
+        group: c.group,
+      })),
+    },
+    {
+      // PERFORMANCE: Cache for 30 seconds, stale-while-revalidate for 5 minutes
+      headers: {
+        "Cache-Control": "private, max-age=30, stale-while-revalidate=300",
+      },
+    }
+  );
 });
 
 // POST - Create a new category

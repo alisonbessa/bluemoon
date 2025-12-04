@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { FaSpinner } from "react-icons/fa";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { resetPasswordRequestSchema, type ResetPasswordRequestInput } from "@/lib/validations/auth.schema";
 
@@ -87,7 +87,7 @@ export function ResetPasswordForm({ className, ...props }: React.HTMLAttributes<
         </div>
 
         <Button type="submit" disabled={isLoading} className="w-full py-6">
-          {isLoading && <FaSpinner className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Enviar Link de Recuperação
         </Button>
       </form>
