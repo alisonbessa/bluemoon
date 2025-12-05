@@ -703,15 +703,16 @@ export default function IncomeSetupPage() {
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => setIsFormOpen(false)}
               disabled={isSubmitting}
+              className="w-1/4"
             >
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="w-1/4">
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editingSource ? "Salvar" : "Adicionar"}
             </Button>

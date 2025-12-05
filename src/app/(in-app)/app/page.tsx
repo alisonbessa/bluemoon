@@ -25,7 +25,9 @@ import {
   CheckCircle2Icon,
   ChevronLeft,
   ChevronRight,
+  TargetIcon,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 import useUser from "@/lib/users/useUser";
 
@@ -51,6 +53,19 @@ interface MonthSummary {
   income: { planned: number; received: number };
   expenses: { allocated: number; spent: number };
   available: number;
+}
+
+interface Goal {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  targetAmount: number;
+  currentAmount: number;
+  progress: number;
+  monthlyTarget: number;
+  monthsRemaining: number;
+  isCompleted: boolean;
 }
 
 const monthNames = [
@@ -104,7 +119,9 @@ function AppHomepage() {
   const { user, isLoading, error } = useUser();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [commitments, setCommitments] = useState<Commitment[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [commitmentsLoading, setCommitmentsLoading] = useState(true);
+  const [goalsLoading, setGoalsLoading] = useState(true);
   const [monthSummary, setMonthSummary] = useState<MonthSummary | null>(null);
 
   // Month navigation
@@ -183,12 +200,20 @@ function AppHomepage() {
           } else {
             setCommitments([]);
           }
+
+          // Fetch goals
+          const goalsRes = await fetch(`/api/app/goals?budgetId=${budgetId}`);
+          if (goalsRes.ok) {
+            const goalsData = await goalsRes.json();
+            setGoals(goalsData.goals || []);
+          }
         }
       }
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
     } finally {
       setCommitmentsLoading(false);
+      setGoalsLoading(false);
     }
   }, [currentYear, currentMonth]);
 
@@ -335,39 +360,75 @@ function AppHomepage() {
 
       {/* Main Content */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Quick Actions */}
+        {/* Goals Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Ações Rápidas</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <TargetIcon className="h-5 w-5" />
+              Metas
+            </CardTitle>
             <CardDescription>
-              Comece a organizar suas finanças
+              Acompanhe o progresso das suas metas financeiras
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <Button asChild className="justify-start">
-              <Link href="/app/budgets/create">
-                <PlusIcon className="mr-2 h-4 w-4" />
-                Criar Novo Orçamento
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="justify-start">
-              <Link href="/app/accounts">
-                <CreditCardIcon className="mr-2 h-4 w-4" />
-                Gerenciar Contas
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="justify-start">
-              <Link href="/app/transactions">
-                <ReceiptIcon className="mr-2 h-4 w-4" />
-                Ver Transações
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="justify-start">
-              <Link href="/app/budget">
-                <LayoutGridIcon className="mr-2 h-4 w-4" />
-                Orçamento Mensal
-              </Link>
-            </Button>
+            {goalsLoading ? (
+              <div className="flex flex-col gap-2">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : goals.filter((g) => !g.isCompleted).length > 0 ? (
+              <>
+                {goals
+                  .filter((g) => !g.isCompleted)
+                  .slice(0, 4)
+                  .map((goal) => (
+                    <div key={goal.id} className="space-y-1.5">
+                      <div className="flex justify-between text-sm">
+                        <span className="flex items-center gap-1.5">
+                          <span>{goal.icon}</span>
+                          <span className="font-medium">{goal.name}</span>
+                        </span>
+                        <span className="text-muted-foreground">{goal.progress}%</span>
+                      </div>
+                      <Progress
+                        value={goal.progress}
+                        className="h-2"
+                        style={
+                          {
+                            "--progress-background": goal.color,
+                          } as React.CSSProperties
+                        }
+                      />
+                      {goal.monthsRemaining > 0 && goal.monthlyTarget > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {formatCurrency(goal.monthlyTarget)}/mês • {goal.monthsRemaining} {goal.monthsRemaining === 1 ? "mês" : "meses"}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                <Button asChild variant="ghost" size="sm" className="mt-1">
+                  <Link href="/app/goals">
+                    Ver todas as metas
+                    <ArrowRightIcon className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-4 text-center">
+                <TargetIcon className="h-10 w-10 text-muted-foreground/50 mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma meta criada ainda
+                </p>
+                <Button asChild variant="outline" size="sm" className="mt-3">
+                  <Link href="/app/goals">
+                    <PlusIcon className="mr-2 h-4 w-4" />
+                    Criar primeira meta
+                  </Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -95,6 +95,33 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         placement: "center",
       },
 
+      // ===== GOALS PAGE =====
+      {
+        id: "goals-welcome",
+        route: "/app/goals",
+        title: "Suas Metas Financeiras",
+        content:
+          "Defina objetivos de curto e longo prazo. O sistema calcula automaticamente quanto você precisa guardar por mês para alcançar cada meta.",
+        placement: "center",
+      },
+      {
+        id: "goals-add",
+        route: "/app/goals",
+        title: "Criar uma Meta",
+        content:
+          "Clique aqui para criar sua primeira meta. Defina o valor alvo e a data limite.",
+        targetSelector: '[data-tutorial="add-goal-button"]',
+        placement: "bottom",
+      },
+      {
+        id: "goals-done",
+        route: "/app/goals",
+        title: "Agora é sua vez!",
+        content:
+          "Crie metas para seus objetivos financeiros. Quando terminar, vá para o Planejamento para distribuir seu dinheiro.",
+        placement: "center",
+      },
+
       // ===== BUDGET PAGE =====
       {
         id: "budget-welcome",
@@ -147,6 +174,15 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         content:
           "O Dashboard é sua página inicial. Aqui você vê um resumo das suas finanças e próximos compromissos.",
         targetSelector: '[data-tutorial="nav-dashboard"]',
+        placement: "bottom",
+      },
+      {
+        id: "nav-goals",
+        route: "/app",
+        title: "Metas",
+        content:
+          "Acompanhe o progresso das suas metas financeiras. O sistema calcula quanto guardar por mês.",
+        targetSelector: '[data-tutorial="nav-goals"]',
         placement: "bottom",
       },
       {
