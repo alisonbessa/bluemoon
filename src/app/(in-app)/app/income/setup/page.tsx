@@ -51,6 +51,7 @@ import {
   useExpandedGroups,
 } from "@/components/ui/compact-table";
 import { toast } from "sonner";
+import { useTutorial } from "@/components/tutorial/tutorial-provider";
 
 interface Budget {
   id: string;
@@ -121,6 +122,7 @@ const ALLOWED_ACCOUNT_TYPES_BY_INCOME: Record<string, string[]> = {
 
 export default function IncomeSetupPage() {
   const router = useRouter();
+  const { isActive: isTutorialActive, isVisible: isTutorialVisible } = useTutorial();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -744,6 +746,20 @@ export default function IncomeSetupPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Tutorial continue button - show when tutorial is active but dismissed for this page */}
+      {isTutorialActive && !isTutorialVisible && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <Button
+            onClick={() => router.push("/app/goals")}
+            className="shadow-lg gap-2"
+            size="lg"
+          >
+            Continuar Tutorial
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

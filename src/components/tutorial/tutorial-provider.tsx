@@ -40,6 +40,7 @@ const TutorialContext = createContext<TutorialContextValue | null>(null);
 
 const TUTORIAL_STORAGE_KEY = "hivebudget_tutorial_completed";
 const TUTORIAL_PROGRESS_KEY = "hivebudget_tutorial_progress";
+const TUTORIAL_PENDING_KEY = "hivebudget_pending_tutorial";
 
 interface TutorialProgress {
   flowId: string;
@@ -82,6 +83,28 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Check if tutorial is already completed
     if (localStorage.getItem(TUTORIAL_STORAGE_KEY) === "true") {
+      return;
+    }
+
+    // Check for pending tutorial from invite flow
+    const pendingTutorial = localStorage.getItem(TUTORIAL_PENDING_KEY);
+    if (pendingTutorial) {
+      localStorage.removeItem(TUTORIAL_PENDING_KEY);
+      const flow = getTutorialFlow(pendingTutorial);
+      if (flow && flow.steps.length > 0) {
+        const firstStep = flow.steps[0];
+        setCurrentFlow(flow);
+        setCurrentStep(firstStep);
+        setDismissedForPage(null);
+        setIsVisible(true);
+
+        // Save progress
+        saveTutorialProgress({
+          flowId: pendingTutorial,
+          currentStepId: firstStep.id,
+          dismissedForPage: null,
+        });
+      }
       return;
     }
 

@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/compact-table";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTutorial } from "@/components/tutorial/tutorial-provider";
 
 interface Budget {
   id: string;
@@ -81,6 +82,7 @@ const ORDERED_TYPES = Object.entries(TYPE_CONFIG)
 
 export default function AccountsSetupPage() {
   const router = useRouter();
+  const { isActive: isTutorialActive, isVisible: isTutorialVisible } = useTutorial();
   const [accounts, setAccounts] = useState<AccountWithOwner[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -101,9 +103,9 @@ export default function AccountsSetupPage() {
   const fetchData = useCallback(async () => {
     try {
       const [accountsRes, budgetsRes, membersRes] = await Promise.all([
-        fetch("/api/app/accounts"),
-        fetch("/api/app/budgets"),
-        fetch("/api/app/members"),
+        fetch("/api/app/accounts", { cache: "no-store" }),
+        fetch("/api/app/budgets", { cache: "no-store" }),
+        fetch("/api/app/members", { cache: "no-store" }),
       ]);
 
       if (accountsRes.ok) {
@@ -519,6 +521,20 @@ export default function AccountsSetupPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Tutorial continue button - show when tutorial is active but dismissed for this page */}
+      {isTutorialActive && !isTutorialVisible && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <Button
+            onClick={() => router.push("/app/income/setup")}
+            className="shadow-lg gap-2"
+            size="lg"
+          >
+            Continuar Tutorial
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

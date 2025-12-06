@@ -30,6 +30,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 import useUser from "@/lib/users/useUser";
+import { fetchWithAuth } from "@/lib/api/fetch-with-auth";
 
 interface Commitment {
   id: string;
@@ -158,8 +159,8 @@ function AppHomepage() {
 
   const fetchData = useCallback(async () => {
     try {
-      // Fetch budgets first
-      const budgetsRes = await fetch("/api/app/budgets");
+      // Fetch budgets first (using fetchWithAuth to handle 401)
+      const budgetsRes = await fetchWithAuth("/api/app/budgets");
       if (budgetsRes.ok) {
         const data = await budgetsRes.json();
         setBudgets(data.budgets || []);
@@ -169,7 +170,7 @@ function AppHomepage() {
           const budgetId = data.budgets[0].id;
 
           // Fetch allocations for the month (includes income data)
-          const allocationsRes = await fetch(
+          const allocationsRes = await fetchWithAuth(
             `/api/app/allocations?budgetId=${budgetId}&year=${currentYear}&month=${currentMonth}`
           );
           if (allocationsRes.ok) {
@@ -190,7 +191,7 @@ function AppHomepage() {
           // Fetch commitments (only for current/future months)
           if (currentYear > today.getFullYear() ||
               (currentYear === today.getFullYear() && currentMonth >= today.getMonth() + 1)) {
-            const commitmentsRes = await fetch(
+            const commitmentsRes = await fetchWithAuth(
               `/api/app/commitments?budgetId=${budgetId}&days=30&year=${currentYear}&month=${currentMonth}`
             );
             if (commitmentsRes.ok) {
@@ -202,7 +203,7 @@ function AppHomepage() {
           }
 
           // Fetch goals
-          const goalsRes = await fetch(`/api/app/goals?budgetId=${budgetId}`);
+          const goalsRes = await fetchWithAuth(`/api/app/goals?budgetId=${budgetId}`);
           if (goalsRes.ok) {
             const goalsData = await goalsRes.json();
             setGoals(goalsData.goals || []);
@@ -390,17 +391,19 @@ function AppHomepage() {
                           <span>{goal.icon}</span>
                           <span className="font-medium">{goal.name}</span>
                         </span>
-                        <span className="text-muted-foreground">{goal.progress}%</span>
                       </div>
-                      <Progress
-                        value={goal.progress}
-                        className="h-2"
-                        style={
-                          {
-                            "--progress-background": goal.color,
-                          } as React.CSSProperties
-                        }
-                      />
+                      <div className="flex items-center gap-2">
+                        <Progress
+                          value={goal.progress}
+                          className="h-2 flex-1"
+                          style={
+                            {
+                              "--progress-background": goal.color,
+                            } as React.CSSProperties
+                          }
+                        />
+                        <span className="text-xs text-muted-foreground tabular-nums">{goal.progress}%</span>
+                      </div>
                       {goal.monthsRemaining > 0 && goal.monthlyTarget > 0 && (
                         <p className="text-xs text-muted-foreground">
                           {formatCurrency(goal.monthlyTarget)}/mês • {goal.monthsRemaining} {goal.monthsRemaining === 1 ? "mês" : "meses"}
@@ -441,7 +444,7 @@ function AppHomepage() {
                 Próximos Compromissos
               </CardTitle>
               <CardDescription>
-                Contas e pagamentos dos próximos 30 dias
+                Contas e pagamentos pendentes dos próximos 30 dias
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
@@ -499,7 +502,7 @@ function AppHomepage() {
                 <div className="flex flex-col items-center justify-center py-4 text-center">
                   <CheckCircle2Icon className="h-10 w-10 text-green-500 mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    Nenhum compromisso nos próximos 30 dias
+                    Tudo em dia! Nenhuma conta pendente.
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Configure datas de vencimento no orçamento

@@ -95,24 +95,31 @@ export const POST = withAuthRequired(async (req, context) => {
     })
     .returning();
 
-  // Create a "Prazeres" category for the new partner
-  const pleasuresGroup = await db
-    .select()
-    .from(groups)
-    .where(eq(groups.code, "pleasures"))
-    .limit(1);
-
-  if (pleasuresGroup.length > 0) {
-    await db.insert(categories).values({
+  // Create a personal spending GROUP for the new partner
+  // Each member gets their own group where they can create their own categories
+  const [personalGroup] = await db
+    .insert(groups)
+    .values({
+      code: "personal",
+      name: `Gastos pessoais - ${newMember.name}`,
+      description: `Categorias de gastos pessoais de ${newMember.name}`,
+      icon: "👤",
+      displayOrder: 3, // Personal groups come after lifestyle (2) and before investments (4)
       budgetId: invite.budgetId,
-      groupId: pleasuresGroup[0].id,
       memberId: newMember.id,
-      name: `Prazeres - ${newMember.name}`,
-      icon: "🎉",
-      behavior: "refill_up",
-      plannedAmount: 0,
-    });
-  }
+    })
+    .returning();
+
+  // Create a default category inside the personal group for the member to start with
+  await db.insert(categories).values({
+    budgetId: invite.budgetId,
+    groupId: personalGroup.id,
+    memberId: newMember.id,
+    name: "Geral",
+    icon: "💸",
+    behavior: "refill_up",
+    plannedAmount: 0,
+  });
 
   // Update invite status
   await db
@@ -126,9 +133,29 @@ export const POST = withAuthRequired(async (req, context) => {
     .where(eq(invites.id, invite.id));
 
   // Update user's lastBudgetId to the newly joined budget
+  // Also mark onboarding as completed if not already (invited users skip full onboarding)
+  const updateData: { lastBudgetId: string; onboardingCompletedAt?: Date; displayName?: string } = {
+    lastBudgetId: invite.budgetId,
+  };
+
+  // Check if user needs onboarding completion
+  const [currentUser] = await db
+    .select({ onboardingCompletedAt: users.onboardingCompletedAt, displayName: users.displayName })
+    .from(users)
+    .where(eq(users.id, session.user.id));
+
+  if (!currentUser.onboardingCompletedAt) {
+    updateData.onboardingCompletedAt = new Date();
+  }
+
+  // Set displayName if not set
+  if (!currentUser.displayName && memberName) {
+    updateData.displayName = memberName;
+  }
+
   await db
     .update(users)
-    .set({ lastBudgetId: invite.budgetId })
+    .set(updateData)
     .where(eq(users.id, session.user.id));
 
   // TODO: Send notification email to the inviter
@@ -137,5 +164,7 @@ export const POST = withAuthRequired(async (req, context) => {
     success: true,
     budgetId: invite.budgetId,
     member: newMember,
+    isNewToOnboarding: !currentUser.onboardingCompletedAt,
+    startTutorial: !currentUser.onboardingCompletedAt ? "invited-user" : null,
   });
 });

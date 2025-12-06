@@ -331,8 +331,37 @@ export default function SettingsPage() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Budget Members */}
-          {budgetId && user?.id && (
+          {budgetId && user?.id ? (
             <BudgetMembersCard budgetId={budgetId} currentUserId={user.id} />
+          ) : (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <CardTitle>Membros do Orçamento</CardTitle>
+                    <CardDescription>
+                      Convide pessoas para compartilhar o orçamento
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Complete a configuração inicial para criar seu orçamento e convidar pessoas.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowOnboardingConfirm(true)}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Configurar orçamento
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Telegram Connection */}

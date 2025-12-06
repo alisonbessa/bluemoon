@@ -37,6 +37,10 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
+import { useRouter } from "next/navigation";
+import { useTutorial } from "@/components/tutorial/tutorial-provider";
+import { ArrowRight } from "lucide-react";
+import { CurrencyInput } from "@/components/ui/currency-input";
 
 interface Goal {
   id: string;
@@ -106,6 +110,8 @@ function formatFullDate(dateString: string): string {
 }
 
 export default function GoalsPage() {
+  const router = useRouter();
+  const { isActive: isTutorialActive, isVisible: isTutorialVisible } = useTutorial();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [budgets, setBudgets] = useState<{ id: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -172,7 +178,7 @@ export default function GoalsPage() {
       name: goal.name,
       icon: goal.icon,
       color: goal.color,
-      targetAmount: goal.targetAmount / 100,
+      targetAmount: goal.targetAmount, // Already in cents
       targetDate: goal.targetDate.split("T")[0],
     });
     setEditingGoal(goal);
@@ -196,7 +202,7 @@ export default function GoalsPage() {
     try {
       const payload = {
         ...formData,
-        targetAmount: Math.round(formData.targetAmount * 100),
+        targetAmount: formData.targetAmount, // Already in cents from CurrencyInput
         budgetId: budgets[0]?.id,
       };
 
@@ -542,26 +548,16 @@ export default function GoalsPage() {
             {/* Target Amount */}
             <div className="space-y-2">
               <Label htmlFor="targetAmount">Valor alvo</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  R$
-                </span>
-                <Input
-                  id="targetAmount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0,00"
-                  className="pl-10"
-                  value={formData.targetAmount || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      targetAmount: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                />
-              </div>
+              <CurrencyInput
+                id="targetAmount"
+                value={formData.targetAmount}
+                onChange={(cents) =>
+                  setFormData({
+                    ...formData,
+                    targetAmount: cents,
+                  })
+                }
+              />
             </div>
 
             {/* Target Date */}
@@ -676,6 +672,20 @@ export default function GoalsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Tutorial continue button - show when tutorial is active but dismissed for this page */}
+      {isTutorialActive && !isTutorialVisible && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <Button
+            onClick={() => router.push("/app/budget")}
+            className="shadow-lg gap-2"
+            size="lg"
+          >
+            Continuar Tutorial
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

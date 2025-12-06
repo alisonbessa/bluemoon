@@ -132,24 +132,39 @@ export const POST = withAuthRequired(async (req, context) => {
     })
     .returning();
 
-  // Create a "Prazeres" category for this member
-  const pleasuresGroup = await db
-    .select()
-    .from(groups)
-    .where(eq(groups.code, "pleasures"))
-    .limit(1);
+  // Create a personal spending GROUP for this member
+  // Each member gets their own group where they can create their own categories
+  // Note: For pets and children, these groups are shared/visible to all budget participants
+  const isPet = type === "pet";
+  const isChild = type === "child";
 
-  if (pleasuresGroup.length > 0) {
-    await db.insert(categories).values({
+  const [personalGroup] = await db
+    .insert(groups)
+    .values({
+      code: "personal",
+      name: `Gastos pessoais - ${capitalizedName}`,
+      description: isChild
+        ? `Categorias de gastos de ${capitalizedName} (compartilhado)`
+        : isPet
+          ? `Categorias de gastos do pet ${capitalizedName} (compartilhado)`
+          : `Categorias de gastos pessoais de ${capitalizedName}`,
+      icon: isPet ? "🐾" : isChild ? "👶" : "👤",
+      displayOrder: 3, // Personal groups come after lifestyle (2) and before investments (4)
       budgetId,
-      groupId: pleasuresGroup[0].id,
       memberId: newMember.id,
-      name: `Prazeres - ${capitalizedName}`,
-      icon: type === "pet" ? "🐾" : "🎮",
-      behavior: "refill_up",
-      plannedAmount: monthlyPleasureBudget,
-    });
-  }
+    })
+    .returning();
+
+  // Create a default category inside the personal group
+  await db.insert(categories).values({
+    budgetId,
+    groupId: personalGroup.id,
+    memberId: newMember.id,
+    name: isPet ? "Pet" : "Geral",
+    icon: isPet ? "🐾" : "💸",
+    behavior: "refill_up",
+    plannedAmount: monthlyPleasureBudget,
+  });
 
   return NextResponse.json({ member: newMember }, { status: 201 });
 });

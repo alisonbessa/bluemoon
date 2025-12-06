@@ -1,7 +1,7 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { budgetMembers, categories, groups, monthlyAllocations } from "@/db/schema";
-import { eq, and, gte, lte, isNotNull } from "drizzle-orm";
+import { budgetMembers, categories, groups, monthlyAllocations, transactions } from "@/db/schema";
+import { eq, and, gte, lte, isNotNull, inArray, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 // Helper to get user's budget IDs
@@ -52,38 +52,75 @@ export const GET = withAuthRequired(async (req, context) => {
     )
     .orderBy(categories.targetDate);
 
-  // Get current month's allocations for these categories
+  // Get current month's allocations and spending for these categories
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
   const categoryIds = upcomingCommitments.map((c) => c.category.id);
 
-  const allocations = categoryIds.length > 0
-    ? await db
-        .select()
-        .from(monthlyAllocations)
-        .where(
-          and(
-            eq(monthlyAllocations.budgetId, budgetId),
-            eq(monthlyAllocations.year, year),
-            eq(monthlyAllocations.month, month)
+  // Calculate date range for this month
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0, 23, 59, 59);
+
+  const [allocations, spending] = await Promise.all([
+    // Get allocations
+    categoryIds.length > 0
+      ? db
+          .select()
+          .from(monthlyAllocations)
+          .where(
+            and(
+              eq(monthlyAllocations.budgetId, budgetId),
+              eq(monthlyAllocations.year, year),
+              eq(monthlyAllocations.month, month)
+            )
           )
-        )
-    : [];
+      : [],
+    // Get spending per category
+    categoryIds.length > 0
+      ? db
+          .select({
+            categoryId: transactions.categoryId,
+            totalSpent: sql<number>`SUM(CASE WHEN ${transactions.type} = 'expense' THEN ${transactions.amount} ELSE 0 END)`,
+          })
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.budgetId, budgetId),
+              gte(transactions.date, startDate),
+              lte(transactions.date, endDate),
+              inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+              inArray(transactions.categoryId, categoryIds)
+            )
+          )
+          .groupBy(transactions.categoryId)
+      : [],
+  ]);
 
   const allocationsMap = new Map(allocations.map((a) => [a.categoryId, a.allocated || 0]));
+  const spendingMap = new Map(spending.map((s) => [s.categoryId, Number(s.totalSpent) || 0]));
 
-  const commitments = upcomingCommitments.map(({ category, group }) => ({
-    id: category.id,
-    name: category.name,
-    icon: category.icon,
-    targetDate: category.targetDate,
-    allocated: allocationsMap.get(category.id) || category.plannedAmount || 0,
-    group: {
-      id: group.id,
-      name: group.name,
-      code: group.code,
-    },
-  }));
+  // Filter to show only unpaid commitments (spent < allocated or allocated === 0 with plannedAmount > 0)
+  const commitments = upcomingCommitments
+    .map(({ category, group }) => {
+      const allocated = allocationsMap.get(category.id) || category.plannedAmount || 0;
+      const spent = spendingMap.get(category.id) || 0;
+
+      return {
+        id: category.id,
+        name: category.name,
+        icon: category.icon,
+        targetDate: category.targetDate,
+        allocated,
+        spent,
+        isPaid: allocated > 0 && spent >= allocated,
+        group: {
+          id: group.id,
+          name: group.name,
+          code: group.code,
+        },
+      };
+    })
+    .filter((c) => !c.isPaid); // Only show unpaid commitments
 
   return NextResponse.json({
     commitments,

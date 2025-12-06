@@ -80,6 +80,13 @@ export function InviteAcceptClient({
       }
 
       toast.success("Convite aceito com sucesso!");
+
+      // Store the tutorial to start in localStorage
+      // The TutorialProvider will pick this up when the user lands on /app
+      if (data.startTutorial) {
+        localStorage.setItem("hivebudget_pending_tutorial", data.startTutorial);
+      }
+
       router.push("/app");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao aceitar convite");

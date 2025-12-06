@@ -52,6 +52,7 @@ interface Member {
 }
 
 // Suggested categories per group
+// Note: "personal" groups are dynamic (one per member), suggestions shown for each member's group
 const suggestedCategoriesByGroup: Record<string, Array<{ name: string; icon: string }>> = {
   essential: [
     { name: "Moradia", icon: "🏠" },
@@ -89,7 +90,8 @@ const suggestedCategoriesByGroup: Record<string, Array<{ name: string; icon: str
     { name: "Presentes", icon: "🎁" },
     { name: "Assinaturas", icon: "📦" },
   ],
-  pleasures: [
+  // Personal groups are dynamic (one per member) - these suggestions apply to all personal groups
+  personal: [
     { name: "Lazer", icon: "🎮" },
     { name: "Cinema/Teatro", icon: "🎬" },
     { name: "Bares/Drinks", icon: "🍺" },

@@ -93,6 +93,7 @@ const withAuthRequired = (handler: WithManagerHandler) => {
           stripeSubscriptionId: users.stripeSubscriptionId,
           emailVerified: users.emailVerified,
           credits: users.credits,
+          lastBudgetId: users.lastBudgetId,
         })
         .from(users)
         .where(eq(users.id, userId))

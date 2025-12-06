@@ -9,7 +9,7 @@ import {
   financialAccounts,
   defaultGroups,
 } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { capitalizeWords } from "@/lib/utils";
@@ -102,13 +102,14 @@ const DEBT_CATEGORIES: Record<string, { name: string; icon: string }> = {
 };
 
 const GOAL_CATEGORIES: Record<string, { name: string; icon: string }> = {
-  emergency_fund: { name: "Reserva de Emergência", icon: "🏦" },
+  // Match the values from step-goals.tsx
   travel: { name: "Viagem", icon: "✈️" },
-  new_car: { name: "Carro Novo", icon: "🚗" },
-  home: { name: "Casa Própria", icon: "🏡" },
+  house: { name: "Casa Própria", icon: "🏡" },
+  car: { name: "Carro Novo", icon: "🚗" },
   wedding: { name: "Casamento", icon: "💒" },
-  retirement: { name: "Aposentadoria", icon: "🏖️" },
-  education_fund: { name: "Fundo de Educação", icon: "🎓" },
+  education: { name: "Fundo de Educação", icon: "🎓" },
+  emergency: { name: "Reserva de Emergência", icon: "🛡️" },
+  retirement: { name: "Aposentadoria", icon: "👴" },
 };
 
 const ACCOUNT_CONFIG: Record<
@@ -146,37 +147,62 @@ export const POST = withAuthRequired(async (req, context) => {
   const petNames = data.household.pets.map((name) => name ? capitalizeWords(name) : "");
   const customGoal = data.customGoal ? capitalizeWords(data.customGoal) : "";
 
-  // 1. Update user with displayName and mark onboarding as complete
+  // 1. Find user's existing budget (created on registration)
+  const [existingMembership] = await db
+    .select({
+      budgetId: budgetMembers.budgetId,
+      memberId: budgetMembers.id,
+    })
+    .from(budgetMembers)
+    .where(
+      and(
+        eq(budgetMembers.userId, session.user.id),
+        eq(budgetMembers.type, "owner")
+      )
+    )
+    .limit(1);
+
+  if (!existingMembership) {
+    return NextResponse.json(
+      { error: "Orçamento não encontrado. Por favor, faça login novamente." },
+      { status: 400 }
+    );
+  }
+
+  const budgetId = existingMembership.budgetId;
+
+  // 2. Update user with displayName and mark onboarding as complete
   await db
     .update(users)
     .set({
       displayName,
       onboardingCompletedAt: new Date(),
+      lastBudgetId: budgetId,
     })
     .where(eq(users.id, session.user.id));
 
-  // 2. Create budget
-  const [newBudget] = await db
-    .insert(budgets)
-    .values({
-      name: `Orçamento De ${displayName}`,
-      description: "Orçamento criado durante o onboarding",
-      currency: "BRL",
+  // 3. Update budget name
+  await db
+    .update(budgets)
+    .set({
+      name: `Orçamento de ${displayName}`,
+      description: "Orçamento personalizado",
     })
-    .returning();
+    .where(eq(budgets.id, budgetId));
 
-  // 3. Create budget members
-  // Owner (current user)
+  // 4. Update owner member name
+  await db
+    .update(budgetMembers)
+    .set({ name: displayName })
+    .where(eq(budgetMembers.id, existingMembership.memberId));
+
+  // Get the owner member for use later
   const [ownerMember] = await db
-    .insert(budgetMembers)
-    .values({
-      budgetId: newBudget.id,
-      userId: session.user.id,
-      name: displayName,
-      type: "owner",
-    })
-    .returning();
+    .select()
+    .from(budgetMembers)
+    .where(eq(budgetMembers.id, existingMembership.memberId));
 
+  // 5. Add additional household members
   const memberInserts: Array<{
     budgetId: string;
     name: string;
@@ -186,7 +212,7 @@ export const POST = withAuthRequired(async (req, context) => {
   // Partner
   if (data.household.hasPartner && partnerName) {
     memberInserts.push({
-      budgetId: newBudget.id,
+      budgetId,
       name: partnerName,
       type: "partner",
     });
@@ -196,7 +222,7 @@ export const POST = withAuthRequired(async (req, context) => {
   for (const childName of childrenNames) {
     if (childName) {
       memberInserts.push({
-        budgetId: newBudget.id,
+        budgetId,
         name: childName,
         type: "child",
       });
@@ -207,7 +233,7 @@ export const POST = withAuthRequired(async (req, context) => {
   for (const adultName of otherAdultNames) {
     if (adultName) {
       memberInserts.push({
-        budgetId: newBudget.id,
+        budgetId,
         name: adultName,
         type: "partner",
       });
@@ -218,7 +244,7 @@ export const POST = withAuthRequired(async (req, context) => {
   for (const petName of petNames) {
     if (petName) {
       memberInserts.push({
-        budgetId: newBudget.id,
+        budgetId,
         name: petName,
         type: "pet",
       });
@@ -232,7 +258,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const allMembers = [ownerMember, ...createdMembers];
 
-  // 4. Ensure groups exist
+  // 6. Ensure groups exist
   const existingGroups = await db.select().from(groups);
   if (existingGroups.length === 0) {
     await db.insert(groups).values(
@@ -255,11 +281,11 @@ export const POST = withAuthRequired(async (req, context) => {
   }
   const groupByCode = Object.fromEntries(allGroups.map((g) => [g.code, g]));
 
-  // 5. Create financial accounts
+  // 7. Create financial accounts
   const accountInserts = data.accounts.map((accountCode, index) => {
     const config = ACCOUNT_CONFIG[accountCode];
     return {
-      budgetId: newBudget.id,
+      budgetId,
       name: config.name,
       type: config.type,
       icon: config.icon,
@@ -271,7 +297,7 @@ export const POST = withAuthRequired(async (req, context) => {
     await db.insert(financialAccounts).values(accountInserts);
   }
 
-  // 6. Create categories based on onboarding selections
+  // 8. Create categories based on onboarding selections
   const categoryInserts: Array<{
     budgetId: string;
     groupId: string;
@@ -291,7 +317,7 @@ export const POST = withAuthRequired(async (req, context) => {
   if (data.housing && HOUSING_CATEGORIES[data.housing]) {
     const cat = HOUSING_CATEGORIES[data.housing];
     categoryInserts.push({
-      budgetId: newBudget.id,
+      budgetId,
       groupId: groupByCode.essential.id,
       name: cat.name,
       icon: cat.icon,
@@ -306,7 +332,7 @@ export const POST = withAuthRequired(async (req, context) => {
     if (TRANSPORT_CATEGORIES[transport]) {
       const cat = TRANSPORT_CATEGORIES[transport];
       categoryInserts.push({
-        budgetId: newBudget.id,
+        budgetId,
         groupId: groupByCode.essential.id,
         name: cat.name,
         icon: cat.icon,
@@ -333,7 +359,7 @@ export const POST = withAuthRequired(async (req, context) => {
           if (UTILITY_CATEGORIES[utilityItem]) {
             const cat = UTILITY_CATEGORIES[utilityItem];
             categoryInserts.push({
-              budgetId: newBudget.id,
+              budgetId,
               groupId: groupByCode.essential.id,
               name: cat.name,
               icon: cat.icon,
@@ -347,7 +373,7 @@ export const POST = withAuthRequired(async (req, context) => {
         // Create single "Contas de Casa" category
         const cat = EXPENSE_CATEGORIES.utilities;
         categoryInserts.push({
-          budgetId: newBudget.id,
+          budgetId,
           groupId: groupByCode.essential.id,
           name: cat.name,
           icon: cat.icon,
@@ -359,7 +385,7 @@ export const POST = withAuthRequired(async (req, context) => {
     } else if (EXPENSE_CATEGORIES[expense]) {
       const cat = EXPENSE_CATEGORIES[expense];
       categoryInserts.push({
-        budgetId: newBudget.id,
+        budgetId,
         groupId: groupByCode[cat.group].id,
         name: cat.name,
         icon: cat.icon,
@@ -375,7 +401,7 @@ export const POST = withAuthRequired(async (req, context) => {
     if (DEBT_CATEGORIES[debt]) {
       const cat = DEBT_CATEGORIES[debt];
       categoryInserts.push({
-        budgetId: newBudget.id,
+        budgetId,
         groupId: groupByCode.essential.id,
         name: cat.name,
         icon: cat.icon,
@@ -386,27 +412,48 @@ export const POST = withAuthRequired(async (req, context) => {
     }
   }
 
-  // Pleasures categories - one per member
+  // Personal spending groups - one group per member (each member has their own "Gastos pessoais - [Nome]" group)
+  // These groups allow members to create their own categories inside
+  // Note: For pets and children, these groups are shared/visible to all budget participants
   for (const member of allMembers) {
-    if (member.type !== "pet") {
-      categoryInserts.push({
-        budgetId: newBudget.id,
-        groupId: groupByCode.pleasures.id,
+    const isPet = member.type === "pet";
+    const isChild = member.type === "child";
+
+    const [personalGroup] = await db
+      .insert(groups)
+      .values({
+        code: "personal",
+        name: `Gastos pessoais - ${member.name}`,
+        description: isChild
+          ? `Categorias de gastos de ${member.name} (compartilhado)`
+          : isPet
+            ? `Categorias de gastos do pet ${member.name} (compartilhado)`
+            : `Categorias de gastos pessoais de ${member.name}`,
+        icon: isPet ? "🐾" : isChild ? "👶" : "👤",
+        displayOrder: 3, // Personal groups come after lifestyle (2) and before investments (4)
+        budgetId,
         memberId: member.id,
-        name: `Prazeres de ${member.name}`,
-        icon: "🎉",
-        behavior: "refill_up",
-        plannedAmount: 0,
-        displayOrder: displayOrder++,
-      });
-    }
+      })
+      .returning();
+
+    // Create a default category inside the personal group for the member to start with
+    categoryInserts.push({
+      budgetId,
+      groupId: personalGroup.id,
+      memberId: member.id,
+      name: isPet ? "Pet" : "Geral",
+      icon: isPet ? "🐾" : "💸",
+      behavior: "refill_up",
+      plannedAmount: 0,
+      displayOrder: displayOrder++,
+    });
   }
 
   // Goal categories
   for (const goal of data.goals) {
     if (goal === "other" && customGoal) {
       categoryInserts.push({
-        budgetId: newBudget.id,
+        budgetId,
         groupId: groupByCode.goals.id,
         name: customGoal,
         icon: "🎯",
@@ -417,9 +464,9 @@ export const POST = withAuthRequired(async (req, context) => {
     } else if (GOAL_CATEGORIES[goal]) {
       const cat = GOAL_CATEGORIES[goal];
       // Emergency fund goes to investments group
-      const groupCode = goal === "emergency_fund" ? "investments" : "goals";
+      const groupCode = goal === "emergency" ? "investments" : "goals";
       categoryInserts.push({
-        budgetId: newBudget.id,
+        budgetId,
         groupId: groupByCode[groupCode].id,
         name: cat.name,
         icon: cat.icon,
@@ -437,7 +484,7 @@ export const POST = withAuthRequired(async (req, context) => {
   return NextResponse.json(
     {
       success: true,
-      budgetId: newBudget.id,
+      budgetId,
       message: "Onboarding completo com sucesso!",
     },
     { status: 201 }

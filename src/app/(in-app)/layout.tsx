@@ -2,7 +2,7 @@
 
 import { AppHeader } from "@/components/layout/app-header";
 import { TutorialProvider, TutorialOverlay } from "@/components/tutorial";
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useUser from "@/lib/users/useUser";
 import dynamic from "next/dynamic";
@@ -70,11 +70,16 @@ function DashboardSkeleton() {
 function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isLoading, error, mutate } = useUser();
+  const [onboardingSkipped, setOnboardingSkipped] = useState(false);
 
-  const showOnboarding = !isLoading && user && !user.onboardingCompletedAt;
+  const showOnboarding = !isLoading && user && !user.onboardingCompletedAt && !onboardingSkipped;
 
   const handleOnboardingComplete = () => {
     mutate();
+  };
+
+  const handleOnboardingSkip = () => {
+    setOnboardingSkipped(true);
   };
 
   // Redirect to home if user is not authenticated, session expired, or error occurred
@@ -101,7 +106,10 @@ function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="grow p-4 sm:p-2 max-w-7xl mx-auto w-full">{children}</div>
 
           {showOnboarding && (
-            <OnboardingModal onComplete={handleOnboardingComplete} />
+            <OnboardingModal
+              onComplete={handleOnboardingComplete}
+              onSkip={handleOnboardingSkip}
+            />
           )}
 
           <TutorialOverlay />

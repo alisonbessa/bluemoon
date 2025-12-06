@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTutorial } from "@/components/tutorial/tutorial-provider";
 
 interface Category {
   id: string;
@@ -200,6 +201,7 @@ const ALLOWED_ACCOUNT_TYPES_BY_INCOME: Record<string, string[]> = {
 
 export default function BudgetPage() {
   const router = useRouter();
+  const { isActive: isTutorialActive, isVisible: isTutorialVisible } = useTutorial();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [groupsData, setGroupsData] = useState<GroupData[]>([]);
   const [totals, setTotals] = useState({ allocated: 0, spent: 0, available: 0 });
@@ -237,7 +239,7 @@ export default function BudgetPage() {
   const GROUP_DEFAULT_BEHAVIORS: Record<string, "set_aside" | "refill_up"> = {
     essential: "refill_up",
     lifestyle: "set_aside",
-    pleasures: "set_aside",
+    personal: "set_aside",
     goals: "set_aside",
     investments: "set_aside",
   };
@@ -255,6 +257,7 @@ export default function BudgetPage() {
   const [isCopyingBudget, setIsCopyingBudget] = useState(false);
   const [showCopyConfirm, setShowCopyConfirm] = useState(false);
   const [showCopyHintModal, setShowCopyHintModal] = useState(false);
+  const [previousMonthHasAllocations, setPreviousMonthHasAllocations] = useState(false);
 
   // Edit income allocation (monthly value)
   const [editingIncome, setEditingIncome] = useState<{
@@ -351,12 +354,44 @@ export default function BudgetPage() {
     fetchData();
   }, [fetchData]);
 
-  // Show copy hint modal when no allocations exist for current month
+  // Check if previous month has allocations (for copy hint)
+  useEffect(() => {
+    const checkPreviousMonth = async () => {
+      if (budgets.length === 0) {
+        setPreviousMonthHasAllocations(false);
+        return;
+      }
+
+      const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+      const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+      try {
+        const res = await fetch(
+          `/api/app/allocations?budgetId=${budgets[0].id}&year=${prevYear}&month=${prevMonth}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setPreviousMonthHasAllocations((data.totals?.allocated || 0) > 0);
+        } else {
+          setPreviousMonthHasAllocations(false);
+        }
+      } catch {
+        setPreviousMonthHasAllocations(false);
+      }
+    };
+
+    checkPreviousMonth();
+  }, [budgets, currentYear, currentMonth]);
+
+  // Show copy hint modal when no allocations exist for current month AND previous month has allocations
   useEffect(() => {
     if (isLoading || groupsData.length === 0) return;
 
     const hasAllocations = totals.allocated > 0;
     if (hasAllocations) return;
+
+    // Only show if previous month has allocations to copy from
+    if (!previousMonthHasAllocations) return;
 
     // Check if user dismissed this hint for this specific month
     const dismissedKey = `copy-hint-dismissed-${currentYear}-${currentMonth}`;
@@ -365,7 +400,7 @@ export default function BudgetPage() {
     if (!wasDismissed) {
       setShowCopyHintModal(true);
     }
-  }, [isLoading, groupsData.length, totals.allocated, currentYear, currentMonth]);
+  }, [isLoading, groupsData.length, totals.allocated, currentYear, currentMonth, previousMonthHasAllocations]);
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups((prev) =>
@@ -933,15 +968,17 @@ export default function BudgetPage() {
             ))}
           </div>
           <div className="flex items-center gap-1">
-            <button
-              className="px-2 py-1 rounded hover:bg-muted flex items-center gap-1 disabled:opacity-50"
-              onClick={() => handleCopyFromPreviousMonth()}
-              disabled={isCopyingBudget}
-              title={`Copiar orçamento de ${monthNamesFull[getPreviousMonth().month - 1]}`}
-            >
-              {isCopyingBudget ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
-              <span className="hidden sm:inline">Copiar de {monthNamesFull[getPreviousMonth().month - 1]}</span>
-            </button>
+            {previousMonthHasAllocations && (
+              <button
+                className="px-2 py-1 rounded hover:bg-muted flex items-center gap-1 disabled:opacity-50"
+                onClick={() => handleCopyFromPreviousMonth()}
+                disabled={isCopyingBudget}
+                title={`Copiar orçamento de ${monthNamesFull[getPreviousMonth().month - 1]}`}
+              >
+                {isCopyingBudget ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
+                <span className="hidden sm:inline">Copiar de {monthNamesFull[getPreviousMonth().month - 1]}</span>
+              </button>
+            )}
             <button className="px-2 py-1 rounded hover:bg-muted flex items-center gap-1">
               <Plus className="h-3 w-3" /> Grupo
             </button>
@@ -954,56 +991,73 @@ export default function BudgetPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        {/* Income Section */}
-        {incomeData && incomeData.byMember.length > 0 && (
-          <div className="border-b-4 border-green-200 dark:border-green-900">
-            {/* Income Section Header - Clickable Toggle */}
-            <div
-              className="group px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-green-200/50 dark:hover:bg-green-950/70 transition-colors"
-              onClick={() => setIsIncomeExpanded(!isIncomeExpanded)}
-            >
-              <div className="flex items-center gap-2">
-                <ChevronDown className={cn("h-4 w-4 text-green-700 dark:text-green-300 transition-transform", !isIncomeExpanded && "-rotate-90")} />
-                <span className="text-lg">💰</span>
-                <span className="font-bold text-sm text-green-800 dark:text-green-200">RECEITAS</span>
-                <button
-                  className="ml-1 p-0.5 rounded hover:bg-green-200 dark:hover:bg-green-800 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openCreateIncomeSourceForm();
-                  }}
-                  title="Adicionar fonte de renda"
-                >
-                  <Plus className="h-3.5 w-3.5 text-green-700 dark:text-green-300" />
-                </button>
-              </div>
-              <div className="flex items-center gap-4 text-sm font-bold text-green-800 dark:text-green-200">
-                <span className="text-xs text-muted-foreground font-normal">Planejado:</span>
-                <span>{formatCurrency(incomeData.totals.planned)}</span>
-                <span className="text-xs text-muted-foreground font-normal">Recebido:</span>
-                <span className="text-green-600 dark:text-green-400">{formatCurrency(incomeData.totals.received)}</span>
-                <span className="text-xs text-muted-foreground font-normal">
-                  {incomeData.totals.received < incomeData.totals.planned ? "A Receber:" : "Extra:"}
-                </span>
-                <span className={incomeData.totals.received < incomeData.totals.planned ? "text-red-600" : "text-green-600"}>
-                  {formatCurrency(Math.abs(incomeData.totals.planned - incomeData.totals.received))}
-                </span>
-              </div>
+        {/* Income Section - Always visible */}
+        <div className="border-b-4 border-green-200 dark:border-green-900">
+          {/* Income Section Header - Clickable Toggle */}
+          <div
+            className="group px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-green-200/50 dark:hover:bg-green-950/70 transition-colors"
+            onClick={() => setIsIncomeExpanded(!isIncomeExpanded)}
+          >
+            <div className="flex items-center gap-2">
+              <ChevronDown className={cn("h-4 w-4 text-green-700 dark:text-green-300 transition-transform", !isIncomeExpanded && "-rotate-90")} />
+              <span className="text-lg">💰</span>
+              <span className="font-bold text-sm text-green-800 dark:text-green-200">RECEITAS</span>
+              <button
+                className="ml-1 p-0.5 rounded hover:bg-green-200 dark:hover:bg-green-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openCreateIncomeSourceForm();
+                }}
+                title="Adicionar fonte de renda"
+              >
+                <Plus className="h-3.5 w-3.5 text-green-700 dark:text-green-300" />
+              </button>
             </div>
+            <div className="flex items-center gap-4 text-sm font-bold text-green-800 dark:text-green-200">
+              <span className="text-xs text-muted-foreground font-normal">Planejado:</span>
+              <span>{formatCurrency(incomeData?.totals.planned || 0)}</span>
+              <span className="text-xs text-muted-foreground font-normal">Recebido:</span>
+              <span className="text-green-600 dark:text-green-400">{formatCurrency(incomeData?.totals.received || 0)}</span>
+              <span className="text-xs text-muted-foreground font-normal">
+                {(incomeData?.totals.received || 0) < (incomeData?.totals.planned || 0) ? "A Receber:" : "Extra:"}
+              </span>
+              <span className={(incomeData?.totals.received || 0) < (incomeData?.totals.planned || 0) ? "text-red-600" : "text-green-600"}>
+                {formatCurrency(Math.abs((incomeData?.totals.planned || 0) - (incomeData?.totals.received || 0)))}
+              </span>
+            </div>
+          </div>
 
-            {isIncomeExpanded && (
-              <>
-                {/* Income Table Header */}
-                <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
-                  <div />
-                  <div>Fonte</div>
-                  <div className="text-right">Planejado</div>
-                  <div className="text-right">Recebido</div>
-                  <div className="text-right">A Receber</div>
+          {isIncomeExpanded && (
+            <>
+              {/* Empty state when no income sources */}
+              {(!incomeData || incomeData.byMember.length === 0 || incomeData.byMember.every(m => m.sources.length === 0)) ? (
+                <div className="px-4 py-8 text-center">
+                  <p className="text-muted-foreground text-sm mb-3">
+                    Nenhuma fonte de renda cadastrada ainda.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openCreateIncomeSourceForm()}
+                    className="border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-950"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar primeira renda
+                  </Button>
                 </div>
+              ) : (
+              <>
+              {/* Income Table Header */}
+              <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
+                <div />
+                <div>Fonte</div>
+                <div className="text-right">Planejado</div>
+                <div className="text-right">Recebido</div>
+                <div className="text-right">A Receber</div>
+              </div>
 
-                {/* If only one member (or no member), show sources directly */}
-                {incomeData.byMember.length === 1 ? (
+              {/* If only one member (or no member), show sources directly */}
+              {incomeData.byMember.length === 1 ? (
               incomeData.byMember[0].sources.map((item) => {
                 const isEdited = item.planned !== item.defaultAmount;
                 const available = item.planned - item.received;
@@ -1157,86 +1211,10 @@ export default function BudgetPage() {
               })
             )}
               </>
-            )}
-          </div>
-        )}
-
-        {/* Goals Section */}
-        {goals.length > 0 && (
-          <div className="border-b">
-            {/* Goals Section Header - Clickable Toggle */}
-            <div
-              className="px-4 py-2 bg-violet-100 dark:bg-violet-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-violet-200/50 dark:hover:bg-violet-950/70 transition-colors"
-              onClick={() => setIsGoalsExpanded(!isGoalsExpanded)}
-            >
-              <div className="flex items-center gap-2">
-                <ChevronDown className={cn("h-4 w-4 text-violet-700 dark:text-violet-300 transition-transform", !isGoalsExpanded && "-rotate-90")} />
-                <Target className="h-4 w-4 text-violet-700 dark:text-violet-300" />
-                <span className="font-bold text-sm text-violet-800 dark:text-violet-200">METAS</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-xs text-muted-foreground font-normal">Mensal sugerido:</span>
-                <span className="font-bold text-violet-800 dark:text-violet-200">
-                  {formatCurrency(goals.reduce((sum, g) => sum + g.monthlyTarget, 0))}
-                </span>
-                <Link
-                  href="/app/goals"
-                  className="ml-2 text-xs text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Ver todas <ArrowRight className="h-3 w-3" />
-                </Link>
-              </div>
-            </div>
-
-            {isGoalsExpanded && (
-              <>
-                {/* Goals Table Header */}
-                <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
-                  <div />
-                  <div>Meta</div>
-                  <div className="text-right">Progresso</div>
-                  <div className="text-right">Mensal</div>
-                  <div className="text-right">Restante</div>
-                </div>
-
-                {/* Goals Rows */}
-                {goals.map((goal) => (
-                  <Link
-                    key={goal.id}
-                    href="/app/goals"
-                    className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-2 items-center border-b hover:bg-muted/20 text-sm cursor-pointer"
-                  >
-                    <div className="flex items-center justify-center">
-                      <span className="text-base">{goal.icon}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{goal.name}</span>
-                      <div className="flex-1 max-w-[120px]">
-                        <Progress
-                          value={goal.progress}
-                          className="h-1.5"
-                          style={{ "--progress-background": goal.color } as React.CSSProperties}
-                        />
-                      </div>
-                    </div>
-                    <div className="text-right text-xs tabular-nums text-violet-600 dark:text-violet-400">
-                      {goal.progress}%
-                    </div>
-                    <div className="text-right text-xs tabular-nums font-medium">
-                      {formatCurrency(goal.monthlyTarget)}
-                    </div>
-                    <div className="text-right text-xs tabular-nums text-muted-foreground">
-                      {goal.monthsRemaining > 0
-                        ? `${goal.monthsRemaining} ${goal.monthsRemaining === 1 ? "mês" : "meses"}`
-                        : "Vencida"}
-                    </div>
-                  </Link>
-                ))}
-              </>
-            )}
-          </div>
-        )}
+              )}
+            </>
+          )}
+        </div>
 
         {/* Expenses Section */}
         {groupsData.length > 0 && (
@@ -1333,6 +1311,8 @@ export default function BudgetPage() {
                 {/* Categories */}
                 {isExpanded && filteredCategories.map((item) => {
                   const isSelected = selectedCategories.includes(item.category.id);
+                  const spentPercent = item.allocated > 0 ? Math.min(100, Math.round((item.spent / item.allocated) * 100)) : 0;
+                  const isOverBudget = item.spent > item.allocated;
 
                   return (
                     <div
@@ -1353,6 +1333,19 @@ export default function BudgetPage() {
                       <div className="flex items-center gap-1.5 pl-5">
                         <span>{item.category.icon || "📌"}</span>
                         <span>{item.category.name}</span>
+                        {/* Progress bar for category */}
+                        {item.allocated > 0 && (
+                          <div className="flex items-center gap-1.5 ml-2">
+                            <Progress
+                              value={isOverBudget ? 100 : spentPercent}
+                              className="w-16 h-1.5"
+                              style={{ "--progress-background": isOverBudget ? "hsl(var(--destructive))" : "hsl(var(--primary))" } as React.CSSProperties}
+                            />
+                            <span className={cn("text-[10px] tabular-nums", isOverBudget ? "text-red-600" : "text-muted-foreground")}>
+                              {spentPercent}%
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
                           <button
                             onClick={(e) => {
@@ -1398,6 +1391,80 @@ export default function BudgetPage() {
             <Button onClick={() => router.push("/app/categories/setup")}>Configurar Categorias</Button>
           </div>
         ) : null}
+
+        {/* Goals Section - After Expenses */}
+        {goals.length > 0 && (
+          <div className="border-b-4 border-violet-200 dark:border-violet-900">
+            {/* Goals Section Header - Clickable Toggle */}
+            <div
+              className="px-4 py-2 bg-violet-100 dark:bg-violet-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-violet-200/50 dark:hover:bg-violet-950/70 transition-colors"
+              onClick={() => setIsGoalsExpanded(!isGoalsExpanded)}
+            >
+              <div className="flex items-center gap-2">
+                <ChevronDown className={cn("h-4 w-4 text-violet-700 dark:text-violet-300 transition-transform", !isGoalsExpanded && "-rotate-90")} />
+                <Target className="h-4 w-4 text-violet-700 dark:text-violet-300" />
+                <span className="font-bold text-sm text-violet-800 dark:text-violet-200">METAS</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-xs text-muted-foreground font-normal">Mensal sugerido:</span>
+                <span className="font-bold text-violet-800 dark:text-violet-200">
+                  {formatCurrency(goals.reduce((sum, g) => sum + g.monthlyTarget, 0))}
+                </span>
+                <Link
+                  href="/app/goals"
+                  className="ml-2 text-xs text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Ver todas <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
+            </div>
+
+            {isGoalsExpanded && (
+              <>
+                {/* Goals Table Header */}
+                <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
+                  <div />
+                  <div>Meta</div>
+                  <div className="text-right">Progresso</div>
+                  <div className="text-right">Mensal</div>
+                  <div className="text-right">Restante</div>
+                </div>
+
+                {/* Goals Rows */}
+                {goals.map((goal) => (
+                  <Link
+                    key={goal.id}
+                    href="/app/goals"
+                    className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-2 items-center border-b hover:bg-muted/20 text-sm cursor-pointer"
+                  >
+                    <div className="flex items-center justify-center">
+                      <span className="text-base">{goal.icon}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{goal.name}</span>
+                      <Progress
+                        value={goal.progress}
+                        className="flex-1 max-w-[80px] h-1.5"
+                        style={{ "--progress-background": goal.color } as React.CSSProperties}
+                      />
+                      <span className="text-xs tabular-nums text-violet-600 dark:text-violet-400">{goal.progress}%</span>
+                    </div>
+                    <div className="text-right text-xs tabular-nums font-medium">
+                      {formatCurrency(goal.monthlyTarget)}
+                    </div>
+                    <div className="text-right text-xs tabular-nums text-muted-foreground">
+                      {goal.monthsRemaining > 0
+                        ? `${goal.monthsRemaining} ${goal.monthsRemaining === 1 ? "mês" : "meses"}`
+                        : "Vencida"}
+                    </div>
+                    <div />
+                  </Link>
+                ))}
+              </>
+            )}
+          </div>
+        )}
 
       </div>
 
@@ -2241,6 +2308,20 @@ export default function BudgetPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Tutorial continue button - show when tutorial is active but dismissed for this page */}
+      {isTutorialActive && !isTutorialVisible && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <Button
+            onClick={() => router.push("/app")}
+            className="shadow-lg gap-2"
+            size="lg"
+          >
+            Continuar Tutorial
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { plans } from "@/db/schema/plans";
 import { users } from "@/db/schema/user";
+import { budgets, budgetMembers } from "@/db/schema";
 import { render } from "@react-email/components";
 import { eq } from "drizzle-orm";
 import { appConfig } from "../config";
@@ -10,6 +11,7 @@ import { enableCredits, onRegisterCredits } from "../credits/config";
 import { type CreditType } from "../credits/credits";
 import { addCredits } from "../credits/recalculate";
 import { addDays } from "date-fns";
+import { capitalizeWords } from "../utils";
 
 const onUserCreate = async (newUser: {
   id: string;
@@ -49,7 +51,33 @@ const onUserCreate = async (newUser: {
     }
   }
 
-  // TIP: Send welcome email to user
+  // Create an empty budget for the new user
+  // The onboarding will fill in categories, accounts, etc.
+  const displayName = newUser.name ? capitalizeWords(newUser.name.split(" ")[0]) : "Meu";
+  const [newBudget] = await db
+    .insert(budgets)
+    .values({
+      name: `Orçamento de ${displayName}`,
+      description: "Orçamento pessoal",
+      currency: "BRL",
+    })
+    .returning();
+
+  // Create owner membership linking user to budget
+  await db.insert(budgetMembers).values({
+    budgetId: newBudget.id,
+    userId: newUser.id,
+    name: displayName,
+    type: "owner",
+  });
+
+  // Update user's lastBudgetId to the new budget
+  await db
+    .update(users)
+    .set({ lastBudgetId: newBudget.id })
+    .where(eq(users.id, newUser.id));
+
+  // Send welcome email to user
 
   const html = await render(
     Welcome({

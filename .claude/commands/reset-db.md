@@ -22,7 +22,7 @@ This command resets your PostgreSQL database by dropping all tables and schemas,
 
 1. Drops all tables in the database
 2. Recreates schema from Drizzle definitions
-3. Seeds default groups (essential, lifestyle, pleasures, investments, goals)
+3. Seeds default groups (essential, lifestyle, personal, investments, goals)
 4. Confirms completion
 
 ## After Reset

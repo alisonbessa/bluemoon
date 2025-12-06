@@ -96,9 +96,9 @@ export default function AccountsPage() {
   const fetchData = useCallback(async () => {
     try {
       const [accountsRes, budgetsRes, membersRes] = await Promise.all([
-        fetch("/api/app/accounts"),
-        fetch("/api/app/budgets"),
-        fetch("/api/app/members"),
+        fetch("/api/app/accounts", { cache: "no-store" }),
+        fetch("/api/app/budgets", { cache: "no-store" }),
+        fetch("/api/app/members", { cache: "no-store" }),
       ]);
 
       if (accountsRes.ok) {

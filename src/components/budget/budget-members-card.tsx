@@ -257,9 +257,10 @@ export function BudgetMembersCard({ budgetId, currentUserId }: BudgetMembersCard
                       >
                         <div>
                           <div className="font-medium text-sm">
-                            {invite.email || invite.name || "Convite por link"}
+                            {invite.name || invite.email || "Convite pendente"}
                           </div>
                           <div className="text-xs text-muted-foreground">
+                            {invite.email && <span>{invite.email} • </span>}
                             Expira{" "}
                             <span className={isExpiringSoon ? "text-amber-600" : ""}>
                               {formatDistanceToNow(expiresAt, {

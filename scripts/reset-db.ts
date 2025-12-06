@@ -39,7 +39,8 @@ async function resetDatabase() {
       throw error;
     }
 
-    // Seed default groups
+    // Seed default groups (global groups only)
+    // Note: Personal groups ("Gastos pessoais - [Nome]") are created dynamically per member during onboarding
     console.log("🌱 Seeding default groups...");
     const defaultGroups = [
       {
@@ -60,15 +61,7 @@ async function resetDatabase() {
         icon: "🎨",
         displayOrder: 2,
       },
-      {
-        id: crypto.randomUUID(),
-        code: "pleasures",
-        name: "Prazeres",
-        description:
-          "Diversão pessoal de cada membro. Cada pessoa tem sua própria subcategoria.",
-        icon: "🎉",
-        displayOrder: 3,
-      },
+      // Note: displayOrder 3 is reserved for personal groups (created per member)
       {
         id: crypto.randomUUID(),
         code: "investments",

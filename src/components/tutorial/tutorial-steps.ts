@@ -19,6 +19,45 @@ export interface TutorialFlow {
 }
 
 export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
+  // Tutorial simplificado para usuarios convidados
+  "invited-user": {
+    id: "invited-user",
+    name: "Bem-vindo ao Orcamento",
+    steps: [
+      {
+        id: "invited-welcome",
+        route: "/app",
+        title: "Bem-vindo!",
+        content: "Você faz parte de um orçamento compartilhado. Conheça o app!",
+        placement: "center",
+      },
+      {
+        id: "invited-nav-planning",
+        route: "/app",
+        title: "Planejamento",
+        content: "Veja como o orçamento está distribuído entre as categorias.",
+        targetSelector: '[data-tutorial="nav-planning"]',
+        placement: "bottom",
+      },
+      {
+        id: "invited-nav-accounts",
+        route: "/app",
+        title: "Contas",
+        content: "Adicione suas contas e registre transações.",
+        targetSelector: '[data-tutorial="nav-accounts"]',
+        placement: "bottom",
+      },
+      {
+        id: "invited-done",
+        route: "/app",
+        title: "Pronto!",
+        content: "Comece a usar o app com os outros membros!",
+        placement: "center",
+      },
+    ],
+  },
+
+  // Tutorial completo para novos usuarios apos onboarding
   "post-onboarding": {
     id: "post-onboarding",
     name: "Primeiros Passos",
@@ -27,35 +66,31 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "accounts-welcome",
         route: "/app/accounts/setup",
-        title: "Bem-vindo às Contas!",
-        content:
-          "Aqui você gerencia todas as suas contas bancárias, cartões de crédito e investimentos. Vamos conhecer a página!",
+        title: "Suas Contas",
+        content: "Gerencie contas bancárias, cartões e investimentos.",
         placement: "center",
       },
       {
         id: "accounts-add-button",
         route: "/app/accounts/setup",
-        title: "Adicionar Nova Conta",
-        content:
-          "Use este botão para adicionar novas contas. Você pode ter quantas contas precisar!",
+        title: "Adicionar Conta",
+        content: "Adicione novas contas aqui.",
         targetSelector: '[data-tutorial="add-account-button"]',
         placement: "bottom",
       },
       {
         id: "accounts-item",
         route: "/app/accounts/setup",
-        title: "Suas Contas",
-        content:
-          "Cada conta aparece aqui. Clique em uma conta para editar o nome, ícone ou saldo inicial.",
+        title: "Editar Conta",
+        content: "Clique para editar nome, ícone ou saldo.",
         targetSelector: '[data-tutorial="account-item"]',
         placement: "bottom",
       },
       {
         id: "accounts-done",
         route: "/app/accounts/setup",
-        title: "Agora é sua vez!",
-        content:
-          "Personalize suas contas: edite nomes, ajuste saldos e adicione novas se precisar. Quando terminar, vá para a página de Rendas no menu.",
+        title: "Sua vez!",
+        content: "Personalize suas contas. Depois vá para Rendas no menu.",
         placement: "center",
       },
 
@@ -63,35 +98,23 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "income-welcome",
         route: "/app/income/setup",
-        title: "Configure suas Rendas",
-        content:
-          "Aqui você adiciona todas as suas fontes de renda: salário, freelas, benefícios, etc. Isso ajuda a calcular seu orçamento mensal.",
+        title: "Suas Rendas",
+        content: "Cadastre salário, freelas, benefícios e outras fontes.",
         placement: "center",
       },
       {
         id: "income-add-button",
         route: "/app/income/setup",
         title: "Adicionar Renda",
-        content:
-          "Clique aqui para adicionar uma nova fonte de renda. Informe o valor, frequência e dia do pagamento.",
+        content: "Informe valor, frequência e dia do pagamento.",
         targetSelector: '[data-tutorial="add-income-button"]',
-        placement: "bottom",
-      },
-      {
-        id: "income-summary",
-        route: "/app/income/setup",
-        title: "Resumo de Rendas",
-        content:
-          "Aqui você vê o total de rendas cadastradas e quanto receberá no mês atual.",
-        targetSelector: '[data-tutorial="income-summary"]',
         placement: "bottom",
       },
       {
         id: "income-done",
         route: "/app/income/setup",
-        title: "Agora é sua vez!",
-        content:
-          "Adicione suas fontes de renda. Quando terminar, vá para a página de Orçamento no menu para distribuir seu dinheiro.",
+        title: "Sua vez!",
+        content: "Adicione suas rendas. Depois vá para Metas.",
         placement: "center",
       },
 
@@ -99,26 +122,23 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "goals-welcome",
         route: "/app/goals",
-        title: "Suas Metas Financeiras",
-        content:
-          "Defina objetivos de curto e longo prazo. O sistema calcula automaticamente quanto você precisa guardar por mês para alcançar cada meta.",
+        title: "Suas Metas",
+        content: "Defina objetivos e veja quanto guardar por mês.",
         placement: "center",
       },
       {
         id: "goals-add",
         route: "/app/goals",
-        title: "Criar uma Meta",
-        content:
-          "Clique aqui para criar sua primeira meta. Defina o valor alvo e a data limite.",
+        title: "Nova Meta",
+        content: "Crie metas com valor alvo e prazo.",
         targetSelector: '[data-tutorial="add-goal-button"]',
         placement: "bottom",
       },
       {
         id: "goals-done",
         route: "/app/goals",
-        title: "Agora é sua vez!",
-        content:
-          "Crie metas para seus objetivos financeiros. Quando terminar, vá para o Planejamento para distribuir seu dinheiro.",
+        title: "Sua vez!",
+        content: "Crie suas metas. Depois vá para Planejamento.",
         placement: "center",
       },
 
@@ -126,17 +146,15 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "budget-welcome",
         route: "/app/budget",
-        title: "Monte seu Orçamento!",
-        content:
-          "Este é o coração do HiveBudget! Aqui você aloca cada real da sua renda em categorias específicas.",
+        title: "Seu Orçamento",
+        content: "Aloque cada real em categorias específicas.",
         placement: "center",
       },
       {
         id: "budget-available",
         route: "/app/budget",
-        title: "Dinheiro Disponível",
-        content:
-          "Este valor mostra quanto dinheiro você ainda precisa alocar. O objetivo é deixar zerado!",
+        title: "Disponível",
+        content: "Quanto ainda precisa alocar. Objetivo: zerar!",
         targetSelector: '[data-tutorial="budget-available"]',
         placement: "bottom",
       },
@@ -144,17 +162,15 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         id: "budget-category",
         route: "/app/budget",
         title: "Categorias",
-        content:
-          "Clique em uma categoria para definir quanto quer alocar. Categorias com data de vencimento aparecem no dashboard.",
+        content: "Clique para definir o valor de cada categoria.",
         targetSelector: '[data-tutorial="category-row"]',
         placement: "right",
       },
       {
         id: "budget-done",
         route: "/app/budget",
-        title: "Agora é sua vez!",
-        content:
-          "Distribua seu dinheiro entre as categorias até zerar o valor disponível. Quando terminar, volte para o Dashboard.",
+        title: "Sua vez!",
+        content: "Distribua seu dinheiro. Depois volte ao Dashboard.",
         placement: "center",
       },
 
@@ -162,17 +178,15 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "nav-welcome",
         route: "/app",
-        title: "Navegação do App",
-        content:
-          "Agora vamos conhecer as principais áreas do HiveBudget. Use o menu para navegar entre as seções.",
+        title: "Navegação",
+        content: "Conheça as áreas principais do app.",
         placement: "center",
       },
       {
         id: "nav-dashboard",
         route: "/app",
         title: "Dashboard",
-        content:
-          "O Dashboard é sua página inicial. Aqui você vê um resumo das suas finanças e próximos compromissos.",
+        content: "Resumo das finanças e próximos compromissos.",
         targetSelector: '[data-tutorial="nav-dashboard"]',
         placement: "bottom",
       },
@@ -180,8 +194,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         id: "nav-goals",
         route: "/app",
         title: "Metas",
-        content:
-          "Acompanhe o progresso das suas metas financeiras. O sistema calcula quanto guardar por mês.",
+        content: "Acompanhe o progresso das suas metas.",
         targetSelector: '[data-tutorial="nav-goals"]',
         placement: "bottom",
       },
@@ -189,8 +202,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         id: "nav-planning",
         route: "/app",
         title: "Planejamento",
-        content:
-          "Acesse o planejamento para alocar dinheiro e acompanhar gastos por categoria.",
+        content: "Aloque dinheiro e acompanhe gastos.",
         targetSelector: '[data-tutorial="nav-planning"]',
         placement: "bottom",
       },
@@ -198,17 +210,15 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         id: "nav-accounts",
         route: "/app",
         title: "Contas",
-        content:
-          "Veja saldos, adicione transações e gerencie todas as suas contas aqui.",
+        content: "Gerencie saldos e transações.",
         targetSelector: '[data-tutorial="nav-accounts"]',
         placement: "bottom",
       },
       {
         id: "tutorial-complete",
         route: "/app",
-        title: "Tutorial Completo! 🎉",
-        content:
-          "Parabéns! Você conheceu as principais funcionalidades do HiveBudget. Agora é hora de organizar suas finanças!",
+        title: "Pronto!",
+        content: "Você conhece o app. Agora organize suas finanças!",
         placement: "center",
       },
     ],
