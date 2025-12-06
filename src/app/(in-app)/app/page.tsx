@@ -131,6 +131,7 @@ function AppHomepage() {
   const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
 
   const hasCompletedOnboarding = !!user?.onboardingCompletedAt;
+  const hasSharedBudgetAccess = !!user?.lastBudgetId; // User joined via invite
 
   const isCurrentMonth = currentYear === today.getFullYear() && currentMonth === today.getMonth() + 1;
 
@@ -167,7 +168,10 @@ function AppHomepage() {
 
         // If we have a budget, fetch allocations and commitments
         if (data.budgets?.length > 0) {
-          const budgetId = data.budgets[0].id;
+          // Use lastBudgetId if available (for shared budgets), otherwise first budget
+          const budgetId = user?.lastBudgetId
+            ? (data.budgets.find((b: Budget) => b.id === user.lastBudgetId)?.id || data.budgets[0].id)
+            : data.budgets[0].id;
 
           // Fetch allocations for the month (includes income data)
           const allocationsRes = await fetchWithAuth(
@@ -216,16 +220,17 @@ function AppHomepage() {
       setCommitmentsLoading(false);
       setGoalsLoading(false);
     }
-  }, [currentYear, currentMonth]);
+  }, [currentYear, currentMonth, user?.lastBudgetId]);
 
   useEffect(() => {
-    if (user && hasCompletedOnboarding) {
+    // Load data if user completed onboarding OR has access to a shared budget
+    if (user && (hasCompletedOnboarding || hasSharedBudgetAccess)) {
       setCommitmentsLoading(true);
       fetchData();
     } else {
       setCommitmentsLoading(false);
     }
-  }, [user, hasCompletedOnboarding, fetchData]);
+  }, [user, hasCompletedOnboarding, hasSharedBudgetAccess, fetchData]);
 
   if (isLoading) {
     return (

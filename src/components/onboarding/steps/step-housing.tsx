@@ -27,20 +27,20 @@ const HOUSING_OPTIONS: {
   {
     value: "mortgage",
     icon: "🏦",
-    label: "Tenho imovel financiado",
-    description: "Pago prestacao do financiamento",
+    label: "Tenho imóvel financiado",
+    description: "Pago prestação do financiamento",
   },
   {
     value: "owned",
     icon: "🏡",
-    label: "Tenho imovel quitado",
-    description: "Pago IPTU e condominio",
+    label: "Tenho imóvel quitado",
+    description: "Pago IPTU e condomínio",
   },
   {
     value: "free",
     icon: "👨‍👩‍👧",
-    label: "Moro com familia/sem custo fixo",
-    description: "Nao tenho custo de moradia",
+    label: "Moro com família/sem custo fixo",
+    description: "Não tenho custo de moradia",
   },
 ];
 
@@ -59,7 +59,7 @@ export function StepHousing({
             Conte-nos sobre sua moradia
           </h2>
           <p className="text-muted-foreground">
-            Isso nos ajuda a criar as categorias certas para voce
+            Isso nos ajuda a criar as categorias certas para você
           </p>
         </div>
 

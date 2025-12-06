@@ -33,26 +33,26 @@ const ACCOUNT_OPTIONS: {
   {
     value: "credit_card",
     icon: "💳",
-    label: "Cartao de credito",
+    label: "Cartão de crédito",
     description: "Visa, Mastercard, etc",
   },
   {
     value: "vr",
     icon: "🍽️",
-    label: "Vale Refeicao (VR)",
+    label: "Vale Refeição (VR)",
     description: "Para restaurantes",
   },
   {
     value: "va",
     icon: "🛒",
-    label: "Vale Alimentacao (VA)",
+    label: "Vale Alimentação (VA)",
     description: "Para supermercados",
   },
   {
     value: "cash",
     icon: "💵",
-    label: "Dinheiro em especie",
-    description: "Dinheiro fisico",
+    label: "Dinheiro em espécie",
+    description: "Dinheiro físico",
   },
   {
     value: "investment",
@@ -74,10 +74,10 @@ export function StepAccounts({
         <div className="text-center mb-8">
           <div className="text-4xl mb-4">💳</div>
           <h2 className="text-2xl font-bold mb-2">
-            Quais contas e cartoes voce usa?
+            Quais contas e cartões você usa?
           </h2>
           <p className="text-muted-foreground">
-            Vamos criar essas contas para voce. Os valores voce define depois.
+            Vamos criar essas contas para você. Os valores você define depois.
           </p>
         </div>
 
