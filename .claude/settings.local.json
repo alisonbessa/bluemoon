@@ -25,7 +25,9 @@
       "Bash(npx tsx scripts/add-income-source-column.ts)",
       "Bash(git push:*)",
       "Bash(grep:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(git pull:*)",
+      "Bash(git diff:*)"
     ],
     "deny": [],
     "ask": []
