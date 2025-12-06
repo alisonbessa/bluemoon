@@ -94,7 +94,6 @@ const STEP_ORDER: OnboardingStep[] = [
   "accounts",
   "expenses",
   "debt",
-  "goals",
   "summary",
 ];
 

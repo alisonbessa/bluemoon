@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { financialAccounts, budgetMembers } from "@/db/schema";
+import { financialAccounts, budgetMembers, incomeSources } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -130,6 +130,27 @@ export const POST = withAuthRequired(async (req, context) => {
       displayOrder: existingAccounts.length,
     })
     .returning();
+
+  // Auto-create income source for benefit accounts with monthlyDeposit
+  if (accountData.type === "benefit" && accountData.monthlyDeposit && accountData.monthlyDeposit > 0) {
+    // Get display order for income sources
+    const existingIncomeSources = await db
+      .select()
+      .from(incomeSources)
+      .where(eq(incomeSources.budgetId, budgetId));
+
+    await db.insert(incomeSources).values({
+      budgetId,
+      accountId: newAccount.id,
+      memberId: accountData.ownerId || undefined,
+      name: capitalizeWords(accountData.name),
+      type: "benefit",
+      amount: accountData.monthlyDeposit,
+      frequency: "monthly",
+      dayOfMonth: accountData.depositDay || undefined,
+      displayOrder: existingIncomeSources.length,
+    });
+  }
 
   return NextResponse.json({ account: newAccount }, { status: 201 });
 });

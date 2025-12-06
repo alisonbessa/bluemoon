@@ -16,7 +16,6 @@ import {
   StepAccounts,
   StepExpenses,
   StepDebt,
-  StepGoals,
   StepSummary,
 } from "./steps";
 
@@ -175,18 +174,6 @@ export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
           <StepDebt
             debts={data.debts}
             onToggleDebt={(value) => toggleArrayItem("debts", value)}
-            onNext={goToNext}
-            onBack={goToPrevious}
-          />
-        );
-
-      case "goals":
-        return (
-          <StepGoals
-            goals={data.goals}
-            customGoal={data.customGoal}
-            onToggleGoal={(value) => toggleArrayItem("goals", value)}
-            onCustomGoalChange={(value) => updateData("customGoal", value)}
             onNext={goToNext}
             onBack={goToPrevious}
           />
