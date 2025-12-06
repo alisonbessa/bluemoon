@@ -19,6 +19,7 @@ import {
   Loader2
 } from "lucide-react";
 import { toast } from "sonner";
+import { mutate } from "swr";
 
 interface InviteAcceptClientProps {
   token: string;
@@ -86,6 +87,11 @@ export function InviteAcceptClient({
       if (data.startTutorial) {
         localStorage.setItem("hivebudget_pending_tutorial", data.startTutorial);
       }
+
+      // Invalidate user cache so the dashboard sees updated onboardingCompletedAt
+      await mutate("/api/app/me");
+      // Also invalidate budgets cache so the new budget appears
+      await mutate("/api/app/budgets");
 
       router.push("/app");
     } catch (err) {
