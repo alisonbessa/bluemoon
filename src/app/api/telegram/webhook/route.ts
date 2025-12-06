@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import type { TelegramUpdate } from "@/lib/telegram/types";
 import { handleMessage, handleCallbackQuery } from "@/lib/telegram/handlers";
 
-// Verify the request is from Telegram (optional but recommended)
+// Verify the request is from Telegram (required for security)
 function verifyTelegramRequest(request: NextRequest): boolean {
-  // You can add secret token verification here
-  // The secret is set when configuring the webhook
   const secretToken = request.headers.get("x-telegram-bot-api-secret-token");
   const expectedToken = process.env.TELEGRAM_WEBHOOK_SECRET;
 
-  // If no secret is configured, allow all requests (not recommended for production)
+  // SECURITY: Webhook secret is required in production
   if (!expectedToken) {
-    return true;
+    console.error("SECURITY: TELEGRAM_WEBHOOK_SECRET not configured");
+    return false;
   }
 
   return secretToken === expectedToken;
@@ -27,8 +26,10 @@ export async function POST(request: NextRequest) {
 
     const update: TelegramUpdate = await request.json();
 
-    // Log for debugging (remove in production)
-    console.log("[Telegram Webhook] Received update:", JSON.stringify(update, null, 2));
+    // Log update ID only (not full payload) for debugging
+    if (process.env.NODE_ENV === "development") {
+      console.log("[Telegram Webhook] Received update ID:", update.update_id);
+    }
 
     // Handle different update types
     if (update.message) {

@@ -147,10 +147,9 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const transactionDate = typeof date === "string" ? new Date(date) : date;
 
-  // Handle installments
+  // Handle installments with batch insert for better performance
   if (isInstallment && totalInstallments && totalInstallments > 1) {
     const installmentAmount = Math.round(amount / totalInstallments);
-    const createdTransactions = [];
 
     // Create parent transaction (first installment)
     const [parentTransaction] = await db
@@ -173,36 +172,35 @@ export const POST = withAuthRequired(async (req, context) => {
       })
       .returning();
 
-    createdTransactions.push(parentTransaction);
-
-    // Create remaining installments
-    for (let i = 2; i <= totalInstallments; i++) {
+    // PERFORMANCE: Batch insert remaining installments instead of N individual inserts
+    const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => {
       const installmentDate = new Date(transactionDate);
-      installmentDate.setMonth(installmentDate.getMonth() + (i - 1));
+      installmentDate.setMonth(installmentDate.getMonth() + (i + 1));
 
-      const [installment] = await db
-        .insert(transactions)
-        .values({
-          budgetId,
-          accountId,
-          categoryId: type === "expense" ? categoryId : undefined,
-          incomeSourceId: type === "income" ? incomeSourceId : undefined,
-          memberId,
-          type,
-          amount: installmentAmount,
-          description,
-          notes,
-          date: installmentDate,
-          isInstallment: true,
-          installmentNumber: i,
-          totalInstallments,
-          parentTransactionId: parentTransaction.id,
-          source: "web",
-        })
-        .returning();
+      return {
+        budgetId,
+        accountId,
+        categoryId: type === "expense" ? categoryId : undefined,
+        incomeSourceId: type === "income" ? incomeSourceId : undefined,
+        memberId,
+        type,
+        amount: installmentAmount,
+        description,
+        notes,
+        date: installmentDate,
+        isInstallment: true,
+        installmentNumber: i + 2,
+        totalInstallments,
+        parentTransactionId: parentTransaction.id,
+        source: "web" as const,
+      };
+    });
 
-      createdTransactions.push(installment);
-    }
+    const remainingInstallments = installmentValues.length > 0
+      ? await db.insert(transactions).values(installmentValues).returning()
+      : [];
+
+    const createdTransactions = [parentTransaction, ...remainingInstallments];
 
     // Update account balance
     await db

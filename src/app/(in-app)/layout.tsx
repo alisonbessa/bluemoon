@@ -1,11 +1,17 @@
 "use client";
 
 import { AppHeader } from "@/components/layout/app-header";
-import { OnboardingModal } from "@/components/onboarding";
 import { TutorialProvider, TutorialOverlay } from "@/components/tutorial";
 import React, { Suspense, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import useUser from "@/lib/users/useUser";
+import dynamic from "next/dynamic";
+
+// PERFORMANCE: Lazy load OnboardingModal since it's only shown once per user
+const OnboardingModal = dynamic(
+  () => import("@/components/onboarding").then((mod) => mod.OnboardingModal),
+  { ssr: false }
+);
 
 function DashboardSkeleton() {
   return (

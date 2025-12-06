@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FaSpinner } from "react-icons/fa";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { setPasswordSchema, type SetPasswordInput } from "@/lib/validations/auth.schema";
 import { appConfig } from "@/lib/config";
@@ -134,7 +134,7 @@ export default function SetPasswordPage() {
         </div>
 
         <Button type="submit" disabled={isLoading} className="w-full py-6">
-          {isLoading && <FaSpinner className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Create Account
         </Button>
       </form>

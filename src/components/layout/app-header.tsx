@@ -7,7 +7,8 @@ import { UserButton } from "@/components/layout/user-button";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboardIcon,
-  LayoutGridIcon,
+  TargetIcon,
+  ListIcon,
   ReceiptIcon,
   CreditCardIcon,
   SettingsIcon,
@@ -21,9 +22,15 @@ const navItems = [
     tutorialId: "nav-dashboard",
   },
   {
-    href: "/app/planning",
+    href: "/app/goals",
+    label: "Metas",
+    icon: TargetIcon,
+    tutorialId: "nav-goals",
+  },
+  {
+    href: "/app/budget",
     label: "Planejamento",
-    icon: LayoutGridIcon,
+    icon: ListIcon,
     tutorialId: "nav-planning",
   },
   {

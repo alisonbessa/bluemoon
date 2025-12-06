@@ -62,6 +62,14 @@ interface Account {
   icon?: string | null;
 }
 
+interface IncomeSource {
+  id: string;
+  name: string;
+  type: string;
+  amount: number;
+  frequency: string;
+}
+
 interface Transaction {
   id: string;
   date: string;
@@ -128,6 +136,7 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -147,16 +156,19 @@ export default function TransactionsPage() {
     description: "",
     accountId: "",
     categoryId: "",
+    incomeSourceId: "",
+    toAccountId: "",
     date: format(new Date(), "yyyy-MM-dd"),
   });
 
   const fetchData = useCallback(async () => {
     try {
-      const [transactionsRes, categoriesRes, accountsRes, budgetsRes] = await Promise.all([
+      const [transactionsRes, categoriesRes, accountsRes, budgetsRes, incomeSourcesRes] = await Promise.all([
         fetch("/api/app/transactions?limit=200"),
         fetch("/api/app/categories"),
         fetch("/api/app/accounts"),
         fetch("/api/app/budgets"),
+        fetch("/api/app/income-sources"),
       ]);
 
       if (transactionsRes.ok) {
@@ -182,6 +194,11 @@ export default function TransactionsPage() {
         const data = await budgetsRes.json();
         setBudgets(data.budgets || []);
       }
+
+      if (incomeSourcesRes.ok) {
+        const data = await incomeSourcesRes.json();
+        setIncomeSources(data.incomeSources || []);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Erro ao carregar dados");
@@ -201,6 +218,8 @@ export default function TransactionsPage() {
       description: "",
       accountId: accounts[0]?.id || "",
       categoryId: "",
+      incomeSourceId: "",
+      toAccountId: "",
       date: format(new Date(), "yyyy-MM-dd"),
     });
     setEditingTransaction(null);
@@ -214,6 +233,8 @@ export default function TransactionsPage() {
       description: transaction.description || "",
       accountId: transaction.accountId,
       categoryId: transaction.categoryId || "",
+      incomeSourceId: (transaction as Transaction & { incomeSourceId?: string }).incomeSourceId || "",
+      toAccountId: (transaction as Transaction & { toAccountId?: string }).toAccountId || "",
       date: format(new Date(transaction.date), "yyyy-MM-dd"),
     });
     setEditingTransaction(transaction);
@@ -223,6 +244,11 @@ export default function TransactionsPage() {
   const handleSubmit = async () => {
     if (!formData.amount || !formData.accountId) {
       toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    if (formData.type === "transfer" && !formData.toAccountId) {
+      toast.error("Selecione a conta de destino para transferências");
       return;
     }
 
@@ -239,7 +265,9 @@ export default function TransactionsPage() {
         amount: parseCurrency(formData.amount),
         description: formData.description || undefined,
         accountId: formData.accountId,
-        categoryId: formData.categoryId || undefined,
+        categoryId: formData.type === "expense" ? (formData.categoryId || undefined) : undefined,
+        incomeSourceId: formData.type === "income" ? (formData.incomeSourceId || undefined) : undefined,
+        toAccountId: formData.type === "transfer" ? (formData.toAccountId || undefined) : undefined,
         date: new Date(formData.date).toISOString(),
       };
 
@@ -562,7 +590,7 @@ export default function TransactionsPage() {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Tipo</Label>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {[
                   { value: "expense", label: "Despesa", color: "text-red-500" },
                   { value: "income", label: "Receita", color: "text-green-500" },
@@ -573,6 +601,7 @@ export default function TransactionsPage() {
                     type="button"
                     variant={formData.type === type.value ? "default" : "outline"}
                     size="sm"
+                    className="w-full"
                     onClick={() => setFormData({ ...formData, type: type.value as "income" | "expense" | "transfer" })}
                   >
                     {type.label}
@@ -621,26 +650,51 @@ export default function TransactionsPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="account">Conta</Label>
-              <Select
-                value={formData.accountId}
-                onValueChange={(value) => setFormData({ ...formData, accountId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma conta" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.icon || "🏦"} {account.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className={formData.type === "transfer" ? "grid grid-cols-2 gap-4" : ""}>
+              <div className="space-y-2 w-full">
+                <Label htmlFor="account">{formData.type === "transfer" ? "Origem" : "Conta"}</Label>
+                <Select
+                  value={formData.accountId}
+                  onValueChange={(value) => setFormData({ ...formData, accountId: value })}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione uma conta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.icon || "🏦"} {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formData.type === "transfer" && (
+                <div className="space-y-2 w-full">
+                  <Label htmlFor="toAccount">Destino</Label>
+                  <Select
+                    value={formData.toAccountId}
+                    onValueChange={(value) => setFormData({ ...formData, toAccountId: value })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione a conta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts
+                        .filter((account) => account.id !== formData.accountId)
+                        .map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.icon || "🏦"} {account.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
-            {formData.type !== "transfer" && (
+            {formData.type === "expense" && (
               <div className="space-y-2">
                 <Label htmlFor="category">Categoria</Label>
                 <Select
@@ -661,6 +715,27 @@ export default function TransactionsPage() {
               </div>
             )}
 
+            {formData.type === "income" && (
+              <div className="space-y-2">
+                <Label htmlFor="incomeSource">Fonte de Renda</Label>
+                <Select
+                  value={formData.incomeSourceId}
+                  onValueChange={(value) => setFormData({ ...formData, incomeSourceId: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma fonte de renda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {incomeSources.map((source) => (
+                      <SelectItem key={source.id} value={source.id}>
+                        {source.type === "salary" ? "💼" : source.type === "benefit" ? "🎁" : source.type === "freelance" ? "💻" : source.type === "rental" ? "🏠" : source.type === "investment" ? "📈" : "📦"} {source.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="date">Data</Label>
               <Input
@@ -672,15 +747,16 @@ export default function TransactionsPage() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => setIsFormOpen(false)}
               disabled={isSubmitting}
+              className="w-1/4"
             >
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="w-1/4">
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editingTransaction ? "Salvar" : "Criar"}
             </Button>

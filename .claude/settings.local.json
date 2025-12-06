@@ -22,7 +22,8 @@
       "Bash(pkill:*)",
       "Bash(pnpm tsc:*)",
       "Bash(npx drizzle-kit generate:*)",
-      "Bash(npx tsx scripts/add-income-source-column.ts)"
+      "Bash(npx tsx scripts/add-income-source-column.ts)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

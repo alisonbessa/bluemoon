@@ -66,6 +66,10 @@ export const transactions = pgTable("transactions", {
   index("idx_transactions_category_id").on(table.categoryId),
   index("idx_transactions_date").on(table.date),
   index("idx_transactions_income_source_id").on(table.incomeSourceId),
+  // Composite indexes for common query patterns (performance optimization)
+  index("idx_transactions_budget_date").on(table.budgetId, table.date),
+  index("idx_transactions_budget_type_date").on(table.budgetId, table.type, table.date),
+  index("idx_transactions_budget_status").on(table.budgetId, table.status),
 ]);
 
 export const transactionsRelations = relations(transactions, ({ one, many }) => ({

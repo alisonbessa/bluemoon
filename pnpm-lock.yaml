@@ -138,6 +138,9 @@ importers:
       bcryptjs:
         specifier: ^3.0.2
         version: 3.0.2
+      canvas-confetti:
+        specifier: ^1.9.4
+        version: 1.9.4
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -249,9 +252,6 @@ importers:
       react-icon-cloud:
         specifier: ^4.1.7
         version: 4.1.7(react@19.2.0)
-      react-icons:
-        specifier: ^5.5.0
-        version: 5.5.0(react@19.2.0)
       react-resizable-panels:
         specifier: ^3.0.3
         version: 3.0.3(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -307,6 +307,9 @@ importers:
       '@types/bcryptjs':
         specifier: ^3.0.0
         version: 3.0.0
+      '@types/canvas-confetti':
+        specifier: ^1.9.0
+        version: 1.9.0
       '@types/js-cookie':
         specifier: ^3.0.6
         version: 3.0.6
@@ -2917,6 +2920,9 @@ packages:
     resolution: {integrity: sha512-WRZOuCuaz8UcZZE4R5HXTco2goQSI2XxjGY3hbM/xDvwmqFWd4ivooImsMx65OKM6CtNKbnZ5YL+YwAwK7c1dg==}
     deprecated: This is a stub types definition. bcryptjs provides its own type definitions, so you do not need this installed.
 
+  '@types/canvas-confetti@1.9.0':
+    resolution: {integrity: sha512-aBGj/dULrimR1XDZLtG9JwxX1b4HPRF6CX9Yfwh3NvstZEm1ZL7RBnel4keCPSqs1ANRu1u2Aoz9R+VmtjYuTg==}
+
   '@types/connect@3.4.36':
     resolution: {integrity: sha512-P63Zd/JUGq+PdrM1lv0Wv5SBYeA2+CORvbrXbngriYY0jzLUWfQMQQxOhjONEz/wlHOAxOdY7CY65rgQdTjq2w==}
 
@@ -3507,6 +3513,9 @@ packages:
 
   canonicalize@1.0.8:
     resolution: {integrity: sha512-0CNTVCLZggSh7bc5VkX5WWPWO+cyZbNd07IHIsSXLia/eAq+r836hgk+8BKoEh7949Mda87VUOitx5OddVj64A==}
+
+  canvas-confetti@1.9.4:
+    resolution: {integrity: sha512-yxQbJkAVrFXWNbTUjPqjF7G+g6pDotOUHGbkZq2NELZUMDpiJ85rIEazVb8GTaAptNW2miJAXbs1BtioA251Pw==}
 
   ccount@2.0.1:
     resolution: {integrity: sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg==}
@@ -6190,11 +6199,6 @@ packages:
     resolution: {integrity: sha512-E5k93BlO7dNLmFZPd0JlJ1dO6pUI86IarVEXo3bkQg6oFqqwKv3XFkEKRl2iaxB9K2uOvOvoCJu2kjkoQWI6Mg==}
     peerDependencies:
       react: '>=16'
-
-  react-icons@5.5.0:
-    resolution: {integrity: sha512-MEFcXdkP3dLo8uumGI5xN3lDFNsRtrjbOEKDLD7yv76v4wpnEq2Lt2qeHaQOr34I/wPN3s3+N08WkQ+CW37Xiw==}
-    peerDependencies:
-      react: '*'
 
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
@@ -9716,6 +9720,8 @@ snapshots:
     dependencies:
       bcryptjs: 3.0.2
 
+  '@types/canvas-confetti@1.9.0': {}
+
   '@types/connect@3.4.36':
     dependencies:
       '@types/node': 20.17.30
@@ -10365,6 +10371,8 @@ snapshots:
   caniuse-lite@1.0.30001751: {}
 
   canonicalize@1.0.8: {}
+
+  canvas-confetti@1.9.4: {}
 
   ccount@2.0.1: {}
 
@@ -13491,10 +13499,6 @@ snapshots:
   react-icon-cloud@4.1.7(react@19.2.0):
     dependencies:
       '@csstools/convert-colors': 2.0.0
-      react: 19.2.0
-
-  react-icons@5.5.0(react@19.2.0):
-    dependencies:
       react: 19.2.0
 
   react-is@16.13.1: {}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -26,7 +34,11 @@ import {
   Pencil,
   Trash2,
   Copy,
+  Target,
+  ArrowRight,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import Link from "next/link";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -82,9 +94,30 @@ interface Budget {
 interface IncomeSource {
   id: string;
   name: string;
-  type: string;
+  type: "salary" | "benefit" | "freelance" | "rental" | "investment" | "other";
   amount: number;
+  frequency: "monthly" | "biweekly" | "weekly";
+  dayOfMonth?: number | null;
   memberId: string | null;
+  member?: { id: string; name: string; color?: string | null } | null;
+  account?: { id: string; name: string; icon?: string | null } | null;
+}
+
+interface Account {
+  id: string;
+  name: string;
+  type: string;
+  icon?: string | null;
+}
+
+interface IncomeSourceFormData {
+  name: string;
+  type: "salary" | "benefit" | "freelance" | "rental" | "investment" | "other";
+  amount: number;
+  frequency: "monthly" | "biweekly" | "weekly";
+  dayOfMonth?: number;
+  memberId?: string;
+  accountId?: string;
 }
 
 interface Member {
@@ -111,6 +144,19 @@ interface IncomeData {
   totals: { planned: number; received: number };
 }
 
+interface Goal {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  targetAmount: number;
+  currentAmount: number;
+  progress: number;
+  monthlyTarget: number;
+  monthsRemaining: number;
+  isCompleted: boolean;
+}
+
 type FilterType = "all" | "underfunded" | "overfunded" | "money_available";
 
 function formatCurrency(cents: number): string {
@@ -127,6 +173,31 @@ const monthNamesFull = [
   "Jul", "Ago", "Set", "Out", "Nov", "Dez",
 ];
 
+const incomeTypeConfig: Record<string, { label: string; icon: string }> = {
+  salary: { label: "Salário", icon: "💼" },
+  benefit: { label: "Benefício", icon: "🎁" },
+  freelance: { label: "Freelance", icon: "💻" },
+  rental: { label: "Aluguel", icon: "🏠" },
+  investment: { label: "Investimento", icon: "📈" },
+  other: { label: "Outros", icon: "📦" },
+};
+
+const frequencyLabels: Record<string, string> = {
+  monthly: "Mensal",
+  biweekly: "Quinzenal",
+  weekly: "Semanal",
+};
+
+// Account types allowed for each income type
+const ALLOWED_ACCOUNT_TYPES_BY_INCOME: Record<string, string[]> = {
+  salary: ["checking", "savings"],
+  freelance: ["checking", "savings"],
+  rental: ["checking", "savings"],
+  investment: ["checking", "savings", "investment"],
+  benefit: ["benefit"],
+  other: ["checking", "savings", "credit_card", "cash", "investment", "benefit"],
+};
+
 export default function BudgetPage() {
   const router = useRouter();
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -139,6 +210,8 @@ export default function BudgetPage() {
   const [expandedIncomeMembers, setExpandedIncomeMembers] = useState<string[]>([]);
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(true);
   const [isExpensesExpanded, setIsExpensesExpanded] = useState(true);
+  const [isGoalsExpanded, setIsGoalsExpanded] = useState(true);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [editingCategory, setEditingCategory] = useState<{
@@ -181,8 +254,9 @@ export default function BudgetPage() {
   // Copy budget state
   const [isCopyingBudget, setIsCopyingBudget] = useState(false);
   const [showCopyConfirm, setShowCopyConfirm] = useState(false);
+  const [showCopyHintModal, setShowCopyHintModal] = useState(false);
 
-  // Edit income source state
+  // Edit income allocation (monthly value)
   const [editingIncome, setEditingIncome] = useState<{
     incomeSource: IncomeSource;
     planned: number;
@@ -190,13 +264,45 @@ export default function BudgetPage() {
   } | null>(null);
   const [editIncomeValue, setEditIncomeValue] = useState("");
 
+  // Income source CRUD
+  const [members, setMembers] = useState<Member[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [isIncomeSourceFormOpen, setIsIncomeSourceFormOpen] = useState(false);
+  const [editingIncomeSource, setEditingIncomeSource] = useState<IncomeSource | null>(null);
+  const [deletingIncomeSource, setDeletingIncomeSource] = useState<IncomeSource | null>(null);
+  const [isSubmittingIncomeSource, setIsSubmittingIncomeSource] = useState(false);
+  const [incomeSourceFormData, setIncomeSourceFormData] = useState<IncomeSourceFormData>({
+    name: "",
+    type: "salary",
+    amount: 0,
+    frequency: "monthly",
+    dayOfMonth: undefined,
+    memberId: undefined,
+    accountId: undefined,
+  });
+  const [incomeSourceFormErrors, setIncomeSourceFormErrors] = useState<Record<string, boolean>>({});
+
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
 
   const fetchData = useCallback(async () => {
     try {
-      const budgetsRes = await fetch("/api/app/budgets");
+      const [budgetsRes, membersRes, accountsRes] = await Promise.all([
+        fetch("/api/app/budgets"),
+        fetch("/api/app/members"),
+        fetch("/api/app/accounts"),
+      ]);
+
+      if (membersRes.ok) {
+        const data = await membersRes.json();
+        setMembers(data.members || []);
+      }
+
+      if (accountsRes.ok) {
+        const data = await accountsRes.json();
+        setAccounts(data.accounts || []);
+      }
 
       if (budgetsRes.ok) {
         const data = await budgetsRes.json();
@@ -224,6 +330,13 @@ export default function BudgetPage() {
               setExpandedIncomeMembers(memberIds);
             }
           }
+
+          // Fetch goals
+          const goalsRes = await fetch(`/api/app/goals?budgetId=${data.budgets[0].id}`);
+          if (goalsRes.ok) {
+            const goalsData = await goalsRes.json();
+            setGoals(goalsData.goals?.filter((g: Goal) => !g.isCompleted) || []);
+          }
         }
       }
     } catch (error) {
@@ -237,6 +350,22 @@ export default function BudgetPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Show copy hint modal when no allocations exist for current month
+  useEffect(() => {
+    if (isLoading || groupsData.length === 0) return;
+
+    const hasAllocations = totals.allocated > 0;
+    if (hasAllocations) return;
+
+    // Check if user dismissed this hint for this specific month
+    const dismissedKey = `copy-hint-dismissed-${currentYear}-${currentMonth}`;
+    const wasDismissed = localStorage.getItem(dismissedKey);
+
+    if (!wasDismissed) {
+      setShowCopyHintModal(true);
+    }
+  }, [isLoading, groupsData.length, totals.allocated, currentYear, currentMonth]);
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups((prev) =>
@@ -460,12 +589,144 @@ export default function BudgetPage() {
     }
   };
 
+  // Income source CRUD functions
+  const filteredAccounts = useMemo(() => {
+    const allowedTypes = ALLOWED_ACCOUNT_TYPES_BY_INCOME[incomeSourceFormData.type] || [];
+    return accounts.filter((account) => allowedTypes.includes(account.type));
+  }, [accounts, incomeSourceFormData.type]);
+
+  const openCreateIncomeSourceForm = (preselectedMemberId?: string) => {
+    setIncomeSourceFormData({
+      name: "",
+      type: "salary",
+      amount: 0,
+      frequency: "monthly",
+      dayOfMonth: undefined,
+      memberId: preselectedMemberId || members[0]?.id,
+      accountId: undefined,
+    });
+    setEditingIncomeSource(null);
+    setIncomeSourceFormErrors({});
+    setIsIncomeSourceFormOpen(true);
+  };
+
+  const openEditIncomeSourceForm = (source: IncomeSource) => {
+    setIncomeSourceFormData({
+      name: source.name,
+      type: source.type,
+      amount: source.amount,
+      frequency: source.frequency,
+      dayOfMonth: source.dayOfMonth || undefined,
+      memberId: source.member?.id || source.memberId || undefined,
+      accountId: source.account?.id,
+    });
+    setEditingIncomeSource(source);
+    setIncomeSourceFormErrors({});
+    setIsIncomeSourceFormOpen(true);
+  };
+
+  const validateIncomeSourceForm = (): boolean => {
+    const newErrors: Record<string, boolean> = {};
+
+    if (!incomeSourceFormData.name.trim()) {
+      newErrors.name = true;
+    }
+
+    if (incomeSourceFormData.amount <= 0) {
+      newErrors.amount = true;
+    }
+
+    setIncomeSourceFormErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmitIncomeSource = async () => {
+    if (!validateIncomeSourceForm()) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    if (budgets.length === 0) {
+      toast.error("Nenhum orçamento encontrado");
+      return;
+    }
+
+    setIsSubmittingIncomeSource(true);
+    try {
+      const payload = {
+        ...incomeSourceFormData,
+        budgetId: budgets[0].id,
+      };
+
+      if (editingIncomeSource) {
+        const response = await fetch(`/api/app/income-sources/${editingIncomeSource.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error("Erro ao atualizar fonte de renda");
+        }
+
+        toast.success("Fonte de renda atualizada!");
+      } else {
+        const response = await fetch("/api/app/income-sources", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error("Erro ao criar fonte de renda");
+        }
+
+        toast.success("Fonte de renda adicionada!");
+      }
+
+      setIsIncomeSourceFormOpen(false);
+      setEditingIncomeSource(null);
+      setIncomeSourceFormErrors({});
+      fetchData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar");
+    } finally {
+      setIsSubmittingIncomeSource(false);
+    }
+  };
+
+  const handleDeleteIncomeSource = async () => {
+    if (!deletingIncomeSource) return;
+
+    try {
+      const response = await fetch(`/api/app/income-sources/${deletingIncomeSource.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao excluir fonte de renda");
+      }
+
+      toast.success("Fonte de renda removida!");
+      setDeletingIncomeSource(null);
+      fetchData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao excluir");
+    }
+  };
+
   // Get previous month
   const getPreviousMonth = () => {
     if (currentMonth === 1) {
       return { year: currentYear - 1, month: 12 };
     }
     return { year: currentYear, month: currentMonth - 1 };
+  };
+
+  const dismissCopyHintModal = () => {
+    const dismissedKey = `copy-hint-dismissed-${currentYear}-${currentMonth}`;
+    localStorage.setItem(dismissedKey, "true");
+    setShowCopyHintModal(false);
   };
 
   const handleCopyFromPreviousMonth = async (overwrite: boolean = false) => {
@@ -698,49 +959,100 @@ export default function BudgetPage() {
           <div className="border-b-4 border-green-200 dark:border-green-900">
             {/* Income Section Header - Clickable Toggle */}
             <div
-              className="px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-green-200/50 dark:hover:bg-green-950/70 transition-colors"
+              className="group px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-green-200/50 dark:hover:bg-green-950/70 transition-colors"
               onClick={() => setIsIncomeExpanded(!isIncomeExpanded)}
             >
               <div className="flex items-center gap-2">
                 <ChevronDown className={cn("h-4 w-4 text-green-700 dark:text-green-300 transition-transform", !isIncomeExpanded && "-rotate-90")} />
                 <span className="text-lg">💰</span>
                 <span className="font-bold text-sm text-green-800 dark:text-green-200">RECEITAS</span>
+                <button
+                  className="ml-1 p-0.5 rounded hover:bg-green-200 dark:hover:bg-green-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openCreateIncomeSourceForm();
+                  }}
+                  title="Adicionar fonte de renda"
+                >
+                  <Plus className="h-3.5 w-3.5 text-green-700 dark:text-green-300" />
+                </button>
               </div>
-              <div className="text-sm font-bold text-green-800 dark:text-green-200">
-                {formatCurrency(incomeData.totals.planned)}
+              <div className="flex items-center gap-4 text-sm font-bold text-green-800 dark:text-green-200">
+                <span className="text-xs text-muted-foreground font-normal">Planejado:</span>
+                <span>{formatCurrency(incomeData.totals.planned)}</span>
+                <span className="text-xs text-muted-foreground font-normal">Recebido:</span>
+                <span className="text-green-600 dark:text-green-400">{formatCurrency(incomeData.totals.received)}</span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  {incomeData.totals.received < incomeData.totals.planned ? "A Receber:" : "Extra:"}
+                </span>
+                <span className={incomeData.totals.received < incomeData.totals.planned ? "text-red-600" : "text-green-600"}>
+                  {formatCurrency(Math.abs(incomeData.totals.planned - incomeData.totals.received))}
+                </span>
               </div>
             </div>
 
             {isIncomeExpanded && (
               <>
                 {/* Income Table Header */}
-                <div className="grid grid-cols-[24px_1fr_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
+                <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
                   <div />
                   <div>Fonte</div>
                   <div className="text-right">Planejado</div>
+                  <div className="text-right">Recebido</div>
+                  <div className="text-right">A Receber</div>
                 </div>
 
                 {/* If only one member (or no member), show sources directly */}
                 {incomeData.byMember.length === 1 ? (
               incomeData.byMember[0].sources.map((item) => {
                 const isEdited = item.planned !== item.defaultAmount;
+                const available = item.planned - item.received;
                 return (
                   <div
                     key={item.incomeSource.id}
-                    className="grid grid-cols-[24px_1fr_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm cursor-pointer"
+                    className="group/row grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm cursor-pointer"
                     onClick={() => openEditIncomeModal(item)}
                   >
                     <div />
                     <div className="flex items-center gap-1.5 pl-5">
-                      <span>{item.incomeSource.type === "salary" ? "💼" : item.incomeSource.type === "benefit" ? "🎁" : item.incomeSource.type === "freelance" ? "💻" : "💵"}</span>
+                      <span>{incomeTypeConfig[item.incomeSource.type]?.icon || "💵"}</span>
                       <span>{item.incomeSource.name}</span>
+                      <span className="text-[10px] text-muted-foreground bg-muted px-1 rounded">
+                        {frequencyLabels[item.incomeSource.frequency] || "Mensal"}
+                      </span>
                       {isEdited && (
                         <span className="text-[10px] text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1 rounded">
                           editado
                         </span>
                       )}
+                      <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditIncomeSourceForm(item.incomeSource as IncomeSource);
+                          }}
+                          className="p-1 rounded hover:bg-green-200 dark:hover:bg-green-800"
+                          title="Editar fonte de renda"
+                        >
+                          <Pencil className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeletingIncomeSource(item.incomeSource as IncomeSource);
+                          }}
+                          className="p-1 rounded hover:bg-destructive/10"
+                          title="Excluir fonte de renda"
+                        >
+                          <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                        </button>
+                      </div>
                     </div>
                     <div className="text-right text-xs tabular-nums">{formatCurrency(item.planned)}</div>
+                    <div className="text-right text-xs tabular-nums text-green-600 dark:text-green-400">{formatCurrency(item.received)}</div>
+                    <div className={cn("text-right text-xs tabular-nums", item.received < item.planned ? "text-red-600" : "text-green-600")}>
+                      {formatCurrency(Math.abs(available))}
+                    </div>
                   </div>
                 );
               })
@@ -749,12 +1061,13 @@ export default function BudgetPage() {
               incomeData.byMember.map((memberGroup) => {
                 const memberId = memberGroup.member?.id || "no-member";
                 const isExpanded = expandedIncomeMembers.includes(memberId);
+                const memberAvailable = memberGroup.totals.planned - memberGroup.totals.received;
 
                 return (
                   <div key={memberId}>
                     {/* Member Row */}
                     <div
-                      className="group grid grid-cols-[24px_1fr_110px] px-4 py-1.5 items-center bg-green-50/50 dark:bg-green-950/20 border-b cursor-pointer hover:bg-green-100/50 dark:hover:bg-green-950/40 text-sm"
+                      className="group grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center bg-green-50/50 dark:bg-green-950/20 border-b cursor-pointer hover:bg-green-100/50 dark:hover:bg-green-950/40 text-sm"
                       onClick={() => toggleIncomeMember(memberId)}
                     >
                       <div />
@@ -768,30 +1081,74 @@ export default function BudgetPage() {
                         )}
                         <span className="font-semibold">{memberGroup.member?.name || "Sem responsável"}</span>
                         <span className="text-xs text-muted-foreground">({memberGroup.sources.length})</span>
+                        <button
+                          className="ml-1 p-0.5 rounded hover:bg-green-200 dark:hover:bg-green-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openCreateIncomeSourceForm(memberGroup.member?.id);
+                          }}
+                          title={`Adicionar fonte de renda para ${memberGroup.member?.name || "sem responsável"}`}
+                        >
+                          <Plus className="h-3.5 w-3.5 text-green-700 dark:text-green-300" />
+                        </button>
                       </div>
                       <div className="text-right text-xs tabular-nums font-bold">{formatCurrency(memberGroup.totals.planned)}</div>
+                      <div className="text-right text-xs tabular-nums font-bold text-green-600 dark:text-green-400">{formatCurrency(memberGroup.totals.received)}</div>
+                      <div className={cn("text-right text-xs tabular-nums font-bold", memberGroup.totals.received < memberGroup.totals.planned ? "text-red-600" : "text-green-600")}>
+                        {formatCurrency(Math.abs(memberAvailable))}
+                      </div>
                     </div>
 
                     {/* Income Sources for this member */}
                     {isExpanded && memberGroup.sources.map((item) => {
                       const isEdited = item.planned !== item.defaultAmount;
+                      const available = item.planned - item.received;
                       return (
                         <div
                           key={item.incomeSource.id}
-                          className="grid grid-cols-[24px_1fr_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm cursor-pointer"
+                          className="group/row grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm cursor-pointer"
                           onClick={() => openEditIncomeModal(item)}
                         >
                           <div />
                           <div className="flex items-center gap-1.5 pl-10">
-                            <span>{item.incomeSource.type === "salary" ? "💼" : item.incomeSource.type === "benefit" ? "🎁" : item.incomeSource.type === "freelance" ? "💻" : "💵"}</span>
+                            <span>{incomeTypeConfig[item.incomeSource.type]?.icon || "💵"}</span>
                             <span>{item.incomeSource.name}</span>
+                            <span className="text-[10px] text-muted-foreground bg-muted px-1 rounded">
+                              {frequencyLabels[item.incomeSource.frequency] || "Mensal"}
+                            </span>
                             {isEdited && (
                               <span className="text-[10px] text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1 rounded">
                                 editado
                               </span>
                             )}
+                            <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditIncomeSourceForm(item.incomeSource as IncomeSource);
+                                }}
+                                className="p-1 rounded hover:bg-green-200 dark:hover:bg-green-800"
+                                title="Editar fonte de renda"
+                              >
+                                <Pencil className="h-3 w-3 text-muted-foreground" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingIncomeSource(item.incomeSource as IncomeSource);
+                                }}
+                                className="p-1 rounded hover:bg-destructive/10"
+                                title="Excluir fonte de renda"
+                              >
+                                <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                              </button>
+                            </div>
                           </div>
                           <div className="text-right text-xs tabular-nums">{formatCurrency(item.planned)}</div>
+                          <div className="text-right text-xs tabular-nums text-green-600 dark:text-green-400">{formatCurrency(item.received)}</div>
+                          <div className={cn("text-right text-xs tabular-nums", item.received < item.planned ? "text-red-600" : "text-green-600")}>
+                            {formatCurrency(Math.abs(available))}
+                          </div>
                         </div>
                       );
                     })}
@@ -799,6 +1156,83 @@ export default function BudgetPage() {
                 );
               })
             )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Goals Section */}
+        {goals.length > 0 && (
+          <div className="border-b">
+            {/* Goals Section Header - Clickable Toggle */}
+            <div
+              className="px-4 py-2 bg-violet-100 dark:bg-violet-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-violet-200/50 dark:hover:bg-violet-950/70 transition-colors"
+              onClick={() => setIsGoalsExpanded(!isGoalsExpanded)}
+            >
+              <div className="flex items-center gap-2">
+                <ChevronDown className={cn("h-4 w-4 text-violet-700 dark:text-violet-300 transition-transform", !isGoalsExpanded && "-rotate-90")} />
+                <Target className="h-4 w-4 text-violet-700 dark:text-violet-300" />
+                <span className="font-bold text-sm text-violet-800 dark:text-violet-200">METAS</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-xs text-muted-foreground font-normal">Mensal sugerido:</span>
+                <span className="font-bold text-violet-800 dark:text-violet-200">
+                  {formatCurrency(goals.reduce((sum, g) => sum + g.monthlyTarget, 0))}
+                </span>
+                <Link
+                  href="/app/goals"
+                  className="ml-2 text-xs text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Ver todas <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
+            </div>
+
+            {isGoalsExpanded && (
+              <>
+                {/* Goals Table Header */}
+                <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
+                  <div />
+                  <div>Meta</div>
+                  <div className="text-right">Progresso</div>
+                  <div className="text-right">Mensal</div>
+                  <div className="text-right">Restante</div>
+                </div>
+
+                {/* Goals Rows */}
+                {goals.map((goal) => (
+                  <Link
+                    key={goal.id}
+                    href="/app/goals"
+                    className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-2 items-center border-b hover:bg-muted/20 text-sm cursor-pointer"
+                  >
+                    <div className="flex items-center justify-center">
+                      <span className="text-base">{goal.icon}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{goal.name}</span>
+                      <div className="flex-1 max-w-[120px]">
+                        <Progress
+                          value={goal.progress}
+                          className="h-1.5"
+                          style={{ "--progress-background": goal.color } as React.CSSProperties}
+                        />
+                      </div>
+                    </div>
+                    <div className="text-right text-xs tabular-nums text-violet-600 dark:text-violet-400">
+                      {goal.progress}%
+                    </div>
+                    <div className="text-right text-xs tabular-nums font-medium">
+                      {formatCurrency(goal.monthlyTarget)}
+                    </div>
+                    <div className="text-right text-xs tabular-nums text-muted-foreground">
+                      {goal.monthsRemaining > 0
+                        ? `${goal.monthsRemaining} ${goal.monthsRemaining === 1 ? "mês" : "meses"}`
+                        : "Vencida"}
+                    </div>
+                  </Link>
+                ))}
               </>
             )}
           </div>
@@ -817,8 +1251,13 @@ export default function BudgetPage() {
                 <span className="text-lg">💸</span>
                 <span className="font-bold text-sm text-red-800 dark:text-red-200">DESPESAS</span>
               </div>
-              <div className="text-sm font-bold text-red-800 dark:text-red-200">
-                {formatCurrency(totals.allocated)}
+              <div className="flex items-center gap-4 text-sm font-bold text-red-800 dark:text-red-200">
+                <span className="text-xs text-muted-foreground font-normal">Alocado:</span>
+                <span>{formatCurrency(totals.allocated)}</span>
+                <span className="text-xs text-muted-foreground font-normal">Gasto:</span>
+                <span className="text-red-600 dark:text-red-400">{formatCurrency(totals.spent)}</span>
+                <span className="text-xs text-muted-foreground font-normal">Disponível:</span>
+                <span className={totals.allocated - totals.spent >= 0 ? "" : "text-red-600"}>{formatCurrency(totals.allocated - totals.spent)}</span>
               </div>
             </div>
 
@@ -959,6 +1398,7 @@ export default function BudgetPage() {
             <Button onClick={() => router.push("/app/categories/setup")}>Configurar Categorias</Button>
           </div>
         ) : null}
+
       </div>
 
       {/* Edit Allocation Modal */}
@@ -1159,11 +1599,11 @@ export default function BudgetPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingCategory(null)}>
+          <DialogFooter className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditingCategory(null)} className="w-1/4">
               Cancelar
             </Button>
-            <Button onClick={handleSaveAllocation}>
+            <Button onClick={handleSaveAllocation} className="w-1/4">
               Salvar
             </Button>
           </DialogFooter>
@@ -1311,11 +1751,11 @@ export default function BudgetPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setNewCategoryGroupId(null)} disabled={isCreatingCategory}>
+          <DialogFooter className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setNewCategoryGroupId(null)} disabled={isCreatingCategory} className="w-1/4">
               Cancelar
             </Button>
-            <Button onClick={handleCreateCategory} disabled={isCreatingCategory || !newCategoryName.trim()}>
+            <Button onClick={handleCreateCategory} disabled={isCreatingCategory || !newCategoryName.trim()} className="w-1/4">
               {isCreatingCategory && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Criar
             </Button>
@@ -1422,11 +1862,11 @@ export default function BudgetPage() {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditCategoryData(null)} disabled={isUpdatingCategory}>
+          <DialogFooter className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditCategoryData(null)} disabled={isUpdatingCategory} className="w-1/4">
               Cancelar
             </Button>
-            <Button onClick={handleUpdateCategory} disabled={isUpdatingCategory || !editCategoryName.trim()}>
+            <Button onClick={handleUpdateCategory} disabled={isUpdatingCategory || !editCategoryName.trim()} className="w-1/4">
               {isUpdatingCategory && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar
             </Button>
@@ -1540,16 +1980,267 @@ export default function BudgetPage() {
             )}
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingIncome(null)}>
+          <DialogFooter className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditingIncome(null)} className="w-1/4">
               Cancelar
             </Button>
-            <Button onClick={handleSaveIncomeAllocation}>
+            <Button onClick={handleSaveIncomeAllocation} className="w-1/4">
               Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Copy Hint Modal - shown when no allocations for current month */}
+      <Dialog open={showCopyHintModal} onOpenChange={(open) => !open && dismissCopyHintModal()}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="h-5 w-5 text-primary" />
+              Copiar planejamento anterior
+            </DialogTitle>
+            <DialogDescription>
+              Parece que {monthNamesFull[currentMonth - 1]} ainda nao tem um planejamento definido.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Voce pode copiar o planejamento de{" "}
+              <span className="font-medium text-foreground">
+                {monthNamesFull[getPreviousMonth().month - 1]}
+              </span>{" "}
+              para comecar rapidamente, ou definir os valores manualmente clicando em cada categoria.
+            </p>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={dismissCopyHintModal} className="w-full sm:w-auto">
+              Fazer manualmente
+            </Button>
+            <Button
+              onClick={() => {
+                dismissCopyHintModal();
+                handleCopyFromPreviousMonth();
+              }}
+              disabled={isCopyingBudget}
+              className="w-full sm:w-auto"
+            >
+              {isCopyingBudget ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Copy className="mr-2 h-4 w-4" />
+              )}
+              Copiar de {monthNamesFull[getPreviousMonth().month - 1]}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create/Edit Income Source Modal */}
+      <Dialog open={isIncomeSourceFormOpen} onOpenChange={(open) => !open && setIsIncomeSourceFormOpen(false)}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingIncomeSource ? "Editar Fonte de Renda" : "Nova Fonte de Renda"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingIncomeSource
+                ? "Altere os dados da fonte de renda"
+                : "Adicione uma nova fonte de renda ao seu planejamento"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            {/* Nome */}
+            <div className="grid gap-2">
+              <Label htmlFor="incomeSourceName">Nome *</Label>
+              <Input
+                id="incomeSourceName"
+                placeholder="Ex: Salário, Freelance, Aluguel..."
+                value={incomeSourceFormData.name}
+                onChange={(e) => setIncomeSourceFormData(prev => ({ ...prev, name: e.target.value }))}
+                className={incomeSourceFormErrors.name ? "border-destructive" : ""}
+                autoFocus
+              />
+              {incomeSourceFormErrors.name && (
+                <p className="text-xs text-destructive">{incomeSourceFormErrors.name}</p>
+              )}
+            </div>
+
+            {/* Tipo e Frequência em 2 colunas */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Tipo *</Label>
+                <Select
+                  value={incomeSourceFormData.type}
+                  onValueChange={(value) => setIncomeSourceFormData(prev => ({ ...prev, type: value as IncomeSourceFormData["type"], accountId: "" }))}
+                >
+                  <SelectTrigger className={incomeSourceFormErrors.type ? "border-destructive" : ""}>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(incomeTypeConfig).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>
+                        <span className="flex items-center gap-2">
+                          <span>{config.icon}</span>
+                          <span>{config.label}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {incomeSourceFormErrors.type && (
+                  <p className="text-xs text-destructive">{incomeSourceFormErrors.type}</p>
+                )}
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Frequência *</Label>
+                <Select
+                  value={incomeSourceFormData.frequency}
+                  onValueChange={(value) => setIncomeSourceFormData(prev => ({ ...prev, frequency: value as IncomeSourceFormData["frequency"] }))}
+                >
+                  <SelectTrigger className={incomeSourceFormErrors.frequency ? "border-destructive" : ""}>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(frequencyLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {incomeSourceFormErrors.frequency && (
+                  <p className="text-xs text-destructive">{incomeSourceFormErrors.frequency}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Valor e Dia do Pagamento em 2 colunas */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Valor *</Label>
+                <CurrencyInput
+                  value={incomeSourceFormData.amount}
+                  onChange={(value) => setIncomeSourceFormData(prev => ({ ...prev, amount: value }))}
+                  className={incomeSourceFormErrors.amount ? "border-destructive" : ""}
+                />
+                {incomeSourceFormErrors.amount && (
+                  <p className="text-xs text-destructive">{incomeSourceFormErrors.amount}</p>
+                )}
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="incomeSourceDayOfMonth">Dia do Pagamento</Label>
+                <Input
+                  id="incomeSourceDayOfMonth"
+                  type="number"
+                  min="1"
+                  max="31"
+                  placeholder="1-31"
+                  value={incomeSourceFormData.dayOfMonth || ""}
+                  onChange={(e) => {
+                    const val = e.target.value ? parseInt(e.target.value) : undefined;
+                    setIncomeSourceFormData(prev => ({ ...prev, dayOfMonth: val }));
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Responsável */}
+            {members.length > 1 && (
+              <div className="grid gap-2">
+                <Label>Quem Recebe</Label>
+                <Select
+                  value={incomeSourceFormData.memberId || "none"}
+                  onValueChange={(value) => setIncomeSourceFormData(prev => ({ ...prev, memberId: value === "none" ? undefined : value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum responsável específico</SelectItem>
+                    {members.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: member.color || "#6366f1" }}
+                          />
+                          <span>{member.name}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Conta de Destino */}
+            {filteredAccounts.length > 0 && (
+              <div className="grid gap-2">
+                <Label>Conta de Destino</Label>
+                <Select
+                  value={incomeSourceFormData.accountId || "none"}
+                  onValueChange={(value) => setIncomeSourceFormData(prev => ({ ...prev, accountId: value === "none" ? undefined : value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma conta específica</SelectItem>
+                    {filteredAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        <span className="flex items-center gap-2">
+                          <span>{account.icon || "🏦"}</span>
+                          <span>{account.name}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsIncomeSourceFormOpen(false)}
+              disabled={isSubmittingIncomeSource}
+              className="w-1/4"
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmitIncomeSource} disabled={isSubmittingIncomeSource} className="w-1/4">
+              {isSubmittingIncomeSource && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {editingIncomeSource ? "Salvar" : "Adicionar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Income Source Confirmation */}
+      <AlertDialog open={!!deletingIncomeSource} onOpenChange={(open) => !open && setDeletingIncomeSource(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir fonte de renda?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir &quot;{deletingIncomeSource?.name}&quot;?
+              Esta ação não pode ser desfeita e também removerá todas as transações associadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteIncomeSource}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
