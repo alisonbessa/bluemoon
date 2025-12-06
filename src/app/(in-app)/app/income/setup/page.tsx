@@ -70,6 +70,7 @@ interface Account {
   name: string;
   type: string;
   icon?: string | null;
+  ownerId?: string | null;
 }
 
 interface IncomeSource {
@@ -193,11 +194,17 @@ export default function IncomeSetupPage() {
     fetchData();
   }, [fetchData]);
 
-  // Filter accounts based on selected income type
+  // Filter accounts based on selected income type AND member ownership
   const filteredAccounts = useMemo(() => {
     const allowedTypes = ALLOWED_ACCOUNT_TYPES_BY_INCOME[formData.type] || [];
-    return accounts.filter((account) => allowedTypes.includes(account.type));
-  }, [accounts, formData.type]);
+    return accounts.filter((account) => {
+      // First filter by account type
+      if (!allowedTypes.includes(account.type)) return false;
+      // Then filter by member: show accounts owned by selected member OR joint accounts (no owner)
+      if (!formData.memberId) return true; // No member selected, show all
+      return account.ownerId === formData.memberId || account.ownerId === null;
+    });
+  }, [accounts, formData.type, formData.memberId]);
 
   const openCreateForm = (type?: string) => {
     const incomeType = (type as IncomeFormData["type"]) || "salary";
@@ -656,9 +663,19 @@ export default function IncomeSetupPage() {
                 <Label htmlFor="member">Quem Recebe</Label>
                 <Select
                   value={formData.memberId || ""}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, memberId: value || undefined })
-                  }
+                  onValueChange={(value) => {
+                    const newMemberId = value || undefined;
+                    // Clear accountId if current account doesn't belong to new member
+                    const currentAccount = accounts.find((a) => a.id === formData.accountId);
+                    const accountStillValid = !currentAccount ||
+                      currentAccount.ownerId === newMemberId ||
+                      currentAccount.ownerId === null;
+                    setFormData({
+                      ...formData,
+                      memberId: newMemberId,
+                      accountId: accountStillValid ? formData.accountId : undefined,
+                    });
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione (opcional)" />
