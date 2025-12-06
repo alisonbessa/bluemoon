@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, boolean } from "drizzle-orm/pg-core";
 import { users } from "./user";
 import { relations } from "drizzle-orm";
 
@@ -9,6 +9,10 @@ export const budgets = pgTable("budgets", {
   name: text("name").notNull(),
   description: text("description"),
   currency: text("currency").notNull().default("BRL"),
+
+  // Privacy settings - when true, members can create private categories
+  allowPrivacy: boolean("allow_privacy").default(false),
+
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
 });

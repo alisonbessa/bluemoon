@@ -11,6 +11,7 @@ import {
 
 import type { AdapterAccountType } from "next-auth/adapters";
 import { plans } from "./plans";
+import { budgets } from "./budgets";
 
 import { type CreditType } from "@/lib/credits/credits";
 
@@ -38,10 +39,14 @@ export const users = pgTable("app_user", {
   stripeSubscriptionId: text("stripeSubscriptionId"),
 
   planId: text("planId").references(() => plans.id),
+
+  // Last accessed budget - for multi-budget support
+  lastBudgetId: text("last_budget_id").references(() => budgets.id, { onDelete: "set null" }),
 }, (table) => [
   // PERFORMANCE: Index for Stripe webhook lookups
   index("idx_users_stripe_customer_id").on(table.stripeCustomerId),
   index("idx_users_stripe_subscription_id").on(table.stripeSubscriptionId),
+  index("idx_users_last_budget_id").on(table.lastBudgetId),
 ]);
 
 export const accounts = pgTable(

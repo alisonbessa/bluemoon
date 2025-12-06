@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,6 @@ import {
   Bell,
   Shield,
   CreditCard,
-  Users,
   Palette,
   Download,
   Trash2,
@@ -36,9 +35,13 @@ import {
 } from "lucide-react";
 import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import { TelegramConnectionCard } from "@/components/telegram/TelegramConnectionCard";
+import { BudgetMembersCard } from "@/components/budget/budget-members-card";
 import { toast } from "sonner";
+import useUser from "@/lib/users/useUser";
 
 export default function SettingsPage() {
+  const { user } = useUser();
+  const [budgetId, setBudgetId] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showOnboardingConfirm, setShowOnboardingConfirm] = useState(false);
@@ -48,6 +51,24 @@ export default function SettingsPage() {
     billReminders: true,
     weeklyReport: true,
   });
+
+  // Fetch user's budget
+  useEffect(() => {
+    const fetchBudget = async () => {
+      try {
+        const res = await fetch("/api/app/budgets");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.budgets?.length > 0) {
+            setBudgetId(data.budgets[0].id);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching budgets:", error);
+      }
+    };
+    fetchBudget();
+  }, []);
 
   const handleRestartOnboarding = () => {
     setShowOnboardingConfirm(false);
@@ -309,6 +330,11 @@ export default function SettingsPage() {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Budget Members */}
+          {budgetId && user?.id && (
+            <BudgetMembersCard budgetId={budgetId} currentUserId={user.id} />
+          )}
+
           {/* Telegram Connection */}
           <TelegramConnectionCard />
 
@@ -325,16 +351,6 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
                   <span>Gerenciar contas</span>
-                </div>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span>Membros da família</span>
                 </div>
                 <ChevronRight className="h-4 w-4" />
               </Button>

@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { budgetMembers, categories, groups } from "@/db/schema";
+import { budgetMembers, categories, groups, users } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -39,9 +39,26 @@ export const GET = withAuthRequired(async (req, context) => {
     return NextResponse.json({ members: [] });
   }
 
-  const members = await db
-    .select()
+  // Get members with user info when available
+  const membersWithUsers = await db
+    .select({
+      id: budgetMembers.id,
+      budgetId: budgetMembers.budgetId,
+      userId: budgetMembers.userId,
+      name: budgetMembers.name,
+      type: budgetMembers.type,
+      color: budgetMembers.color,
+      monthlyPleasureBudget: budgetMembers.monthlyPleasureBudget,
+      createdAt: budgetMembers.createdAt,
+      user: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        image: users.image,
+      },
+    })
     .from(budgetMembers)
+    .leftJoin(users, eq(budgetMembers.userId, users.id))
     .where(
       budgetId
         ? and(
@@ -50,6 +67,19 @@ export const GET = withAuthRequired(async (req, context) => {
           )
         : inArray(budgetMembers.budgetId, budgetIds)
     );
+
+  // Transform to handle null users
+  const members = membersWithUsers.map((m) => ({
+    id: m.id,
+    budgetId: m.budgetId,
+    userId: m.userId,
+    name: m.name,
+    type: m.type,
+    color: m.color,
+    monthlyPleasureBudget: m.monthlyPleasureBudget,
+    createdAt: m.createdAt,
+    user: m.user?.id ? m.user : null,
+  }));
 
   return NextResponse.json({ members });
 });

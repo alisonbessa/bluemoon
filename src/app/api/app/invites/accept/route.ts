@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { invites, budgetMembers, groups, categories } from "@/db/schema";
+import { invites, budgetMembers, groups, categories, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -33,7 +33,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   if (!invite) {
     return NextResponse.json(
-      { error: "Invalid or expired invite" },
+      { error: "Convite inválido ou expirado", code: "INVITE_NOT_FOUND" },
       { status: 404 }
     );
   }
@@ -45,16 +45,20 @@ export const POST = withAuthRequired(async (req, context) => {
       .set({ status: "expired", updatedAt: new Date() })
       .where(eq(invites.id, invite.id));
 
-    return NextResponse.json({ error: "Invite has expired" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Este convite expirou", code: "INVITE_EXPIRED" },
+      { status: 400 }
+    );
   }
 
-  // Check if user's email matches invite email
+  // If invite has a specific email, check if user's email matches
   const user = await getUser();
-  if (user?.email?.toLowerCase() !== invite.email.toLowerCase()) {
+  if (invite.email && user?.email?.toLowerCase() !== invite.email.toLowerCase()) {
     return NextResponse.json(
       {
-        error: "This invite was sent to a different email address",
+        error: "Este convite foi enviado para outro email",
         inviteEmail: invite.email,
+        code: "EMAIL_MISMATCH",
       },
       { status: 403 }
     );
@@ -74,13 +78,13 @@ export const POST = withAuthRequired(async (req, context) => {
 
   if (existingMembership.length > 0) {
     return NextResponse.json(
-      { error: "You are already a member of this budget" },
+      { error: "Você já é membro deste orçamento", code: "ALREADY_MEMBER" },
       { status: 400 }
     );
   }
 
   // Create partner membership
-  const memberName = capitalizeWords(user?.name || invite.name || "Partner");
+  const memberName = capitalizeWords(user?.name || invite.name || "Parceiro");
   const [newMember] = await db
     .insert(budgetMembers)
     .values({
@@ -116,9 +120,18 @@ export const POST = withAuthRequired(async (req, context) => {
     .set({
       status: "accepted",
       acceptedAt: new Date(),
+      acceptedByUserId: session.user.id,
       updatedAt: new Date(),
     })
     .where(eq(invites.id, invite.id));
+
+  // Update user's lastBudgetId to the newly joined budget
+  await db
+    .update(users)
+    .set({ lastBudgetId: invite.budgetId })
+    .where(eq(users.id, session.user.id));
+
+  // TODO: Send notification email to the inviter
 
   return NextResponse.json({
     success: true,

@@ -4,14 +4,12 @@ import { invites, budgetMembers } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-// Helper to get user's budget IDs where they are owner
-async function getOwnerBudgetIds(userId: string) {
+// Helper to get user's budget IDs (all types - owner, partner, etc.)
+async function getUserBudgetIds(userId: string) {
   const memberships = await db
     .select({ budgetId: budgetMembers.budgetId })
     .from(budgetMembers)
-    .where(
-      and(eq(budgetMembers.userId, userId), eq(budgetMembers.type, "owner"))
-    );
+    .where(eq(budgetMembers.userId, userId));
   return memberships.map((m) => m.budgetId);
 }
 
@@ -21,20 +19,20 @@ export const GET = withAuthRequired(async (req, context) => {
   const params = await context.params;
   const inviteId = params.id as string;
 
-  const ownerBudgetIds = await getOwnerBudgetIds(session.user.id);
-  if (ownerBudgetIds.length === 0) {
-    return NextResponse.json({ error: "Invite not found" }, { status: 404 });
+  const userBudgetIds = await getUserBudgetIds(session.user.id);
+  if (userBudgetIds.length === 0) {
+    return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
   }
 
   const [invite] = await db
     .select()
     .from(invites)
     .where(
-      and(eq(invites.id, inviteId), inArray(invites.budgetId, ownerBudgetIds))
+      and(eq(invites.id, inviteId), inArray(invites.budgetId, userBudgetIds))
     );
 
   if (!invite) {
-    return NextResponse.json({ error: "Invite not found" }, { status: 404 });
+    return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
   }
 
   return NextResponse.json({ invite });
@@ -46,25 +44,25 @@ export const DELETE = withAuthRequired(async (req, context) => {
   const params = await context.params;
   const inviteId = params.id as string;
 
-  const ownerBudgetIds = await getOwnerBudgetIds(session.user.id);
-  if (ownerBudgetIds.length === 0) {
-    return NextResponse.json({ error: "Invite not found" }, { status: 404 });
+  const userBudgetIds = await getUserBudgetIds(session.user.id);
+  if (userBudgetIds.length === 0) {
+    return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
   }
 
   const [existingInvite] = await db
     .select()
     .from(invites)
     .where(
-      and(eq(invites.id, inviteId), inArray(invites.budgetId, ownerBudgetIds))
+      and(eq(invites.id, inviteId), inArray(invites.budgetId, userBudgetIds))
     );
 
   if (!existingInvite) {
-    return NextResponse.json({ error: "Invite not found" }, { status: 404 });
+    return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
   }
 
   if (existingInvite.status !== "pending") {
     return NextResponse.json(
-      { error: "Can only cancel pending invites" },
+      { error: "Só é possível cancelar convites pendentes" },
       { status: 400 }
     );
   }
@@ -87,25 +85,25 @@ export const POST = withAuthRequired(async (req, context) => {
   const params = await context.params;
   const inviteId = params.id as string;
 
-  const ownerBudgetIds = await getOwnerBudgetIds(session.user.id);
-  if (ownerBudgetIds.length === 0) {
-    return NextResponse.json({ error: "Invite not found" }, { status: 404 });
+  const userBudgetIds = await getUserBudgetIds(session.user.id);
+  if (userBudgetIds.length === 0) {
+    return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
   }
 
   const [existingInvite] = await db
     .select()
     .from(invites)
     .where(
-      and(eq(invites.id, inviteId), inArray(invites.budgetId, ownerBudgetIds))
+      and(eq(invites.id, inviteId), inArray(invites.budgetId, userBudgetIds))
     );
 
   if (!existingInvite) {
-    return NextResponse.json({ error: "Invite not found" }, { status: 404 });
+    return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
   }
 
   if (existingInvite.status !== "pending") {
     return NextResponse.json(
-      { error: "Can only resend pending invites" },
+      { error: "Só é possível reenviar convites pendentes" },
       { status: 400 }
     );
   }
