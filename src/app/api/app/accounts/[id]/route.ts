@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { financialAccounts, budgetMembers } from "@/db/schema";
+import { financialAccounts, budgetMembers, incomeSources } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -108,6 +108,55 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .set(updateData)
     .where(eq(financialAccounts.id, accountId))
     .returning();
+
+  // Sync income source for benefit accounts
+  if (updatedAccount.type === "benefit") {
+    // Check if income source exists for this account
+    const [existingIncomeSource] = await db
+      .select()
+      .from(incomeSources)
+      .where(eq(incomeSources.accountId, accountId));
+
+    if (updatedAccount.monthlyDeposit && updatedAccount.monthlyDeposit > 0) {
+      if (existingIncomeSource) {
+        // Update existing income source
+        await db
+          .update(incomeSources)
+          .set({
+            name: updatedAccount.name,
+            amount: updatedAccount.monthlyDeposit,
+            dayOfMonth: updatedAccount.depositDay || undefined,
+            memberId: updatedAccount.ownerId || undefined,
+            updatedAt: new Date(),
+          })
+          .where(eq(incomeSources.id, existingIncomeSource.id));
+      } else {
+        // Create new income source
+        const existingIncomeSources = await db
+          .select()
+          .from(incomeSources)
+          .where(eq(incomeSources.budgetId, existingAccount.budgetId));
+
+        await db.insert(incomeSources).values({
+          budgetId: existingAccount.budgetId,
+          accountId: updatedAccount.id,
+          memberId: updatedAccount.ownerId || undefined,
+          name: updatedAccount.name,
+          type: "benefit",
+          amount: updatedAccount.monthlyDeposit,
+          frequency: "monthly",
+          dayOfMonth: updatedAccount.depositDay || undefined,
+          displayOrder: existingIncomeSources.length,
+        });
+      }
+    } else if (existingIncomeSource) {
+      // Deactivate income source if monthlyDeposit is removed/zeroed
+      await db
+        .update(incomeSources)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(incomeSources.id, existingIncomeSource.id));
+    }
+  }
 
   return NextResponse.json({ account: updatedAccount });
 });
