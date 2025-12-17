@@ -63,6 +63,19 @@ export const FREQUENCY_LABELS: Record<IncomeFrequency, string> = {
   weekly: 'Semanal',
 };
 
+// Alias for backward compatibility
+export const INCOME_FREQUENCY_LABELS = FREQUENCY_LABELS;
+
+// Plural labels for grouping in setup page
+export const INCOME_TYPE_CONFIG_PLURAL: Record<IncomeType, { label: string; icon: string }> = {
+  salary: { label: 'Salários', icon: '💼' },
+  benefit: { label: 'Benefícios', icon: '🎁' },
+  freelance: { label: 'Freelances', icon: '💻' },
+  rental: { label: 'Aluguéis', icon: '🏠' },
+  investment: { label: 'Investimentos', icon: '📈' },
+  other: { label: 'Outros', icon: '📦' },
+};
+
 export const ALLOWED_ACCOUNT_TYPES_BY_INCOME: Record<IncomeType, string[]> = {
   salary: ['checking', 'savings'],
   freelance: ['checking', 'savings'],
