@@ -4,17 +4,24 @@
 
 export interface Goal {
   id: string;
+  budgetId: string;
   name: string;
   icon: string;
   color: string;
   targetAmount: number;
   currentAmount: number;
-  progress: number;
-  monthlyTarget: number;
-  monthsRemaining: number;
+  targetDate: string;
   isCompleted: boolean;
-  targetDate?: Date | null;
-  createdAt: Date;
+  completedAt: string | null;
+  isArchived: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  // Calculated metrics
+  progress: number;
+  monthsRemaining: number;
+  monthlyTarget: number;
+  remaining: number;
 }
 
 export interface CreateGoalInput {
