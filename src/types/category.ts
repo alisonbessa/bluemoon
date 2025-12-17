@@ -30,6 +30,12 @@ export interface Group {
   displayOrder: number;
 }
 
+// Group with categories for category management pages
+export interface CategoryGroup extends Group {
+  description?: string | null;
+  categories: Category[];
+}
+
 export interface GroupData {
   group: Group;
   categories: CategoryAllocation[];
