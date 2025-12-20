@@ -1,41 +1,33 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { ChevronDown, Target, ArrowRight } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
-import { formatCurrency } from '@/lib/formatters';
-import { cn } from '@/lib/utils';
-import type { Goal } from '@/types/goal';
+import { useState } from "react";
+import { ChevronDown, Target, ArrowRight } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { Goal, formatCurrency } from "./types";
 
 interface GoalsSectionProps {
   goals: Goal[];
-  isExpanded: boolean;
-  onToggleExpanded: () => void;
 }
 
-export function GoalsSection({
-  goals,
-  isExpanded,
-  onToggleExpanded,
-}: GoalsSectionProps) {
-  if (goals.length === 0) {
-    return null;
-  }
+export function GoalsSection({ goals }: GoalsSectionProps) {
+  const [isExpanded, setIsExpanded] = useState(true);
 
-  const totalMonthlyTarget = goals.reduce((sum, g) => sum + g.monthlyTarget, 0);
+  if (goals.length === 0) return null;
 
   return (
     <div className="border-b">
-      {/* Goals Section Header */}
+      {/* Goals Section Header - Clickable Toggle */}
       <div
         className="px-4 py-2 bg-violet-100 dark:bg-violet-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-violet-200/50 dark:hover:bg-violet-950/70 transition-colors"
-        onClick={onToggleExpanded}
+        onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-2">
           <ChevronDown
             className={cn(
-              'h-4 w-4 text-violet-700 dark:text-violet-300 transition-transform',
-              !isExpanded && '-rotate-90'
+              "h-4 w-4 text-violet-700 dark:text-violet-300 transition-transform",
+              !isExpanded && "-rotate-90"
             )}
           />
           <Target className="h-4 w-4 text-violet-700 dark:text-violet-300" />
@@ -48,7 +40,7 @@ export function GoalsSection({
             Mensal sugerido:
           </span>
           <span className="font-bold text-violet-800 dark:text-violet-200">
-            {formatCurrency(totalMonthlyTarget)}
+            {formatCurrency(goals.reduce((sum, g) => sum + g.monthlyTarget, 0))}
           </span>
           <Link
             href="/app/goals"
@@ -88,7 +80,7 @@ export function GoalsSection({
                     value={goal.progress}
                     className="h-1.5"
                     style={
-                      { '--progress-background': goal.color } as React.CSSProperties
+                      { "--progress-background": goal.color } as React.CSSProperties
                     }
                   />
                 </div>
@@ -101,8 +93,8 @@ export function GoalsSection({
               </div>
               <div className="text-right text-xs tabular-nums text-muted-foreground">
                 {goal.monthsRemaining > 0
-                  ? `${goal.monthsRemaining} ${goal.monthsRemaining === 1 ? 'mês' : 'meses'}`
-                  : 'Vencida'}
+                  ? `${goal.monthsRemaining} ${goal.monthsRemaining === 1 ? "mês" : "meses"}`
+                  : "Vencida"}
               </div>
             </Link>
           ))}

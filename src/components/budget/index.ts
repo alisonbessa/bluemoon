@@ -1,24 +1,11 @@
 /**
- * Budget Components Index
+ * Budget Components
  *
- * Export all budget-related components for easy importing.
+ * These components are extracted from the main budget page to improve maintainability.
  */
 
-export { BudgetHeader } from './budget-header';
-export { BudgetFilters } from './budget-filters';
-export { IncomeSection } from './income-section';
-export { GoalsSection } from './goals-section';
-export { ExpensesSection } from './expenses-section';
-export { AllocationEditModal } from './allocation-edit-modal';
-export {
-  CreateCategoryModal,
-  EditCategoryModal,
-  DeleteCategoryDialog,
-} from './category-modals';
-export {
-  EditIncomeModal,
-  IncomeSourceFormModal,
-  DeleteIncomeSourceDialog,
-  CopyBudgetConfirmDialog,
-  CopyHintModal,
-} from './income-modals';
+export * from "./types";
+export { GoalsSection } from "./goals-section";
+export { BudgetComparison } from "./budget-comparison";
+export { MonthPlanningBanner } from "./month-planning-banner";
+

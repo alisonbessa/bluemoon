@@ -10,6 +10,7 @@ export interface Category {
   icon?: string | null;
   behavior: CategoryBehavior;
   plannedAmount: number;
+  dueDay?: number | null;
   groupId: string;
   budgetId: string;
 }

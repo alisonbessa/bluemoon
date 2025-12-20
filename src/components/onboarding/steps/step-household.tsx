@@ -16,12 +16,6 @@ interface StepHouseholdProps {
 
 const HOUSEHOLD_OPTIONS = [
   {
-    key: "myself",
-    icon: "👤",
-    label: "Eu mesmo(a)",
-    description: "Você é o dono do orçamento",
-  },
-  {
     key: "partner",
     icon: "💑",
     label: "Meu/minha parceiro(a)",
@@ -58,8 +52,6 @@ export function StepHousehold({
 }: StepHouseholdProps) {
   const getIsSelected = (key: string) => {
     switch (key) {
-      case "myself":
-        return true;
       case "partner":
         return household.hasPartner;
       case "children":
@@ -95,7 +87,7 @@ export function StepHousehold({
       <div className="flex-1 px-4">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold mb-2">
-            Quem faz parte do seu orçamento?
+            Quem mais faz parte do seu orçamento?
           </h2>
           <p className="text-muted-foreground">
             Selecione todos que compartilham as finanças com você
@@ -110,7 +102,6 @@ export function StepHousehold({
               label={option.label}
               description={option.description}
               selected={getIsSelected(option.key)}
-              disabled={option.key === "myself"}
               onClick={() => handleClick(option.key)}
             />
           ))}

@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { MonthPlanningBanner } from "@/components/budget";
 
 interface Category {
   id: string;
@@ -58,6 +59,7 @@ interface Category {
   icon?: string | null;
   behavior: "set_aside" | "refill_up";
   plannedAmount: number;
+  dueDay?: number | null;
 }
 
 interface Group {
@@ -205,6 +207,7 @@ export default function BudgetPage() {
   const [totals, setTotals] = useState({ allocated: 0, spent: 0, available: 0 });
   const [incomeData, setIncomeData] = useState<IncomeData | null>(null);
   const [totalIncome, setTotalIncome] = useState(0);
+  const [monthStatus, setMonthStatus] = useState<"planning" | "active" | "closed">("planning");
   const [isLoading, setIsLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [expandedIncomeMembers, setExpandedIncomeMembers] = useState<string[]>([]);
@@ -255,6 +258,7 @@ export default function BudgetPage() {
   const [isCopyingBudget, setIsCopyingBudget] = useState(false);
   const [showCopyConfirm, setShowCopyConfirm] = useState(false);
   const [showCopyHintModal, setShowCopyHintModal] = useState(false);
+  const [copyMode, setCopyMode] = useState<"all" | "empty_only" | null>(null);
 
   // Edit income allocation (monthly value)
   const [editingIncome, setEditingIncome] = useState<{
@@ -318,6 +322,7 @@ export default function BudgetPage() {
             setGroupsData(allocData.groups || []);
             setTotals(allocData.totals || { allocated: 0, spent: 0, available: 0 });
             setExpandedGroups(allocData.groups?.map((g: GroupData) => g.group.id) || []);
+            setMonthStatus(allocData.monthStatus || "planning");
 
             // Set income data from allocations API
             if (allocData.income) {
@@ -405,8 +410,8 @@ export default function BudgetPage() {
     setEditingCategory({ category, allocated });
     setEditValue((allocated / 100).toFixed(2).replace(".", ","));
     setEditBehavior(category.behavior);
-    setEditFrequency("monthly"); // TODO: load from category when available
-    setEditDueDay(null); // TODO: load from category when available
+    setEditFrequency("monthly");
+    setEditDueDay(category.dueDay ?? null);
     setEditWeekday(null);
     setEditYearMonth(null);
   };
@@ -465,7 +470,8 @@ export default function BudgetPage() {
     const newValue = Math.round(parseFloat(cleanValue || "0") * 100);
 
     try {
-      const response = await fetch("/api/app/allocations", {
+      // Save allocation
+      const allocationResponse = await fetch("/api/app/allocations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -474,12 +480,32 @@ export default function BudgetPage() {
           year: currentYear,
           month: currentMonth,
           allocated: newValue,
-          behavior: editBehavior,
         }),
       });
 
-      if (!response.ok) {
+      if (!allocationResponse.ok) {
         throw new Error("Erro ao atualizar alocação");
+      }
+
+      // Update category behavior and dueDay if changed
+      const categoryUpdates: Record<string, unknown> = {};
+      if (editBehavior !== editingCategory.category.behavior) {
+        categoryUpdates.behavior = editBehavior;
+      }
+      if (editDueDay !== (editingCategory.category.dueDay ?? null)) {
+        categoryUpdates.dueDay = editDueDay;
+      }
+
+      if (Object.keys(categoryUpdates).length > 0) {
+        const categoryResponse = await fetch(`/api/app/categories/${editingCategory.category.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(categoryUpdates),
+        });
+
+        if (!categoryResponse.ok) {
+          console.error("Failed to update category:", await categoryResponse.text());
+        }
       }
 
       toast.success("Alocação atualizada!");
@@ -729,7 +755,7 @@ export default function BudgetPage() {
     setShowCopyHintModal(false);
   };
 
-  const handleCopyFromPreviousMonth = async (overwrite: boolean = false) => {
+  const handleCopyFromPreviousMonth = async (mode: "all" | "empty_only" = "all") => {
     if (budgets.length === 0) return;
 
     setIsCopyingBudget(true);
@@ -745,15 +771,16 @@ export default function BudgetPage() {
           fromMonth: prev.month,
           toYear: currentYear,
           toMonth: currentMonth,
-          overwrite,
+          mode, // "all" or "empty_only"
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        if (data.requiresOverwrite) {
+        if (data.requiresConfirm) {
           setShowCopyConfirm(true);
+          setCopyMode(null);
           return;
         }
         throw new Error(data.error || "Erro ao copiar orçamento");
@@ -761,6 +788,7 @@ export default function BudgetPage() {
 
       toast.success(`${data.copiedCount} alocações copiadas de ${monthNamesFull[prev.month - 1]}!`);
       setShowCopyConfirm(false);
+      setCopyMode(null);
       fetchData();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao copiar orçamento");
@@ -843,7 +871,11 @@ export default function BudgetPage() {
   const filterCategories = (categories: CategoryAllocation[]): CategoryAllocation[] => {
     switch (activeFilter) {
       case "underfunded":
-        return categories.filter((c) => c.available < 0);
+        // Categorias sem alocação OU com menos que o planejado
+        return categories.filter((c) =>
+          c.allocated === 0 ||
+          (c.category.plannedAmount > 0 && c.allocated < c.category.plannedAmount)
+        );
       case "overfunded":
         return categories.filter((c) => c.available > c.allocated && c.allocated > 0);
       case "money_available":
@@ -935,7 +967,15 @@ export default function BudgetPage() {
           <div className="flex items-center gap-1">
             <button
               className="px-2 py-1 rounded hover:bg-muted flex items-center gap-1 disabled:opacity-50"
-              onClick={() => handleCopyFromPreviousMonth()}
+              onClick={() => {
+                // If there are existing allocations, show the options modal
+                if (totals.allocated > 0) {
+                  setShowCopyConfirm(true);
+                } else {
+                  // No allocations, just copy everything
+                  handleCopyFromPreviousMonth("all");
+                }
+              }}
               disabled={isCopyingBudget}
               title={`Copiar orçamento de ${monthNamesFull[getPreviousMonth().month - 1]}`}
             >
@@ -954,6 +994,22 @@ export default function BudgetPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
+        {/* Month Planning Banner */}
+        {budgets.length > 0 && monthStatus === "planning" && (
+          <div className="px-4 pt-4">
+            <MonthPlanningBanner
+              budgetId={budgets[0].id}
+              year={currentYear}
+              month={currentMonth}
+              status={monthStatus}
+              totalAllocated={totals.allocated}
+              totalIncome={totalIncome}
+              onStatusChange={fetchData}
+              onCopyFromPrevious={() => handleCopyFromPreviousMonth("all")}
+            />
+          </div>
+        )}
+
         {/* Income Section */}
         {incomeData && incomeData.byMember.length > 0 && (
           <div className="border-b-4 border-green-200 dark:border-green-900">
@@ -1898,28 +1954,70 @@ export default function BudgetPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Copy Budget Confirmation */}
-      <AlertDialog open={showCopyConfirm} onOpenChange={(open) => !open && setShowCopyConfirm(false)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Substituir alocações existentes?</AlertDialogTitle>
-            <AlertDialogDescription>
-              O mês de {monthNamesFull[currentMonth - 1]} já possui alocações configuradas.
-              Deseja substituí-las pelas alocações de {monthNamesFull[getPreviousMonth().month - 1]}?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isCopyingBudget}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => handleCopyFromPreviousMonth(true)}
-              disabled={isCopyingBudget}
+      {/* Copy Budget Confirmation with Options */}
+      <Dialog open={showCopyConfirm} onOpenChange={(open) => { if (!open) { setShowCopyConfirm(false); setCopyMode(null); } }}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="h-5 w-5 text-primary" />
+              Copiar do mês anterior
+            </DialogTitle>
+            <DialogDescription>
+              O mês de {monthNamesFull[currentMonth - 1]} já possui algumas alocações.
+              Como você deseja copiar os valores de {monthNamesFull[getPreviousMonth().month - 1]}?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3 py-4">
+            <button
+              type="button"
+              className={cn(
+                "flex items-start gap-3 p-3 rounded-lg border text-left transition-colors",
+                copyMode === "all" ? "border-primary bg-primary/5" : "border-muted hover:bg-muted/50"
+              )}
+              onClick={() => setCopyMode("all")}
+            >
+              <Copy className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <div>
+                <div className="font-medium text-sm">Copiar todos os valores</div>
+                <div className="text-xs text-muted-foreground">
+                  Sobrescreve todo o planejamento existente
+                </div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              className={cn(
+                "flex items-start gap-3 p-3 rounded-lg border text-left transition-colors",
+                copyMode === "empty_only" ? "border-primary bg-primary/5" : "border-muted hover:bg-muted/50"
+              )}
+              onClick={() => setCopyMode("empty_only")}
+            >
+              <Plus className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <div>
+                <div className="font-medium text-sm">Copiar somente para o que está vazio</div>
+                <div className="text-xs text-muted-foreground">
+                  Mantém valores já planejados
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <DialogFooter className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => { setShowCopyConfirm(false); setCopyMode(null); }} disabled={isCopyingBudget}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => copyMode && handleCopyFromPreviousMonth(copyMode)}
+              disabled={!copyMode || isCopyingBudget}
             >
               {isCopyingBudget && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Substituir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Income Modal */}
       <Dialog open={!!editingIncome} onOpenChange={(open) => !open && setEditingIncome(null)}>

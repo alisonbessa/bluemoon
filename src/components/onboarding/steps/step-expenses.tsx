@@ -24,7 +24,7 @@ const ESSENTIAL_OPTIONS = [
     value: "utilities",
     icon: "💡",
     label: "Contas de casa",
-    description: "Luz, agua, gas, internet",
+    description: "Luz, água, gás, internet",
   },
   {
     value: "groceries",
@@ -35,13 +35,13 @@ const ESSENTIAL_OPTIONS = [
   {
     value: "health",
     icon: "💊",
-    label: "Saude",
-    description: "Plano, remedios, consultas",
+    label: "Saúde",
+    description: "Plano, remédios, consultas",
   },
   {
     value: "education",
     icon: "📚",
-    label: "Educacao",
+    label: "Educação",
     description: "Escola, cursos, materiais",
   },
 ];
@@ -53,21 +53,20 @@ const UTILITY_ITEMS = [
   { value: "internet", icon: "🌐", label: "Internet" },
   { value: "phone", icon: "📱", label: "Telefone" },
   { value: "condominium", icon: "🏢", label: "Condomínio" },
-  { value: "iptu", icon: "🏠", label: "IPTU" },
 ];
 
 const LIFESTYLE_OPTIONS = [
   {
     value: "dining",
     icon: "🍔",
-    label: "Alimentacao fora",
+    label: "Alimentação fora",
     description: "Restaurantes, delivery",
   },
   {
     value: "clothing",
     icon: "👕",
-    label: "Vestuario",
-    description: "Roupas e calcados",
+    label: "Vestuário",
+    description: "Roupas e calçados",
   },
   {
     value: "streaming",
@@ -85,7 +84,7 @@ const LIFESTYLE_OPTIONS = [
     value: "beauty",
     icon: "💇",
     label: "Beleza e cuidados",
-    description: "Cabelo, estetica, etc",
+    description: "Cabelo, estética, etc",
   },
   {
     value: "entertainment",
@@ -114,10 +113,10 @@ export function StepExpenses({
         <div className="text-center mb-8">
           <div className="text-4xl mb-4">🛒</div>
           <h2 className="text-2xl font-bold mb-2">
-            Quais despesas voce tem regularmente?
+            Quais despesas você tem regularmente?
           </h2>
           <p className="text-muted-foreground">
-            Selecione as categorias que fazem sentido para voce
+            Selecione as categorias que fazem sentido para você
           </p>
         </div>
 

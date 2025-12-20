@@ -12,6 +12,7 @@ import {
   StepHousehold,
   StepMemberNames,
   StepHousing,
+  StepHousingCosts,
   StepTransport,
   StepAccounts,
   StepExpenses,
@@ -38,6 +39,7 @@ export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
     goToPrevious,
     updateData,
     updateHousehold,
+    updateHousingCosts,
     toggleArrayItem,
     toggleExpense,
     toggleUtilitiesDetailed,
@@ -62,8 +64,8 @@ export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
       await submit();
       toast.success("Orçamento criado com sucesso!");
       onComplete?.();
-      // Start the tutorial after onboarding
-      startTutorial("post-onboarding");
+      // Redirect to setup flow after onboarding
+      router.push("/app/categories/setup");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Erro ao criar orçamento"
@@ -133,6 +135,17 @@ export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
           <StepHousing
             housing={data.housing}
             onHousingChange={(value) => updateData("housing", value)}
+            onNext={goToNext}
+            onBack={goToPrevious}
+          />
+        );
+
+      case "housing-costs":
+        return (
+          <StepHousingCosts
+            housing={data.housing}
+            housingCosts={data.housingCosts}
+            onHousingCostsChange={updateHousingCosts}
             onNext={goToNext}
             onBack={goToPrevious}
           />
