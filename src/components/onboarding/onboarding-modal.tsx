@@ -64,8 +64,8 @@ export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
       await submit();
       toast.success("Orçamento criado com sucesso!");
       onComplete?.();
-      // Start the tutorial after onboarding
-      startTutorial("post-onboarding");
+      // Redirect to setup flow after onboarding
+      router.push("/app/categories/setup");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Erro ao criar orçamento"

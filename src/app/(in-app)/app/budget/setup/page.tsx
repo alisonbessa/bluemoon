@@ -332,10 +332,10 @@ export default function BudgetSetupPage() {
         </Button>
 
         <Button
-          onClick={() => router.push("/app/budget")}
+          onClick={() => router.push("/app/goals/setup")}
           disabled={!hasCategories || !hasIncome}
         >
-          Começar a Planejar
+          Continuar
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
