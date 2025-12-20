@@ -500,19 +500,40 @@ export default function TransactionsPage() {
           budgetId={budgets[0].id}
           year={currentYear}
           month={currentMonth}
-          onConfirm={(scheduled) => {
-            // Pre-fill form with scheduled transaction data
-            setFormData({
-              type: scheduled.type,
-              amount: formatCurrencyCompact(scheduled.amount),
-              description: scheduled.name,
-              accountId: accounts[0]?.id || "",
-              categoryId: scheduled.categoryId || "",
-              incomeSourceId: scheduled.incomeSourceId || "",
-              toAccountId: "",
-              date: new Date(scheduled.dueDate).toISOString().split("T")[0],
-            });
-            setIsFormOpen(true);
+          onConfirm={async (scheduled) => {
+            // Directly create the transaction as paid
+            if (accounts.length === 0) {
+              toast.error("Nenhuma conta encontrada");
+              return;
+            }
+
+            try {
+              const payload = {
+                budgetId: budgets[0].id,
+                type: scheduled.type,
+                amount: scheduled.amount,
+                description: scheduled.name,
+                accountId: accounts[0].id,
+                categoryId: scheduled.categoryId || undefined,
+                incomeSourceId: scheduled.incomeSourceId || undefined,
+                date: new Date(scheduled.dueDate).toISOString(),
+              };
+
+              const response = await fetch("/api/app/transactions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+
+              if (!response.ok) {
+                throw new Error("Erro ao criar transação");
+              }
+
+              toast.success("Transação confirmada!");
+              fetchData();
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Erro ao confirmar");
+            }
           }}
         />
       )}

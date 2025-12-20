@@ -23,20 +23,20 @@ const GOAL_OPTIONS = [
   {
     value: "house",
     icon: "🏠",
-    label: "Casa propria",
-    description: "Entrada ou imovel completo",
+    label: "Casa própria",
+    description: "Entrada ou imóvel completo",
   },
   {
     value: "car",
     icon: "🚗",
     label: "Carro novo",
-    description: "Trocar ou comprar veiculo",
+    description: "Trocar ou comprar veículo",
   },
   {
     value: "wedding",
     icon: "💒",
     label: "Casamento",
-    description: "Cerimonia e festa",
+    description: "Cerimônia e festa",
   },
   {
     value: "education",
@@ -47,8 +47,8 @@ const GOAL_OPTIONS = [
   {
     value: "emergency",
     icon: "🛡️",
-    label: "Reserva de emergencia",
-    description: "Seguranca financeira",
+    label: "Reserva de emergência",
+    description: "Segurança financeira",
   },
   {
     value: "retirement",
@@ -87,7 +87,7 @@ export function StepGoals({
         <div className="text-center mb-8">
           <div className="text-4xl mb-4">🎯</div>
           <h2 className="text-2xl font-bold mb-2">
-            Voce tem algum sonho ou meta financeira?
+            Você tem algum sonho ou meta financeira?
           </h2>
           <p className="text-muted-foreground">
             Vamos criar categorias para suas metas
@@ -113,7 +113,7 @@ export function StepGoals({
               value={customGoal}
               onChange={(e) => onCustomGoalChange(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Qual e sua meta personalizada?"
+              placeholder="Qual é sua meta personalizada?"
               className="w-full"
               autoFocus
             />

@@ -274,11 +274,29 @@ export const GET = withAuthRequired(async (req, context) => {
     )
     .limit(1);
 
+  // Check if previous month has any allocations
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear = month === 1 ? year - 1 : year;
+
+  const [prevMonthAllocations] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(monthlyAllocations)
+    .where(
+      and(
+        eq(monthlyAllocations.budgetId, budgetId),
+        eq(monthlyAllocations.year, prevYear),
+        eq(monthlyAllocations.month, prevMonth)
+      )
+    );
+
+  const hasPreviousMonthData = (prevMonthAllocations?.count || 0) > 0;
+
   return NextResponse.json({
     year,
     month,
     monthStatus: monthStatus?.status || "planning",
     monthStartedAt: monthStatus?.startedAt || null,
+    hasPreviousMonthData,
     groups: groupedResult,
     totals: overallTotals,
     income: {
