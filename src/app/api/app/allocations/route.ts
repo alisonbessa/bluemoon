@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations } from "@/db/schema";
+import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus } from "@/db/schema";
 import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -261,9 +261,24 @@ export const GET = withAuthRequired(async (req, context) => {
     return g;
   });
 
+  // Get month status
+  const [monthStatus] = await db
+    .select()
+    .from(monthlyBudgetStatus)
+    .where(
+      and(
+        eq(monthlyBudgetStatus.budgetId, budgetId),
+        eq(monthlyBudgetStatus.year, year),
+        eq(monthlyBudgetStatus.month, month)
+      )
+    )
+    .limit(1);
+
   return NextResponse.json({
     year,
     month,
+    monthStatus: monthStatus?.status || "planning",
+    monthStartedAt: monthStatus?.startedAt || null,
     groups: groupedResult,
     totals: overallTotals,
     income: {
