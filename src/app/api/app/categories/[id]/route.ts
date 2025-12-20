@@ -13,6 +13,7 @@ const updateCategorySchema = z.object({
   color: z.string().optional(),
   behavior: categoryBehaviorEnum.optional(),
   plannedAmount: z.number().int().optional(),
+  dueDay: z.number().int().min(1).max(31).optional().nullable(),
   targetAmount: z.number().int().optional().nullable(),
   targetDate: z.string().datetime().or(z.date()).optional().nullable(),
   isArchived: z.boolean().optional(),

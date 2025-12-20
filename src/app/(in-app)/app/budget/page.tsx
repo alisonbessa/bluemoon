@@ -58,6 +58,7 @@ interface Category {
   icon?: string | null;
   behavior: "set_aside" | "refill_up";
   plannedAmount: number;
+  dueDay?: number | null;
 }
 
 interface Group {
@@ -406,8 +407,8 @@ export default function BudgetPage() {
     setEditingCategory({ category, allocated });
     setEditValue((allocated / 100).toFixed(2).replace(".", ","));
     setEditBehavior(category.behavior);
-    setEditFrequency("monthly"); // TODO: load from category when available
-    setEditDueDay(null); // TODO: load from category when available
+    setEditFrequency("monthly");
+    setEditDueDay(category.dueDay ?? null);
     setEditWeekday(null);
     setEditYearMonth(null);
   };
@@ -466,7 +467,8 @@ export default function BudgetPage() {
     const newValue = Math.round(parseFloat(cleanValue || "0") * 100);
 
     try {
-      const response = await fetch("/api/app/allocations", {
+      // Save allocation
+      const allocationResponse = await fetch("/api/app/allocations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -475,12 +477,32 @@ export default function BudgetPage() {
           year: currentYear,
           month: currentMonth,
           allocated: newValue,
-          behavior: editBehavior,
         }),
       });
 
-      if (!response.ok) {
+      if (!allocationResponse.ok) {
         throw new Error("Erro ao atualizar alocação");
+      }
+
+      // Update category behavior and dueDay if changed
+      const categoryUpdates: Record<string, unknown> = {};
+      if (editBehavior !== editingCategory.category.behavior) {
+        categoryUpdates.behavior = editBehavior;
+      }
+      if (editDueDay !== (editingCategory.category.dueDay ?? null)) {
+        categoryUpdates.dueDay = editDueDay;
+      }
+
+      if (Object.keys(categoryUpdates).length > 0) {
+        const categoryResponse = await fetch(`/api/app/categories/${editingCategory.category.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(categoryUpdates),
+        });
+
+        if (!categoryResponse.ok) {
+          console.error("Failed to update category:", await categoryResponse.text());
+        }
       }
 
       toast.success("Alocação atualizada!");
