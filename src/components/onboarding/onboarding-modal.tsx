@@ -12,6 +12,7 @@ import {
   StepHousehold,
   StepMemberNames,
   StepHousing,
+  StepHousingCosts,
   StepTransport,
   StepAccounts,
   StepExpenses,
@@ -38,6 +39,7 @@ export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
     goToPrevious,
     updateData,
     updateHousehold,
+    updateHousingCosts,
     toggleArrayItem,
     toggleExpense,
     toggleUtilitiesDetailed,
@@ -133,6 +135,17 @@ export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
           <StepHousing
             housing={data.housing}
             onHousingChange={(value) => updateData("housing", value)}
+            onNext={goToNext}
+            onBack={goToPrevious}
+          />
+        );
+
+      case "housing-costs":
+        return (
+          <StepHousingCosts
+            housing={data.housing}
+            housingCosts={data.housingCosts}
+            onHousingCostsChange={updateHousingCosts}
             onNext={goToNext}
             onBack={goToPrevious}
           />

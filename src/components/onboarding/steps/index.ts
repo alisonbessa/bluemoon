@@ -3,6 +3,7 @@ export { StepWelcome } from "./step-welcome";
 export { StepHousehold } from "./step-household";
 export { StepMemberNames } from "./step-member-names";
 export { StepHousing } from "./step-housing";
+export { StepHousingCosts } from "./step-housing-costs";
 export { StepTransport } from "./step-transport";
 export { StepAccounts } from "./step-accounts";
 export { StepExpenses } from "./step-expenses";

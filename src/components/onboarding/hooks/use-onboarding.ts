@@ -10,12 +10,32 @@ export interface HouseholdData {
   pets: string[];
 }
 
+export interface HousingCostsData {
+  // Para ALUGUEL (housing === "rent")
+  rentAmount: number; // Valor do aluguel em centavos
+  rentDueDay: number; // Dia do vencimento (1-31)
+
+  // Para FINANCIADO (housing === "mortgage")
+  mortgageCurrentAmount: number; // Valor da parcela atual em centavos
+  mortgageLastAmount: number; // Valor da última parcela em centavos
+  mortgageRemainingMonths: number; // Quantidade de meses restantes
+  mortgagePaidThisMonth: boolean; // Checkbox "Já paguei este mês"
+
+  // Para PRÓPRIO ou FINANCIADO - IPTU
+  hasIptu: boolean;
+  iptuPaymentType: "single" | "installments"; // Parcela única ou parcelado
+  iptuAmount: number; // Valor da parcela/total em centavos
+  iptuInstallments: number; // Número de parcelas (se parcelado, geralmente 10-12)
+}
+
 export interface OnboardingData {
   displayName: string;
 
   household: HouseholdData;
 
   housing: "rent" | "mortgage" | "owned" | "free" | null;
+
+  housingCosts: HousingCostsData;
 
   transport: (
     | "car"
@@ -58,6 +78,18 @@ const initialData: OnboardingData = {
     pets: [],
   },
   housing: null,
+  housingCosts: {
+    rentAmount: 0,
+    rentDueDay: 10,
+    mortgageCurrentAmount: 0,
+    mortgageLastAmount: 0,
+    mortgageRemainingMonths: 0,
+    mortgagePaidThisMonth: false,
+    hasIptu: false,
+    iptuPaymentType: "installments",
+    iptuAmount: 0,
+    iptuInstallments: 10,
+  },
   transport: [],
   accounts: [],
   expenses: {
@@ -77,6 +109,7 @@ export type OnboardingStep =
   | "household"
   | "member-names"
   | "housing"
+  | "housing-costs"
   | "transport"
   | "accounts"
   | "expenses"
@@ -90,6 +123,7 @@ const STEP_ORDER: OnboardingStep[] = [
   "household",
   "member-names",
   "housing",
+  "housing-costs",
   "transport",
   "accounts",
   "expenses",
@@ -125,12 +159,24 @@ export function useOnboarding() {
     );
   }, [data]);
 
+  const needsHousingCostsStep = useCallback(() => {
+    // Only show housing costs step if user pays rent, mortgage, or owns (for IPTU)
+    return data.housing === "rent" || data.housing === "mortgage" || data.housing === "owned";
+  }, [data.housing]);
+
   const getEffectiveSteps = useCallback(() => {
-    if (needsMemberNamesStep()) {
-      return STEP_ORDER;
+    let steps = STEP_ORDER;
+
+    if (!needsMemberNamesStep()) {
+      steps = steps.filter((step) => step !== "member-names");
     }
-    return STEP_ORDER.filter((step) => step !== "member-names");
-  }, [needsMemberNamesStep]);
+
+    if (!needsHousingCostsStep()) {
+      steps = steps.filter((step) => step !== "housing-costs");
+    }
+
+    return steps;
+  }, [needsMemberNamesStep, needsHousingCostsStep]);
 
   const totalSteps = getEffectiveSteps().length;
 
@@ -176,6 +222,16 @@ export function useOnboarding() {
       setData((prev) => ({
         ...prev,
         household: { ...prev.household, [key]: value },
+      }));
+    },
+    []
+  );
+
+  const updateHousingCosts = useCallback(
+    <K extends keyof HousingCostsData>(key: K, value: HousingCostsData[K]) => {
+      setData((prev) => ({
+        ...prev,
+        housingCosts: { ...prev.housingCosts, [key]: value },
       }));
     },
     []
@@ -294,6 +350,7 @@ export function useOnboarding() {
     goToPrevious,
     updateData,
     updateHousehold,
+    updateHousingCosts,
     toggleArrayItem,
     toggleExpense,
     toggleUtilitiesDetailed,

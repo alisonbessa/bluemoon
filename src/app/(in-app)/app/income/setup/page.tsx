@@ -318,7 +318,7 @@ export default function IncomeSetupPage() {
   };
 
   const handleContinue = () => {
-    router.push("/app/budget");
+    router.push("/app/budget/setup");
   };
 
   // Group income sources by type
