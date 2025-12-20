@@ -22,11 +22,28 @@ const householdSchema = z.object({
   pets: z.array(z.string()),
 });
 
+const housingCostsSchema = z.object({
+  // Rent
+  rentAmount: z.number().default(0),
+  rentDueDay: z.number().min(1).max(31).default(10),
+  // Mortgage
+  mortgageCurrentAmount: z.number().default(0),
+  mortgageLastAmount: z.number().default(0),
+  mortgageRemainingMonths: z.number().default(0),
+  mortgagePaidThisMonth: z.boolean().default(false),
+  // IPTU
+  hasIptu: z.boolean().default(false),
+  iptuPaymentType: z.enum(["single", "installments"]).default("installments"),
+  iptuAmount: z.number().default(0),
+  iptuInstallments: z.number().default(10),
+});
+
 const onboardingSchema = z.object({
   data: z.object({
     displayName: z.string().min(1),
     household: householdSchema,
     housing: z.enum(["rent", "mortgage", "owned", "free"]).nullable(),
+    housingCosts: housingCostsSchema.optional(),
     transport: z.array(
       z.enum(["car", "motorcycle", "public", "apps", "bike", "walk"])
     ),
@@ -280,23 +297,54 @@ export const POST = withAuthRequired(async (req, context) => {
     icon: string;
     behavior: "refill_up" | "set_aside";
     plannedAmount: number;
+    dueDay?: number;
     displayOrder: number;
   }> = [];
 
   let displayOrder = 0;
 
   // Essential categories
+  const housingCosts = data.housingCosts;
 
-  // Housing category
-  if (data.housing && HOUSING_CATEGORIES[data.housing]) {
-    const cat = HOUSING_CATEGORIES[data.housing];
+  // Housing category with amounts and due dates from housingCosts
+  if (data.housing === "rent" && housingCosts?.rentAmount) {
     categoryInserts.push({
       budgetId: newBudget.id,
       groupId: groupByCode.essential.id,
-      name: cat.name,
-      icon: cat.icon,
+      name: "Aluguel",
+      icon: "🏠",
       behavior: "refill_up",
-      plannedAmount: 0,
+      plannedAmount: housingCosts.rentAmount,
+      dueDay: housingCosts.rentDueDay || 10,
+      displayOrder: displayOrder++,
+    });
+  } else if (data.housing === "mortgage" && housingCosts?.mortgageCurrentAmount) {
+    categoryInserts.push({
+      budgetId: newBudget.id,
+      groupId: groupByCode.essential.id,
+      name: "Financiamento Imobiliário",
+      icon: "🏡",
+      behavior: "refill_up",
+      plannedAmount: housingCosts.mortgageCurrentAmount,
+      dueDay: 10, // Default due day for mortgage
+      displayOrder: displayOrder++,
+    });
+  }
+
+  // IPTU category (for owned or mortgaged homes)
+  if ((data.housing === "owned" || data.housing === "mortgage") && housingCosts?.hasIptu && housingCosts.iptuAmount > 0) {
+    const iptuMonthlyAmount = housingCosts.iptuPaymentType === "installments"
+      ? housingCosts.iptuAmount
+      : Math.round(housingCosts.iptuAmount / 12);
+
+    categoryInserts.push({
+      budgetId: newBudget.id,
+      groupId: groupByCode.essential.id,
+      name: "IPTU",
+      icon: "🏠",
+      behavior: "refill_up",
+      plannedAmount: iptuMonthlyAmount,
+      dueDay: 15, // Common IPTU due day
       displayOrder: displayOrder++,
     });
   }
