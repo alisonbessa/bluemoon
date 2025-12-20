@@ -50,6 +50,7 @@ import { format, isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ScheduledTransactions } from "@/components/transactions";
 
 interface Category {
   id: string;
@@ -492,6 +493,29 @@ export default function TransactionsPage() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Scheduled Transactions */}
+      {budgets.length > 0 && (
+        <ScheduledTransactions
+          budgetId={budgets[0].id}
+          year={currentYear}
+          month={currentMonth}
+          onConfirm={(scheduled) => {
+            // Pre-fill form with scheduled transaction data
+            setFormData({
+              type: scheduled.type,
+              amount: formatCurrencyCompact(scheduled.amount),
+              description: scheduled.name,
+              accountId: accounts[0]?.id || "",
+              categoryId: scheduled.categoryId || "",
+              incomeSourceId: scheduled.incomeSourceId || "",
+              toAccountId: "",
+              date: new Date(scheduled.dueDate).toISOString().split("T")[0],
+            });
+            setIsFormOpen(true);
+          }}
+        />
+      )}
 
       {/* Compact Transactions Table */}
       {transactions.length > 0 ? (
