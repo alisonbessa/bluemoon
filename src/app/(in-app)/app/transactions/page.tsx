@@ -43,6 +43,8 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowLeftRight,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { format, isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -132,7 +134,15 @@ function groupTransactionsByDate(transactions: Transaction[]): Map<string, Trans
   return grouped;
 }
 
+const monthNames = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
 export default function TransactionsPage() {
+  const today = new Date();
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -142,6 +152,24 @@ export default function TransactionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const { isExpanded, toggleGroup, setExpandedGroups } = useExpandedGroups([]);
+
+  const handlePrevMonth = () => {
+    if (currentMonth === 1) {
+      setCurrentYear((y) => y - 1);
+      setCurrentMonth(12);
+    } else {
+      setCurrentMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 12) {
+      setCurrentYear((y) => y + 1);
+      setCurrentMonth(1);
+    } else {
+      setCurrentMonth((m) => m + 1);
+    }
+  };
 
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -162,9 +190,13 @@ export default function TransactionsPage() {
   });
 
   const fetchData = useCallback(async () => {
+    // Calculate start and end dates for the current month
+    const startDate = new Date(currentYear, currentMonth - 1, 1);
+    const endDate = new Date(currentYear, currentMonth, 0);
+
     try {
       const [transactionsRes, categoriesRes, accountsRes, budgetsRes, incomeSourcesRes] = await Promise.all([
-        fetch("/api/app/transactions?limit=200"),
+        fetch(`/api/app/transactions?limit=500&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
         fetch("/api/app/categories"),
         fetch("/api/app/accounts"),
         fetch("/api/app/budgets"),
@@ -205,7 +237,7 @@ export default function TransactionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [currentYear, currentMonth]);
 
   useEffect(() => {
     fetchData();
@@ -341,17 +373,12 @@ export default function TransactionsPage() {
     new Date(b).getTime() - new Date(a).getTime()
   );
 
-  // Calculate totals for the current month
-  const now = new Date();
-  const currentMonthTransactions = transactions.filter((t) =>
-    isSameMonth(new Date(t.date), now)
-  );
-
-  const totalIncome = currentMonthTransactions
+  // Calculate totals for the selected month (transactions are already filtered by month from API)
+  const totalIncome = transactions
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalExpenses = currentMonthTransactions
+  const totalExpenses = transactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
 
@@ -386,10 +413,24 @@ export default function TransactionsPage() {
             Gerencie todas as suas movimentações financeiras
           </p>
         </div>
-        <Button onClick={openCreateForm} size="sm">
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Transação
-        </Button>
+        <div className="flex items-center gap-4">
+          {/* Month Navigation */}
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevMonth}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-semibold min-w-[120px] text-center">
+              {monthNames[currentMonth - 1]} {currentYear}
+            </span>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNextMonth}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button onClick={openCreateForm} size="sm">
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Transação
+          </Button>
+        </div>
       </div>
 
       {/* Summary */}
@@ -397,7 +438,7 @@ export default function TransactionsPage() {
         <div className="rounded-lg border bg-card p-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <TrendingUp className="h-4 w-4 text-green-500" />
-            <span>Receitas ({format(now, "MMM", { locale: ptBR })})</span>
+            <span>Receitas</span>
           </div>
           <div className="mt-1 text-xl font-bold text-green-600">
             {formatCurrency(totalIncome)}
@@ -407,7 +448,7 @@ export default function TransactionsPage() {
         <div className="rounded-lg border bg-card p-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <TrendingDown className="h-4 w-4 text-red-500" />
-            <span>Despesas ({format(now, "MMM", { locale: ptBR })})</span>
+            <span>Despesas</span>
           </div>
           <div className="mt-1 text-xl font-bold text-red-600">
             {formatCurrency(totalExpenses)}
@@ -417,7 +458,7 @@ export default function TransactionsPage() {
         <div className="rounded-lg border bg-card p-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Receipt className="h-4 w-4" />
-            <span>Saldo ({format(now, "MMM", { locale: ptBR })})</span>
+            <span>Saldo</span>
           </div>
           <div className={cn(
             "mt-1 text-xl font-bold",

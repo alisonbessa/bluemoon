@@ -11,7 +11,7 @@ const copyAllocationsSchema = z.object({
   fromMonth: z.number().int().min(1).max(12),
   toYear: z.number().int().min(2020).max(2100),
   toMonth: z.number().int().min(1).max(12),
-  overwrite: z.boolean().optional().default(false),
+  mode: z.enum(["all", "empty_only"]).optional().default("all"),
 });
 
 // Helper to get user's budget IDs
@@ -36,7 +36,7 @@ export const POST = withAuthRequired(async (req, context) => {
     );
   }
 
-  const { budgetId, fromYear, fromMonth, toYear, toMonth, overwrite } = validation.data;
+  const { budgetId, fromYear, fromMonth, toYear, toMonth, mode } = validation.data;
 
   // Check user has access to budget
   const budgetIds = await getUserBudgetIds(session.user.id);
@@ -111,31 +111,38 @@ export const POST = withAuthRequired(async (req, context) => {
           )
         );
 
-      if (existingAllocations.length > 0 && !overwrite) {
-        return NextResponse.json(
-          {
-            error: "Target month already has allocations",
-            existingCount: existingAllocations.length,
-            requiresOverwrite: true,
-          },
-          { status: 409 }
-        );
-      }
-
-      if (overwrite && existingAllocations.length > 0) {
-        // Delete existing allocations
-        await db
-          .delete(monthlyAllocations)
-          .where(
-            and(
-              eq(monthlyAllocations.budgetId, budgetId),
-              eq(monthlyAllocations.year, toYear),
-              eq(monthlyAllocations.month, toMonth)
-            )
+      if (existingAllocations.length > 0) {
+        if (mode === "all") {
+          // Delete existing allocations and copy all
+          await db
+            .delete(monthlyAllocations)
+            .where(
+              and(
+                eq(monthlyAllocations.budgetId, budgetId),
+                eq(monthlyAllocations.year, toYear),
+                eq(monthlyAllocations.month, toMonth)
+              )
+            );
+          await db.insert(monthlyAllocations).values(allocationsToCreate);
+        } else {
+          // mode === "empty_only": only copy to categories without allocation
+          const existingCategoryIds = existingAllocations.map((a) => a.categoryId);
+          const allocationsToAdd = allocationsToCreate.filter(
+            (a) => !existingCategoryIds.includes(a.categoryId)
           );
+          if (allocationsToAdd.length > 0) {
+            await db.insert(monthlyAllocations).values(allocationsToAdd);
+          }
+          return NextResponse.json({
+            success: true,
+            copiedCount: allocationsToAdd.length,
+            skippedCount: allocationsToCreate.length - allocationsToAdd.length,
+            source: "category_defaults",
+          });
+        }
+      } else {
+        await db.insert(monthlyAllocations).values(allocationsToCreate);
       }
-
-      await db.insert(monthlyAllocations).values(allocationsToCreate);
 
       return NextResponse.json({
         success: true,
@@ -162,30 +169,6 @@ export const POST = withAuthRequired(async (req, context) => {
       )
     );
 
-  if (existingAllocations.length > 0 && !overwrite) {
-    return NextResponse.json(
-      {
-        error: "Target month already has allocations",
-        existingCount: existingAllocations.length,
-        requiresOverwrite: true,
-      },
-      { status: 409 }
-    );
-  }
-
-  // Delete existing if overwriting
-  if (overwrite && existingAllocations.length > 0) {
-    await db
-      .delete(monthlyAllocations)
-      .where(
-        and(
-          eq(monthlyAllocations.budgetId, budgetId),
-          eq(monthlyAllocations.year, toYear),
-          eq(monthlyAllocations.month, toMonth)
-        )
-      );
-  }
-
   // Create new allocations from source
   const allocationsToCreate = sourceAllocations.map((alloc) => ({
     budgetId,
@@ -195,6 +178,44 @@ export const POST = withAuthRequired(async (req, context) => {
     allocated: alloc.allocated,
     carriedOver: 0, // Reset carried over for new month
   }));
+
+  if (existingAllocations.length > 0) {
+    if (mode === "all") {
+      // Delete existing allocations and copy all
+      await db
+        .delete(monthlyAllocations)
+        .where(
+          and(
+            eq(monthlyAllocations.budgetId, budgetId),
+            eq(monthlyAllocations.year, toYear),
+            eq(monthlyAllocations.month, toMonth)
+          )
+        );
+      await db.insert(monthlyAllocations).values(allocationsToCreate);
+
+      return NextResponse.json({
+        success: true,
+        copiedCount: allocationsToCreate.length,
+        source: "previous_month",
+      });
+    } else {
+      // mode === "empty_only": only copy to categories without allocation
+      const existingCategoryIds = existingAllocations.map((a) => a.categoryId);
+      const allocationsToAdd = allocationsToCreate.filter(
+        (a) => !existingCategoryIds.includes(a.categoryId)
+      );
+      if (allocationsToAdd.length > 0) {
+        await db.insert(monthlyAllocations).values(allocationsToAdd);
+      }
+
+      return NextResponse.json({
+        success: true,
+        copiedCount: allocationsToAdd.length,
+        skippedCount: allocationsToCreate.length - allocationsToAdd.length,
+        source: "previous_month",
+      });
+    }
+  }
 
   await db.insert(monthlyAllocations).values(allocationsToCreate);
 

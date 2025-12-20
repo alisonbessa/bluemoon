@@ -107,7 +107,7 @@ const suggestedCategoriesByGroup: Record<string, Array<{ name: string; icon: str
   ],
   goals: [
     { name: "Viagem", icon: "✈️" },
-    { name: "Carro Novo", icon: "🚙" },
+    { name: "Carro", icon: "🚙" },
     { name: "Casa/Apartamento", icon: "🏡" },
     { name: "Casamento", icon: "💒" },
     { name: "Reforma", icon: "🔨" },

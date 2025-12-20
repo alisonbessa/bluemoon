@@ -71,9 +71,17 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isLoading, error, mutate } = useUser();
 
-  const showOnboarding = !isLoading && user && !user.onboardingCompletedAt;
+  const hasSkippedOnboarding = typeof window !== "undefined" && localStorage.getItem("onboarding-skipped") === "true";
+  const showOnboarding = !isLoading && user && !user.onboardingCompletedAt && !hasSkippedOnboarding;
 
   const handleOnboardingComplete = () => {
+    mutate();
+  };
+
+  const handleOnboardingSkip = () => {
+    // Save to localStorage that user skipped onboarding
+    localStorage.setItem("onboarding-skipped", "true");
+    // Mutate to refresh user state (modal will close since we set the skip flag)
     mutate();
   };
 
@@ -101,7 +109,10 @@ function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="grow p-4 sm:p-2 max-w-7xl mx-auto w-full">{children}</div>
 
           {showOnboarding && (
-            <OnboardingModal onComplete={handleOnboardingComplete} />
+            <OnboardingModal
+              onComplete={handleOnboardingComplete}
+              onSkip={handleOnboardingSkip}
+            />
           )}
 
           <TutorialOverlay />

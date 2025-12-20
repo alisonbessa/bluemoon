@@ -498,9 +498,9 @@ export default function IncomeSetupPage() {
 
       {/* Actions */}
       <div className="flex items-center justify-between border-t pt-4">
-        <Button variant="outline" onClick={() => openCreateForm()}>
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar Renda
+        <Button variant="outline" onClick={() => router.push("/app/accounts")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Voltar para Contas
         </Button>
 
         <Button onClick={handleContinue} disabled={incomeSources.length === 0}>
