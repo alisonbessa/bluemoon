@@ -123,12 +123,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      // SECURITY: Disabled to prevent account takeover via email linking
-      allowDangerousEmailAccountLinking: false,
-    }),
+    // Only include Google provider if credentials are set
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            // SECURITY: Disabled to prevent account takeover via email linking
+            allowDangerousEmailAccountLinking: false,
+          }),
+        ]
+      : []),
     emailProvider,
     // Password-based authentication
     ...(appConfig.auth?.enablePasswordAuth
