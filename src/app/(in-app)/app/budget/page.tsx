@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { MonthPlanningBanner } from "@/components/budget";
 
 interface Category {
   id: string;
@@ -206,6 +207,7 @@ export default function BudgetPage() {
   const [totals, setTotals] = useState({ allocated: 0, spent: 0, available: 0 });
   const [incomeData, setIncomeData] = useState<IncomeData | null>(null);
   const [totalIncome, setTotalIncome] = useState(0);
+  const [monthStatus, setMonthStatus] = useState<"planning" | "active" | "closed">("planning");
   const [isLoading, setIsLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [expandedIncomeMembers, setExpandedIncomeMembers] = useState<string[]>([]);
@@ -320,6 +322,7 @@ export default function BudgetPage() {
             setGroupsData(allocData.groups || []);
             setTotals(allocData.totals || { allocated: 0, spent: 0, available: 0 });
             setExpandedGroups(allocData.groups?.map((g: GroupData) => g.group.id) || []);
+            setMonthStatus(allocData.monthStatus || "planning");
 
             // Set income data from allocations API
             if (allocData.income) {
@@ -991,6 +994,22 @@ export default function BudgetPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
+        {/* Month Planning Banner */}
+        {budgets.length > 0 && monthStatus === "planning" && (
+          <div className="px-4 pt-4">
+            <MonthPlanningBanner
+              budgetId={budgets[0].id}
+              year={currentYear}
+              month={currentMonth}
+              status={monthStatus}
+              totalAllocated={totals.allocated}
+              totalIncome={totalIncome}
+              onStatusChange={fetchData}
+              onCopyFromPrevious={() => handleCopyFromPreviousMonth("all")}
+            />
+          </div>
+        )}
+
         {/* Income Section */}
         {incomeData && incomeData.byMember.length > 0 && (
           <div className="border-b-4 border-green-200 dark:border-green-900">
