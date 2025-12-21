@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -33,7 +34,7 @@ interface GoalFormModalProps {
   onSuccess?: () => void;
 }
 
-const EMOJI_OPTIONS = ["🎯", "✈️", "🏠", "🚗", "💍", "🎓", "💻", "📱", "🏖️", "💰", "🎁", "🛒"];
+const EMOJI_OPTIONS = ["🎯", "✈️", "🏠", "🚗", "💍", "🎓", "💻", "📱", "🏖️", "💰", "🎁", "🛒", "👴"];
 const COLOR_OPTIONS = [
   "#8b5cf6", // violet
   "#ec4899", // pink
@@ -61,9 +62,30 @@ export function GoalFormModal({
     name: editingGoal?.name || "",
     icon: editingGoal?.icon || "🎯",
     color: editingGoal?.color || "#8b5cf6",
-    targetAmount: editingGoal ? editingGoal.targetAmount / 100 : 0,
+    targetAmount: editingGoal?.targetAmount || 0, // stored in cents
     targetDate: editingGoal?.targetDate?.split("T")[0] || "",
   });
+
+  // Reset form when editingGoal changes
+  useEffect(() => {
+    if (editingGoal) {
+      setFormData({
+        name: editingGoal.name,
+        icon: editingGoal.icon,
+        color: editingGoal.color,
+        targetAmount: editingGoal.targetAmount,
+        targetDate: editingGoal.targetDate?.split("T")[0] || "",
+      });
+    } else {
+      setFormData({
+        name: "",
+        icon: "🎯",
+        color: "#8b5cf6",
+        targetAmount: 0,
+        targetDate: "",
+      });
+    }
+  }, [editingGoal, open]);
 
   const resetForm = () => {
     setFormData({
@@ -93,7 +115,7 @@ export function GoalFormModal({
     try {
       const payload = {
         ...formData,
-        targetAmount: Math.round(formData.targetAmount * 100),
+        targetAmount: formData.targetAmount, // already in cents
         budgetId,
       };
 
@@ -196,23 +218,14 @@ export function GoalFormModal({
           {/* Target Amount */}
           <div className="space-y-2">
             <Label htmlFor="goal-targetAmount">Valor alvo</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                R$
-              </span>
-              <Input
-                id="goal-targetAmount"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0,00"
-                className="pl-10"
-                value={formData.targetAmount || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, targetAmount: parseFloat(e.target.value) || 0 })
-                }
-              />
-            </div>
+            <CurrencyInput
+              id="goal-targetAmount"
+              value={formData.targetAmount}
+              onChange={(valueInCents) =>
+                setFormData({ ...formData, targetAmount: valueInCents })
+              }
+              placeholder="0,00"
+            />
           </div>
 
           {/* Target Date */}
