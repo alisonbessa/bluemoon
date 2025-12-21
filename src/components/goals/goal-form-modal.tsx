@@ -1,5 +1,7 @@
-'use client';
+"use client";
 
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,43 +9,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-const EMOJI_OPTIONS = [
-  '🎯',
-  '✈️',
-  '🏠',
-  '🚗',
-  '💍',
-  '🎓',
-  '💻',
-  '📱',
-  '🏖️',
-  '💰',
-  '🎁',
-  '🛒',
-];
-
-const COLOR_OPTIONS = [
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#f43f5e', // rose
-  '#ef4444', // red
-  '#f97316', // orange
-  '#eab308', // yellow
-  '#22c55e', // green
-  '#14b8a6', // teal
-  '#06b6d4', // cyan
-  '#3b82f6', // blue
-  '#6366f1', // indigo
-  '#a855f7', // purple
-];
-
-export interface GoalFormData {
+interface Goal {
+  id: string;
   name: string;
   icon: string;
   color: string;
@@ -52,40 +26,126 @@ export interface GoalFormData {
 }
 
 interface GoalFormModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  isEditing: boolean;
-  formData: GoalFormData;
-  setFormData: (data: GoalFormData) => void;
-  onSubmit: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  budgetId: string;
+  editingGoal?: Goal | null;
+  onSuccess?: () => void;
 }
 
+const EMOJI_OPTIONS = ["🎯", "✈️", "🏠", "🚗", "💍", "🎓", "💻", "📱", "🏖️", "💰", "🎁", "🛒"];
+const COLOR_OPTIONS = [
+  "#8b5cf6", // violet
+  "#ec4899", // pink
+  "#f43f5e", // rose
+  "#ef4444", // red
+  "#f97316", // orange
+  "#eab308", // yellow
+  "#22c55e", // green
+  "#14b8a6", // teal
+  "#06b6d4", // cyan
+  "#3b82f6", // blue
+  "#6366f1", // indigo
+  "#a855f7", // purple
+];
+
 export function GoalFormModal({
-  isOpen,
-  onClose,
-  isEditing,
-  formData,
-  setFormData,
-  onSubmit,
+  open,
+  onOpenChange,
+  budgetId,
+  editingGoal,
+  onSuccess,
 }: GoalFormModalProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: editingGoal?.name || "",
+    icon: editingGoal?.icon || "🎯",
+    color: editingGoal?.color || "#8b5cf6",
+    targetAmount: editingGoal ? editingGoal.targetAmount / 100 : 0,
+    targetDate: editingGoal?.targetDate?.split("T")[0] || "",
+  });
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      icon: "🎯",
+      color: "#8b5cf6",
+      targetAmount: 0,
+      targetDate: "",
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.name.trim()) {
+      toast.error("Nome da meta é obrigatório");
+      return;
+    }
+    if (formData.targetAmount <= 0) {
+      toast.error("Valor alvo deve ser maior que zero");
+      return;
+    }
+    if (!formData.targetDate) {
+      toast.error("Data limite é obrigatória");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        ...formData,
+        targetAmount: Math.round(formData.targetAmount * 100),
+        budgetId,
+      };
+
+      let response;
+      if (editingGoal) {
+        response = await fetch(`/api/app/goals/${editingGoal.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        response = await fetch("/api/app/goals", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao salvar meta");
+      }
+
+      toast.success(editingGoal ? "Meta atualizada!" : "Meta criada!");
+      onOpenChange(false);
+      resetForm();
+      onSuccess?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar meta");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar Meta' : 'Nova Meta'}</DialogTitle>
+          <DialogTitle>{editingGoal ? "Editar Meta" : "Nova Meta"}</DialogTitle>
           <DialogDescription>
-            {isEditing
-              ? 'Altere os dados da sua meta financeira'
-              : 'Defina uma meta financeira com valor e prazo'}
+            {editingGoal
+              ? "Altere os dados da sua meta financeira"
+              : "Defina uma meta financeira com valor e prazo"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Name */}
           <div className="space-y-2">
-            <Label htmlFor="name">Nome da meta</Label>
+            <Label htmlFor="goal-name">Nome da meta</Label>
             <Input
-              id="name"
+              id="goal-name"
               placeholder="Ex: Viagem Disney, Casa própria..."
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -102,10 +162,10 @@ export function GoalFormModal({
                   type="button"
                   onClick={() => setFormData({ ...formData, icon: emoji })}
                   className={cn(
-                    'w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all',
+                    "w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all",
                     formData.icon === emoji
-                      ? 'bg-primary/20 ring-2 ring-primary'
-                      : 'bg-muted hover:bg-muted/80'
+                      ? "bg-primary/20 ring-2 ring-primary"
+                      : "bg-muted hover:bg-muted/80"
                   )}
                 >
                   {emoji}
@@ -124,8 +184,8 @@ export function GoalFormModal({
                   type="button"
                   onClick={() => setFormData({ ...formData, color })}
                   className={cn(
-                    'w-8 h-8 rounded-full transition-all',
-                    formData.color === color && 'ring-2 ring-offset-2 ring-primary'
+                    "w-8 h-8 rounded-full transition-all",
+                    formData.color === color && "ring-2 ring-offset-2 ring-primary"
                   )}
                   style={{ backgroundColor: color }}
                 />
@@ -135,24 +195,21 @@ export function GoalFormModal({
 
           {/* Target Amount */}
           <div className="space-y-2">
-            <Label htmlFor="targetAmount">Valor alvo</Label>
+            <Label htmlFor="goal-targetAmount">Valor alvo</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                 R$
               </span>
               <Input
-                id="targetAmount"
+                id="goal-targetAmount"
                 type="number"
                 step="0.01"
                 min="0"
                 placeholder="0,00"
                 className="pl-10"
-                value={formData.targetAmount || ''}
+                value={formData.targetAmount || ""}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    targetAmount: parseFloat(e.target.value) || 0,
-                  })
+                  setFormData({ ...formData, targetAmount: parseFloat(e.target.value) || 0 })
                 }
               />
             </div>
@@ -160,24 +217,25 @@ export function GoalFormModal({
 
           {/* Target Date */}
           <div className="space-y-2">
-            <Label htmlFor="targetDate">Data limite</Label>
+            <Label htmlFor="goal-targetDate">Data limite</Label>
             <Input
-              id="targetDate"
+              id="goal-targetDate"
               type="date"
               value={formData.targetDate}
-              onChange={(e) =>
-                setFormData({ ...formData, targetDate: e.target.value })
-              }
-              min={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
+              min={new Date().toISOString().split("T")[0]}
             />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancelar
           </Button>
-          <Button onClick={onSubmit}>{isEditing ? 'Salvar' : 'Criar'}</Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {editingGoal ? "Salvar" : "Criar Meta"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

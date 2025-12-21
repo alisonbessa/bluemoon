@@ -51,7 +51,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { MonthPlanningBanner } from "@/components/budget";
+import { GoalFormModal } from "@/components/goals";
 
 interface Category {
   id: string;
@@ -207,7 +207,7 @@ export default function BudgetPage() {
   const [totals, setTotals] = useState({ allocated: 0, spent: 0, available: 0 });
   const [incomeData, setIncomeData] = useState<IncomeData | null>(null);
   const [totalIncome, setTotalIncome] = useState(0);
-  const [monthStatus, setMonthStatus] = useState<"planning" | "active" | "closed">("planning");
+  const [hasPreviousMonthData, setHasPreviousMonthData] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [expandedIncomeMembers, setExpandedIncomeMembers] = useState<string[]>([]);
@@ -215,6 +215,7 @@ export default function BudgetPage() {
   const [isExpensesExpanded, setIsExpensesExpanded] = useState(true);
   const [isGoalsExpanded, setIsGoalsExpanded] = useState(true);
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [editingCategory, setEditingCategory] = useState<{
@@ -322,7 +323,7 @@ export default function BudgetPage() {
             setGroupsData(allocData.groups || []);
             setTotals(allocData.totals || { allocated: 0, spent: 0, available: 0 });
             setExpandedGroups(allocData.groups?.map((g: GroupData) => g.group.id) || []);
-            setMonthStatus(allocData.monthStatus || "planning");
+            setHasPreviousMonthData(allocData.hasPreviousMonthData || false);
 
             // Set income data from allocations API
             if (allocData.income) {
@@ -356,12 +357,15 @@ export default function BudgetPage() {
     fetchData();
   }, [fetchData]);
 
-  // Show copy hint modal when no allocations exist for current month
+  // Show copy hint modal when no allocations exist for current month AND previous month has data
   useEffect(() => {
     if (isLoading || groupsData.length === 0) return;
 
     const hasAllocations = totals.allocated > 0;
     if (hasAllocations) return;
+
+    // Only show hint if previous month has data to copy
+    if (!hasPreviousMonthData) return;
 
     // Check if user dismissed this hint for this specific month
     const dismissedKey = `copy-hint-dismissed-${currentYear}-${currentMonth}`;
@@ -370,7 +374,7 @@ export default function BudgetPage() {
     if (!wasDismissed) {
       setShowCopyHintModal(true);
     }
-  }, [isLoading, groupsData.length, totals.allocated, currentYear, currentMonth]);
+  }, [isLoading, groupsData.length, totals.allocated, currentYear, currentMonth, hasPreviousMonthData]);
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups((prev) =>
@@ -965,23 +969,25 @@ export default function BudgetPage() {
             ))}
           </div>
           <div className="flex items-center gap-1">
-            <button
-              className="px-2 py-1 rounded hover:bg-muted flex items-center gap-1 disabled:opacity-50"
-              onClick={() => {
-                // If there are existing allocations, show the options modal
-                if (totals.allocated > 0) {
-                  setShowCopyConfirm(true);
-                } else {
-                  // No allocations, just copy everything
-                  handleCopyFromPreviousMonth("all");
-                }
-              }}
-              disabled={isCopyingBudget}
-              title={`Copiar orçamento de ${monthNamesFull[getPreviousMonth().month - 1]}`}
-            >
-              {isCopyingBudget ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
-              <span className="hidden sm:inline">Copiar de {monthNamesFull[getPreviousMonth().month - 1]}</span>
-            </button>
+            {hasPreviousMonthData && (
+              <button
+                className="px-2 py-1 rounded hover:bg-muted flex items-center gap-1 disabled:opacity-50"
+                onClick={() => {
+                  // If there are existing allocations, show the options modal
+                  if (totals.allocated > 0) {
+                    setShowCopyConfirm(true);
+                  } else {
+                    // No allocations, just copy everything
+                    handleCopyFromPreviousMonth("all");
+                  }
+                }}
+                disabled={isCopyingBudget}
+                title={`Copiar orçamento de ${monthNamesFull[getPreviousMonth().month - 1]}`}
+              >
+                {isCopyingBudget ? <Loader2 className="h-3 w-3 animate-spin" /> : <Copy className="h-3 w-3" />}
+                <span className="hidden sm:inline">Copiar de {monthNamesFull[getPreviousMonth().month - 1]}</span>
+              </button>
+            )}
             <button className="px-2 py-1 rounded hover:bg-muted flex items-center gap-1">
               <Plus className="h-3 w-3" /> Grupo
             </button>
@@ -994,22 +1000,6 @@ export default function BudgetPage() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        {/* Month Planning Banner */}
-        {budgets.length > 0 && monthStatus === "planning" && (
-          <div className="px-4 pt-4">
-            <MonthPlanningBanner
-              budgetId={budgets[0].id}
-              year={currentYear}
-              month={currentMonth}
-              status={monthStatus}
-              totalAllocated={totals.allocated}
-              totalIncome={totalIncome}
-              onStatusChange={fetchData}
-              onCopyFromPrevious={() => handleCopyFromPreviousMonth("all")}
-            />
-          </div>
-        )}
-
         {/* Income Section */}
         {incomeData && incomeData.byMember.length > 0 && (
           <div className="border-b-4 border-green-200 dark:border-green-900">
@@ -1218,34 +1208,48 @@ export default function BudgetPage() {
         )}
 
         {/* Goals Section */}
-        {goals.length > 0 && (
-          <div className="border-b">
-            {/* Goals Section Header - Clickable Toggle */}
-            <div
-              className="px-4 py-2 bg-violet-100 dark:bg-violet-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-violet-200/50 dark:hover:bg-violet-950/70 transition-colors"
-              onClick={() => setIsGoalsExpanded(!isGoalsExpanded)}
-            >
-              <div className="flex items-center gap-2">
-                <ChevronDown className={cn("h-4 w-4 text-violet-700 dark:text-violet-300 transition-transform", !isGoalsExpanded && "-rotate-90")} />
-                <Target className="h-4 w-4 text-violet-700 dark:text-violet-300" />
-                <span className="font-bold text-sm text-violet-800 dark:text-violet-200">METAS</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-xs text-muted-foreground font-normal">Mensal sugerido:</span>
-                <span className="font-bold text-violet-800 dark:text-violet-200">
-                  {formatCurrency(goals.reduce((sum, g) => sum + g.monthlyTarget, 0))}
-                </span>
+        <div className="border-b">
+          {/* Goals Section Header - Clickable Toggle */}
+          <div
+            className="px-4 py-2 bg-violet-100 dark:bg-violet-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-violet-200/50 dark:hover:bg-violet-950/70 transition-colors"
+            onClick={() => setIsGoalsExpanded(!isGoalsExpanded)}
+          >
+            <div className="flex items-center gap-2">
+              <ChevronDown className={cn("h-4 w-4 text-violet-700 dark:text-violet-300 transition-transform", !isGoalsExpanded && "-rotate-90")} />
+              <Target className="h-4 w-4 text-violet-700 dark:text-violet-300" />
+              <span className="font-bold text-sm text-violet-800 dark:text-violet-200">METAS</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              {goals.length > 0 && (
+                <>
+                  <span className="text-xs text-muted-foreground font-normal">Mensal sugerido:</span>
+                  <span className="font-bold text-violet-800 dark:text-violet-200">
+                    {formatCurrency(goals.reduce((sum, g) => sum + g.monthlyTarget, 0))}
+                  </span>
+                </>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsGoalFormOpen(true);
+                }}
+                className="ml-2 px-2 py-0.5 text-xs bg-violet-600 text-white rounded hover:bg-violet-700 transition-colors flex items-center gap-1"
+              >
+                <Plus className="h-3 w-3" /> Nova Meta
+              </button>
+              {goals.length > 0 && (
                 <Link
                   href="/app/goals"
-                  className="ml-2 text-xs text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1"
+                  className="ml-1 text-xs text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1"
                   onClick={(e) => e.stopPropagation()}
                 >
                   Ver todas <ArrowRight className="h-3 w-3" />
                 </Link>
-              </div>
+              )}
             </div>
+          </div>
 
-            {isGoalsExpanded && (
+            {isGoalsExpanded && goals.length > 0 && (
               <>
                 {/* Goals Table Header */}
                 <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
@@ -1291,8 +1295,21 @@ export default function BudgetPage() {
                 ))}
               </>
             )}
+
+            {/* Empty state for goals */}
+            {isGoalsExpanded && goals.length === 0 && (
+              <div className="p-6 text-center text-muted-foreground">
+                <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Nenhuma meta criada ainda</p>
+                <button
+                  onClick={() => setIsGoalFormOpen(true)}
+                  className="mt-2 text-sm text-violet-600 dark:text-violet-400 hover:underline"
+                >
+                  Criar sua primeira meta
+                </button>
+              </div>
+            )}
           </div>
-        )}
 
         {/* Expenses Section */}
         {groupsData.length > 0 && (
@@ -2098,17 +2115,17 @@ export default function BudgetPage() {
               Copiar planejamento anterior
             </DialogTitle>
             <DialogDescription>
-              Parece que {monthNamesFull[currentMonth - 1]} ainda nao tem um planejamento definido.
+              Parece que {monthNamesFull[currentMonth - 1]} ainda não tem um planejamento definido.
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
             <p className="text-sm text-muted-foreground">
-              Voce pode copiar o planejamento de{" "}
+              Você pode copiar o planejamento de{" "}
               <span className="font-medium text-foreground">
                 {monthNamesFull[getPreviousMonth().month - 1]}
               </span>{" "}
-              para comecar rapidamente, ou definir os valores manualmente clicando em cada categoria.
+              para começar rapidamente, ou definir os valores manualmente clicando em cada categoria.
             </p>
           </div>
 
@@ -2339,6 +2356,16 @@ export default function BudgetPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Goal Form Modal */}
+      {budgets.length > 0 && (
+        <GoalFormModal
+          open={isGoalFormOpen}
+          onOpenChange={setIsGoalFormOpen}
+          budgetId={budgets[0].id}
+          onSuccess={fetchData}
+        />
+      )}
     </div>
   );
 }

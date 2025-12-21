@@ -27,20 +27,20 @@ const TRANSPORT_OPTIONS: {
   {
     value: "car",
     icon: "🚗",
-    label: "Carro proprio",
-    description: "Combustivel, manutencao, seguro",
+    label: "Carro próprio",
+    description: "Combustível, manutenção, seguro",
   },
   {
     value: "motorcycle",
     icon: "🏍️",
     label: "Moto",
-    description: "Combustivel e manutencao",
+    description: "Combustível e manutenção",
   },
   {
     value: "public",
     icon: "🚌",
-    label: "Transporte publico",
-    description: "Onibus, metro, trem",
+    label: "Transporte público",
+    description: "Ônibus, metrô, trem",
   },
   {
     value: "apps",
@@ -52,12 +52,12 @@ const TRANSPORT_OPTIONS: {
     value: "bike",
     icon: "🚲",
     label: "Bicicleta",
-    description: "Manutencao ocasional",
+    description: "Manutenção ocasional",
   },
   {
     value: "walk",
     icon: "🚶",
-    label: "A pe (principalmente)",
+    label: "A pé (principalmente)",
     description: "Sem custos de transporte",
   },
 ];
@@ -74,10 +74,10 @@ export function StepTransport({
         <div className="text-center mb-8">
           <div className="text-4xl mb-4">🚗</div>
           <h2 className="text-2xl font-bold mb-2">
-            Como voce se locomove?
+            Como você se locomove?
           </h2>
           <p className="text-muted-foreground">
-            Selecione todos os meios de transporte que voce usa
+            Selecione todos os meios de transporte que você usa
           </p>
         </div>
 

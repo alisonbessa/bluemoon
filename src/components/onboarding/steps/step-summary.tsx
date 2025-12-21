@@ -15,53 +15,53 @@ const CATEGORY_NAMES: Record<string, { name: string; icon: string }> = {
   // Housing
   rent: { name: "Aluguel", icon: "🏠" },
   mortgage: { name: "Financiamento", icon: "🏦" },
-  owned: { name: "IPTU/Condominio", icon: "🏠" },
+  owned: { name: "IPTU/Condomínio", icon: "🏠" },
 
   // Transport
-  car: { name: "Combustivel", icon: "⛽" },
-  car_maintenance: { name: "Manutencao Veiculo", icon: "🔧" },
+  car: { name: "Combustível", icon: "⛽" },
+  car_maintenance: { name: "Manutenção Veículo", icon: "🔧" },
   car_insurance: { name: "IPVA/Seguro", icon: "📋" },
-  motorcycle: { name: "Combustivel Moto", icon: "⛽" },
-  public: { name: "Transporte Publico", icon: "🚌" },
+  motorcycle: { name: "Combustível Moto", icon: "⛽" },
+  public: { name: "Transporte Público", icon: "🚌" },
   apps: { name: "Uber/99", icon: "📱" },
 
   // Expenses Essential
   utilities: { name: "Contas de Casa", icon: "💡" },
   groceries: { name: "Mercado", icon: "🛒" },
-  health: { name: "Saude", icon: "💊" },
-  education: { name: "Educacao", icon: "📚" },
+  health: { name: "Saúde", icon: "💊" },
+  education: { name: "Educação", icon: "📚" },
 
   // Expenses Lifestyle
-  dining: { name: "Alimentacao Fora", icon: "🍔" },
-  clothing: { name: "Vestuario", icon: "👕" },
+  dining: { name: "Alimentação Fora", icon: "🍔" },
+  clothing: { name: "Vestuário", icon: "👕" },
   streaming: { name: "Streaming", icon: "📺" },
   gym: { name: "Academia", icon: "🏋️" },
   beauty: { name: "Beleza", icon: "💇" },
   entertainment: { name: "Lazer", icon: "🎮" },
 
   // Debts
-  credit_card_debt: { name: "Divida Cartao", icon: "💳" },
-  personal_loan: { name: "Emprestimo Pessoal", icon: "🏦" },
-  car_loan: { name: "Financiamento Veiculo", icon: "🚗" },
-  student_loan: { name: "Emprestimo Estudantil", icon: "🎓" },
-  medical: { name: "Divida Medica", icon: "🏥" },
+  credit_card_debt: { name: "Dívida Cartão", icon: "💳" },
+  personal_loan: { name: "Empréstimo Pessoal", icon: "🏦" },
+  car_loan: { name: "Financiamento Veículo", icon: "🚗" },
+  student_loan: { name: "Empréstimo Estudantil", icon: "🎓" },
+  medical: { name: "Dívida Médica", icon: "🏥" },
   bnpl: { name: "Parcelamentos", icon: "🛍️" },
 
   // Goals
   travel: { name: "Viagem dos Sonhos", icon: "✈️" },
-  house: { name: "Casa Propria", icon: "🏠" },
+  house: { name: "Casa Própria", icon: "🏠" },
   car_goal: { name: "Carro Novo", icon: "🚗" },
   wedding: { name: "Casamento", icon: "💒" },
   education_goal: { name: "Faculdade/Curso", icon: "🎓" },
-  emergency: { name: "Reserva de Emergencia", icon: "🛡️" },
+  emergency: { name: "Reserva de Emergência", icon: "🛡️" },
   retirement: { name: "Aposentadoria", icon: "👴" },
 };
 
 const ACCOUNT_NAMES: Record<string, { name: string; icon: string }> = {
   checking: { name: "Conta Corrente", icon: "🏦" },
-  credit_card: { name: "Cartao de Credito", icon: "💳" },
-  vr: { name: "Vale Refeicao", icon: "🍽️" },
-  va: { name: "Vale Alimentacao", icon: "🛒" },
+  credit_card: { name: "Cartão de Crédito", icon: "💳" },
+  vr: { name: "Vale Refeição", icon: "🍽️" },
+  va: { name: "Vale Alimentação", icon: "🛒" },
   cash: { name: "Dinheiro", icon: "💵" },
   investment: { name: "Investimentos", icon: "📈" },
 };
@@ -99,7 +99,7 @@ export function StepSummary({
 }: StepSummaryProps) {
   const getMembers = () => {
     const members: { icon: string; name: string }[] = [
-      { icon: "👤", name: data.displayName + " (voce)" },
+      { icon: "👤", name: data.displayName + " (você)" },
     ];
 
     if (data.household.hasPartner && data.household.partnerName) {
@@ -195,27 +195,27 @@ export function StepSummary({
             Tudo pronto!
           </h2>
           <p className="text-muted-foreground">
-            Veja o que preparamos para voce
+            Veja o que preparamos para você
           </p>
         </div>
 
         <div className="max-w-xl mx-auto space-y-6">
           <div className="rounded-lg border bg-card p-4">
             <h3 className="font-semibold mb-4">
-              Orcamento de {data.displayName}
+              Orçamento de {data.displayName}
             </h3>
 
             <div className="space-y-4">
               <SummarySection title="Membros" items={getMembers()} />
               <SummarySection title="Contas" items={getAccounts()} />
               <SummarySection title="Categorias" items={getCategories()} />
-              <SummarySection title="Dividas" items={getDebts()} />
+              <SummarySection title="Dívidas" items={getDebts()} />
               <SummarySection title="Metas" items={getGoals()} />
             </div>
           </div>
 
           <p className="text-sm text-muted-foreground text-center">
-            Voce pode adicionar ou remover itens depois nas configuracoes.
+            Você pode adicionar ou remover itens depois nas configurações.
           </p>
         </div>
       </div>

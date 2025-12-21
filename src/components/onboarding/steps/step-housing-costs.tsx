@@ -51,7 +51,7 @@ export function StepHousingCosts({
   const isRent = housing === "rent";
   const isMortgage = housing === "mortgage";
   const isOwned = housing === "owned";
-  const showIptu = isMortgage || isOwned;
+  const showIptu = isRent || isMortgage || isOwned;
 
   const getTitle = () => {
     if (isRent) return "Detalhes do aluguel";
