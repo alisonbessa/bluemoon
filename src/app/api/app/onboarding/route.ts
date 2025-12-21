@@ -315,7 +315,7 @@ export const POST = withAuthRequired(async (req, context) => {
       icon: "🏠",
       behavior: "refill_up",
       plannedAmount: housingCosts.rentAmount,
-      dueDay: housingCosts.rentDueDay || 10,
+      dueDay: housingCosts.rentDueDay || 5,
       displayOrder: displayOrder++,
     });
   } else if (data.housing === "mortgage" && housingCosts?.mortgageCurrentAmount) {
@@ -326,13 +326,13 @@ export const POST = withAuthRequired(async (req, context) => {
       icon: "🏡",
       behavior: "refill_up",
       plannedAmount: housingCosts.mortgageCurrentAmount,
-      dueDay: 10, // Default due day for mortgage
+      dueDay: 5, // Default due day
       displayOrder: displayOrder++,
     });
   }
 
-  // IPTU category (for owned or mortgaged homes)
-  if ((data.housing === "owned" || data.housing === "mortgage") && housingCosts?.hasIptu && housingCosts.iptuAmount > 0) {
+  // IPTU category (for rent, owned or mortgaged homes)
+  if ((data.housing === "rent" || data.housing === "owned" || data.housing === "mortgage") && housingCosts?.hasIptu && housingCosts.iptuAmount > 0) {
     const iptuMonthlyAmount = housingCosts.iptuPaymentType === "installments"
       ? housingCosts.iptuAmount
       : Math.round(housingCosts.iptuAmount / 12);
@@ -344,7 +344,7 @@ export const POST = withAuthRequired(async (req, context) => {
       icon: "🏠",
       behavior: "refill_up",
       plannedAmount: iptuMonthlyAmount,
-      dueDay: 15, // Common IPTU due day
+      dueDay: 5, // Default due day
       displayOrder: displayOrder++,
     });
   }
@@ -434,14 +434,14 @@ export const POST = withAuthRequired(async (req, context) => {
     }
   }
 
-  // Pleasures categories - one per member
+  // Personal spending categories - one per member (each person as a group)
   for (const member of allMembers) {
     if (member.type !== "pet") {
       categoryInserts.push({
         budgetId: newBudget.id,
         groupId: groupByCode.pleasures.id,
         memberId: member.id,
-        name: `Prazeres de ${member.name}`,
+        name: `Gastos de ${member.name}`,
         icon: "🎉",
         behavior: "refill_up",
         plannedAmount: 0,

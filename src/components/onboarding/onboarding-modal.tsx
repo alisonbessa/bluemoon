@@ -13,6 +13,7 @@ import {
   StepMemberNames,
   StepHousing,
   StepHousingCosts,
+  StepIptu,
   StepTransport,
   StepAccounts,
   StepExpenses,
@@ -144,6 +145,16 @@ export function OnboardingModal({ onComplete, onSkip }: OnboardingModalProps) {
         return (
           <StepHousingCosts
             housing={data.housing}
+            housingCosts={data.housingCosts}
+            onHousingCostsChange={updateHousingCosts}
+            onNext={goToNext}
+            onBack={goToPrevious}
+          />
+        );
+
+      case "iptu":
+        return (
+          <StepIptu
             housingCosts={data.housingCosts}
             onHousingCostsChange={updateHousingCosts}
             onNext={goToNext}

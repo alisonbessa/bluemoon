@@ -41,6 +41,7 @@ interface ScheduledTransactionsProps {
   budgetId: string;
   year: number;
   month: number;
+  refreshKey?: number;
   onConfirm?: (transaction: ScheduledTransaction) => void;
 }
 
@@ -62,6 +63,7 @@ export function ScheduledTransactions({
   budgetId,
   year,
   month,
+  refreshKey,
   onConfirm,
 }: ScheduledTransactionsProps) {
   const [scheduled, setScheduled] = useState<ScheduledTransaction[]>([]);
@@ -96,7 +98,7 @@ export function ScheduledTransactions({
 
   useEffect(() => {
     fetchScheduled();
-  }, [fetchScheduled]);
+  }, [fetchScheduled, refreshKey]);
 
   if (isLoading || scheduled.length === 0) {
     return null;

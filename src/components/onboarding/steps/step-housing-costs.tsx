@@ -3,7 +3,6 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { OnboardingFooter } from "../onboarding-footer";
 import { HousingCostsData } from "../hooks/use-onboarding";
 
@@ -21,14 +20,9 @@ interface StepHousingCostsProps {
 }
 
 function formatCurrencyInput(value: string): string {
-  // Remove tudo que não é dígito
   const digits = value.replace(/\D/g, "");
   if (!digits) return "";
-
-  // Converte para número e divide por 100 para ter os centavos
   const amount = parseInt(digits, 10) / 100;
-
-  // Formata como moeda brasileira
   return amount.toLocaleString("pt-BR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -36,7 +30,6 @@ function formatCurrencyInput(value: string): string {
 }
 
 function parseCurrencyInput(value: string): number {
-  // Remove tudo que não é dígito
   const digits = value.replace(/\D/g, "");
   return digits ? parseInt(digits, 10) : 0;
 }
@@ -51,7 +44,6 @@ export function StepHousingCosts({
   const isRent = housing === "rent";
   const isMortgage = housing === "mortgage";
   const isOwned = housing === "owned";
-  const showIptu = isRent || isMortgage || isOwned;
 
   const getTitle = () => {
     if (isRent) return "Detalhes do aluguel";
@@ -136,7 +128,7 @@ export function StepHousingCosts({
                   type="number"
                   min={1}
                   max={31}
-                  placeholder="10"
+                  placeholder="5"
                   value={housingCosts.rentDueDay || ""}
                   onChange={(e) =>
                     onHousingCostsChange(
@@ -252,111 +244,8 @@ export function StepHousingCosts({
             </>
           )}
 
-          {/* IPTU (para financiado ou quitado) */}
-          {showIptu && (
-            <div className="space-y-4 pt-4 border-t">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="hasIptu"
-                  checked={housingCosts.hasIptu}
-                  onCheckedChange={(checked) =>
-                    onHousingCostsChange("hasIptu", checked === true)
-                  }
-                />
-                <Label
-                  htmlFor="hasIptu"
-                  className="text-sm font-medium cursor-pointer"
-                >
-                  Pago IPTU
-                </Label>
-              </div>
-
-              {housingCosts.hasIptu && (
-                <div className="space-y-4 pl-6">
-                  <RadioGroup
-                    value={housingCosts.iptuPaymentType}
-                    onValueChange={(value) =>
-                      onHousingCostsChange(
-                        "iptuPaymentType",
-                        value as "single" | "installments"
-                      )
-                    }
-                    className="flex gap-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="installments" id="installments" />
-                      <Label htmlFor="installments" className="font-normal">
-                        Parcelado
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="single" id="single" />
-                      <Label htmlFor="single" className="font-normal">
-                        Parcela única
-                      </Label>
-                    </div>
-                  </RadioGroup>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="iptuAmount">
-                      {housingCosts.iptuPaymentType === "single"
-                        ? "Valor total do IPTU"
-                        : "Valor da parcela"}
-                    </Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        R$
-                      </span>
-                      <Input
-                        id="iptuAmount"
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="0,00"
-                        className="pl-10"
-                        value={formatCurrencyInput(
-                          housingCosts.iptuAmount.toString()
-                        )}
-                        onChange={(e) =>
-                          onHousingCostsChange(
-                            "iptuAmount",
-                            parseCurrencyInput(e.target.value)
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  {housingCosts.iptuPaymentType === "installments" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="iptuInstallments">
-                        Número de parcelas
-                      </Label>
-                      <Input
-                        id="iptuInstallments"
-                        type="number"
-                        min={1}
-                        max={12}
-                        placeholder="10"
-                        value={housingCosts.iptuInstallments || ""}
-                        onChange={(e) =>
-                          onHousingCostsChange(
-                            "iptuInstallments",
-                            Math.min(
-                              12,
-                              Math.max(1, parseInt(e.target.value) || 0)
-                            )
-                          )
-                        }
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Dica para imóvel quitado */}
-          {isOwned && !housingCosts.hasIptu && (
+          {isOwned && (
             <p className="text-sm text-muted-foreground text-center">
               Você pode adicionar outros custos fixos como condomínio na próxima
               etapa

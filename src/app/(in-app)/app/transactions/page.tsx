@@ -150,6 +150,7 @@ export default function TransactionsPage() {
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [scheduledRefreshKey, setScheduledRefreshKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const { isExpanded, toggleGroup, setExpandedGroups } = useExpandedGroups([]);
@@ -500,6 +501,7 @@ export default function TransactionsPage() {
           budgetId={budgets[0].id}
           year={currentYear}
           month={currentMonth}
+          refreshKey={scheduledRefreshKey}
           onConfirm={async (scheduled) => {
             // Directly create the transaction as paid
             if (accounts.length === 0) {
@@ -530,6 +532,7 @@ export default function TransactionsPage() {
               }
 
               toast.success("Transação confirmada!");
+              setScheduledRefreshKey((k) => k + 1);
               fetchData();
             } catch (error) {
               toast.error(error instanceof Error ? error.message : "Erro ao confirmar");

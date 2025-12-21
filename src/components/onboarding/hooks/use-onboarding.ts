@@ -80,7 +80,7 @@ const initialData: OnboardingData = {
   housing: null,
   housingCosts: {
     rentAmount: 0,
-    rentDueDay: 10,
+    rentDueDay: 5,
     mortgageCurrentAmount: 0,
     mortgageLastAmount: 0,
     mortgageRemainingMonths: 0,
@@ -110,6 +110,7 @@ export type OnboardingStep =
   | "member-names"
   | "housing"
   | "housing-costs"
+  | "iptu"
   | "transport"
   | "accounts"
   | "expenses"
@@ -124,6 +125,7 @@ const STEP_ORDER: OnboardingStep[] = [
   "member-names",
   "housing",
   "housing-costs",
+  "iptu",
   "transport",
   "accounts",
   "expenses",
@@ -160,7 +162,12 @@ export function useOnboarding() {
   }, [data]);
 
   const needsHousingCostsStep = useCallback(() => {
-    // Only show housing costs step if user pays rent, mortgage, or owns (for IPTU)
+    // Only show housing costs step if user pays rent or mortgage
+    return data.housing === "rent" || data.housing === "mortgage";
+  }, [data.housing]);
+
+  const needsIptuStep = useCallback(() => {
+    // Show IPTU step for rent, mortgage, or owned homes
     return data.housing === "rent" || data.housing === "mortgage" || data.housing === "owned";
   }, [data.housing]);
 
@@ -175,8 +182,12 @@ export function useOnboarding() {
       steps = steps.filter((step) => step !== "housing-costs");
     }
 
+    if (!needsIptuStep()) {
+      steps = steps.filter((step) => step !== "iptu");
+    }
+
     return steps;
-  }, [needsMemberNamesStep, needsHousingCostsStep]);
+  }, [needsMemberNamesStep, needsHousingCostsStep, needsIptuStep]);
 
   const totalSteps = getEffectiveSteps().length;
 
