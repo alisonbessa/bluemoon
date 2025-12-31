@@ -74,14 +74,17 @@ export const GET = withAuthRequired(async (req, context) => {
     });
   }
 
-  // Get monthly comparison data (last 6 months including current)
+  // Get monthly comparison data (last 12 months ending at the selected month)
+  const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   const monthlyData = [];
-  for (let i = 5; i >= 0; i--) {
-    const compareDate = new Date(year, month - 1 - i, 1);
-    const compareYear = compareDate.getFullYear();
-    const compareMonth = compareDate.getMonth() + 1;
-    const compareStartDate = new Date(compareYear, compareMonth - 1, 1);
-    const compareEndDate = new Date(compareYear, compareMonth, 0, 23, 59, 59);
+
+  // Calculate 12 months back from the current selected month
+  for (let i = 11; i >= 0; i--) {
+    const targetDate = new Date(year, month - 1 - i, 1);
+    const targetYear = targetDate.getFullYear();
+    const targetMonth = targetDate.getMonth() + 1; // 1-indexed
+    const compareStartDate = new Date(targetYear, targetMonth - 1, 1);
+    const compareEndDate = new Date(targetYear, targetMonth, 0, 23, 59, 59);
 
     const [monthTotals] = await db
       .select({
@@ -98,11 +101,10 @@ export const GET = withAuthRequired(async (req, context) => {
         )
       );
 
-    const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
     monthlyData.push({
-      month: monthNames[compareMonth - 1],
-      year: compareYear,
-      label: `${monthNames[compareMonth - 1]}/${compareYear.toString().slice(-2)}`,
+      month: monthNames[targetMonth - 1],
+      year: targetYear,
+      label: `${monthNames[targetMonth - 1]}/${targetYear.toString().slice(-2)}`,
       income: Number(monthTotals?.income) || 0,
       expense: Number(monthTotals?.expense) || 0,
     });
