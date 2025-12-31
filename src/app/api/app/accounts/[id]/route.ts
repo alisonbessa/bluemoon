@@ -19,9 +19,6 @@ const updateAccountSchema = z.object({
   creditLimit: z.number().int().optional(),
   closingDay: z.number().int().min(1).max(31).optional(),
   dueDay: z.number().int().min(1).max(31).optional(),
-  // Benefit fields
-  monthlyDeposit: z.number().int().optional(),
-  depositDay: z.number().int().min(1).max(31).optional(),
   isArchived: z.boolean().optional(),
 });
 

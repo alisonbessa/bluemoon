@@ -20,8 +20,6 @@ export interface Account {
   creditLimit?: number | null;
   closingDay?: number | null;
   dueDay?: number | null;
-  monthlyDeposit?: number | null;
-  depositDay?: number | null;
   clearedBalance?: number;
   isArchived?: boolean | null;
   displayOrder?: number;
@@ -37,8 +35,6 @@ export interface AccountFormData {
   creditLimit?: number;
   closingDay?: number;
   dueDay?: number;
-  monthlyDeposit?: number;
-  depositDay?: number;
   icon?: string;
   color?: string;
 }

@@ -139,7 +139,7 @@ function CategoryRow({ category, onEdit, onDelete }: CategoryRowProps) {
         {category.behavior === 'set_aside' ? (
           <span className="bg-muted px-1.5 py-0.5 rounded">Acumula</span>
         ) : (
-          <span>Recarrega</span>
+          <span>Recorrente</span>
         )}
       </div>
     </div>

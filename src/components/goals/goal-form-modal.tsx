@@ -10,6 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -24,6 +31,13 @@ interface Goal {
   color: string;
   targetAmount: number;
   targetDate: string;
+  accountId?: string | null;
+}
+
+interface Account {
+  id: string;
+  name: string;
+  icon: string | null;
 }
 
 interface GoalFormModalProps {
@@ -58,13 +72,25 @@ export function GoalFormModal({
   onSuccess,
 }: GoalFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [formData, setFormData] = useState({
     name: editingGoal?.name || "",
     icon: editingGoal?.icon || "🎯",
     color: editingGoal?.color || "#8b5cf6",
     targetAmount: editingGoal?.targetAmount || 0, // stored in cents
     targetDate: editingGoal?.targetDate?.split("T")[0] || "",
+    accountId: editingGoal?.accountId || "",
   });
+
+  // Fetch accounts when modal opens
+  useEffect(() => {
+    if (open) {
+      fetch("/api/app/accounts")
+        .then((res) => res.json())
+        .then((data) => setAccounts(data.accounts || []))
+        .catch(console.error);
+    }
+  }, [open]);
 
   // Reset form when editingGoal changes
   useEffect(() => {
@@ -75,6 +101,7 @@ export function GoalFormModal({
         color: editingGoal.color,
         targetAmount: editingGoal.targetAmount,
         targetDate: editingGoal.targetDate?.split("T")[0] || "",
+        accountId: editingGoal.accountId || "",
       });
     } else {
       setFormData({
@@ -83,6 +110,7 @@ export function GoalFormModal({
         color: "#8b5cf6",
         targetAmount: 0,
         targetDate: "",
+        accountId: "",
       });
     }
   }, [editingGoal, open]);
@@ -94,6 +122,7 @@ export function GoalFormModal({
       color: "#8b5cf6",
       targetAmount: 0,
       targetDate: "",
+      accountId: "",
     });
   };
 
@@ -110,12 +139,20 @@ export function GoalFormModal({
       toast.error("Data limite é obrigatória");
       return;
     }
+    if (!formData.accountId) {
+      toast.error("Selecione a conta destino");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const payload = {
-        ...formData,
-        targetAmount: formData.targetAmount, // already in cents
+        name: formData.name,
+        icon: formData.icon,
+        color: formData.color,
+        targetAmount: formData.targetAmount,
+        targetDate: formData.targetDate,
+        accountId: formData.accountId,
         budgetId,
       };
 
@@ -238,6 +275,32 @@ export function GoalFormModal({
               onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
               min={new Date().toISOString().split("T")[0]}
             />
+          </div>
+
+          {/* Destination Account */}
+          <div className="space-y-2">
+            <Label htmlFor="goal-accountId">Conta destino</Label>
+            <Select
+              value={formData.accountId}
+              onValueChange={(value) => setFormData({ ...formData, accountId: value })}
+            >
+              <SelectTrigger id="goal-accountId">
+                <SelectValue placeholder="Selecione uma conta" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    <span className="flex items-center gap-2">
+                      <span>{account.icon || "💳"}</span>
+                      <span>{account.name}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Conta onde o dinheiro da meta sera guardado
+            </p>
           </div>
         </div>
 

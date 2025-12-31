@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,17 +31,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  ArrowLeft,
-  ArrowRight,
   Loader2,
-  Sparkles,
   Plus,
   Wallet,
-  Briefcase,
-  Gift,
-  Building2,
-  TrendingUp,
-  MoreHorizontal,
 } from "lucide-react";
 import {
   COMPACT_TABLE_STYLES,
@@ -51,6 +42,7 @@ import {
   useExpandedGroups,
 } from "@/components/ui/compact-table";
 import { toast } from "sonner";
+import { useTutorial } from "@/components/tutorial/tutorial-provider";
 
 interface Budget {
   id: string;
@@ -119,8 +111,7 @@ const ALLOWED_ACCOUNT_TYPES_BY_INCOME: Record<string, string[]> = {
   other: ["checking", "savings", "credit_card", "cash", "investment", "benefit"],
 };
 
-export default function IncomeSetupPage() {
-  const router = useRouter();
+export default function IncomePage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -132,6 +123,7 @@ export default function IncomeSetupPage() {
   const [deletingSource, setDeletingSource] = useState<IncomeSource | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
   const { isExpanded, toggleGroup } = useExpandedGroups([
     "salary",
     "benefit",
@@ -216,7 +208,7 @@ export default function IncomeSetupPage() {
     setFormData({
       name: source.name,
       type: source.type,
-      amount: source.amount, // Already in cents
+      amount: source.amount,
       frequency: source.frequency,
       dayOfMonth: source.dayOfMonth || undefined,
       memberId: source.member?.id,
@@ -257,7 +249,7 @@ export default function IncomeSetupPage() {
       const payload = {
         ...formData,
         budgetId: budgets[0].id,
-        amount: formData.amount, // Already in cents
+        amount: formData.amount,
       };
 
       if (editingSource) {
@@ -284,6 +276,11 @@ export default function IncomeSetupPage() {
         }
 
         toast.success("Fonte de renda adicionada!");
+
+        // Notify tutorial that user created an income source
+        if (isTutorialActive) {
+          notifyActionCompleted("hasIncome");
+        }
       }
 
       setIsFormOpen(false);
@@ -317,10 +314,6 @@ export default function IncomeSetupPage() {
     }
   };
 
-  const handleContinue = () => {
-    router.push("/app/budget/setup");
-  };
-
   // Group income sources by type
   const incomeByType = {
     salary: incomeSources.filter((s) => s.type === "salary"),
@@ -347,20 +340,11 @@ export default function IncomeSetupPage() {
     <div className="flex flex-col gap-4 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => router.back()}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h1 className="text-2xl font-bold">Configure suas Rendas</h1>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Adicione suas fontes de renda para calcular o orçamento mensal
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Rendas</h1>
+          <p className="text-sm text-muted-foreground">
+            Gerencie suas fontes de renda
+          </p>
         </div>
         <Button onClick={() => openCreateForm()} size="sm" data-tutorial="add-income-button">
           <Plus className="mr-2 h-4 w-4" />
@@ -496,19 +480,6 @@ export default function IncomeSetupPage() {
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center justify-between border-t pt-4">
-        <Button variant="outline" onClick={() => router.push("/app/accounts")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar para Contas
-        </Button>
-
-        <Button onClick={handleContinue} disabled={incomeSources.length === 0}>
-          Continuar para Orçamento
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-
       {/* Create/Edit Dialog */}
       <Dialog
         open={isFormOpen}
@@ -557,7 +528,6 @@ export default function IncomeSetupPage() {
                 <Select
                   value={formData.type}
                   onValueChange={(value: IncomeFormData["type"]) => {
-                    // Clear accountId if the new type doesn't allow the current account
                     const allowedTypes = ALLOWED_ACCOUNT_TYPES_BY_INCOME[value] || [];
                     const currentAccount = accounts.find((a) => a.id === formData.accountId);
                     const shouldClearAccount = currentAccount && !allowedTypes.includes(currentAccount.type);

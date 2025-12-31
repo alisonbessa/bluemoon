@@ -19,9 +19,6 @@ const createAccountSchema = z.object({
   creditLimit: z.number().int().optional(),
   closingDay: z.number().int().min(1).max(31).optional(),
   dueDay: z.number().int().min(1).max(31).optional(),
-  // Benefit fields
-  monthlyDeposit: z.number().int().optional(),
-  depositDay: z.number().int().min(1).max(31).optional(),
 });
 
 // Helper to get user's budget IDs
@@ -63,8 +60,6 @@ export const GET = withAuthRequired(async (req, context) => {
       creditLimit: financialAccounts.creditLimit,
       closingDay: financialAccounts.closingDay,
       dueDay: financialAccounts.dueDay,
-      monthlyDeposit: financialAccounts.monthlyDeposit,
-      depositDay: financialAccounts.depositDay,
       isArchived: financialAccounts.isArchived,
       displayOrder: financialAccounts.displayOrder,
       createdAt: financialAccounts.createdAt,

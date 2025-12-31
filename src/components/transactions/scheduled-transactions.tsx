@@ -12,6 +12,7 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronUp,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,10 +25,11 @@ interface ScheduledTransaction {
   dueDay: number;
   dueDate: string;
   isPaid: boolean;
-  sourceType: "category" | "income_source";
+  sourceType: "category" | "income_source" | "goal";
   sourceId: string;
   categoryId?: string;
   incomeSourceId?: string;
+  goalId?: string;
 }
 
 interface ScheduledTotals {
@@ -43,6 +45,7 @@ interface ScheduledTransactionsProps {
   month: number;
   refreshKey?: number;
   onConfirm?: (transaction: ScheduledTransaction) => void;
+  onEdit?: (transaction: ScheduledTransaction) => void;
 }
 
 function formatCurrency(cents: number): string {
@@ -65,6 +68,7 @@ export function ScheduledTransactions({
   month,
   refreshKey,
   onConfirm,
+  onEdit,
 }: ScheduledTransactionsProps) {
   const [scheduled, setScheduled] = useState<ScheduledTransaction[]>([]);
   const [totals, setTotals] = useState<ScheduledTotals>({
@@ -233,15 +237,30 @@ export function ScheduledTransactions({
                     {item.type === "income" ? "+" : "-"}{formatCurrencyCompact(item.amount)}
                   </div>
 
-                  {!item.isPaid && onConfirm && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => onConfirm(item)}
-                    >
-                      Confirmar
-                    </Button>
+                  {!item.isPaid && (
+                    <div className="flex items-center gap-1">
+                      {onEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => onEdit(item)}
+                          title="Editar antes de confirmar"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {onConfirm && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => onConfirm(item)}
+                        >
+                          Confirmar
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
               );

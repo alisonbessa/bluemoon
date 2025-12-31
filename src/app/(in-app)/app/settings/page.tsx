@@ -34,13 +34,13 @@ import {
   Smartphone,
   RefreshCw,
 } from "lucide-react";
-import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 import { TelegramConnectionCard } from "@/components/telegram/TelegramConnectionCard";
+import { useTutorial } from "@/components/tutorial/tutorial-provider";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
   const [darkMode, setDarkMode] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [showOnboardingConfirm, setShowOnboardingConfirm] = useState(false);
   const [notifications, setNotifications] = useState({
     email: true,
@@ -48,17 +48,15 @@ export default function SettingsPage() {
     billReminders: true,
     weeklyReport: true,
   });
+  const { startTutorial } = useTutorial();
+  const router = useRouter();
 
   const handleRestartOnboarding = () => {
     setShowOnboardingConfirm(false);
-    setShowOnboarding(true);
-  };
-
-  const handleOnboardingComplete = () => {
-    setShowOnboarding(false);
-    toast.success("Configuração inicial atualizada!");
-    // Reload the page to refresh data
-    window.location.reload();
+    // Start the initial-setup tutorial flow
+    startTutorial("initial-setup");
+    toast.info("Tutorial iniciado! Siga os passos para revisar sua configuração.");
+    router.push("/app/accounts");
   };
 
   return (
@@ -428,14 +426,6 @@ export default function SettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Onboarding Modal */}
-      {showOnboarding && (
-        <OnboardingModal
-          onComplete={handleOnboardingComplete}
-          onSkip={() => setShowOnboarding(false)}
-        />
-      )}
     </div>
   );
 }

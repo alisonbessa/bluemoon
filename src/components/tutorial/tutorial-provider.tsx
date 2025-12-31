@@ -19,6 +19,13 @@ import {
   type TutorialFlow,
 } from "./tutorial-steps";
 
+// Validation keys that can be triggered when user completes actions
+export type TutorialValidationKey =
+  | "hasAccounts"
+  | "hasIncome"
+  | "hasAllocations"
+  | "hasGoals";
+
 interface TutorialContextValue {
   isActive: boolean;
   isVisible: boolean; // Whether the tutorial overlay is currently showing
@@ -29,22 +36,29 @@ interface TutorialContextValue {
   pageStepIndex: number;
   pageStepsTotal: number;
   isLastPageStep: boolean;
+  isWaitingForAction: boolean; // Whether we're waiting for user to complete an action
   startTutorial: (flowId: string) => void;
   nextStep: () => void;
+  goToNextPage: () => void; // Navigate to next tutorial page
   dismissPageTutorial: () => void; // Close tutorial for current page (user will interact)
   skipTutorial: () => void;
   completeTutorial: () => void;
+  /** Call this when user completes a required action (e.g., created first account) */
+  notifyActionCompleted: (validationKey: TutorialValidationKey) => void;
+  /** Resume showing tutorial after user interaction */
+  resumeTutorial: () => void;
 }
 
 const TutorialContext = createContext<TutorialContextValue | null>(null);
 
-const TUTORIAL_STORAGE_KEY = "hivebudget_tutorial_completed";
-const TUTORIAL_PROGRESS_KEY = "hivebudget_tutorial_progress";
+const TUTORIAL_STORAGE_KEY = "bluemoon_tutorial_completed";
+const TUTORIAL_PROGRESS_KEY = "bluemoon_tutorial_progress";
 
 interface TutorialProgress {
   flowId: string;
   currentStepId: string;
   dismissedForPage: string | null; // Route where tutorial was dismissed
+  waitingForAction: boolean; // Whether we're waiting for user action
 }
 
 function getTutorialProgress(): TutorialProgress | null {
@@ -75,6 +89,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const [currentStep, setCurrentStep] = useState<TutorialStep | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [dismissedForPage, setDismissedForPage] = useState<string | null>(null);
+  const [isWaitingForAction, setIsWaitingForAction] = useState(false);
 
   const previousPathname = useRef(pathname);
 
@@ -94,10 +109,16 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         if (step) {
           setCurrentStep(step);
           setDismissedForPage(progress.dismissedForPage);
+          setIsWaitingForAction(progress.waitingForAction || false);
 
           // Show tutorial if we're on the right page and not dismissed
           if (step.route === pathname && progress.dismissedForPage !== pathname) {
-            setIsVisible(true);
+            // If waiting for action, show a minimal prompt instead of full tutorial
+            if (progress.waitingForAction) {
+              setIsVisible(true);
+            } else {
+              setIsVisible(true);
+            }
           }
         }
       }
@@ -121,6 +142,9 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         const firstPageStep = pageSteps[0];
         setCurrentStep(firstPageStep);
         setDismissedForPage(null);
+        // Check if first step requires action
+        const needsAction = firstPageStep.requiresAction || false;
+        setIsWaitingForAction(needsAction);
         setIsVisible(true);
 
         // Save progress
@@ -128,6 +152,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
           flowId: currentFlow.id,
           currentStepId: firstPageStep.id,
           dismissedForPage: null,
+          waitingForAction: needsAction,
         });
       } else if (dismissedForPage === prevPath) {
         // We left the dismissed page but new page has no steps
@@ -146,6 +171,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       setCurrentFlow(flow);
       setCurrentStep(firstStep);
       setDismissedForPage(null);
+      setIsWaitingForAction(false);
       setIsVisible(true);
 
       // Save progress
@@ -153,6 +179,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         flowId,
         currentStepId: firstStep.id,
         dismissedForPage: null,
+        waitingForAction: false,
       });
 
       // Navigate to the first step's route
@@ -169,16 +196,16 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     if (next) {
       // Check if we're transitioning to a new page
       if (next.route !== currentStep.route) {
-        // This shouldn't happen normally - use dismissPageTutorial instead
-        // But handle it just in case
         setCurrentStep(next);
         setDismissedForPage(null);
+        setIsWaitingForAction(false);
         setIsVisible(true);
 
         saveTutorialProgress({
           flowId: currentFlow.id,
           currentStepId: next.id,
           dismissedForPage: null,
+          waitingForAction: false,
         });
 
         router.push(next.route);
@@ -186,10 +213,16 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
         // Same page, just update the step
         setCurrentStep(next);
 
+        // Check if this step requires an action
+        if (next.requiresAction) {
+          setIsWaitingForAction(true);
+        }
+
         saveTutorialProgress({
           flowId: currentFlow.id,
           currentStepId: next.id,
           dismissedForPage: dismissedForPage,
+          waitingForAction: next.requiresAction || false,
         });
       }
     } else {
@@ -198,34 +231,90 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     }
   }, [currentFlow, currentStep, dismissedForPage, router]);
 
+  // Navigate to the next page in the tutorial flow
+  const goToNextPage = useCallback(() => {
+    if (!currentFlow || !currentStep) return;
+
+    // Find the first step of the next page
+    const currentIndex = currentFlow.steps.findIndex(s => s.id === currentStep.id);
+    const currentRoute = currentStep.route;
+
+    // Find next step that's on a different route
+    let nextPageStep: TutorialStep | undefined;
+    for (let i = currentIndex + 1; i < currentFlow.steps.length; i++) {
+      if (currentFlow.steps[i].route !== currentRoute) {
+        nextPageStep = currentFlow.steps[i];
+        break;
+      }
+    }
+
+    if (nextPageStep) {
+      setCurrentStep(nextPageStep);
+      setDismissedForPage(null);
+      // Check if first step of next page requires action
+      const needsAction = nextPageStep.requiresAction || false;
+      setIsWaitingForAction(needsAction);
+      setIsVisible(true);
+
+      saveTutorialProgress({
+        flowId: currentFlow.id,
+        currentStepId: nextPageStep.id,
+        dismissedForPage: null,
+        waitingForAction: needsAction,
+      });
+
+      router.push(nextPageStep.route);
+    } else {
+      // No more pages - complete the tutorial
+      completeTutorial();
+    }
+  }, [currentFlow, currentStep, router]);
+
   const dismissPageTutorial = useCallback(() => {
     if (!currentFlow || !currentStep) return;
 
-    // Hide the tutorial overlay
+    // Hide the tutorial overlay but keep the floating button
     setIsVisible(false);
     setDismissedForPage(pathname);
 
-    // Find the next page's first step to save as progress
-    const next = getNextStep(currentFlow.id, currentStep.id);
-
-    if (next && next.route !== currentStep.route) {
-      // Save progress pointing to the next page's step
-      saveTutorialProgress({
-        flowId: currentFlow.id,
-        currentStepId: next.id,
-        dismissedForPage: pathname,
-      });
-      // Update current step to next (so when user navigates, we know where to go)
-      setCurrentStep(next);
-    } else if (!next) {
-      // This was the last page - mark as complete when they navigate away
-      saveTutorialProgress({
-        flowId: currentFlow.id,
-        currentStepId: currentStep.id,
-        dismissedForPage: pathname,
-      });
-    }
+    // Save progress with current step (don't advance yet)
+    saveTutorialProgress({
+      flowId: currentFlow.id,
+      currentStepId: currentStep.id,
+      dismissedForPage: pathname,
+      waitingForAction: false,
+    });
   }, [currentFlow, currentStep, pathname]);
+
+  // Called when user completes a required action
+  const notifyActionCompleted = useCallback(
+    (validationKey: TutorialValidationKey) => {
+      if (!currentFlow || !currentStep) return;
+
+      // Check if this matches the current step's validation key
+      if (currentStep.validationKey === validationKey && isWaitingForAction) {
+        // Action completed! Navigate to next page
+        setIsWaitingForAction(false);
+        goToNextPage();
+      }
+    },
+    [currentFlow, currentStep, isWaitingForAction, goToNextPage]
+  );
+
+  // Resume tutorial after user interaction
+  const resumeTutorial = useCallback(() => {
+    if (!currentFlow || !currentStep) return;
+
+    setIsVisible(true);
+    setDismissedForPage(null);
+
+    saveTutorialProgress({
+      flowId: currentFlow.id,
+      currentStepId: currentStep.id,
+      dismissedForPage: null,
+      waitingForAction: isWaitingForAction,
+    });
+  }, [currentFlow, currentStep, isWaitingForAction]);
 
   const skipTutorial = useCallback(() => {
     localStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
@@ -234,6 +323,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     setCurrentStep(null);
     setIsVisible(false);
     setDismissedForPage(null);
+    setIsWaitingForAction(false);
   }, []);
 
   const completeTutorial = useCallback(() => {
@@ -243,6 +333,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     setCurrentStep(null);
     setIsVisible(false);
     setDismissedForPage(null);
+    setIsWaitingForAction(false);
     router.push("/app");
   }, [router]);
 
@@ -271,11 +362,15 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     pageStepIndex,
     pageStepsTotal: pageSteps.length,
     isLastPageStep,
+    isWaitingForAction,
     startTutorial,
     nextStep,
+    goToNextPage,
     dismissPageTutorial,
     skipTutorial,
     completeTutorial,
+    notifyActionCompleted,
+    resumeTutorial,
   };
 
   return (

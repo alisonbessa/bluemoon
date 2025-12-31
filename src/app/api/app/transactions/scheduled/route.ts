@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { budgetMembers, categories, groups, incomeSources, transactions, monthlyAllocations } from "@/db/schema";
+import { budgetMembers, categories, groups, incomeSources, transactions, monthlyAllocations, goals, goalContributions } from "@/db/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -22,10 +22,11 @@ interface ScheduledTransaction {
   dueDay: number;
   dueDate: string;
   isPaid: boolean;
-  sourceType: "category" | "income_source";
+  sourceType: "category" | "income_source" | "goal";
   sourceId: string;
   categoryId?: string;
   incomeSourceId?: string;
+  goalId?: string;
 }
 
 // GET - Get scheduled/projected transactions for a month
@@ -50,7 +51,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const endDate = new Date(year, month, 0, 23, 59, 59);
 
   // Get categories with dueDay (fixed expenses)
-  const [categoriesWithDueDay, incomeSourcesWithDay, existingTransactions] = await Promise.all([
+  const [categoriesWithDueDay, incomeSourcesWithDay, existingTransactions, activeGoals, existingGoalContributions] = await Promise.all([
     // Categories with dueDay set
     db
       .select({
@@ -104,11 +105,35 @@ export const GET = withAuthRequired(async (req, context) => {
           inArray(transactions.status, ["pending", "cleared", "reconciled"])
         )
       ),
+
+    // Get active goals with monthly targets
+    db
+      .select()
+      .from(goals)
+      .where(
+        and(
+          eq(goals.budgetId, budgetId),
+          eq(goals.isArchived, false),
+          eq(goals.isCompleted, false)
+        )
+      ),
+
+    // Get existing goal contributions for this month
+    db
+      .select()
+      .from(goalContributions)
+      .where(
+        and(
+          eq(goalContributions.year, year),
+          eq(goalContributions.month, month)
+        )
+      ),
   ]);
 
   // Build map of already paid items
   const paidCategories = new Set<string>();
   const paidIncomeSources = new Set<string>();
+  const paidGoals = new Set<string>();
 
   for (const tx of existingTransactions) {
     if (tx.categoryId && tx.type === "expense") {
@@ -117,6 +142,11 @@ export const GET = withAuthRequired(async (req, context) => {
     if (tx.incomeSourceId && tx.type === "income") {
       paidIncomeSources.add(tx.incomeSourceId);
     }
+  }
+
+  // Check which goals have contributions this month
+  for (const contribution of existingGoalContributions) {
+    paidGoals.add(contribution.goalId);
   }
 
   const scheduledTransactions: ScheduledTransaction[] = [];
@@ -164,6 +194,44 @@ export const GET = withAuthRequired(async (req, context) => {
         sourceId: source.id,
         incomeSourceId: source.id,
       });
+    }
+  }
+
+  // Add goal monthly contributions as pending expenses
+  for (const goal of activeGoals) {
+    // Calculate monthly target based on remaining amount and time
+    const now = new Date();
+    const targetDate = new Date(goal.targetDate);
+    const currentAmount = goal.currentAmount ?? 0;
+    const targetAmount = goal.targetAmount;
+    const remaining = targetAmount - currentAmount;
+
+    if (remaining > 0) {
+      const monthsRemaining = Math.max(
+        1,
+        (targetDate.getFullYear() - now.getFullYear()) * 12 +
+          (targetDate.getMonth() - now.getMonth())
+      );
+      const monthlyTarget = Math.ceil(remaining / monthsRemaining);
+
+      if (monthlyTarget > 0) {
+        // Use the 1st day of the month as default due day for goals
+        const dueDate = new Date(year, month - 1, 1);
+
+        scheduledTransactions.push({
+          id: `goal-${goal.id}-${year}-${month}`,
+          type: "expense",
+          name: `Meta: ${goal.name}`,
+          icon: goal.icon || "🎯",
+          amount: monthlyTarget,
+          dueDay: 1,
+          dueDate: dueDate.toISOString(),
+          isPaid: paidGoals.has(goal.id),
+          sourceType: "goal",
+          sourceId: goal.id,
+          goalId: goal.id,
+        });
+      }
     }
   }
 

@@ -8,6 +8,8 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
+import { financialAccounts } from "./accounts";
+import { transactions } from "./transactions";
 
 // Tabela principal de metas financeiras
 export const goals = pgTable("goals", {
@@ -17,6 +19,9 @@ export const goals = pgTable("goals", {
   budgetId: text("budget_id")
     .references(() => budgets.id, { onDelete: "cascade" })
     .notNull(),
+  // Conta onde o dinheiro da meta é guardado (ex: poupança, investimento)
+  accountId: text("account_id")
+    .references(() => financialAccounts.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   icon: text("icon").default("🎯"),
   color: text("color").default("#8b5cf6"),
@@ -36,10 +41,14 @@ export const goalsRelations = relations(goals, ({ one, many }) => ({
     fields: [goals.budgetId],
     references: [budgets.id],
   }),
+  account: one(financialAccounts, {
+    fields: [goals.accountId],
+    references: [financialAccounts.id],
+  }),
   contributions: many(goalContributions),
 }));
 
-// Histórico de contribuições mensais para cada meta
+// Histórico de contribuições para cada meta
 export const goalContributions = pgTable(
   "goal_contributions",
   {
@@ -49,12 +58,17 @@ export const goalContributions = pgTable(
     goalId: text("goal_id")
       .references(() => goals.id, { onDelete: "cascade" })
       .notNull(),
+    // Conta de origem da contribuição (de onde saiu o dinheiro)
+    fromAccountId: text("from_account_id")
+      .references(() => financialAccounts.id, { onDelete: "set null" }),
+    // Transação associada a esta contribuição
+    transactionId: text("transaction_id")
+      .references(() => transactions.id, { onDelete: "set null" }),
     year: integer("year").notNull(),
     month: integer("month").notNull(), // 1-12
-    amount: integer("amount").notNull(), // Valor contribuído no mês em centavos
+    amount: integer("amount").notNull(), // Valor contribuído em centavos
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-  },
-  (table) => [unique("goal_month_unique").on(table.goalId, table.year, table.month)]
+  }
 );
 
 export const goalContributionsRelations = relations(
@@ -63,6 +77,14 @@ export const goalContributionsRelations = relations(
     goal: one(goals, {
       fields: [goalContributions.goalId],
       references: [goals.id],
+    }),
+    fromAccount: one(financialAccounts, {
+      fields: [goalContributions.fromAccountId],
+      references: [financialAccounts.id],
+    }),
+    transaction: one(transactions, {
+      fields: [goalContributions.transactionId],
+      references: [transactions.id],
     }),
   })
 );

@@ -23,12 +23,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Plus,
   Loader2,
   Target,
   Pencil,
-  Trash2,
   Calendar,
   TrendingUp,
   Trophy,
@@ -41,6 +48,7 @@ import confetti from "canvas-confetti";
 interface Goal {
   id: string;
   budgetId: string;
+  accountId: string | null;
   name: string;
   icon: string;
   color: string;
@@ -60,12 +68,22 @@ interface Goal {
   remaining: number;
 }
 
+interface Account {
+  id: string;
+  name: string;
+  icon: string | null;
+  type: string;
+  balance: number;
+}
+
 interface GoalFormData {
   name: string;
   icon: string;
   color: string;
   targetAmount: number;
+  initialAmount: number;
   targetDate: string;
+  accountId: string;
 }
 
 const EMOJI_OPTIONS = ["🎯", "✈️", "🏠", "🚗", "💍", "🎓", "💻", "📱", "🏖️", "💰", "🎁", "🛒"];
@@ -108,26 +126,31 @@ function formatFullDate(dateString: string): string {
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [budgets, setBudgets] = useState<{ id: string; name: string }[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [deletingGoal, setDeletingGoal] = useState<Goal | null>(null);
   const [contributeGoal, setContributeGoal] = useState<Goal | null>(null);
-  const [contributeAmount, setContributeAmount] = useState("");
 
   const [formData, setFormData] = useState<GoalFormData>({
     name: "",
     icon: "🎯",
     color: "#8b5cf6",
     targetAmount: 0,
+    initialAmount: 0,
     targetDate: "",
+    accountId: "",
   });
+  const [contributeAmountCents, setContributeAmountCents] = useState(0);
+  const [contributeFromAccountId, setContributeFromAccountId] = useState("");
 
   const fetchData = useCallback(async () => {
     try {
-      const [goalsRes, budgetsRes] = await Promise.all([
+      const [goalsRes, budgetsRes, accountsRes] = await Promise.all([
         fetch("/api/app/goals"),
         fetch("/api/app/budgets"),
+        fetch("/api/app/accounts"),
       ]);
 
       if (goalsRes.ok) {
@@ -138,6 +161,11 @@ export default function GoalsPage() {
       if (budgetsRes.ok) {
         const data = await budgetsRes.json();
         setBudgets(data.budgets || []);
+      }
+
+      if (accountsRes.ok) {
+        const data = await accountsRes.json();
+        setAccounts(data.accounts || []);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -157,7 +185,9 @@ export default function GoalsPage() {
       icon: "🎯",
       color: "#8b5cf6",
       targetAmount: 0,
+      initialAmount: 0,
       targetDate: "",
+      accountId: "",
     });
   };
 
@@ -172,8 +202,10 @@ export default function GoalsPage() {
       name: goal.name,
       icon: goal.icon,
       color: goal.color,
-      targetAmount: goal.targetAmount / 100,
+      targetAmount: goal.targetAmount,
+      initialAmount: 0, // Can't edit initial amount after creation
       targetDate: goal.targetDate.split("T")[0],
+      accountId: goal.accountId || "",
     });
     setEditingGoal(goal);
     setIsFormOpen(true);
@@ -192,12 +224,21 @@ export default function GoalsPage() {
       toast.error("Data limite é obrigatória");
       return;
     }
+    if (!formData.accountId) {
+      toast.error("Selecione a conta destino");
+      return;
+    }
 
     try {
       const payload = {
-        ...formData,
-        targetAmount: Math.round(formData.targetAmount * 100),
+        name: formData.name,
+        icon: formData.icon,
+        color: formData.color,
+        targetAmount: formData.targetAmount,
+        initialAmount: formData.initialAmount,
+        targetDate: formData.targetDate,
         budgetId: budgets[0]?.id,
+        accountId: formData.accountId,
       };
 
       let response;
@@ -254,9 +295,13 @@ export default function GoalsPage() {
   const handleContribute = async () => {
     if (!contributeGoal) return;
 
-    const amount = parseFloat(contributeAmount.replace(",", "."));
-    if (isNaN(amount) || amount <= 0) {
+    if (contributeAmountCents <= 0) {
       toast.error("Digite um valor válido");
+      return;
+    }
+
+    if (!contributeFromAccountId) {
+      toast.error("Selecione a conta de origem");
       return;
     }
 
@@ -266,9 +311,10 @@ export default function GoalsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: Math.round(amount * 100),
+          amount: contributeAmountCents,
           year: now.getFullYear(),
           month: now.getMonth() + 1,
+          fromAccountId: contributeFromAccountId,
         }),
       });
 
@@ -292,7 +338,8 @@ export default function GoalsPage() {
       }
 
       setContributeGoal(null);
-      setContributeAmount("");
+      setContributeAmountCents(0);
+      setContributeFromAccountId("");
       fetchData();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao contribuir");
@@ -415,7 +462,8 @@ export default function GoalsPage() {
                 className="w-full mt-3"
                 onClick={() => {
                   setContributeGoal(goal);
-                  setContributeAmount("");
+                  setContributeAmountCents(0);
+                  setContributeFromAccountId("");
                 }}
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -542,27 +590,33 @@ export default function GoalsPage() {
             {/* Target Amount */}
             <div className="space-y-2">
               <Label htmlFor="targetAmount">Valor alvo</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  R$
-                </span>
-                <Input
-                  id="targetAmount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0,00"
-                  className="pl-10"
-                  value={formData.targetAmount || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      targetAmount: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                />
-              </div>
+              <CurrencyInput
+                id="targetAmount"
+                value={formData.targetAmount}
+                onChange={(valueInCents) =>
+                  setFormData({ ...formData, targetAmount: valueInCents })
+                }
+                placeholder="0,00"
+              />
             </div>
+
+            {/* Initial Amount - only show when creating */}
+            {!editingGoal && (
+              <div className="space-y-2">
+                <Label htmlFor="initialAmount">Valor inicial (opcional)</Label>
+                <CurrencyInput
+                  id="initialAmount"
+                  value={formData.initialAmount}
+                  onChange={(valueInCents) =>
+                    setFormData({ ...formData, initialAmount: valueInCents })
+                  }
+                  placeholder="0,00"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Já tem algum valor guardado para essa meta?
+                </p>
+              </div>
+            )}
 
             {/* Target Date */}
             <div className="space-y-2">
@@ -574,6 +628,32 @@ export default function GoalsPage() {
                 onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
                 min={new Date().toISOString().split("T")[0]}
               />
+            </div>
+
+            {/* Destination Account - required */}
+            <div className="space-y-2">
+              <Label htmlFor="accountId">Conta destino</Label>
+              <Select
+                value={formData.accountId}
+                onValueChange={(value) => setFormData({ ...formData, accountId: value })}
+              >
+                <SelectTrigger id="accountId">
+                  <SelectValue placeholder="Selecione uma conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      <span className="flex items-center gap-2">
+                        <span>{account.icon || "💳"}</span>
+                        <span>{account.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Conta onde o dinheiro da meta será guardado
+              </p>
             </div>
           </div>
 
@@ -612,23 +692,42 @@ export default function GoalsPage() {
 
           <div className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="contributeFromAccount">Conta de origem</Label>
+              <Select
+                value={contributeFromAccountId}
+                onValueChange={setContributeFromAccountId}
+              >
+                <SelectTrigger id="contributeFromAccount">
+                  <SelectValue placeholder="Selecione a conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      <span className="flex items-center gap-2">
+                        <span>{account.icon || "💳"}</span>
+                        <span>{account.name}</span>
+                        <span className="text-muted-foreground">
+                          ({formatCurrency(account.balance)})
+                        </span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                O valor será transferido desta conta para a meta
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="contributeAmount">Valor da contribuição</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  R$
-                </span>
-                <Input
-                  id="contributeAmount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0,00"
-                  className="pl-10"
-                  value={contributeAmount}
-                  onChange={(e) => setContributeAmount(e.target.value)}
-                  autoFocus
-                />
-              </div>
+              <CurrencyInput
+                id="contributeAmount"
+                value={contributeAmountCents}
+                onChange={(valueInCents) => setContributeAmountCents(valueInCents)}
+                autoFocus
+                placeholder="0,00"
+              />
               {contributeGoal && contributeGoal.monthlyTarget > 0 && (
                 <p className="text-xs text-muted-foreground">
                   Sugestão mensal: {formatCurrency(contributeGoal.monthlyTarget)}
@@ -643,7 +742,7 @@ export default function GoalsPage() {
               className="w-1/4"
               onClick={() => {
                 setContributeGoal(null);
-                setContributeAmount("");
+                setContributeAmountCents(0);
               }}
             >
               Cancelar

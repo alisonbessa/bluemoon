@@ -249,7 +249,7 @@ export const GET = withAuthRequired(async (req, context) => {
     memberData.totals.received += received;
   }
 
-  // Calculate total income
+  // Calculate total income from income sources
   const incomeTotals = {
     planned: 0,
     received: 0,
@@ -260,6 +260,27 @@ export const GET = withAuthRequired(async (req, context) => {
     incomeTotals.received += g.totals.received;
     return g;
   });
+
+  // Also get total income/expense from ALL transactions (even without incomeSourceId or categoryId)
+  const [transactionTotals] = await db
+    .select({
+      totalIncome: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'income' THEN ${transactions.amount} ELSE 0 END), 0)`,
+      totalExpense: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'expense' THEN ${transactions.amount} ELSE 0 END), 0)`,
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.budgetId, budgetId),
+        gte(transactions.date, startDate),
+        lte(transactions.date, endDate),
+        inArray(transactions.status, ["pending", "cleared", "reconciled"])
+      )
+    );
+
+  // Use the actual transaction totals for received/spent
+  // But keep planned from income sources
+  const actualIncome = Number(transactionTotals?.totalIncome) || 0;
+  const actualExpense = Number(transactionTotals?.totalExpense) || 0;
 
   // Get month status
   const [monthStatus] = await db
@@ -298,10 +319,18 @@ export const GET = withAuthRequired(async (req, context) => {
     monthStartedAt: monthStatus?.startedAt || null,
     hasPreviousMonthData,
     groups: groupedResult,
-    totals: overallTotals,
+    totals: {
+      ...overallTotals,
+      // Use actual expense total from all transactions (more accurate)
+      spent: actualExpense,
+    },
     income: {
       byMember: incomeGroups,
-      totals: incomeTotals,
+      totals: {
+        ...incomeTotals,
+        // Use actual income total from all transactions (more accurate)
+        received: actualIncome,
+      },
     },
   });
 });

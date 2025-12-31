@@ -23,8 +23,6 @@ import {
 } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import {
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   Loader2,
   Plus,
@@ -38,6 +36,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { MonthSelector } from "@/components/ui/month-selector";
 import Link from "next/link";
 import {
   AlertDialog,
@@ -52,6 +51,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { GoalFormModal } from "@/components/goals";
+import { useTutorial } from "@/components/tutorial/tutorial-provider";
 
 interface Category {
   id: string;
@@ -202,6 +202,7 @@ const ALLOWED_ACCOUNT_TYPES_BY_INCOME: Record<string, string[]> = {
 
 export default function BudgetPage() {
   const router = useRouter();
+  const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [groupsData, setGroupsData] = useState<GroupData[]>([]);
   const [totals, setTotals] = useState({ allocated: 0, spent: 0, available: 0 });
@@ -212,8 +213,36 @@ export default function BudgetPage() {
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [expandedIncomeMembers, setExpandedIncomeMembers] = useState<string[]>([]);
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(true);
-  const [isExpensesExpanded, setIsExpensesExpanded] = useState(true);
-  const [isGoalsExpanded, setIsGoalsExpanded] = useState(true);
+  const [isExpensesExpanded, setIsExpensesExpanded] = useState(false);
+  const [isGoalsExpanded, setIsGoalsExpanded] = useState(false);
+
+  // Accordion toggle functions - close others when opening one
+  const toggleIncomeSection = () => {
+    const newState = !isIncomeExpanded;
+    setIsIncomeExpanded(newState);
+    if (newState) {
+      setIsExpensesExpanded(false);
+      setIsGoalsExpanded(false);
+    }
+  };
+
+  const toggleExpensesSection = () => {
+    const newState = !isExpensesExpanded;
+    setIsExpensesExpanded(newState);
+    if (newState) {
+      setIsIncomeExpanded(false);
+      setIsGoalsExpanded(false);
+    }
+  };
+
+  const toggleGoalsSection = () => {
+    const newState = !isGoalsExpanded;
+    setIsGoalsExpanded(newState);
+    if (newState) {
+      setIsIncomeExpanded(false);
+      setIsExpensesExpanded(false);
+    }
+  };
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -392,22 +421,9 @@ export default function BudgetPage() {
     );
   };
 
-  const handlePrevMonth = () => {
-    if (currentMonth === 1) {
-      setCurrentYear((y) => y - 1);
-      setCurrentMonth(12);
-    } else {
-      setCurrentMonth((m) => m - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (currentMonth === 12) {
-      setCurrentYear((y) => y + 1);
-      setCurrentMonth(1);
-    } else {
-      setCurrentMonth((m) => m + 1);
-    }
+  const handleMonthChange = (year: number, month: number) => {
+    setCurrentYear(year);
+    setCurrentMonth(month);
   };
 
   const openEditModal = (category: Category, allocated: number) => {
@@ -515,6 +531,11 @@ export default function BudgetPage() {
       toast.success("Alocação atualizada!");
       setEditingCategory(null);
       fetchData();
+
+      // Notify tutorial that user made an allocation
+      if (isTutorialActive) {
+        notifyActionCompleted("hasAllocations");
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao salvar");
     }
@@ -919,17 +940,11 @@ export default function BudgetPage() {
         {/* Top Bar */}
         <div className="flex items-center justify-between px-4 py-2 border-b">
           {/* Month Navigation */}
-          <div className="flex items-center">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handlePrevMonth}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-semibold min-w-[80px] text-center">
-              {monthNamesFull[currentMonth - 1]} {currentYear}
-            </span>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleNextMonth}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <MonthSelector
+            year={currentYear}
+            month={currentMonth}
+            onChange={handleMonthChange}
+          />
 
           {/* Summary */}
           <div
@@ -1006,7 +1021,7 @@ export default function BudgetPage() {
             {/* Income Section Header - Clickable Toggle */}
             <div
               className="group px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-green-200/50 dark:hover:bg-green-950/70 transition-colors"
-              onClick={() => setIsIncomeExpanded(!isIncomeExpanded)}
+              onClick={toggleIncomeSection}
             >
               <div className="flex items-center gap-2">
                 <ChevronDown className={cn("h-4 w-4 text-green-700 dark:text-green-300 transition-transform", !isIncomeExpanded && "-rotate-90")} />
@@ -1213,7 +1228,7 @@ export default function BudgetPage() {
             {/* Expenses Section Header - Clickable Toggle */}
             <div
               className="px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-red-200/50 dark:hover:bg-red-950/70 transition-colors"
-              onClick={() => setIsExpensesExpanded(!isExpensesExpanded)}
+              onClick={toggleExpensesSection}
             >
               <div className="flex items-center gap-2">
                 <ChevronDown className={cn("h-4 w-4 text-red-700 dark:text-red-300 transition-transform", !isExpensesExpanded && "-rotate-90")} />
@@ -1369,11 +1384,11 @@ export default function BudgetPage() {
         ) : null}
 
         {/* Goals Section */}
-        <div className="border-b">
+        <div className="border-b" data-tutorial="goals-group">
           {/* Goals Section Header - Clickable Toggle */}
           <div
             className="px-4 py-2 bg-violet-100 dark:bg-violet-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-violet-200/50 dark:hover:bg-violet-950/70 transition-colors"
-            onClick={() => setIsGoalsExpanded(!isGoalsExpanded)}
+            onClick={toggleGoalsSection}
           >
             <div className="flex items-center gap-2">
               <ChevronDown className={cn("h-4 w-4 text-violet-700 dark:text-violet-300 transition-transform", !isGoalsExpanded && "-rotate-90")} />

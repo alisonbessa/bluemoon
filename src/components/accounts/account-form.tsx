@@ -82,8 +82,6 @@ export function AccountForm({
     creditLimit: initialData?.creditLimit,
     closingDay: initialData?.closingDay,
     dueDay: initialData?.dueDay,
-    monthlyDeposit: initialData?.monthlyDeposit,
-    depositDay: initialData?.depositDay,
     icon: initialData?.icon,
     color: initialData?.color,
   });
@@ -93,12 +91,8 @@ export function AccountForm({
   const [creditLimitInput, setCreditLimitInput] = useState(
     formatCurrency(initialData?.creditLimit || 0)
   );
-  const [monthlyDepositInput, setMonthlyDepositInput] = useState(
-    formatCurrency(initialData?.monthlyDeposit || 0)
-  );
 
   const isCreditCard = formData.type === "credit_card";
-  const isBenefit = formData.type === "benefit";
 
   // Sync form data when initialData changes (e.g., when opening form with pre-selected type)
   useEffect(() => {
@@ -112,14 +106,11 @@ export function AccountForm({
         creditLimit: initialData.creditLimit,
         closingDay: initialData.closingDay,
         dueDay: initialData.dueDay,
-        monthlyDeposit: initialData.monthlyDeposit,
-        depositDay: initialData.depositDay,
         icon: initialData.icon || accountType?.icon,
         color: initialData.color,
       });
       setBalanceInput(formatCurrency(initialData.balance || 0));
       setCreditLimitInput(formatCurrency(initialData.creditLimit || 0));
-      setMonthlyDepositInput(formatCurrency(initialData.monthlyDeposit || 0));
     }
   }, [initialData]);
 
@@ -153,10 +144,6 @@ export function AccountForm({
         dataToSubmit.creditLimit = parseCurrency(creditLimitInput);
       }
 
-      if (isBenefit) {
-        dataToSubmit.monthlyDeposit = parseCurrency(monthlyDepositInput);
-      }
-
       await onSubmit(dataToSubmit);
       onOpenChange(false);
       setErrors({});
@@ -170,12 +157,9 @@ export function AccountForm({
         creditLimit: undefined,
         closingDay: undefined,
         dueDay: undefined,
-        monthlyDeposit: undefined,
-        depositDay: undefined,
       });
       setBalanceInput("0,00");
       setCreditLimitInput("0,00");
-      setMonthlyDepositInput("0,00");
     } finally {
       setIsSubmitting(false);
     }
@@ -187,15 +171,11 @@ export function AccountForm({
       ...prev,
       type,
       icon: accountType?.icon,
-      // Reset type-specific fields
+      // Reset credit card specific fields when changing away from credit card
       ...(type !== "credit_card" && {
         creditLimit: undefined,
         closingDay: undefined,
         dueDay: undefined,
-      }),
-      ...(type !== "benefit" && {
-        monthlyDeposit: undefined,
-        depositDay: undefined,
       }),
     }));
   };
@@ -261,7 +241,7 @@ export function AccountForm({
                 placeholder={
                   isCreditCard
                     ? "Ex: Nubank"
-                    : isBenefit
+                    : formData.type === "benefit"
                       ? "Ex: VR, VA, Alelo"
                       : "Ex: Banco do Brasil"
                 }
@@ -449,69 +429,6 @@ export function AccountForm({
               </>
             )}
 
-            {isBenefit && (
-              <>
-                <div className="grid gap-2">
-                  <Label htmlFor="monthlyDeposit">Valor Mensal</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                      R$
-                    </span>
-                    <Input
-                      id="monthlyDeposit"
-                      className="pl-10"
-                      placeholder="0,00"
-                      value={monthlyDepositInput}
-                      onChange={(e) => {
-                        const formatted = formatCurrencyFromDigits(e.target.value);
-                        setMonthlyDepositInput(formatted);
-                      }}
-                      onFocus={(e) => {
-                        if (parseCurrency(monthlyDepositInput) === 0) {
-                          setMonthlyDepositInput("");
-                        }
-                        e.target.select();
-                      }}
-                      onBlur={() => {
-                        if (!monthlyDepositInput.trim()) {
-                          setMonthlyDepositInput("0,00");
-                        }
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Valor depositado todo mês
-                  </p>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="depositDay">Dia do Depósito</Label>
-                  <Select
-                    value={formData.depositDay?.toString() || ""}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        depositDay: parseInt(value),
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o dia" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DAYS.map((day) => (
-                        <SelectItem key={day} value={day.toString()}>
-                          Dia {day}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Dia que o benefício é creditado
-                  </p>
-                </div>
-              </>
-            )}
           </div>
 
           <DialogFooter className="flex justify-end gap-2">

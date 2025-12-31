@@ -236,7 +236,7 @@ export function CategoryFormModal({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="refill_up">
-                  Recarregar (o valor é renovado todo mês)
+                  Recorrente (o valor é renovado todo mês)
                 </SelectItem>
                 <SelectItem value="set_aside">
                   Acumular (o valor não usado passa para o próximo mês)
