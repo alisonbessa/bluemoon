@@ -1,7 +1,7 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { transactions, budgetMembers, financialAccounts } from "@/db/schema";
-import { eq, and, inArray, gte, lte, sql } from "drizzle-orm";
+import { transactions, budgetMembers, financialAccounts, categories, incomeSources, monthlyAllocations } from "@/db/schema";
+import { eq, and, inArray, gte, lte, sql, isNotNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 // Helper to get user's budget IDs
@@ -36,7 +36,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const endDate = new Date(year, month, 0, 23, 59, 59);
   const daysInMonth = endDate.getDate();
 
-  // Get daily aggregated data
+  // Get daily aggregated data (actual transactions)
   const dailyData = await db
     .select({
       day: sql<number>`EXTRACT(DAY FROM ${transactions.date})::integer`,
@@ -55,15 +55,78 @@ export const GET = withAuthRequired(async (req, context) => {
     .groupBy(sql`EXTRACT(DAY FROM ${transactions.date})`)
     .orderBy(sql`EXTRACT(DAY FROM ${transactions.date})`);
 
+  // Get planned expenses (categories with dueDay)
+  const plannedExpenses = await db
+    .select({
+      dueDay: categories.dueDay,
+      amount: monthlyAllocations.allocated,
+      plannedAmount: categories.plannedAmount,
+    })
+    .from(categories)
+    .leftJoin(
+      monthlyAllocations,
+      and(
+        eq(monthlyAllocations.categoryId, categories.id),
+        eq(monthlyAllocations.year, year),
+        eq(monthlyAllocations.month, month)
+      )
+    )
+    .where(
+      and(
+        eq(categories.budgetId, budgetId),
+        isNotNull(categories.dueDay),
+        eq(categories.isArchived, false)
+      )
+    );
+
+  // Get planned income (income sources with dayOfMonth)
+  const plannedIncome = await db
+    .select({
+      dayOfMonth: incomeSources.dayOfMonth,
+      amount: incomeSources.amount,
+    })
+    .from(incomeSources)
+    .where(
+      and(
+        eq(incomeSources.budgetId, budgetId),
+        isNotNull(incomeSources.dayOfMonth),
+        eq(incomeSources.isActive, true)
+      )
+    );
+
+  // Build planned data by day
+  const plannedByDay: Record<number, { income: number; expense: number }> = {};
+
+  for (const expense of plannedExpenses) {
+    if (expense.dueDay) {
+      const day = expense.dueDay;
+      if (!plannedByDay[day]) plannedByDay[day] = { income: 0, expense: 0 };
+      plannedByDay[day].expense += Number(expense.amount) || Number(expense.plannedAmount) || 0;
+    }
+  }
+
+  for (const income of plannedIncome) {
+    if (income.dayOfMonth) {
+      const day = income.dayOfMonth;
+      if (!plannedByDay[day]) plannedByDay[day] = { income: 0, expense: 0 };
+      plannedByDay[day].income += Number(income.amount) || 0;
+    }
+  }
+
   // Build daily chart data with cumulative balance
   const dailyChartData = [];
   let cumulativeBalance = 0;
+  let cumulativePlannedBalance = 0;
 
   for (let day = 1; day <= daysInMonth; day++) {
     const dayData = dailyData.find((d) => d.day === day);
     const income = Number(dayData?.income) || 0;
     const expense = Number(dayData?.expense) || 0;
+    const plannedInc = plannedByDay[day]?.income || 0;
+    const plannedExp = plannedByDay[day]?.expense || 0;
+
     cumulativeBalance += income - expense;
+    cumulativePlannedBalance += plannedInc - plannedExp;
 
     dailyChartData.push({
       day,
@@ -71,6 +134,9 @@ export const GET = withAuthRequired(async (req, context) => {
       income,
       expense,
       balance: cumulativeBalance,
+      plannedIncome: plannedInc,
+      plannedExpense: plannedExp,
+      plannedBalance: cumulativePlannedBalance,
     });
   }
 

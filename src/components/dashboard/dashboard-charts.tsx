@@ -32,6 +32,8 @@ import {
   Legend,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface DailyData {
   day: number;
@@ -39,6 +41,9 @@ interface DailyData {
   income: number;
   expense: number;
   balance: number;
+  plannedIncome?: number;
+  plannedExpense?: number;
+  plannedBalance?: number;
 }
 
 interface MonthlyData {
@@ -77,6 +82,18 @@ const dailyChartConfig = {
     label: "Saldo",
     color: "hsl(221, 83%, 53%)",
   },
+  plannedIncome: {
+    label: "Receitas Previstas",
+    color: "hsl(142, 50%, 60%)",
+  },
+  plannedExpense: {
+    label: "Despesas Previstas",
+    color: "hsl(0, 50%, 75%)",
+  },
+  plannedBalance: {
+    label: "Saldo Previsto",
+    color: "hsl(221, 50%, 70%)",
+  },
 };
 
 const monthlyChartConfig = {
@@ -98,6 +115,7 @@ export function DashboardCharts({
   isLoading,
 }: DashboardChartsProps) {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("12months");
+  const [showPlanned, setShowPlanned] = useState(false);
 
   // Filter monthly data based on selected period
   const getFilteredMonthlyData = () => {
@@ -123,6 +141,13 @@ export function DashboardCharts({
 
   const filteredMonthlyData = getFilteredMonthlyData();
 
+  // Transform daily data to have negative expenses for stacked bar effect
+  const transformedDailyData = dailyData.map((item) => ({
+    ...item,
+    expenseNegative: -item.expense,
+    plannedExpenseNegative: -(item.plannedExpense || 0),
+  }));
+
   // Transform monthly data to have negative expenses for stacked bar effect
   const transformedMonthlyData = filteredMonthlyData.map((item) => ({
     ...item,
@@ -143,14 +168,32 @@ export function DashboardCharts({
       {/* Daily Balance Chart */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Saldo Diario</CardTitle>
-          <CardDescription>
-            Receitas, despesas e saldo acumulado do mes
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Saldo Diario</CardTitle>
+              <CardDescription>
+                Receitas, despesas e saldo acumulado do mes
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="show-planned"
+                checked={showPlanned}
+                onCheckedChange={setShowPlanned}
+              />
+              <Label htmlFor="show-planned" className="text-sm text-muted-foreground">
+                Mostrar previsto
+              </Label>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={dailyChartConfig} className="h-[250px] w-full">
-            <ComposedChart data={dailyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <ChartContainer config={dailyChartConfig} className="h-[300px] w-full">
+            <ComposedChart
+              data={transformedDailyData}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              stackOffset="sign"
+            >
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis
                 dataKey="date"
@@ -163,15 +206,15 @@ export function DashboardCharts({
                 tick={{ fontSize: 10 }}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(value) => formatCurrency(value)}
-                width={60}
+                tickFormatter={(value) => formatCurrency(Math.abs(value))}
+                width={70}
               />
               <ChartTooltip
                 content={
                   <ChartTooltipContent
                     formatter={(value, name) => (
                       <span className="font-medium">
-                        {formatCurrency(Number(value))}
+                        {formatCurrency(Math.abs(Number(value)))}
                       </span>
                     )}
                   />
@@ -180,15 +223,37 @@ export function DashboardCharts({
               <Bar
                 dataKey="income"
                 fill="var(--color-income)"
-                radius={[2, 2, 0, 0]}
+                radius={[4, 4, 0, 0]}
                 name="Receitas"
+                stackId="stack"
               />
+              {showPlanned && (
+                <Bar
+                  dataKey="plannedIncome"
+                  fill="var(--color-income)"
+                  radius={[4, 4, 0, 0]}
+                  name="Receitas Previstas"
+                  stackId="stack"
+                  fillOpacity={0.3}
+                />
+              )}
               <Bar
-                dataKey="expense"
+                dataKey="expenseNegative"
                 fill="var(--color-expense)"
-                radius={[2, 2, 0, 0]}
+                radius={[0, 0, 4, 4]}
                 name="Despesas"
+                stackId="stack"
               />
+              {showPlanned && (
+                <Bar
+                  dataKey="plannedExpenseNegative"
+                  fill="var(--color-expense)"
+                  radius={[0, 0, 4, 4]}
+                  name="Despesas Previstas"
+                  stackId="stack"
+                  fillOpacity={0.3}
+                />
+              )}
               <Line
                 type="monotone"
                 dataKey="balance"
@@ -197,6 +262,17 @@ export function DashboardCharts({
                 dot={false}
                 name="Saldo"
               />
+              {showPlanned && (
+                <Line
+                  type="monotone"
+                  dataKey="plannedBalance"
+                  stroke="var(--color-plannedBalance)"
+                  strokeWidth={2}
+                  strokeDasharray="5 5"
+                  dot={false}
+                  name="Saldo Previsto"
+                />
+              )}
             </ComposedChart>
           </ChartContainer>
         </CardContent>
@@ -213,7 +289,7 @@ export function DashboardCharts({
               </CardDescription>
             </div>
             <Select value={periodFilter} onValueChange={(value: PeriodFilter) => setPeriodFilter(value)}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[160px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

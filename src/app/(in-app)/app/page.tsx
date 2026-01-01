@@ -71,6 +71,9 @@ interface DailyChartData {
   income: number;
   expense: number;
   balance: number;
+  plannedIncome?: number;
+  plannedExpense?: number;
+  plannedBalance?: number;
 }
 
 interface MonthlyChartData {
