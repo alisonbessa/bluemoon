@@ -72,7 +72,7 @@ export default function AcceptInvitePage({
         if (response.ok) {
           setInvite(data.invite);
         } else {
-          setError(data.error || "Convite nao encontrado");
+          setError(data.error || "Convite não encontrado");
         }
       } catch (err) {
         console.error("Error fetching invite:", err);
@@ -141,14 +141,14 @@ export default function AcceptInvitePage({
             <div className="mx-auto h-12 w-12 rounded-full bg-red-100 dark:bg-red-950/30 flex items-center justify-center mb-4">
               <XCircle className="h-6 w-6 text-red-600 dark:text-red-400" />
             </div>
-            <CardTitle>Convite Invalido</CardTitle>
+            <CardTitle>Convite Inválido</CardTitle>
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <Button asChild>
               <Link href="/">
                 <Home className="mr-2 h-4 w-4" />
-                Voltar para o inicio
+                Voltar para o início
               </Link>
             </Button>
           </CardContent>
@@ -175,9 +175,9 @@ export default function AcceptInvitePage({
             <div className="mx-auto h-12 w-12 rounded-full bg-green-100 dark:bg-green-950/30 flex items-center justify-center mb-4">
               <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
-            <CardTitle>Bem-vindo(a) ao orcamento!</CardTitle>
+            <CardTitle>Bem-vindo(a) ao orçamento!</CardTitle>
             <CardDescription>
-              Voce agora faz parte do orcamento "{invite.budget.name}"
+              Você agora faz parte do orçamento "{invite.budget.name}"
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
@@ -205,7 +205,7 @@ export default function AcceptInvitePage({
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-sm text-muted-foreground">
-              Se voce esta usando uma conta diferente, faca logout e entre com o
+              Se você está usando uma conta diferente, faça logout e entre com o
               email correto.
             </p>
             <div className="flex gap-2 justify-center">
@@ -236,8 +236,8 @@ export default function AcceptInvitePage({
               </CardTitle>
               <CardDescription>
                 {isCancelled
-                  ? "Este convite foi cancelado pelo dono do orcamento."
-                  : "Este convite nao e mais valido. Peca um novo convite."}
+                  ? "Este convite foi cancelado pelo dono do orçamento."
+                  : "Este convite não é mais válido. Peça um novo convite."}
               </CardDescription>
             </>
           ) : isAlreadyAccepted ? (
@@ -245,9 +245,9 @@ export default function AcceptInvitePage({
               <div className="mx-auto h-12 w-12 rounded-full bg-green-100 dark:bg-green-950/30 flex items-center justify-center mb-4">
                 <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
-              <CardTitle>Convite ja aceito</CardTitle>
+              <CardTitle>Convite já aceito</CardTitle>
               <CardDescription>
-                Voce ja faz parte do orcamento "{invite.budget.name}"
+                Você já faz parte do orçamento "{invite.budget.name}"
               </CardDescription>
             </>
           ) : (
@@ -255,10 +255,10 @@ export default function AcceptInvitePage({
               <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 <Users className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle>Voce foi convidado(a)!</CardTitle>
+              <CardTitle>Você foi convidado(a)!</CardTitle>
               <CardDescription>
-                {invite.invitedBy.name || invite.invitedBy.email} convidou voce
-                para participar do orcamento
+                {invite.invitedBy.name || invite.invitedBy.email} convidou você
+                para participar do orçamento
               </CardDescription>
             </>
           )}
@@ -268,7 +268,7 @@ export default function AcceptInvitePage({
           {/* Budget Info */}
           <div className="rounded-lg border bg-muted/50 p-4 mb-6">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Orcamento</p>
+              <p className="text-sm text-muted-foreground">Orçamento</p>
               <p className="text-lg font-semibold">{invite.budget.name}</p>
             </div>
           </div>
@@ -279,7 +279,7 @@ export default function AcceptInvitePage({
               <Button asChild>
                 <Link href={isAlreadyAccepted ? "/app" : "/"}>
                   <Home className="mr-2 h-4 w-4" />
-                  {isAlreadyAccepted ? "Ir para o Dashboard" : "Voltar para o inicio"}
+                  {isAlreadyAccepted ? "Ir para o Dashboard" : "Voltar para o início"}
                 </Link>
               </Button>
             </div>
@@ -288,11 +288,11 @@ export default function AcceptInvitePage({
               <p className="text-sm text-muted-foreground text-center">
                 {invite.email ? (
                   <>
-                    Para aceitar o convite, voce precisa estar logado com o email{" "}
+                    Para aceitar o convite, você precisa estar logado com o email{" "}
                     <strong>{invite.email}</strong>
                   </>
                 ) : (
-                  "Para aceitar o convite, voce precisa estar logado"
+                  "Para aceitar o convite, você precisa estar logado"
                 )}
               </p>
               <Button
@@ -305,7 +305,7 @@ export default function AcceptInvitePage({
                 Fazer login
               </Button>
               <p className="text-xs text-center text-muted-foreground">
-                Nao tem uma conta?{" "}
+                Não tem uma conta?{" "}
                 <Link
                   href={`/signup?callbackUrl=/invite/${token}${invite.email ? `&email=${encodeURIComponent(invite.email)}` : ""}`}
                   className="text-primary hover:underline"
@@ -317,8 +317,8 @@ export default function AcceptInvitePage({
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground text-center">
-                Ao aceitar, voce tera acesso completo ao orcamento compartilhado
-                e podera adicionar transacoes.
+                Ao aceitar, você terá acesso completo ao orçamento compartilhado
+                e poderá adicionar transações.
               </p>
               <Button
                 className="w-full"

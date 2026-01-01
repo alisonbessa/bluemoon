@@ -28,7 +28,7 @@ export async function GET(
     .where(eq(invites.token, token));
 
   if (!invite) {
-    return NextResponse.json({ error: "Convite nao encontrado" }, { status: 404 });
+    return NextResponse.json({ error: "Convite não encontrado" }, { status: 404 });
   }
 
   // Check if expired and update status if needed

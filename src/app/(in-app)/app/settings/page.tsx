@@ -81,7 +81,7 @@ export default function SettingsPage() {
   const handleRestartOnboarding = () => {
     setShowOnboardingConfirm(false);
     startTutorial("initial-setup");
-    toast.info("Tutorial iniciado! Siga os passos para revisar sua configuracao.");
+    toast.info("Tutorial iniciado! Siga os passos para revisar sua configuração.");
     router.push("/app/accounts");
   };
 
@@ -147,7 +147,7 @@ export default function SettingsPage() {
       });
 
       if (response.ok) {
-        toast.success("Conta excluida. Ate logo!");
+        toast.success("Conta excluída. Até logo!");
         await signOut({ callbackUrl: "/" });
       } else {
         toast.error("Erro ao excluir conta");
@@ -180,9 +180,9 @@ export default function SettingsPage() {
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Configuracoes</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
         <p className="text-muted-foreground">
-          Gerencie suas preferencias e configuracoes da conta
+          Gerencie suas preferências e configurações da conta
         </p>
       </div>
 
@@ -197,7 +197,7 @@ export default function SettingsPage() {
                 <CardTitle>Perfil</CardTitle>
               </div>
               <CardDescription>
-                Suas informacoes pessoais
+                Suas informações pessoais
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -209,7 +209,7 @@ export default function SettingsPage() {
                 <>
                   <div className="flex items-center gap-4">
                     <Avatar className="h-16 w-16">
-                      <AvatarImage src={user?.image || undefined} alt={user?.name || "Usuario"} />
+                      <AvatarImage src={user?.image || undefined} alt={user?.name || "Usuário"} />
                       <AvatarFallback className="text-2xl font-bold">
                         {getInitials()}
                       </AvatarFallback>
@@ -224,12 +224,12 @@ export default function SettingsPage() {
                     <Label htmlFor="displayName">Apelido</Label>
                     <Input
                       id="displayName"
-                      placeholder="Como voce quer ser chamado?"
+                      placeholder="Como você quer ser chamado?"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
-                      Este nome sera usado no app ao inves do seu nome completo
+                      Este nome será usado no app ao invés do seu nome completo
                     </p>
                   </div>
                   <div className="flex justify-end">
@@ -240,7 +240,7 @@ export default function SettingsPage() {
                           Salvando...
                         </>
                       ) : (
-                        "Salvar alteracoes"
+                        "Salvar alterações"
                       )}
                     </Button>
                   </div>
@@ -254,7 +254,7 @@ export default function SettingsPage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Palette className="h-5 w-5 text-muted-foreground" />
-                <CardTitle>Aparencia</CardTitle>
+                <CardTitle>Aparência</CardTitle>
               </div>
               <CardDescription>
                 Personalize a interface do aplicativo
@@ -309,7 +309,7 @@ export default function SettingsPage() {
                 <div>
                   <p className="font-medium">Exportar dados</p>
                   <p className="text-sm text-muted-foreground">
-                    Baixe todas as suas transacoes em CSV
+                    Baixe todas as suas transações em CSV
                   </p>
                 </div>
                 <Button
@@ -372,7 +372,7 @@ export default function SettingsPage() {
                   <Badge>Ativo</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Funcionalidades basicas para controle financeiro pessoal
+                  Funcionalidades básicas para controle financeiro pessoal
                 </p>
                 <Button className="w-full" variant="outline">
                   Ver planos premium
@@ -390,7 +390,7 @@ export default function SettingsPage() {
                 onClick={() => setShowOnboardingConfirm(true)}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Refazer configuracao inicial
+                Refazer configuração inicial
               </Button>
             </CardContent>
           </Card>
@@ -429,10 +429,10 @@ export default function SettingsPage() {
       <AlertDialog open={showOnboardingConfirm} onOpenChange={setShowOnboardingConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Refazer configuracao inicial?</AlertDialogTitle>
+            <AlertDialogTitle>Refazer configuração inicial?</AlertDialogTitle>
             <AlertDialogDescription>
-              Isso permitira que voce reconfigure suas categorias, contas e fontes de renda.
-              Os dados existentes serao mantidos, mas novas categorias podem ser adicionadas.
+              Isso permitirá que você reconfigure suas categorias, contas e fontes de renda.
+              Os dados existentes serão mantidos, mas novas categorias podem ser adicionadas.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -450,8 +450,8 @@ export default function SettingsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Tem certeza que deseja excluir sua conta?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acao nao pode ser desfeita. Todos os seus dados, incluindo transacoes,
-              contas, categorias e orcamentos serao permanentemente excluidos.
+              Esta ação não pode ser desfeita. Todos os seus dados, incluindo transações,
+              contas, categorias e orçamentos serão permanentemente excluídos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

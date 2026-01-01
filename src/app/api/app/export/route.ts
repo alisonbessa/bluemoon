@@ -75,7 +75,7 @@ export const GET = withAuthRequired(async (req, context) => {
       "Tipo",
       "Status",
       "Valor",
-      "Descricao",
+      "Descrição",
       "Conta",
       "Categoria",
       "Fonte de Renda",
@@ -88,7 +88,7 @@ export const GET = withAuthRequired(async (req, context) => {
     const typeLabels: Record<string, string> = {
       income: "Receita",
       expense: "Despesa",
-      transfer: "Transferencia",
+      transfer: "Transferência",
     };
 
     const statusLabels: Record<string, string> = {
@@ -112,7 +112,7 @@ export const GET = withAuthRequired(async (req, context) => {
         escapeCSV(t.categoryName),
         escapeCSV(t.incomeSourceName),
         installmentInfo,
-        t.isRecurring ? "Sim" : "Nao",
+        t.isRecurring ? "Sim" : "Não",
         escapeCSV(t.notes),
         t.createdAt ? formatDate(t.createdAt) : "",
       ].join(";");

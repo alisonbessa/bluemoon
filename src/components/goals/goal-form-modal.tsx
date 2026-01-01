@@ -299,7 +299,7 @@ export function GoalFormModal({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Conta onde o dinheiro da meta sera guardado
+              Conta onde o dinheiro da meta será guardado
             </p>
           </div>
         </div>

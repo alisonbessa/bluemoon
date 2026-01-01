@@ -170,9 +170,9 @@ export function DashboardCharts({
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base">Saldo Diario</CardTitle>
+              <CardTitle className="text-base">Saldo Diário</CardTitle>
               <CardDescription>
-                Receitas, despesas e saldo acumulado do mes
+                Receitas, despesas e saldo acumulado do mês
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">

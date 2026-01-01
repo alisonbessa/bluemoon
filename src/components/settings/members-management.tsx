@@ -219,7 +219,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>Membros do Orcamento</CardTitle>
+              <CardTitle>Membros do Orçamento</CardTitle>
             </div>
             {!hasConnectedPartner && pendingInvites.length === 0 && (
               <Button
@@ -233,7 +233,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
             )}
           </div>
           <CardDescription>
-            Gerencie quem tem acesso ao seu orcamento
+            Gerencie quem tem acesso ao seu orçamento
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -268,7 +268,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
                         {memberTypeIcons[member.type]}
                         {isPlaceholder && (
                           <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
-                            Nao conectado
+                            Não conectado
                           </Badge>
                         )}
                       </div>
@@ -278,7 +278,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
                         </Badge>
                         {member.monthlyPleasureBudget > 0 && (
                           <span>
-                            Prazeres: {formatCurrency(member.monthlyPleasureBudget)}/mes
+                            Prazeres: {formatCurrency(member.monthlyPleasureBudget)}/mês
                           </span>
                         )}
                       </div>
@@ -364,7 +364,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
           {hasConnectedPartner && (
             <div className="rounded-lg bg-green-50 dark:bg-green-950/30 p-3 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
               <CheckCircle className="h-4 w-4" />
-              <span>Seu orcamento ja tem um(a) parceiro(a) conectado(a)</span>
+              <span>Seu orçamento já tem um(a) parceiro(a) conectado(a)</span>
             </div>
           )}
 
@@ -421,7 +421,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
                   className="flex-1"
                   onClick={() => {
                     const message = encodeURIComponent(
-                      `Oi! Estou te convidando para participar do meu orcamento no HiveBudget. Clique no link para aceitar: ${inviteLink}`
+                      `Oi! Estou te convidando para participar do meu orçamento no HiveBudget. Clique no link para aceitar: ${inviteLink}`
                     );
                     window.open(`https://wa.me/?text=${message}`, "_blank");
                   }}
@@ -451,7 +451,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar convite?</AlertDialogTitle>
             <AlertDialogDescription>
-              O link de convite sera invalidado e voce podera enviar um novo convite.
+              O link de convite será invalidado e você poderá enviar um novo convite.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
