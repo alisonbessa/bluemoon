@@ -47,15 +47,18 @@ export const PATCH = withAuthRequired(async (req, context) => {
       );
     }
 
-    const { name, image } = validationResult.data;
+    const { name, displayName, image } = validationResult.data;
+
+    // Build update object with only provided fields
+    const updateData: Record<string, string | null | undefined> = {};
+    if (name !== undefined) updateData.name = name;
+    if (displayName !== undefined) updateData.displayName = displayName;
+    if (image !== undefined) updateData.image = image;
 
     // Update user in database
     const updatedUser = await db
       .update(users)
-      .set({
-        name,
-        image,
-      })
+      .set(updateData)
       .where(eq(users.id, session.user.id))
       .returning();
 
@@ -72,6 +75,26 @@ export const PATCH = withAuthRequired(async (req, context) => {
     console.error("Error updating profile:", error);
     return NextResponse.json(
       { error: "Failed to update profile" },
+      { status: 500 }
+    );
+  }
+});
+
+export const DELETE = withAuthRequired(async (req, context) => {
+  try {
+    const { session } = context;
+
+    // Delete the user - cascade will handle related data
+    await db.delete(users).where(eq(users.id, session.user.id));
+
+    return NextResponse.json({
+      success: true,
+      message: "Account deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    return NextResponse.json(
+      { error: "Failed to delete account" },
       { status: 500 }
     );
   }

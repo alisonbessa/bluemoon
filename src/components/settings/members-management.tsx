@@ -38,11 +38,12 @@ import {
   Mail,
   Clock,
   CheckCircle,
-  XCircle,
   Copy,
   Trash2,
   Crown,
   Heart,
+  Share2,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -95,9 +96,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteName, setInviteName] = useState("");
-  const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [isCreatingInvite, setIsCreatingInvite] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [cancelInviteId, setCancelInviteId] = useState<string | null>(null);
 
@@ -131,22 +130,13 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
     }
   }, [budgetId, fetchData]);
 
-  const handleSendInvite = async () => {
-    if (!inviteEmail.trim()) {
-      toast.error("Digite um email valido");
-      return;
-    }
-
-    setIsSendingInvite(true);
+  const handleCreateInvite = async () => {
+    setIsCreatingInvite(true);
     try {
       const response = await fetch("/api/app/invites", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          budgetId,
-          email: inviteEmail.trim(),
-          name: inviteName.trim() || undefined,
-        }),
+        body: JSON.stringify({ budgetId }),
       });
 
       const data = await response.json();
@@ -154,15 +144,16 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
       if (response.ok) {
         setInviteLink(data.inviteLink);
         setInvites((prev) => [...prev, data.invite]);
-        toast.success("Convite enviado com sucesso!");
+        setShowInviteModal(true);
+        toast.success("Link de convite criado!");
       } else {
-        toast.error(data.error || "Erro ao enviar convite");
+        toast.error(data.error || "Erro ao criar convite");
       }
     } catch (error) {
-      console.error("Error sending invite:", error);
-      toast.error("Erro ao enviar convite");
+      console.error("Error creating invite:", error);
+      toast.error("Erro ao criar convite");
     } finally {
-      setIsSendingInvite(false);
+      setIsCreatingInvite(false);
     }
   };
 
@@ -197,12 +188,13 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
 
   const closeInviteModal = () => {
     setShowInviteModal(false);
-    setInviteEmail("");
-    setInviteName("");
     setInviteLink(null);
   };
 
-  const hasPartner = members.some((m) => m.type === "partner");
+  // Only count partners that are actually connected (have userId)
+  const hasConnectedPartner = members.some((m) => m.type === "partner" && m.userId);
+  // Partner placeholders from onboarding (no userId yet)
+  const partnerPlaceholder = members.find((m) => m.type === "partner" && !m.userId);
   const pendingInvites = invites.filter((i) => i.status === "pending");
 
   if (isLoading) {
@@ -229,13 +221,14 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
               <Users className="h-5 w-5 text-muted-foreground" />
               <CardTitle>Membros do Orcamento</CardTitle>
             </div>
-            {!hasPartner && pendingInvites.length === 0 && (
+            {!hasConnectedPartner && pendingInvites.length === 0 && (
               <Button
                 size="sm"
-                onClick={() => setShowInviteModal(true)}
+                onClick={handleCreateInvite}
+                disabled={isCreatingInvite}
               >
                 <UserPlus className="mr-2 h-4 w-4" />
-                Convidar Parceiro(a)
+                {isCreatingInvite ? "Criando..." : "Criar link de convite"}
               </Button>
             )}
           </div>
@@ -246,37 +239,65 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
         <CardContent className="space-y-4">
           {/* Members List */}
           <div className="space-y-3">
-            {members.map((member) => (
-              <div
-                key={member.id}
-                className="flex items-center justify-between rounded-lg border p-3"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-white font-medium"
-                    style={{ backgroundColor: member.color || "#6366f1" }}
-                  >
-                    {member.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{member.name}</span>
-                      {memberTypeIcons[member.type]}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Badge variant="secondary" className="text-xs">
-                        {memberTypeLabels[member.type]}
-                      </Badge>
-                      {member.monthlyPleasureBudget > 0 && (
-                        <span>
-                          Prazeres: {formatCurrency(member.monthlyPleasureBudget)}/mes
-                        </span>
+            {members.map((member) => {
+              const isPlaceholder = member.type === "partner" && !member.userId;
+
+              return (
+                <div
+                  key={member.id}
+                  className={cn(
+                    "flex items-center justify-between rounded-lg border p-3",
+                    isPlaceholder && "border-dashed"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        "flex h-10 w-10 items-center justify-center rounded-full text-white font-medium",
+                        isPlaceholder && "opacity-50"
                       )}
+                      style={{ backgroundColor: member.color || "#6366f1" }}
+                    >
+                      {member.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className={cn("font-medium", isPlaceholder && "text-muted-foreground")}>
+                          {member.name}
+                        </span>
+                        {memberTypeIcons[member.type]}
+                        {isPlaceholder && (
+                          <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">
+                            Nao conectado
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Badge variant="secondary" className="text-xs">
+                          {memberTypeLabels[member.type]}
+                        </Badge>
+                        {member.monthlyPleasureBudget > 0 && (
+                          <span>
+                            Prazeres: {formatCurrency(member.monthlyPleasureBudget)}/mes
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  {isPlaceholder && pendingInvites.length === 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCreateInvite}
+                      disabled={isCreatingInvite}
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      {isCreatingInvite ? "Criando..." : "Convidar"}
+                    </Button>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Pending Invites */}
@@ -339,16 +360,16 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
             </>
           )}
 
-          {/* Already has partner message */}
-          {hasPartner && (
+          {/* Already has connected partner message */}
+          {hasConnectedPartner && (
             <div className="rounded-lg bg-green-50 dark:bg-green-950/30 p-3 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
               <CheckCircle className="h-4 w-4" />
-              <span>Seu orcamento ja tem um(a) parceiro(a)</span>
+              <span>Seu orcamento ja tem um(a) parceiro(a) conectado(a)</span>
             </div>
           )}
 
           {/* Has pending invite message */}
-          {!hasPartner && pendingInvites.length > 0 && (
+          {!hasConnectedPartner && pendingInvites.length > 0 && (
             <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 p-3 text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
               <Clock className="h-4 w-4" />
               <span>Aguardando resposta do convite</span>
@@ -357,78 +378,66 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
         </CardContent>
       </Card>
 
-      {/* Invite Modal */}
+      {/* Invite Link Modal */}
       <Dialog open={showInviteModal} onOpenChange={closeInviteModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Convidar Parceiro(a)</DialogTitle>
+            <DialogTitle>Link de Convite</DialogTitle>
             <DialogDescription>
-              Envie um convite para seu parceiro(a) participar do orcamento
+              Compartilhe este link com seu parceiro(a) para convidar
             </DialogDescription>
           </DialogHeader>
 
-          {!inviteLink ? (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="invite-email">Email</Label>
-                <Input
-                  id="invite-email"
-                  type="email"
-                  placeholder="parceiro@email.com"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="invite-name">Nome (opcional)</Label>
-                <Input
-                  id="invite-name"
-                  placeholder="Nome do parceiro(a)"
-                  value={inviteName}
-                  onChange={(e) => setInviteName(e.target.value)}
-                />
-              </div>
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg bg-green-50 dark:bg-green-950/30 p-4 text-center">
+              <CheckCircle className="mx-auto h-10 w-10 text-green-500 mb-2" />
+              <p className="font-medium text-green-700 dark:text-green-300">
+                Link criado com sucesso!
+              </p>
             </div>
-          ) : (
-            <div className="space-y-4 py-4">
-              <div className="rounded-lg bg-green-50 dark:bg-green-950/30 p-4 text-center">
-                <CheckCircle className="mx-auto h-10 w-10 text-green-500 mb-2" />
-                <p className="font-medium text-green-700 dark:text-green-300">
-                  Convite criado com sucesso!
-                </p>
+            <div className="space-y-3">
+              <Label>Link do convite</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={inviteLink || ""}
+                  readOnly
+                  className="font-mono text-xs"
+                />
+                <Button variant="outline" size="icon" onClick={handleCopyLink} title="Copiar link">
+                  <Copy className="h-4 w-4" />
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label>Link do convite</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={inviteLink}
-                    readOnly
-                    className="font-mono text-sm"
-                  />
-                  <Button variant="outline" size="icon" onClick={handleCopyLink}>
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Compartilhe este link com seu parceiro(a). O convite expira em 7 dias.
-                </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={handleCopyLink}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copiar link
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    const message = encodeURIComponent(
+                      `Oi! Estou te convidando para participar do meu orcamento no HiveBudget. Clique no link para aceitar: ${inviteLink}`
+                    );
+                    window.open(`https://wa.me/?text=${message}`, "_blank");
+                  }}
+                >
+                  <Share2 className="mr-2 h-4 w-4" />
+                  WhatsApp
+                </Button>
               </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Qualquer pessoa com este link pode aceitar o convite. Expira em 7 dias.
+              </p>
             </div>
-          )}
+          </div>
 
           <DialogFooter>
-            {!inviteLink ? (
-              <>
-                <Button variant="outline" onClick={closeInviteModal}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleSendInvite} disabled={isSendingInvite}>
-                  {isSendingInvite ? "Enviando..." : "Enviar Convite"}
-                </Button>
-              </>
-            ) : (
-              <Button onClick={closeInviteModal}>Fechar</Button>
-            )}
+            <Button onClick={closeInviteModal}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

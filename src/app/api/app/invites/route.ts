@@ -7,8 +7,6 @@ import { z } from "zod";
 
 const createInviteSchema = z.object({
   budgetId: z.string().uuid(),
-  email: z.string().email(),
-  name: z.string().min(1).max(100).optional(),
 });
 
 // Helper to get user's budget IDs where they are owner
@@ -71,7 +69,7 @@ export const POST = withAuthRequired(async (req, context) => {
     );
   }
 
-  const { budgetId, email, name } = validation.data;
+  const { budgetId } = validation.data;
 
   // Check user is owner of the budget
   const ownerBudgetIds = await getOwnerBudgetIds(session.user.id);
@@ -82,7 +80,7 @@ export const POST = withAuthRequired(async (req, context) => {
     );
   }
 
-  // Check if there's already an active partner
+  // Check if there's already a connected partner (with userId)
   const existingPartner = await db
     .select()
     .from(budgetMembers)
@@ -94,21 +92,21 @@ export const POST = withAuthRequired(async (req, context) => {
     )
     .limit(1);
 
-  if (existingPartner.length > 0) {
+  // Only block if partner is actually connected (has userId)
+  if (existingPartner.length > 0 && existingPartner[0].userId) {
     return NextResponse.json(
-      { error: "This budget already has a partner" },
+      { error: "This budget already has a connected partner" },
       { status: 400 }
     );
   }
 
-  // Check if there's already a pending invite for this email
+  // Check if there's already a pending invite
   const existingInvite = await db
     .select()
     .from(invites)
     .where(
       and(
         eq(invites.budgetId, budgetId),
-        eq(invites.email, email.toLowerCase()),
         eq(invites.status, "pending")
       )
     )
@@ -116,7 +114,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   if (existingInvite.length > 0) {
     return NextResponse.json(
-      { error: "An invite has already been sent to this email" },
+      { error: "There is already a pending invite for this budget" },
       { status: 400 }
     );
   }
@@ -131,8 +129,6 @@ export const POST = withAuthRequired(async (req, context) => {
     .values({
       budgetId,
       invitedByUserId: session.user.id,
-      email: email.toLowerCase(),
-      name,
       token,
       expiresAt,
     })

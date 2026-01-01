@@ -286,8 +286,14 @@ export default function AcceptInvitePage({
           ) : isAuthenticated === false ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground text-center">
-                Para aceitar o convite, voce precisa estar logado com o email{" "}
-                <strong>{invite.email}</strong>
+                {invite.email ? (
+                  <>
+                    Para aceitar o convite, voce precisa estar logado com o email{" "}
+                    <strong>{invite.email}</strong>
+                  </>
+                ) : (
+                  "Para aceitar o convite, voce precisa estar logado"
+                )}
               </p>
               <Button
                 className="w-full"
@@ -301,7 +307,7 @@ export default function AcceptInvitePage({
               <p className="text-xs text-center text-muted-foreground">
                 Nao tem uma conta?{" "}
                 <Link
-                  href={`/signup?email=${encodeURIComponent(invite.email)}&callbackUrl=/invite/${token}`}
+                  href={`/signup?callbackUrl=/invite/${token}${invite.email ? `&email=${encodeURIComponent(invite.email)}` : ""}`}
                   className="text-primary hover:underline"
                 >
                   Criar conta
