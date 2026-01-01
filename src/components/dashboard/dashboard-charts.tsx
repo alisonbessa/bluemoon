@@ -41,9 +41,9 @@ interface DailyData {
   income: number;
   expense: number;
   balance: number;
-  plannedIncome?: number;
-  plannedExpense?: number;
-  plannedBalance?: number;
+  pendingIncome?: number;
+  pendingExpense?: number;
+  pendingBalance?: number;
 }
 
 interface MonthlyData {
@@ -79,19 +79,19 @@ const dailyChartConfig = {
     color: "hsl(0, 84%, 60%)",
   },
   balance: {
-    label: "Saldo",
+    label: "Saldo Realizado",
     color: "hsl(221, 83%, 53%)",
   },
-  plannedIncome: {
-    label: "Receitas Previstas",
+  pendingIncome: {
+    label: "Receitas Pendentes",
     color: "hsl(142, 76%, 36%)",
   },
-  plannedExpenseNegative: {
-    label: "Despesas Previstas",
+  pendingExpenseNegative: {
+    label: "Despesas Pendentes",
     color: "hsl(0, 84%, 60%)",
   },
-  plannedBalance: {
-    label: "Saldo Previsto",
+  pendingBalance: {
+    label: "Saldo Projetado",
     color: "hsl(221, 83%, 53%)",
   },
 };
@@ -115,7 +115,7 @@ export function DashboardCharts({
   isLoading,
 }: DashboardChartsProps) {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("12months");
-  const [showPlanned, setShowPlanned] = useState(false);
+  const [showPending, setShowPending] = useState(false);
 
   // Filter monthly data based on selected period
   const getFilteredMonthlyData = () => {
@@ -145,7 +145,7 @@ export function DashboardCharts({
   const transformedDailyData = dailyData.map((item) => ({
     ...item,
     expenseNegative: -item.expense,
-    plannedExpenseNegative: -(item.plannedExpense || 0),
+    pendingExpenseNegative: -(item.pendingExpense || 0),
   }));
 
   // Transform monthly data to have negative expenses for stacked bar effect
@@ -177,12 +177,12 @@ export function DashboardCharts({
             </div>
             <div className="flex items-center gap-2">
               <Switch
-                id="show-planned"
-                checked={showPlanned}
-                onCheckedChange={setShowPlanned}
+                id="show-pending"
+                checked={showPending}
+                onCheckedChange={setShowPending}
               />
-              <Label htmlFor="show-planned" className="text-sm text-muted-foreground">
-                Mostrar previsto
+              <Label htmlFor="show-pending" className="text-sm text-muted-foreground">
+                Mostrar pendentes
               </Label>
             </div>
           </div>
@@ -233,10 +233,10 @@ export function DashboardCharts({
                 radius={[4, 4, 0, 0]}
                 stackId="stack"
               />
-              {showPlanned && (
+              {showPending && (
                 <Bar
-                  dataKey="plannedIncome"
-                  fill="var(--color-plannedIncome)"
+                  dataKey="pendingIncome"
+                  fill="var(--color-pendingIncome)"
                   radius={[4, 4, 0, 0]}
                   stackId="stack"
                   fillOpacity={0.3}
@@ -248,10 +248,10 @@ export function DashboardCharts({
                 radius={[0, 0, 4, 4]}
                 stackId="stack"
               />
-              {showPlanned && (
+              {showPending && (
                 <Bar
-                  dataKey="plannedExpenseNegative"
-                  fill="var(--color-plannedExpenseNegative)"
+                  dataKey="pendingExpenseNegative"
+                  fill="var(--color-pendingExpenseNegative)"
                   radius={[0, 0, 4, 4]}
                   stackId="stack"
                   fillOpacity={0.3}
@@ -264,11 +264,11 @@ export function DashboardCharts({
                 strokeWidth={2}
                 dot={false}
               />
-              {showPlanned && (
+              {showPending && (
                 <Line
                   type="monotone"
-                  dataKey="plannedBalance"
-                  stroke="var(--color-plannedBalance)"
+                  dataKey="pendingBalance"
+                  stroke="var(--color-pendingBalance)"
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   dot={false}
