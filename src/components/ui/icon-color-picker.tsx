@@ -64,23 +64,23 @@ const COLOR_OPTIONS = [
 
 type CategoryKey = keyof typeof EMOJI_CATEGORIES;
 
-interface IconColorPickerProps {
+interface IconPickerProps {
   icon: string;
-  color: string;
   onIconChange: (icon: string) => void;
-  onColorChange: (color: string) => void;
-  showColor?: boolean;
+  /** Optional background color for the preview */
+  previewColor?: string;
   className?: string;
 }
 
-export function IconColorPicker({
+/**
+ * Icon picker with category-based navigation
+ */
+export function IconPicker({
   icon,
-  color,
   onIconChange,
-  onColorChange,
-  showColor = true,
+  previewColor,
   className,
-}: IconColorPickerProps) {
+}: IconPickerProps) {
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey | null>(null);
 
   const handleCategoryClick = (category: CategoryKey) => {
@@ -97,17 +97,17 @@ export function IconColorPicker({
   };
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-3", className)}>
       {/* Preview */}
       <div className="flex items-center gap-3">
         <div
-          className="h-12 w-12 rounded-xl flex items-center justify-center text-2xl shadow-sm"
-          style={{ backgroundColor: showColor ? color : undefined }}
+          className="h-12 w-12 rounded-xl flex items-center justify-center text-2xl shadow-sm border"
+          style={{ backgroundColor: previewColor }}
         >
           {icon || "📌"}
         </div>
         <div className="text-sm text-muted-foreground">
-          {selectedCategory ? "Selecione um icone" : "Clique em uma categoria"}
+          {selectedCategory ? "Selecione um ícone" : "Clique em uma categoria"}
         </div>
       </div>
 
@@ -164,46 +164,56 @@ export function IconColorPicker({
           </div>
         )}
       </div>
-
-      {/* Color Selection */}
-      {showColor && (
-        <div className="space-y-2">
-          <div className="text-sm font-medium">Cor</div>
-          <div className="flex flex-wrap gap-2">
-            {COLOR_OPTIONS.map((c) => (
-              <button
-                key={c.value}
-                type="button"
-                onClick={() => onColorChange(c.value)}
-                title={c.name}
-                className={cn(
-                  "w-8 h-8 rounded-full transition-all hover:scale-110",
-                  color === c.value && "ring-2 ring-offset-2 ring-primary"
-                )}
-                style={{ backgroundColor: c.value }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-// Simplified version for when you only need icon selection (no color)
-export function IconPicker({
+interface IconColorPickerProps {
+  icon: string;
+  color: string;
+  onIconChange: (icon: string) => void;
+  onColorChange: (color: string) => void;
+  className?: string;
+}
+
+/**
+ * Icon picker with color selection - uses IconPicker internally
+ */
+export function IconColorPicker({
   icon,
+  color,
   onIconChange,
+  onColorChange,
   className,
-}: Omit<IconColorPickerProps, "color" | "onColorChange" | "showColor">) {
+}: IconColorPickerProps) {
   return (
-    <IconColorPicker
-      icon={icon}
-      color="#6366f1"
-      onIconChange={onIconChange}
-      onColorChange={() => {}}
-      showColor={false}
-      className={className}
-    />
+    <div className={cn("space-y-4", className)}>
+      {/* Icon Picker with color preview */}
+      <IconPicker
+        icon={icon}
+        onIconChange={onIconChange}
+        previewColor={color}
+      />
+
+      {/* Color Selection */}
+      <div className="space-y-2">
+        <div className="text-sm font-medium">Cor</div>
+        <div className="flex flex-wrap gap-2">
+          {COLOR_OPTIONS.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              onClick={() => onColorChange(c.value)}
+              title={c.name}
+              className={cn(
+                "w-8 h-8 rounded-full transition-all hover:scale-110",
+                color === c.value && "ring-2 ring-offset-2 ring-primary"
+              )}
+              style={{ backgroundColor: c.value }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
