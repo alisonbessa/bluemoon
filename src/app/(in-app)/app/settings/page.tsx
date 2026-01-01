@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,6 @@ import {
   Bell,
   Shield,
   CreditCard,
-  Users,
   Palette,
   Download,
   Trash2,
@@ -35,6 +34,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { TelegramConnectionCard } from "@/components/telegram/TelegramConnectionCard";
+import { MembersManagement } from "@/components/settings/members-management";
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -48,8 +48,26 @@ export default function SettingsPage() {
     billReminders: true,
     weeklyReport: true,
   });
+  const [budgetId, setBudgetId] = useState<string | null>(null);
   const { startTutorial } = useTutorial();
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchBudgets = async () => {
+      try {
+        const response = await fetch("/api/app/budgets");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.budgets?.length > 0) {
+            setBudgetId(data.budgets[0].id);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching budgets:", error);
+      }
+    };
+    fetchBudgets();
+  }, []);
 
   const handleRestartOnboarding = () => {
     setShowOnboardingConfirm(false);
@@ -303,6 +321,9 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Members Management */}
+          {budgetId && <MembersManagement budgetId={budgetId} />}
         </div>
 
         {/* Sidebar */}
@@ -319,20 +340,11 @@ export default function SettingsPage() {
               <Button
                 variant="ghost"
                 className="w-full justify-between"
+                onClick={() => router.push("/app/accounts")}
               >
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
                   <span>Gerenciar contas</span>
-                </div>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-between"
-              >
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span>Membros da família</span>
                 </div>
                 <ChevronRight className="h-4 w-4" />
               </Button>
