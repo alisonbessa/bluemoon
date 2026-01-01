@@ -1387,13 +1387,23 @@ export default function BudgetPage() {
         <div className="border-b" data-tutorial="goals-group">
           {/* Goals Section Header - Clickable Toggle */}
           <div
-            className="px-4 py-2 bg-violet-100 dark:bg-violet-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-violet-200/50 dark:hover:bg-violet-950/70 transition-colors"
+            className="group px-4 py-2 bg-violet-100 dark:bg-violet-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-violet-200/50 dark:hover:bg-violet-950/70 transition-colors"
             onClick={toggleGoalsSection}
           >
             <div className="flex items-center gap-2">
               <ChevronDown className={cn("h-4 w-4 text-violet-700 dark:text-violet-300 transition-transform", !isGoalsExpanded && "-rotate-90")} />
               <Target className="h-4 w-4 text-violet-700 dark:text-violet-300" />
               <span className="font-bold text-sm text-violet-800 dark:text-violet-200">METAS</span>
+              <button
+                className="ml-1 p-0.5 rounded hover:bg-violet-200 dark:hover:bg-violet-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsGoalFormOpen(true);
+                }}
+                title="Adicionar meta"
+              >
+                <Plus className="h-3.5 w-3.5 text-violet-700 dark:text-violet-300" />
+              </button>
             </div>
             <div className="flex items-center gap-2 text-sm">
               {goals.length > 0 && (
@@ -1403,24 +1413,6 @@ export default function BudgetPage() {
                     {formatCurrency(goals.reduce((sum, g) => sum + g.monthlyTarget, 0))}
                   </span>
                 </>
-              )}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsGoalFormOpen(true);
-                }}
-                className="ml-2 px-2 py-0.5 text-xs bg-violet-600 text-white rounded hover:bg-violet-700 transition-colors flex items-center gap-1"
-              >
-                <Plus className="h-3 w-3" /> Nova Meta
-              </button>
-              {goals.length > 0 && (
-                <Link
-                  href="/app/goals"
-                  className="ml-1 text-xs text-violet-600 dark:text-violet-400 hover:underline flex items-center gap-1"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Ver todas <ArrowRight className="h-3 w-3" />
-                </Link>
               )}
             </div>
           </div>
