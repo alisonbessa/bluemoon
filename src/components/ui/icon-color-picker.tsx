@@ -2,49 +2,49 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronLeft } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
-// Emoji categories with icons that represent the category
+// Emoji categories matching the budget page
 const EMOJI_CATEGORIES = {
-  goals: {
-    icon: "🎯",
-    label: "Metas",
-    emojis: ["🎯", "✈️", "🏠", "🚗", "💍", "🎓", "💻", "📱", "🏖️", "💰", "🎁", "👴"],
+  recent: {
+    icon: "🕐",
+    label: "Recentes",
+    emojis: ["🛒", "🍽️", "⛽", "💡", "📱", "💳", "🏥", "🎬"],
   },
   food: {
     icon: "🍔",
     label: "Comida",
-    emojis: ["🛒", "🍔", "🍕", "🍜", "🍣", "🥗", "☕", "🍺", "🍷", "🥖", "🥩", "🛵", "🍽️", "🍰"],
+    emojis: ["🛒", "🍽️", "☕", "🥖", "🥩", "🍕", "🍔", "🍺", "🍷", "🍰", "🍦", "🥗", "🍜", "🍣", "🌮", "🥐"],
   },
   transport: {
     icon: "🚗",
     label: "Transporte",
-    emojis: ["🚗", "🚌", "🚇", "✈️", "🚲", "⛽", "🅿️", "🚙", "🔧", "🛻", "🏍️", "🚕"],
+    emojis: ["🚗", "⛽", "🚌", "🚇", "✈️", "🚕", "🏍️", "🚲", "🅿️", "🔧", "🚙", "🛵", "⚓", "🚁", "🚀", "🛻"],
   },
   home: {
     icon: "🏠",
     label: "Casa",
-    emojis: ["🏠", "🏢", "💧", "💡", "🔥", "📶", "📱", "🧹", "🛋️", "🛏️", "🚿", "🧺", "🔑"],
+    emojis: ["🏠", "🏢", "💡", "💧", "🔥", "📶", "📱", "🧹", "🛋️", "🛏️", "🚿", "🪴", "🔑", "🏗️", "🪟", "🚪"],
   },
   health: {
     icon: "💪",
-    label: "Saude",
-    emojis: ["💪", "🏥", "💊", "🦷", "🧠", "🏃", "🧘", "💉", "🩺", "👁️", "❤️‍🩹", "🏋️"],
+    label: "Saúde",
+    emojis: ["💪", "🏥", "💊", "🦷", "🧠", "🏃", "🧘", "🥗", "💉", "🩺", "🩹", "👓", "🧴", "💅", "💇", "🧖"],
   },
   entertainment: {
     icon: "🎬",
     label: "Lazer",
-    emojis: ["🎬", "📺", "🎵", "🎮", "📚", "🏨", "🎭", "🎪", "🎯", "🎳", "⚽", "🏖️", "🎸"],
+    emojis: ["🎬", "📺", "🎵", "🎮", "📚", "🎭", "🎨", "🎪", "✈️", "🏨", "🏖️", "⛷️", "🎢", "🎡", "🎯", "🎲"],
   },
   money: {
     icon: "💰",
     label: "Dinheiro",
-    emojis: ["💰", "💳", "🧾", "🛡️", "❤️", "📈", "💵", "🏦", "💎", "🪙", "📊"],
+    emojis: ["💰", "💳", "🏦", "📈", "💵", "🧾", "🛡️", "❤️", "💎", "🪙", "📊", "💸", "🎁", "🏆", "⭐", "🎖️"],
   },
   other: {
     icon: "📦",
     label: "Outros",
-    emojis: ["📌", "👕", "👟", "💅", "🐕", "🐱", "📖", "✏️", "🌍", "💼", "👶", "🧸", "📦"],
+    emojis: ["📌", "👕", "👟", "🐕", "🐱", "👶", "🧸", "📖", "✏️", "💼", "💻", "📦", "🔔", "⚙️", "🎓", "🌍"],
   },
 };
 
@@ -67,102 +67,58 @@ type CategoryKey = keyof typeof EMOJI_CATEGORIES;
 interface IconPickerProps {
   icon: string;
   onIconChange: (icon: string) => void;
-  /** Optional background color for the preview */
-  previewColor?: string;
   className?: string;
 }
 
 /**
- * Icon picker with category-based navigation
+ * Icon picker with tabbed categories (same style as budget page)
  */
 export function IconPicker({
   icon,
   onIconChange,
-  previewColor,
   className,
 }: IconPickerProps) {
-  const [selectedCategory, setSelectedCategory] = useState<CategoryKey | null>(null);
-
-  const handleCategoryClick = (category: CategoryKey) => {
-    setSelectedCategory(category);
-  };
-
-  const handleEmojiClick = (emoji: string) => {
-    onIconChange(emoji);
-    setSelectedCategory(null);
-  };
-
-  const handleBackClick = () => {
-    setSelectedCategory(null);
-  };
+  const [selectedCategory, setSelectedCategory] = useState<CategoryKey>("recent");
 
   return (
-    <div className={cn("space-y-3", className)}>
-      {/* Preview */}
-      <div className="flex items-center gap-3">
-        <div
-          className="h-12 w-12 rounded-xl flex items-center justify-center text-2xl shadow-sm border"
-          style={{ backgroundColor: previewColor }}
-        >
-          {icon || "📌"}
-        </div>
-        <div className="text-sm text-muted-foreground">
-          {selectedCategory ? "Selecione um ícone" : "Clique em uma categoria"}
-        </div>
+    <div className={cn("space-y-2", className)}>
+      <Label>
+        Ícone {icon && <span className="ml-2 text-lg">{icon}</span>}
+      </Label>
+
+      {/* Category Tabs */}
+      <div className="flex gap-1 border-b pb-1">
+        {Object.entries(EMOJI_CATEGORIES).map(([key, cat]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setSelectedCategory(key as CategoryKey)}
+            className={cn(
+              "p-1.5 rounded text-lg hover:bg-muted/50 transition-colors",
+              selectedCategory === key && "bg-muted"
+            )}
+            title={cat.label}
+          >
+            {cat.icon}
+          </button>
+        ))}
       </div>
 
-      {/* Icon Selection */}
-      <div className="space-y-2">
-        {selectedCategory === null ? (
-          // Show category icons
-          <div className="grid grid-cols-4 gap-2">
-            {Object.entries(EMOJI_CATEGORIES).map(([key, cat]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => handleCategoryClick(key as CategoryKey)}
-                className={cn(
-                  "flex flex-col items-center gap-1 p-3 rounded-lg transition-all",
-                  "bg-muted hover:bg-muted/80 hover:scale-105"
-                )}
-              >
-                <span className="text-2xl">{cat.icon}</span>
-                <span className="text-[10px] text-muted-foreground truncate w-full text-center">
-                  {cat.label}
-                </span>
-              </button>
-            ))}
-          </div>
-        ) : (
-          // Show emojis from selected category
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={handleBackClick}
-              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              <span>{EMOJI_CATEGORIES[selectedCategory].label}</span>
-            </button>
-            <div className="grid grid-cols-6 gap-2 p-2 border rounded-lg bg-muted/30">
-              {EMOJI_CATEGORIES[selectedCategory].emojis.map((emoji, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleEmojiClick(emoji)}
-                  className={cn(
-                    "h-10 w-10 rounded-lg flex items-center justify-center text-xl transition-all hover:scale-110",
-                    icon === emoji
-                      ? "bg-primary/20 ring-2 ring-primary"
-                      : "bg-background hover:bg-muted"
-                  )}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+      {/* Emoji Grid */}
+      <div className="grid grid-cols-8 gap-1 max-h-[140px] overflow-y-auto p-1">
+        {EMOJI_CATEGORIES[selectedCategory].emojis.map((emoji) => (
+          <button
+            key={emoji}
+            type="button"
+            onClick={() => onIconChange(emoji)}
+            className={cn(
+              "p-2 text-xl rounded hover:bg-muted/50 transition-colors",
+              icon === emoji && "bg-primary/10 ring-1 ring-primary"
+            )}
+          >
+            {emoji}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -188,16 +144,15 @@ export function IconColorPicker({
 }: IconColorPickerProps) {
   return (
     <div className={cn("space-y-4", className)}>
-      {/* Icon Picker with color preview */}
+      {/* Icon Picker */}
       <IconPicker
         icon={icon}
         onIconChange={onIconChange}
-        previewColor={color}
       />
 
       {/* Color Selection */}
       <div className="space-y-2">
-        <div className="text-sm font-medium">Cor</div>
+        <Label>Cor</Label>
         <div className="flex flex-wrap gap-2">
           {COLOR_OPTIONS.map((c) => (
             <button
