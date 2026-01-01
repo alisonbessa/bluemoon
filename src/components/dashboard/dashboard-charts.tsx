@@ -74,7 +74,7 @@ const dailyChartConfig = {
     label: "Receitas",
     color: "hsl(142, 76%, 36%)",
   },
-  expense: {
+  expenseNegative: {
     label: "Despesas",
     color: "hsl(0, 84%, 60%)",
   },
@@ -84,15 +84,15 @@ const dailyChartConfig = {
   },
   plannedIncome: {
     label: "Receitas Previstas",
-    color: "hsl(142, 50%, 60%)",
+    color: "hsl(142, 76%, 36%)",
   },
-  plannedExpense: {
+  plannedExpenseNegative: {
     label: "Despesas Previstas",
-    color: "hsl(0, 50%, 75%)",
+    color: "hsl(0, 84%, 60%)",
   },
   plannedBalance: {
     label: "Saldo Previsto",
-    color: "hsl(221, 50%, 70%)",
+    color: "hsl(221, 83%, 53%)",
   },
 };
 
@@ -101,7 +101,7 @@ const monthlyChartConfig = {
     label: "Receitas",
     color: "hsl(142, 76%, 36%)",
   },
-  expense: {
+  expenseNegative: {
     label: "Despesas",
     color: "hsl(0, 84%, 60%)",
   },
@@ -212,11 +212,18 @@ export function DashboardCharts({
               <ChartTooltip
                 content={
                   <ChartTooltipContent
-                    formatter={(value, name) => (
-                      <span className="font-medium">
-                        {formatCurrency(Math.abs(Number(value)))}
-                      </span>
-                    )}
+                    labelFormatter={(label) => `Dia ${label}`}
+                    formatter={(value, name, item) => {
+                      const config = dailyChartConfig[item.dataKey as keyof typeof dailyChartConfig];
+                      return (
+                        <>
+                          <span className="text-muted-foreground">{config?.label || name}</span>
+                          <span className="ml-auto font-mono font-medium">
+                            {formatCurrency(Math.abs(Number(value)))}
+                          </span>
+                        </>
+                      );
+                    }}
                   />
                 }
               />
@@ -224,32 +231,28 @@ export function DashboardCharts({
                 dataKey="income"
                 fill="var(--color-income)"
                 radius={[4, 4, 0, 0]}
-                name="Receitas"
                 stackId="stack"
               />
               {showPlanned && (
                 <Bar
                   dataKey="plannedIncome"
-                  fill="var(--color-income)"
+                  fill="var(--color-plannedIncome)"
                   radius={[4, 4, 0, 0]}
-                  name="Receitas Previstas"
                   stackId="stack"
                   fillOpacity={0.3}
                 />
               )}
               <Bar
                 dataKey="expenseNegative"
-                fill="var(--color-expense)"
+                fill="var(--color-expenseNegative)"
                 radius={[0, 0, 4, 4]}
-                name="Despesas"
                 stackId="stack"
               />
               {showPlanned && (
                 <Bar
                   dataKey="plannedExpenseNegative"
-                  fill="var(--color-expense)"
+                  fill="var(--color-plannedExpenseNegative)"
                   radius={[0, 0, 4, 4]}
-                  name="Despesas Previstas"
                   stackId="stack"
                   fillOpacity={0.3}
                 />
@@ -260,7 +263,6 @@ export function DashboardCharts({
                 stroke="var(--color-balance)"
                 strokeWidth={2}
                 dot={false}
-                name="Saldo"
               />
               {showPlanned && (
                 <Line
@@ -270,7 +272,6 @@ export function DashboardCharts({
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   dot={false}
-                  name="Saldo Previsto"
                 />
               )}
             </ComposedChart>
@@ -325,12 +326,18 @@ export function DashboardCharts({
               <ChartTooltip
                 content={
                   <ChartTooltipContent
-                    formatter={(value, name) => (
-                      <span className="font-medium">
-                        {formatCurrency(Math.abs(Number(value)))}
-                      </span>
-                    )}
                     labelFormatter={(label) => `${label}`}
+                    formatter={(value, name, item) => {
+                      const config = monthlyChartConfig[item.dataKey as keyof typeof monthlyChartConfig];
+                      return (
+                        <>
+                          <span className="text-muted-foreground">{config?.label || name}</span>
+                          <span className="ml-auto font-mono font-medium">
+                            {formatCurrency(Math.abs(Number(value)))}
+                          </span>
+                        </>
+                      );
+                    }}
                   />
                 }
               />
@@ -338,14 +345,12 @@ export function DashboardCharts({
                 dataKey="income"
                 fill="var(--color-income)"
                 radius={[4, 4, 0, 0]}
-                name="Receitas"
                 stackId="stack"
               />
               <Bar
                 dataKey="expenseNegative"
-                fill="var(--color-expense)"
+                fill="var(--color-expenseNegative)"
                 radius={[0, 0, 4, 4]}
-                name="Despesas"
                 stackId="stack"
               />
             </BarChart>
