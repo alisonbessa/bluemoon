@@ -10,12 +10,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { IconColorPicker } from "@/components/ui/icon-color-picker";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 interface Goal {
   id: string;
@@ -24,6 +31,13 @@ interface Goal {
   color: string;
   targetAmount: number;
   targetDate: string;
+  accountId?: string | null;
+}
+
+interface Account {
+  id: string;
+  name: string;
+  icon: string | null;
 }
 
 interface GoalFormModalProps {
@@ -34,22 +48,6 @@ interface GoalFormModalProps {
   onSuccess?: () => void;
 }
 
-const EMOJI_OPTIONS = ["🎯", "✈️", "🏠", "🚗", "💍", "🎓", "💻", "📱", "🏖️", "💰", "🎁", "🛒", "👴"];
-const COLOR_OPTIONS = [
-  "#8b5cf6", // violet
-  "#ec4899", // pink
-  "#f43f5e", // rose
-  "#ef4444", // red
-  "#f97316", // orange
-  "#eab308", // yellow
-  "#22c55e", // green
-  "#14b8a6", // teal
-  "#06b6d4", // cyan
-  "#3b82f6", // blue
-  "#6366f1", // indigo
-  "#a855f7", // purple
-];
-
 export function GoalFormModal({
   open,
   onOpenChange,
@@ -58,13 +56,25 @@ export function GoalFormModal({
   onSuccess,
 }: GoalFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [formData, setFormData] = useState({
     name: editingGoal?.name || "",
     icon: editingGoal?.icon || "🎯",
     color: editingGoal?.color || "#8b5cf6",
     targetAmount: editingGoal?.targetAmount || 0, // stored in cents
     targetDate: editingGoal?.targetDate?.split("T")[0] || "",
+    accountId: editingGoal?.accountId || "",
   });
+
+  // Fetch accounts when modal opens
+  useEffect(() => {
+    if (open) {
+      fetch("/api/app/accounts")
+        .then((res) => res.json())
+        .then((data) => setAccounts(data.accounts || []))
+        .catch(console.error);
+    }
+  }, [open]);
 
   // Reset form when editingGoal changes
   useEffect(() => {
@@ -75,6 +85,7 @@ export function GoalFormModal({
         color: editingGoal.color,
         targetAmount: editingGoal.targetAmount,
         targetDate: editingGoal.targetDate?.split("T")[0] || "",
+        accountId: editingGoal.accountId || "",
       });
     } else {
       setFormData({
@@ -83,6 +94,7 @@ export function GoalFormModal({
         color: "#8b5cf6",
         targetAmount: 0,
         targetDate: "",
+        accountId: "",
       });
     }
   }, [editingGoal, open]);
@@ -94,6 +106,7 @@ export function GoalFormModal({
       color: "#8b5cf6",
       targetAmount: 0,
       targetDate: "",
+      accountId: "",
     });
   };
 
@@ -110,12 +123,20 @@ export function GoalFormModal({
       toast.error("Data limite é obrigatória");
       return;
     }
+    if (!formData.accountId) {
+      toast.error("Selecione a conta destino");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const payload = {
-        ...formData,
-        targetAmount: formData.targetAmount, // already in cents
+        name: formData.name,
+        icon: formData.icon,
+        color: formData.color,
+        targetAmount: formData.targetAmount,
+        targetDate: formData.targetDate,
+        accountId: formData.accountId,
         budgetId,
       };
 
@@ -174,46 +195,13 @@ export function GoalFormModal({
             />
           </div>
 
-          {/* Icon */}
-          <div className="space-y-2">
-            <Label>Ícone</Label>
-            <div className="flex flex-wrap gap-2">
-              {EMOJI_OPTIONS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, icon: emoji })}
-                  className={cn(
-                    "w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all",
-                    formData.icon === emoji
-                      ? "bg-primary/20 ring-2 ring-primary"
-                      : "bg-muted hover:bg-muted/80"
-                  )}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Color */}
-          <div className="space-y-2">
-            <Label>Cor</Label>
-            <div className="flex flex-wrap gap-2">
-              {COLOR_OPTIONS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, color })}
-                  className={cn(
-                    "w-8 h-8 rounded-full transition-all",
-                    formData.color === color && "ring-2 ring-offset-2 ring-primary"
-                  )}
-                  style={{ backgroundColor: color }}
-                />
-              ))}
-            </div>
-          </div>
+          {/* Icon and Color */}
+          <IconColorPicker
+            icon={formData.icon}
+            color={formData.color}
+            onIconChange={(icon) => setFormData({ ...formData, icon })}
+            onColorChange={(color) => setFormData({ ...formData, color })}
+          />
 
           {/* Target Amount */}
           <div className="space-y-2">
@@ -238,6 +226,32 @@ export function GoalFormModal({
               onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
               min={new Date().toISOString().split("T")[0]}
             />
+          </div>
+
+          {/* Destination Account */}
+          <div className="space-y-2">
+            <Label htmlFor="goal-accountId">Conta destino</Label>
+            <Select
+              value={formData.accountId}
+              onValueChange={(value) => setFormData({ ...formData, accountId: value })}
+            >
+              <SelectTrigger id="goal-accountId">
+                <SelectValue placeholder="Selecione uma conta" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    <span className="flex items-center gap-2">
+                      <span>{account.icon || "💳"}</span>
+                      <span>{account.name}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Conta onde o dinheiro da meta será guardado
+            </p>
           </div>
         </div>
 

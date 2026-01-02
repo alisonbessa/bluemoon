@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useTutorial } from "@/components/tutorial/tutorial-provider";
 
 interface Member {
   id: string;
@@ -78,6 +79,7 @@ export default function AccountsPage() {
   const [accounts, setAccounts] = useState<AccountWithOwner[]>([]);
   const [budgets, setBudgets] = useState<{ id: string; name: string }[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [preselectedType, setPreselectedType] = useState<string | undefined>(undefined);
@@ -89,7 +91,6 @@ export default function AccountsPage() {
     "savings",
     "credit_card",
     "cash",
-    "investment",
     "benefit",
   ]);
 
@@ -146,6 +147,11 @@ export default function AccountsPage() {
 
     toast.success("Conta criada com sucesso!");
     fetchData();
+
+    // Notify tutorial that user created an account
+    if (isTutorialActive) {
+      notifyActionCompleted("hasAccounts");
+    }
   };
 
   const handleEditAccount = async (data: AccountFormData) => {
@@ -251,7 +257,7 @@ export default function AccountsPage() {
               <span className="hidden sm:inline">Investimentos</span>
             </button>
           )}
-          <Button onClick={() => setIsFormOpen(true)} size="sm">
+          <Button onClick={() => setIsFormOpen(true)} size="sm" data-tutorial="add-account-button">
             <Plus className="mr-2 h-4 w-4" />
             Nova Conta
           </Button>
@@ -389,11 +395,6 @@ export default function AccountsPage() {
                               Fecha dia {account.closingDay}
                             </span>
                           )}
-                          {account.type === "benefit" && account.depositDay && (
-                            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                              Recebe dia {account.depositDay}
-                            </span>
-                          )}
                           <HoverActions
                             onEdit={() => setEditingAccount(account)}
                             onDelete={() => setDeletingAccount(account)}
@@ -422,10 +423,6 @@ export default function AccountsPage() {
                           {isCreditCardAccount && account.creditLimit ? (
                             <span className="text-xs">
                               {formatCurrencyCompact(account.creditLimit)}
-                            </span>
-                          ) : account.type === "benefit" && account.monthlyDeposit ? (
-                            <span className="text-xs">
-                              {formatCurrencyCompact(account.monthlyDeposit)}/mês
                             </span>
                           ) : (
                             <span className="text-xs">-</span>
@@ -495,8 +492,6 @@ export default function AccountsPage() {
             creditLimit: editingAccount.creditLimit || undefined,
             closingDay: editingAccount.closingDay || undefined,
             dueDay: editingAccount.dueDay || undefined,
-            monthlyDeposit: editingAccount.monthlyDeposit || undefined,
-            depositDay: editingAccount.depositDay || undefined,
             icon: editingAccount.icon || undefined,
             color: editingAccount.color || undefined,
           }}

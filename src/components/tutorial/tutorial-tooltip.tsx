@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useTutorial } from "./tutorial-provider";
-import { ChevronRight, X, Check } from "lucide-react";
+import { ChevronRight, X, Check, ArrowRight, ThumbsUp } from "lucide-react";
 
 interface SpotlightRect {
   top: number;
@@ -24,10 +24,12 @@ export function TutorialTooltip({ spotlightRect }: TutorialTooltipProps) {
     pageStepIndex,
     pageStepsTotal,
     isLastPageStep,
+    isWaitingForAction,
     nextStep,
-    dismissPageTutorial,
+    goToNextPage,
     skipTutorial,
     completeTutorial,
+    dismissPageTutorial,
   } = useTutorial();
 
   const position = useMemo(() => {
@@ -93,11 +95,20 @@ export function TutorialTooltip({ spotlightRect }: TutorialTooltipProps) {
       };
     }
 
-    if (isLastPageStep) {
-      // Last step of current page - dismiss and let user interact
+    // If waiting for user action (requiresAction step)
+    if (isWaitingForAction) {
       return {
         label: "Entendi",
-        icon: <Check className="h-4 w-4" />,
+        icon: <ThumbsUp className="h-4 w-4" />,
+        action: dismissPageTutorial,
+      };
+    }
+
+    if (isLastPageStep) {
+      // Last step of current page - minimize to let user interact
+      return {
+        label: "Entendi",
+        icon: <ThumbsUp className="h-4 w-4" />,
         action: dismissPageTutorial,
       };
     }
@@ -127,8 +138,9 @@ export function TutorialTooltip({ spotlightRect }: TutorialTooltipProps) {
         </div>
         <button
           onClick={skipTutorial}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Pular tutorial"
+          className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-muted"
+          aria-label="Fechar tutorial"
+          title="Fechar tutorial"
         >
           <X className="h-4 w-4" />
         </button>
@@ -137,13 +149,6 @@ export function TutorialTooltip({ spotlightRect }: TutorialTooltipProps) {
       {/* Content */}
       <div className="p-4">
         <p className="text-sm text-muted-foreground">{currentStep.content}</p>
-
-        {/* Show hint for last page step */}
-        {isLastPageStep && !isLastStep && (
-          <p className="text-xs text-primary mt-3">
-            Após clicar em &quot;Entendi&quot;, explore a página. O tutorial continua quando você navegar para a próxima seção.
-          </p>
-        )}
       </div>
 
       {/* Footer */}

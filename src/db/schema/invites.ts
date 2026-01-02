@@ -18,7 +18,7 @@ export const invites = pgTable("invites", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
 
-  email: text("email").notNull(),
+  email: text("email"), // Optional - if null, anyone with the link can accept
   name: text("name"), // Optional name for the invitee
 
   token: text("token").notNull().unique(), // Magic link token

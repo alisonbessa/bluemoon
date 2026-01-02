@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import {
   Dialog,
@@ -20,68 +19,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import { IconPicker } from '@/components/ui/icon-color-picker';
 import type { CategoryGroup } from '@/types';
-
-// Emoji categories for picker
-const EMOJI_CATEGORIES = {
-  recent: {
-    icon: '🕐',
-    label: 'Recentes',
-    emojis: ['📌', '🛒', '🍔', '🚗', '🏠', '💪', '🎬', '💰'],
-  },
-  food: {
-    icon: '🍔',
-    label: 'Comida',
-    emojis: [
-      '🛒', '🍔', '🍕', '🍜', '🍣', '🥗', '☕', '🍺', '🍷', '🥖', '🥩', '🛵', '🍽️',
-      '🍰', '🧁',
-    ],
-  },
-  transport: {
-    icon: '🚗',
-    label: 'Transporte',
-    emojis: [
-      '🚗', '🚌', '🚇', '✈️', '🚲', '⛽', '🅿️', '🚙', '🔧', '🛻', '🏍️', '🚕',
-    ],
-  },
-  home: {
-    icon: '🏠',
-    label: 'Casa',
-    emojis: [
-      '🏠', '🏢', '💧', '💡', '🔥', '📶', '📱', '🧹', '🛋️', '🛏️', '🚿', '🧺', '🔑',
-      '🏡',
-    ],
-  },
-  health: {
-    icon: '💪',
-    label: 'Saúde',
-    emojis: [
-      '💪', '🏥', '💊', '🦷', '🧠', '🏃', '🧘', '💉', '🩺', '👁️', '❤️‍🩹', '🏋️',
-    ],
-  },
-  entertainment: {
-    icon: '🎬',
-    label: 'Lazer',
-    emojis: [
-      '🎬', '📺', '🎵', '🎮', '📚', '✈️', '🏨', '🎭', '🎪', '🎯', '🎳', '⚽', '🏖️',
-      '🎸',
-    ],
-  },
-  money: {
-    icon: '💰',
-    label: 'Dinheiro',
-    emojis: ['💰', '💳', '🧾', '🛡️', '❤️', '📈', '💵', '🏦', '💎', '🪙', '📊', '🎰'],
-  },
-  other: {
-    icon: '📦',
-    label: 'Outros',
-    emojis: [
-      '📌', '👕', '👟', '💅', '🎁', '🐕', '🐱', '📖', '✏️', '🌍', '💼', '💻', '👶',
-      '🧸', '🍼', '📦',
-    ],
-  },
-};
 
 export interface CategoryFormData {
   name: string;
@@ -111,9 +50,6 @@ export function CategoryFormModal({
   isSubmitting,
   onSubmit,
 }: CategoryFormModalProps) {
-  const [emojiCategory, setEmojiCategory] =
-    useState<keyof typeof EMOJI_CATEGORIES>('recent');
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
@@ -141,64 +77,11 @@ export function CategoryFormModal({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Ícone</Label>
-            <div className="space-y-3">
-              {/* Selected emoji display */}
-              <div className="flex items-center gap-2">
-                <div className="h-10 w-10 rounded-lg border bg-muted flex items-center justify-center text-xl">
-                  {formData.icon || '📌'}
-                </div>
-                {formData.icon && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setFormData({ ...formData, icon: '' })}
-                  >
-                    Limpar
-                  </Button>
-                )}
-              </div>
-
-              {/* Emoji category tabs */}
-              <div className="flex gap-1 flex-wrap">
-                {Object.entries(EMOJI_CATEGORIES).map(([key, cat]) => (
-                  <button
-                    key={key}
-                    onClick={() =>
-                      setEmojiCategory(key as keyof typeof EMOJI_CATEGORIES)
-                    }
-                    className={cn(
-                      'px-2 py-1 rounded text-sm flex items-center gap-1 transition-colors',
-                      emojiCategory === key
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted hover:bg-muted/80'
-                    )}
-                  >
-                    <span>{cat.icon}</span>
-                    <span className="hidden sm:inline">{cat.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Emoji grid */}
-              <div className="grid grid-cols-8 gap-1 p-2 border rounded-lg bg-muted/30 max-h-32 overflow-y-auto">
-                {EMOJI_CATEGORIES[emojiCategory].emojis.map((emoji, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setFormData({ ...formData, icon: emoji })}
-                    className={cn(
-                      'h-8 w-8 rounded flex items-center justify-center text-lg hover:bg-muted transition-colors',
-                      formData.icon === emoji &&
-                        'bg-primary/20 ring-2 ring-primary'
-                    )}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          {/* Icon Picker */}
+          <IconPicker
+            icon={formData.icon || '📌'}
+            onIconChange={(icon) => setFormData({ ...formData, icon })}
+          />
 
           {!isEditing && (
             <div className="space-y-2">
@@ -236,7 +119,7 @@ export function CategoryFormModal({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="refill_up">
-                  Recarregar (o valor é renovado todo mês)
+                  Recorrente (o valor é renovado todo mês)
                 </SelectItem>
                 <SelectItem value="set_aside">
                   Acumular (o valor não usado passa para o próximo mês)

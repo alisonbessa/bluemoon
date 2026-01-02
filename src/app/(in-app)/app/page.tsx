@@ -14,20 +14,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   PlusIcon,
   WalletIcon,
-  CreditCardIcon,
   TrendingUpIcon,
   TrendingDownIcon,
   ArrowRightIcon,
   LayoutGridIcon,
   ReceiptIcon,
   SettingsIcon,
-  CalendarIcon,
-  CheckCircle2Icon,
-  ChevronLeft,
-  ChevronRight,
   TargetIcon,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { MonthSelector } from "@/components/ui/month-selector";
+import { DashboardCharts, CreditCardSpending, ScheduledTransactionsList } from "@/components/dashboard";
 import Link from "next/link";
 import useUser from "@/lib/users/useUser";
 
@@ -68,10 +65,33 @@ interface Goal {
   isCompleted: boolean;
 }
 
-const monthNames = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-];
+interface DailyChartData {
+  day: number;
+  date: string;
+  income: number;
+  expense: number;
+  balance: number;
+  pendingIncome?: number;
+  pendingExpense?: number;
+  pendingBalance?: number;
+}
+
+interface MonthlyChartData {
+  month: string;
+  year: number;
+  label: string;
+  income: number;
+  expense: number;
+}
+
+interface CreditCard {
+  id: string;
+  name: string;
+  icon: string | null;
+  creditLimit: number;
+  spent: number;
+  available: number;
+}
 
 function formatCurrency(cents: number): string {
   return (cents / 100).toLocaleString("pt-BR", {
@@ -123,6 +143,11 @@ function AppHomepage() {
   const [commitmentsLoading, setCommitmentsLoading] = useState(true);
   const [goalsLoading, setGoalsLoading] = useState(true);
   const [monthSummary, setMonthSummary] = useState<MonthSummary | null>(null);
+  const [dailyChartData, setDailyChartData] = useState<DailyChartData[]>([]);
+  const [monthlyChartData, setMonthlyChartData] = useState<MonthlyChartData[]>([]);
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+  const [chartsLoading, setChartsLoading] = useState(true);
+  const [scheduledRefreshKey, setScheduledRefreshKey] = useState(0);
 
   // Month navigation
   const today = new Date();
@@ -131,29 +156,9 @@ function AppHomepage() {
 
   const hasCompletedOnboarding = !!user?.onboardingCompletedAt;
 
-  const isCurrentMonth = currentYear === today.getFullYear() && currentMonth === today.getMonth() + 1;
-
-  const handlePrevMonth = () => {
-    if (currentMonth === 1) {
-      setCurrentYear((y) => y - 1);
-      setCurrentMonth(12);
-    } else {
-      setCurrentMonth((m) => m - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (currentMonth === 12) {
-      setCurrentYear((y) => y + 1);
-      setCurrentMonth(1);
-    } else {
-      setCurrentMonth((m) => m + 1);
-    }
-  };
-
-  const goToCurrentMonth = () => {
-    setCurrentYear(today.getFullYear());
-    setCurrentMonth(today.getMonth() + 1);
+  const handleMonthChange = (year: number, month: number) => {
+    setCurrentYear(year);
+    setCurrentMonth(month);
   };
 
   const fetchData = useCallback(async () => {
@@ -207,6 +212,17 @@ function AppHomepage() {
             const goalsData = await goalsRes.json();
             setGoals(goalsData.goals || []);
           }
+
+          // Fetch dashboard stats (charts, credit cards)
+          const statsRes = await fetch(
+            `/api/app/dashboard/stats?budgetId=${budgetId}&year=${currentYear}&month=${currentMonth}`
+          );
+          if (statsRes.ok) {
+            const statsData = await statsRes.json();
+            setDailyChartData(statsData.dailyChartData || []);
+            setMonthlyChartData(statsData.monthlyComparison || []);
+            setCreditCards(statsData.creditCards || []);
+          }
         }
       }
     } catch (err) {
@@ -214,17 +230,22 @@ function AppHomepage() {
     } finally {
       setCommitmentsLoading(false);
       setGoalsLoading(false);
+      setChartsLoading(false);
     }
   }, [currentYear, currentMonth]);
 
   useEffect(() => {
-    if (user && hasCompletedOnboarding) {
+    if (user) {
       setCommitmentsLoading(true);
+      setGoalsLoading(true);
+      setChartsLoading(true);
       fetchData();
     } else {
       setCommitmentsLoading(false);
+      setGoalsLoading(false);
+      setChartsLoading(false);
     }
-  }, [user, hasCompletedOnboarding, fetchData]);
+  }, [user, fetchData]);
 
   if (isLoading) {
     return (
@@ -261,43 +282,30 @@ function AppHomepage() {
           </p>
         </div>
 
-        {/* Month Navigation */}
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevMonth}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex flex-col items-center min-w-[140px]">
-            <span className="text-lg font-semibold">
-              {monthNames[currentMonth - 1]}
-            </span>
-            <span className="text-xs text-muted-foreground">{currentYear}</span>
-          </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNextMonth}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          {!isCurrentMonth && (
-            <Button variant="outline" size="sm" onClick={goToCurrentMonth} className="ml-2">
-              Hoje
-            </Button>
-          )}
-        </div>
+        <MonthSelector
+          year={currentYear}
+          month={currentMonth}
+          onChange={handleMonthChange}
+        />
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Disponível para Alocar
+              Saldo do Mês
             </CardTitle>
             <WalletIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${(monthSummary?.available ?? 0) >= 0 ? "text-primary" : "text-red-600"}`}>
-              {formatCurrency(monthSummary?.available ?? 0)}
+            <div className={`text-2xl font-bold ${((monthSummary?.income.received ?? 0) - (monthSummary?.expenses.spent ?? 0)) >= 0 ? "text-green-600" : "text-red-600"}`}>
+              {formatCurrency((monthSummary?.income.received ?? 0) - (monthSummary?.expenses.spent ?? 0))}
             </div>
             <p className="text-xs text-muted-foreground">
-              {(monthSummary?.available ?? 0) === 0 ? "Tudo alocado!" : "Dinheiro sem categoria"}
+              Planejado {formatCurrency(
+                (monthSummary?.income.planned ?? 0) - (monthSummary?.expenses.allocated ?? 0)
+              )}
             </p>
           </CardContent>
         </Card>
@@ -339,29 +347,12 @@ function AppHomepage() {
             </p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Saldo Livre
-            </CardTitle>
-            <CreditCardIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency((monthSummary?.expenses.allocated ?? 0) - (monthSummary?.expenses.spent ?? 0))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Alocado menos gasto
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Main Content */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Goals Card */}
-        <Card>
+        <Card className="flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TargetIcon className="h-5 w-5" />
@@ -371,195 +362,93 @@ function AppHomepage() {
               Acompanhe o progresso das suas metas financeiras
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
+          <CardContent className="flex flex-col flex-1">
             {goalsLoading ? (
               <div className="flex flex-col gap-2">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-11 w-full" />
                 ))}
               </div>
             ) : goals.filter((g) => !g.isCompleted).length > 0 ? (
-              <>
-                {goals
-                  .filter((g) => !g.isCompleted)
-                  .slice(0, 4)
-                  .map((goal) => (
-                    <div key={goal.id} className="space-y-1.5">
-                      <div className="flex justify-between text-sm">
-                        <span className="flex items-center gap-1.5">
-                          <span>{goal.icon}</span>
-                          <span className="font-medium">{goal.name}</span>
-                        </span>
-                        <span className="text-muted-foreground">{goal.progress}%</span>
+              <div className="flex flex-col flex-1">
+                <div className="flex-1 space-y-0">
+                  {goals
+                    .filter((g) => !g.isCompleted)
+                    .slice(0, 5)
+                    .map((goal) => (
+                      <div key={goal.id} className="py-3 space-y-1.5">
+                        <div className="flex justify-between text-sm">
+                          <span className="flex items-center gap-1.5">
+                            <span>{goal.icon}</span>
+                            <span className="font-medium">{goal.name}</span>
+                          </span>
+                          <span className="text-muted-foreground">{goal.progress}%</span>
+                        </div>
+                        <Progress
+                          value={goal.progress}
+                          className="h-2"
+                          style={
+                            {
+                              "--progress-background": goal.color,
+                            } as React.CSSProperties
+                          }
+                        />
                       </div>
-                      <Progress
-                        value={goal.progress}
-                        className="h-2"
-                        style={
-                          {
-                            "--progress-background": goal.color,
-                          } as React.CSSProperties
-                        }
-                      />
-                      {goal.monthsRemaining > 0 && goal.monthlyTarget > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {formatCurrency(goal.monthlyTarget)}/mês • {goal.monthsRemaining} {goal.monthsRemaining === 1 ? "mês" : "meses"}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                <Button asChild variant="ghost" size="sm" className="mt-1">
-                  <Link href="/app/goals">
-                    Ver todas as metas
-                    <ArrowRightIcon className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </>
+                    ))}
+                </div>
+                <div className="mt-auto pt-3">
+                  <Button asChild variant="ghost" size="sm" className="w-full">
+                    <Link href="/app/goals">
+                      Ver {goals.filter((g) => !g.isCompleted).length > 5 ? `todas as ${goals.filter((g) => !g.isCompleted).length} metas` : "mais"}
+                      <ArrowRightIcon className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-4 text-center">
+              <div className="flex flex-col items-center justify-center py-4 text-center flex-1">
                 <TargetIcon className="h-10 w-10 text-muted-foreground/50 mb-2" />
                 <p className="text-sm text-muted-foreground">
                   Nenhuma meta criada ainda
                 </p>
-                <Button asChild variant="outline" size="sm" className="mt-3">
-                  <Link href="/app/goals">
-                    <PlusIcon className="mr-2 h-4 w-4" />
-                    Criar primeira meta
-                  </Link>
-                </Button>
+                <div className="mt-auto pt-3">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/app/goals">
+                      <PlusIcon className="mr-2 h-4 w-4" />
+                      Criar primeira meta
+                    </Link>
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Commitments or Getting Started */}
-        {hasCompletedOnboarding ? (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CalendarIcon className="h-5 w-5" />
-                Próximos Compromissos
-              </CardTitle>
-              <CardDescription>
-                Contas e pagamentos dos próximos 30 dias
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              {commitmentsLoading ? (
-                <div className="flex flex-col gap-2">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              ) : commitments.length > 0 ? (
-                <>
-                  {commitments.slice(0, 5).map((commitment) => {
-                    const daysUntil = getDaysUntil(commitment.targetDate);
-                    const isUrgent = daysUntil <= 3;
-
-                    return (
-                      <div
-                        key={commitment.id}
-                        className="flex items-center justify-between p-2 rounded-lg border bg-muted/30"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg">{commitment.icon || "📌"}</span>
-                          <div>
-                            <div className="font-medium text-sm">{commitment.name}</div>
-                            <div className={`text-xs ${isUrgent ? "text-red-500" : "text-muted-foreground"}`}>
-                              {daysUntil === 0
-                                ? "Vence hoje!"
-                                : daysUntil === 1
-                                  ? "Vence amanhã"
-                                  : daysUntil < 0
-                                    ? "Vencido"
-                                    : `Vence em ${daysUntil} dias`}{" "}
-                              ({formatDate(commitment.targetDate)})
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-semibold text-sm">
-                            {formatCurrency(commitment.allocated)}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {commitments.length > 5 && (
-                    <Button asChild variant="ghost" size="sm" className="mt-1">
-                      <Link href="/app/budget">
-                        Ver todos ({commitments.length})
-                        <ArrowRightIcon className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-4 text-center">
-                  <CheckCircle2Icon className="h-10 w-10 text-green-500 mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Nenhum compromisso nos próximos 30 dias
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Configure datas de vencimento no orçamento
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Primeiros Passos</CardTitle>
-              <CardDescription>
-                Configure seu orçamento em 3 passos simples
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="flex items-start gap-4">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
-                  1
-                </div>
-                <div>
-                  <h4 className="font-medium">Crie um Orçamento</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Dê um nome e configure as categorias iniciais
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground text-sm font-bold">
-                  2
-                </div>
-                <div>
-                  <h4 className="font-medium">Adicione suas Contas</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Conta corrente, poupança e cartões de crédito
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground text-sm font-bold">
-                  3
-                </div>
-                <div>
-                  <h4 className="font-medium">Distribua seu Dinheiro</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Aloque cada real em uma categoria
-                  </p>
-                </div>
-              </div>
-              <Button asChild className="mt-2">
-                <Link href="/app/budgets/create">
-                  Começar Agora
-                  <ArrowRightIcon className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Scheduled Transactions (Pending Accounts) */}
+        {budgets.length > 0 && (
+          <ScheduledTransactionsList
+            budgetId={budgets[0].id}
+            year={currentYear}
+            month={currentMonth}
+            refreshKey={scheduledRefreshKey}
+          />
         )}
       </div>
+
+      {/* Charts */}
+      <DashboardCharts
+        dailyData={dailyChartData}
+        monthlyData={monthlyChartData}
+        isLoading={chartsLoading}
+      />
+
+      {/* Credit Card Spending */}
+      {creditCards.length > 0 && (
+        <CreditCardSpending
+          creditCards={creditCards}
+          isLoading={chartsLoading}
+        />
+      )}
 
       {/* Navigation Cards */}
       <div className="grid gap-4 md:grid-cols-3">

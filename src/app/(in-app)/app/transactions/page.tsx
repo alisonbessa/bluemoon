@@ -43,9 +43,8 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowLeftRight,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
+import { MonthSelector } from "@/components/ui/month-selector";
 import { format, isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -135,11 +134,6 @@ function groupTransactionsByDate(transactions: Transaction[]): Map<string, Trans
   return grouped;
 }
 
-const monthNames = [
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-];
-
 export default function TransactionsPage() {
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -155,22 +149,9 @@ export default function TransactionsPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const { isExpanded, toggleGroup, setExpandedGroups } = useExpandedGroups([]);
 
-  const handlePrevMonth = () => {
-    if (currentMonth === 1) {
-      setCurrentYear((y) => y - 1);
-      setCurrentMonth(12);
-    } else {
-      setCurrentMonth((m) => m - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (currentMonth === 12) {
-      setCurrentYear((y) => y + 1);
-      setCurrentMonth(1);
-    } else {
-      setCurrentMonth((m) => m + 1);
-    }
+  const handleMonthChange = (year: number, month: number) => {
+    setCurrentYear(year);
+    setCurrentMonth(month);
   };
 
   // Form states
@@ -417,17 +398,11 @@ export default function TransactionsPage() {
         </div>
         <div className="flex items-center gap-4">
           {/* Month Navigation */}
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevMonth}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-semibold min-w-[120px] text-center">
-              {monthNames[currentMonth - 1]} {currentYear}
-            </span>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNextMonth}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <MonthSelector
+            year={currentYear}
+            month={currentMonth}
+            onChange={handleMonthChange}
+          />
           <Button onClick={openCreateForm} size="sm">
             <Plus className="mr-2 h-4 w-4" />
             Nova Transação
@@ -502,6 +477,21 @@ export default function TransactionsPage() {
           year={currentYear}
           month={currentMonth}
           refreshKey={scheduledRefreshKey}
+          onEdit={(scheduled) => {
+            // Pre-fill the form with scheduled transaction data for editing before confirming
+            setFormData({
+              type: scheduled.type,
+              amount: (scheduled.amount / 100).toFixed(2).replace(".", ","),
+              description: scheduled.name,
+              accountId: accounts[0]?.id || "",
+              categoryId: scheduled.categoryId || "",
+              incomeSourceId: scheduled.incomeSourceId || "",
+              toAccountId: "",
+              date: format(new Date(scheduled.dueDate), "yyyy-MM-dd"),
+            });
+            setEditingTransaction(null);
+            setIsFormOpen(true);
+          }}
           onConfirm={async (scheduled) => {
             // Directly create the transaction as paid
             if (accounts.length === 0) {

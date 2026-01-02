@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useTutorial } from "./tutorial-provider";
 import { TutorialTooltip } from "./tutorial-tooltip";
+import { TutorialFloatingButton } from "./tutorial-floating-button";
 
 interface SpotlightRect {
   top: number;
@@ -13,7 +14,7 @@ interface SpotlightRect {
 }
 
 export function TutorialOverlay() {
-  const { isVisible, currentStep } = useTutorial();
+  const { isVisible, isActive, currentStep, isWaitingForAction } = useTutorial();
   const [mounted, setMounted] = useState(false);
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
 
@@ -43,7 +44,7 @@ export function TutorialOverlay() {
   }, []);
 
   useEffect(() => {
-    if (!isVisible) return;
+    if (!isVisible || isWaitingForAction) return;
 
     // Initial update
     updateSpotlight();
@@ -65,9 +66,17 @@ export function TutorialOverlay() {
       window.removeEventListener("scroll", updateSpotlight, true);
       observer.disconnect();
     };
-  }, [isVisible, updateSpotlight]);
+  }, [isVisible, isWaitingForAction, updateSpotlight]);
 
-  if (!mounted || !isVisible) return null;
+  if (!mounted) return null;
+
+  // When waiting for action OR tutorial is active but not visible (dismissed), show only floating button
+  if (isWaitingForAction || (isActive && !isVisible)) {
+    return createPortal(<TutorialFloatingButton />, document.body);
+  }
+
+  // If not visible, don't render anything
+  if (!isVisible) return null;
 
   const overlayContent = (
     <div

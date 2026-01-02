@@ -8,10 +8,12 @@ import { capitalizeWords } from "@/lib/utils";
 
 const createGoalSchema = z.object({
   budgetId: z.string().uuid(),
+  accountId: z.string().uuid(), // Conta onde a meta será guardada (obrigatória)
   name: z.string().min(1).max(100),
   icon: z.string().max(10).optional(),
   color: z.string().max(10).optional(),
   targetAmount: z.number().int().min(1),
+  initialAmount: z.number().int().min(0).optional(),
   targetDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
 });
 
@@ -103,7 +105,7 @@ export const POST = withAuthRequired(async (req, context) => {
     );
   }
 
-  const { budgetId, targetDate, ...goalData } = validation.data;
+  const { budgetId, targetDate, initialAmount, accountId, ...goalData } = validation.data;
 
   // Check user has access to budget
   const budgetIds = await getUserBudgetIds(session.user.id);
@@ -126,7 +128,9 @@ export const POST = withAuthRequired(async (req, context) => {
       ...goalData,
       name: capitalizeWords(goalData.name),
       budgetId,
+      accountId,
       targetDate: new Date(targetDate),
+      currentAmount: initialAmount || 0,
       displayOrder: existingGoals.length,
     })
     .returning();

@@ -10,6 +10,10 @@ export interface TutorialStep {
   targetSelector?: string; // CSS selector for spotlight effect
   placement?: "top" | "bottom" | "left" | "right" | "center";
   route: string; // The route this step belongs to
+  /** If true, this step requires user to complete an action before proceeding */
+  requiresAction?: boolean;
+  /** Validation function name to check if step is complete */
+  validationKey?: string;
 }
 
 export interface TutorialFlow {
@@ -19,6 +23,204 @@ export interface TutorialFlow {
 }
 
 export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
+  // =====================================================
+  // INITIAL SETUP FLOW - Replaces onboarding modal
+  // User learns using the REAL interface with spotlight
+  // =====================================================
+  "initial-setup": {
+    id: "initial-setup",
+    name: "Configuração Inicial",
+    steps: [
+      // ===== ACCOUNTS PAGE =====
+      {
+        id: "accounts-intro",
+        route: "/app/accounts",
+        title: "Suas Contas",
+        content:
+          "Vamos começar cadastrando onde seu dinheiro está. Adicione suas contas bancárias, cartões de crédito e benefícios.",
+        placement: "center",
+      },
+      {
+        id: "accounts-add",
+        route: "/app/accounts",
+        title: "Adicionar Conta",
+        content:
+          "Clique aqui para adicionar sua primeira conta. Pode ser conta corrente, poupança, cartão de crédito ou benefício (VR/VA).",
+        targetSelector: '[data-tutorial="add-account-button"]',
+        placement: "bottom",
+      },
+      {
+        id: "accounts-action",
+        route: "/app/accounts",
+        title: "Agora é sua vez!",
+        content:
+          "Adicione pelo menos uma conta para continuar. Quando terminar, clique em \"Próximo\" para configurar suas rendas.",
+        placement: "center",
+        requiresAction: true,
+        validationKey: "hasAccounts",
+      },
+
+      // ===== INCOME PAGE =====
+      {
+        id: "income-intro",
+        route: "/app/income",
+        title: "Suas Rendas",
+        content:
+          "Agora vamos cadastrar de onde vem seu dinheiro: salário, benefícios (VR/VA), freelas, etc.",
+        placement: "center",
+      },
+      {
+        id: "income-add",
+        route: "/app/income",
+        title: "Adicionar Renda",
+        content:
+          "Clique aqui para adicionar uma fonte de renda. Informe o valor, frequência e dia do pagamento.",
+        targetSelector: '[data-tutorial="add-income-button"]',
+        placement: "bottom",
+      },
+      {
+        id: "income-benefit-tip",
+        route: "/app/income",
+        title: "Dica: Benefícios",
+        content:
+          "Para VR e VA, adicione como tipo \"Benefício\" e selecione a conta de benefício correspondente. Assim sabemos quando e quanto você recebe.",
+        placement: "center",
+      },
+      {
+        id: "income-action",
+        route: "/app/income",
+        title: "Agora é sua vez!",
+        content:
+          "Adicione pelo menos uma fonte de renda. Quando terminar, vamos para as categorias.",
+        placement: "center",
+        requiresAction: true,
+        validationKey: "hasIncome",
+      },
+
+      // ===== CATEGORIES PAGE =====
+      {
+        id: "categories-intro",
+        route: "/app/categories",
+        title: "Categorias de Gastos",
+        content:
+          "As categorias organizam suas despesas. Já criamos algumas sugestões baseadas no seu perfil.",
+        placement: "center",
+      },
+      {
+        id: "categories-groups",
+        route: "/app/categories",
+        title: "Grupos de Categorias",
+        content:
+          "Categorias são organizadas em grupos: Essenciais (moradia, contas), Estilo de Vida (lazer, compras), Metas (objetivos financeiros).",
+        targetSelector: '[data-tutorial="category-groups"]',
+        placement: "bottom",
+      },
+      {
+        id: "categories-action",
+        route: "/app/categories",
+        title: "Personalize se quiser",
+        content:
+          "Você pode adicionar, editar ou remover categorias a qualquer momento. Vamos para as metas!",
+        placement: "center",
+      },
+
+      // ===== GOALS PAGE =====
+      {
+        id: "goals-intro",
+        route: "/app/goals",
+        title: "Metas Financeiras",
+        content:
+          "Defina objetivos como reserva de emergência, viagem ou carro novo. O sistema calcula quanto guardar por mês.",
+        placement: "center",
+      },
+      {
+        id: "goals-add",
+        route: "/app/goals",
+        title: "Criar uma Meta",
+        content:
+          "Clique aqui para criar sua primeira meta. Defina o valor e prazo desejado.",
+        targetSelector: '[data-tutorial="add-goal-button"]',
+        placement: "bottom",
+      },
+      {
+        id: "goals-tip",
+        route: "/app/goals",
+        title: "Dica: Metas no Orçamento",
+        content:
+          "Suas metas aparecerão no orçamento como categorias. Assim você reserva dinheiro todo mês para alcançá-las!",
+        placement: "center",
+      },
+      {
+        id: "goals-action",
+        route: "/app/goals",
+        title: "Crie uma meta (opcional)",
+        content:
+          "Metas são opcionais, mas ajudam muito a manter o foco. Quando estiver pronto, vamos para o orçamento!",
+        placement: "center",
+      },
+
+      // ===== BUDGET PAGE =====
+      {
+        id: "budget-intro",
+        route: "/app/budget",
+        title: "Seu Orçamento",
+        content:
+          "Este é o coração do HiveBudget! Aqui você distribui cada real da sua renda entre as categorias.",
+        placement: "center",
+      },
+      {
+        id: "budget-available",
+        route: "/app/budget",
+        title: "Dinheiro Disponível",
+        content:
+          "Este valor mostra quanto dinheiro ainda precisa ser distribuído. O objetivo é deixar zerado!",
+        targetSelector: '[data-tutorial="budget-available"]',
+        placement: "bottom",
+      },
+      {
+        id: "budget-category",
+        route: "/app/budget",
+        title: "Alocando nas Categorias",
+        content:
+          "Clique em uma categoria para definir quanto quer reservar. Comece pelas despesas fixas como moradia e contas.",
+        targetSelector: '[data-tutorial="category-row"]',
+        placement: "right",
+      },
+      {
+        id: "budget-goals",
+        route: "/app/budget",
+        title: "Suas Metas Aqui",
+        content:
+          "As metas que você criou aparecem como categorias no grupo \"Metas\". Reserve um valor mensal para alcançá-las!",
+        targetSelector: '[data-tutorial="goals-group"]',
+        placement: "right",
+      },
+      {
+        id: "budget-action",
+        route: "/app/budget",
+        title: "Distribua seu dinheiro!",
+        content:
+          "Aloque valores nas categorias até zerar o \"Disponível\". Você pode ajustar a qualquer momento.",
+        placement: "center",
+        requiresAction: true,
+        validationKey: "hasAllocations",
+      },
+
+      // ===== COMPLETION - DASHBOARD =====
+      {
+        id: "setup-complete",
+        route: "/app",
+        title: "Parabéns! 🎉",
+        content:
+          "Sua plataforma está configurada! Use o menu para navegar entre as seções. Bom planejamento financeiro!",
+        placement: "center",
+      },
+    ],
+  },
+
+  // =====================================================
+  // POST-ONBOARDING FLOW - Legacy, for users who already onboarded
+  // =====================================================
   "post-onboarding": {
     id: "post-onboarding",
     name: "Primeiros Passos",

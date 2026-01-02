@@ -60,7 +60,6 @@ function formatCurrency(cents: number): string {
 export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
   const config = TYPE_CONFIG[account.type];
   const isCreditCard = account.type === "credit_card";
-  const isBenefit = account.type === "benefit";
 
   const availableCredit = isCreditCard && account.creditLimit
     ? account.creditLimit - account.balance
@@ -195,24 +194,6 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             </div>
           )}
 
-          {isBenefit && (account.monthlyDeposit || account.depositDay) && (
-            <div className="mt-3 flex gap-4 border-t pt-3 text-sm">
-              {account.monthlyDeposit && (
-                <div>
-                  <span className="text-muted-foreground">Recebe </span>
-                  <span className="font-medium">
-                    {formatCurrency(account.monthlyDeposit)}
-                  </span>
-                </div>
-              )}
-              {account.depositDay && (
-                <div>
-                  <span className="text-muted-foreground">Dia </span>
-                  <span className="font-medium">{account.depositDay}</span>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>

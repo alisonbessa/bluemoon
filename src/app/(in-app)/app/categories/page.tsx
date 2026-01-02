@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -38,13 +37,14 @@ import {
 import { Label } from "@/components/ui/label";
 import {
   Plus,
-  Search,
   Loader2,
   FolderOpen,
-  Settings,
+  Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { CategoryWizard } from "@/components/categories/category-wizard";
+import { useTutorial } from "@/components/tutorial/tutorial-provider";
 
 interface Category {
   id: string;
@@ -94,13 +94,12 @@ const EMOJI_CATEGORIES = {
 };
 
 export default function CategoriesPage() {
-  const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
   const { isExpanded, toggleGroup, setExpandedGroups } = useExpandedGroups([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState<CategoryFormData>({
@@ -111,6 +110,7 @@ export default function CategoriesPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emojiCategory, setEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("recent");
+  const { isActive: isTutorialActive } = useTutorial();
 
   const fetchData = useCallback(async () => {
     try {
@@ -246,18 +246,7 @@ export default function CategoriesPage() {
     }
   };
 
-  const filteredGroups = groups
-    .map((group) => ({
-      ...group,
-      categories: group.categories.filter((c) =>
-        c.name.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    }))
-    .filter(
-      (g) =>
-        g.categories.length > 0 ||
-        g.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  // Groups are displayed as-is (no filtering since search was removed)
 
   const totalCategories = groups.reduce((sum, g) => sum + g.categories.length, 0);
 
@@ -279,20 +268,14 @@ export default function CategoriesPage() {
             Organize suas despesas e receitas em categorias
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push("/app/categories/setup")}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Configurar
-          </Button>
-          <Button size="sm" onClick={() => openCreateForm()}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Categoria
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsWizardOpen(true)}
+        >
+          <Wand2 className="mr-2 h-4 w-4" />
+          Assistente
+        </Button>
       </div>
 
       {/* Summary */}
@@ -314,17 +297,6 @@ export default function CategoriesPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Buscar categorias..."
-          className="pl-10 h-9"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
       {/* Compact Categories Table */}
       {groups.length > 0 ? (
         <div className="rounded-lg border bg-card">
@@ -339,11 +311,11 @@ export default function CategoriesPage() {
           </div>
 
           {/* Grouped by Group */}
-          {filteredGroups.map((group) => {
+          {groups.map((group, index) => {
             const expanded = isExpanded(group.id);
 
             return (
-              <div key={group.id}>
+              <div key={group.id} data-tutorial={index === 0 ? "category-groups" : undefined}>
                 <GroupToggleRow
                   isExpanded={expanded}
                   onToggle={() => toggleGroup(group.id)}
@@ -400,7 +372,7 @@ export default function CategoriesPage() {
                                 Acumula
                               </span>
                             ) : (
-                              <span>Recarrega</span>
+                              <span>Recorrente</span>
                             )}
                           </div>
                         </div>
@@ -438,16 +410,9 @@ export default function CategoriesPage() {
             adicione manualmente
           </p>
           <div className="flex justify-center gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => router.push("/app/categories/setup")}
-            >
-              <Settings className="mr-2 h-4 w-4" />
+            <Button onClick={() => setIsWizardOpen(true)}>
+              <Wand2 className="mr-2 h-4 w-4" />
               Configurar Categorias
-            </Button>
-            <Button onClick={() => openCreateForm()}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Categoria
             </Button>
           </div>
         </div>
@@ -574,7 +539,7 @@ export default function CategoriesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="refill_up">
-                    Recarregar (o valor é renovado todo mês)
+                    Recorrente (o valor é renovado todo mês)
                   </SelectItem>
                   <SelectItem value="set_aside">
                     Acumular (o valor não usado passa para o próximo mês)
@@ -630,6 +595,19 @@ export default function CategoriesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Category Wizard */}
+      <CategoryWizard
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        onComplete={() => {
+          setIsWizardOpen(false);
+          fetchData();
+        }}
+        existingCategories={groups.flatMap((g) => g.categories.map((c) => c.name))}
+        groups={groups.map((g) => ({ id: g.id, code: g.code }))}
+        budgetId={budgets[0]?.id || ""}
+      />
     </div>
   );
 }
