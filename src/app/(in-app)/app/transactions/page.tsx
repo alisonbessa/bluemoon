@@ -49,6 +49,12 @@ import { format, isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatCurrencyCompact,
+  formatCurrencyFromDigits,
+  parseCurrency,
+} from "@/lib/formatters";
 import { ScheduledTransactions } from "@/components/transactions";
 
 interface Category {
@@ -91,32 +97,6 @@ interface Transaction {
 interface Budget {
   id: string;
   name: string;
-}
-
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
-function formatCurrencyCompact(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function formatCurrencyFromDigits(digits: string): string {
-  const onlyDigits = digits.replace(/\D/g, "");
-  const cents = parseInt(onlyDigits || "0", 10);
-  return formatCurrencyCompact(cents);
-}
-
-function parseCurrency(value: string): number {
-  const cleaned = value.replace(/[^\d,-]/g, "").replace(",", ".");
-  const parsed = parseFloat(cleaned);
-  return isNaN(parsed) ? 0 : Math.round(parsed * 100);
 }
 
 const GRID_COLS = "24px 1fr 120px 120px 100px";

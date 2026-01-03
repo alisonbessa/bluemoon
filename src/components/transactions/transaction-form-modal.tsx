@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import { formatCurrencyFromDigits, parseCurrency } from '@/lib/formatters';
 
 interface Category {
   id: string;
@@ -62,21 +62,6 @@ interface TransactionFormModalProps {
   incomeSources: IncomeSource[];
   isSubmitting: boolean;
   onSubmit: () => void;
-}
-
-function formatCurrencyFromDigits(digits: string): string {
-  const onlyDigits = digits.replace(/\D/g, '');
-  const cents = parseInt(onlyDigits || '0', 10);
-  return (cents / 100).toLocaleString('pt-BR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function parseCurrency(value: string): number {
-  const cleaned = value.replace(/[^\d,-]/g, '').replace(',', '.');
-  const parsed = parseFloat(cleaned);
-  return isNaN(parsed) ? 0 : Math.round(parsed * 100);
 }
 
 export function TransactionFormModal({

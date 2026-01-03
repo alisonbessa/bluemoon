@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency } from "@/lib/formatters";
 import {
   Dialog,
   DialogContent,
@@ -83,13 +84,6 @@ const memberTypeIcons: Record<Member["type"], React.ReactNode> = {
   child: <span>👶</span>,
   pet: <span>🐾</span>,
 };
-
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
 
 export function MembersManagement({ budgetId }: MembersManagementProps) {
   const [members, setMembers] = useState<Member[]>([]);

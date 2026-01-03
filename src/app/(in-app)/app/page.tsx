@@ -27,6 +27,7 @@ import { MonthSelector } from "@/components/ui/month-selector";
 import { DashboardCharts, CreditCardSpending, ScheduledTransactionsList } from "@/components/dashboard";
 import Link from "next/link";
 import useUser from "@/lib/users/useUser";
+import { formatCurrency } from "@/lib/formatters";
 
 interface Commitment {
   id: string;
@@ -91,13 +92,6 @@ interface CreditCard {
   creditLimit: number;
   spent: number;
   available: number;
-}
-
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
 }
 
 function formatDate(dateString: string): string {

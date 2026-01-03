@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
+import { formatCurrency, formatCurrencyCompact } from "@/lib/formatters";
 import {
   Calendar,
   CheckCircle2,
@@ -46,20 +47,6 @@ interface ScheduledTransactionsProps {
   refreshKey?: number;
   onConfirm?: (transaction: ScheduledTransaction) => void;
   onEdit?: (transaction: ScheduledTransaction) => void;
-}
-
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
-function formatCurrencyCompact(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 }
 
 export function ScheduledTransactions({

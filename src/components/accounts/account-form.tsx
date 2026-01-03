@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
+import { formatAmount, formatCurrencyFromDigits, parseCurrency } from "@/lib/formatters";
 import type { AccountType } from "@/db/schema/accounts";
 import type { AccountFormData, AccountOwner } from "./types";
 
@@ -43,27 +44,6 @@ const ACCOUNT_TYPES: { value: AccountType; label: string; icon: string }[] = [
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function formatCurrencyFromDigits(digits: string): string {
-  // Remove all non-digits
-  const onlyDigits = digits.replace(/\D/g, "");
-  // Parse as integer (cents)
-  const cents = parseInt(onlyDigits || "0", 10);
-  return formatCurrency(cents);
-}
-
-function parseCurrency(value: string): number {
-  const cleaned = value.replace(/[^\d,-]/g, "").replace(",", ".");
-  const parsed = parseFloat(cleaned);
-  return isNaN(parsed) ? 0 : Math.round(parsed * 100);
-}
-
 export function AccountForm({
   open,
   onOpenChange,
@@ -86,10 +66,10 @@ export function AccountForm({
     color: initialData?.color,
   });
   const [balanceInput, setBalanceInput] = useState(
-    formatCurrency(initialData?.balance || 0)
+    formatAmount(initialData?.balance || 0)
   );
   const [creditLimitInput, setCreditLimitInput] = useState(
-    formatCurrency(initialData?.creditLimit || 0)
+    formatAmount(initialData?.creditLimit || 0)
   );
 
   const isCreditCard = formData.type === "credit_card";
@@ -109,8 +89,8 @@ export function AccountForm({
         icon: initialData.icon || accountType?.icon,
         color: initialData.color,
       });
-      setBalanceInput(formatCurrency(initialData.balance || 0));
-      setCreditLimitInput(formatCurrency(initialData.creditLimit || 0));
+      setBalanceInput(formatAmount(initialData.balance || 0));
+      setCreditLimitInput(formatAmount(initialData.creditLimit || 0));
     }
   }, [initialData]);
 

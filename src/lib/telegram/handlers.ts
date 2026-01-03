@@ -15,6 +15,7 @@ import {
 import { eq, and, gte, lte, gt } from "drizzle-orm";
 import type { TelegramMessage, TelegramCallbackQuery, UserContext } from "./types";
 import type { TelegramConversationStep, TelegramConversationContext } from "@/db/schema/telegram-users";
+import { capitalizeFirst } from "@/lib/string-utils";
 import {
   sendMessage,
   answerCallbackQuery,
@@ -224,12 +225,6 @@ function buildUserContext(userId: string, budgetInfo: NonNullable<Awaited<Return
     defaultAccountId: budgetInfo.defaultAccount?.id,
     memberId: budgetInfo.member.id,
   };
-}
-
-// Capitalize first letter of a string
-function capitalizeFirst(text: string | undefined): string | undefined {
-  if (!text) return text;
-  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 // Parse amount from text (supports "50", "50,00", "50.00", "R$ 50,00")

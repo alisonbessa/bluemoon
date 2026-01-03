@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/formatters";
 import confetti from "canvas-confetti";
 
 interface Goal {
@@ -101,13 +102,6 @@ const COLOR_OPTIONS = [
   "#6366f1", // indigo
   "#a855f7", // purple
 ];
-
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);

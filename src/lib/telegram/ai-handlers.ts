@@ -12,6 +12,7 @@ import {
   markTransactionAsPaid,
 } from "./transaction-matcher";
 import { getTodayNoonUTC } from "./telegram-utils";
+import { capitalizeFirst } from "@/lib/string-utils";
 import {
   sendMessage,
   formatCurrency,
@@ -21,14 +22,6 @@ import {
   createGroupKeyboard,
   deleteMessages,
 } from "./bot";
-
-/**
- * Capitalize first letter of a string
- */
-function capitalizeFirst(text: string | undefined): string | undefined {
-  if (!text) return text;
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
 import type { GroupCode } from "@/db/schema/groups";
 
 /**

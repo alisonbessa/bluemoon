@@ -34,6 +34,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { formatCurrency as formatCurrencyBase } from "@/lib/formatters";
+
+// Chart-specific currency formatter (no decimals for cleaner display)
+const formatCurrency = (cents: number) => formatCurrencyBase(cents, { decimals: 0 });
 
 interface DailyData {
   day: number;
@@ -58,15 +62,6 @@ interface DashboardChartsProps {
   dailyData: DailyData[];
   monthlyData: MonthlyData[];
   isLoading?: boolean;
-}
-
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  });
 }
 
 const dailyChartConfig = {

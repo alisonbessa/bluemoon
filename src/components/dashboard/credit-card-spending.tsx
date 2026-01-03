@@ -18,6 +18,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { CreditCardIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency } from "@/lib/formatters";
 
 interface CreditCard {
   id: string;
@@ -31,13 +32,6 @@ interface CreditCard {
 interface CreditCardSpendingProps {
   creditCards: CreditCard[];
   isLoading?: boolean;
-}
-
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
 }
 
 export function CreditCardSpending({

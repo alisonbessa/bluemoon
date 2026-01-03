@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/formatters";
 import { GoalFormModal } from "@/components/goals";
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
 
@@ -160,15 +161,6 @@ interface Goal {
 }
 
 type FilterType = "all" | "underfunded" | "overfunded" | "money_available";
-
-function formatCurrency(cents: number): string {
-  const value = cents / 100;
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-  });
-}
 
 const monthNamesFull = [
   "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",

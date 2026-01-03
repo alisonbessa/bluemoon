@@ -5,6 +5,7 @@ import { format, isSameMonth } from 'date-fns';
 import { toast } from 'sonner';
 import { transactionService } from '@/services/transaction.service';
 import { useExpandedGroups } from '@/components/ui/compact-table';
+import { formatCurrencyCompact, parseCurrency } from '@/lib/formatters';
 import type { TransactionWithRelations } from '@/types';
 
 interface Category {
@@ -153,19 +154,6 @@ export function useTransactionData() {
 
     return { income, expenses };
   }, [transactions]);
-
-  const formatCurrencyCompact = (cents: number): string => {
-    return (cents / 100).toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
-  const parseCurrency = (value: string): number => {
-    const cleaned = value.replace(/[^\d,-]/g, '').replace(',', '.');
-    const parsed = parseFloat(cleaned);
-    return isNaN(parsed) ? 0 : Math.round(parsed * 100);
-  };
 
   const openCreateForm = useCallback(() => {
     setFormData({

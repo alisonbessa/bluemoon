@@ -36,6 +36,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { formatCurrency, formatCurrencyCompact } from "@/lib/formatters";
 import { useState } from "react";
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
 
@@ -48,20 +49,6 @@ interface Member {
 
 interface AccountWithOwner extends Account {
   owner?: Member | null;
-}
-
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
-function formatCurrencyCompact(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 }
 
 const GRID_COLS = "24px 1fr 100px 100px 120px";

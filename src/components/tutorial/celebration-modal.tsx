@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PartyPopper, Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
 import confetti from "canvas-confetti";
+import { formatCurrency } from "@/lib/formatters";
 
 interface SetupSummary {
   accountsCount: number;
@@ -17,13 +18,6 @@ interface CelebrationModalProps {
   isOpen: boolean;
   onClose: () => void;
   summary?: SetupSummary;
-}
-
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
 }
 
 export function CelebrationModal({ isOpen, onClose, summary }: CelebrationModalProps) {

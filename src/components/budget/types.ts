@@ -1,5 +1,7 @@
 // Budget page types
 
+export { formatCurrency } from "@/lib/formatters";
+
 export interface Category {
   id: string;
   name: string;
@@ -107,16 +109,6 @@ export interface Goal {
 }
 
 export type FilterType = "all" | "underfunded" | "overfunded" | "money_available";
-
-// Helper functions
-export function formatCurrency(cents: number): string {
-  const value = cents / 100;
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-  });
-}
 
 export const monthNamesFull = [
   "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
