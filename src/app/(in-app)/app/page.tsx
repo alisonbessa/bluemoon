@@ -26,7 +26,7 @@ import { Progress } from "@/components/ui/progress";
 import { MonthSelector } from "@/components/ui/month-selector";
 import { DashboardCharts, CreditCardSpending, ScheduledTransactionsList } from "@/components/dashboard";
 import Link from "next/link";
-import useUser from "@/lib/users/useUser";
+import { useUser } from "@/hooks/use-current-user";
 import { formatCurrency } from "@/lib/formatters";
 
 interface Commitment {

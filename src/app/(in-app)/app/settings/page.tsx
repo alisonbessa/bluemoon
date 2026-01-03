@@ -35,7 +35,7 @@ import { MembersManagement } from "@/components/settings/members-management";
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import useUser from "@/lib/users/useUser";
+import { useUser } from "@/hooks/use-current-user";
 import { useTheme } from "next-themes";
 import { signOut } from "next-auth/react";
 

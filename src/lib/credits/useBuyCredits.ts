@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import useCurrentPlan from "@/lib/users/useCurrentPlan";
+import { useCurrentPlan } from "@/hooks/use-current-user";
 import { getCreditsBuyUrl, getCreditsPrice, type CreditType } from "./credits";
 import { creditsConfig } from "./config";
 import { PlanProvider } from "../plans/getSubscribeUrl";

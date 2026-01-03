@@ -141,7 +141,7 @@ const {
 
 #### Usage Example
 ```tsx
-import useCredits from "@/lib/users/useCredits";
+import { useCredits } from "@/hooks/use-current-user";
 
 export function CreditBalance() {
   const { credits, isLoading } = useCredits();

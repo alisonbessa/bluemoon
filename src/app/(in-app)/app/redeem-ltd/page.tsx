@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { BadgePlusIcon, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
-import useCurrentPlan from "@/lib/users/useCurrentPlan";
+import { useCurrentPlan } from "@/hooks/use-current-user";
 
 export default function RedeemLTDPage() {
   const [couponCode, setCouponCode] = useState("");
