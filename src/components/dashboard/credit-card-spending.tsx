@@ -70,7 +70,7 @@ export function CreditCardSpending({
   const totalAvailable = totalLimit - totalSpent;
 
   const selectedCard = selectedCardId === "all"
-    ? { name: "Todos os Cartoes", spent: totalSpent, creditLimit: totalLimit, available: totalAvailable }
+    ? { name: "Todos os Cartões", spent: totalSpent, creditLimit: totalLimit, available: totalAvailable }
     : creditCards.find((cc) => cc.id === selectedCardId);
 
   if (!selectedCard) return null;
@@ -88,17 +88,17 @@ export function CreditCardSpending({
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
               <CreditCardIcon className="h-4 w-4" />
-              Fatura do Cartao
+              Fatura do Cartão
             </CardTitle>
-            <CardDescription>Gastos no mes atual</CardDescription>
+            <CardDescription>Gastos no mês atual</CardDescription>
           </div>
           {creditCards.length > 1 && (
             <Select value={selectedCardId} onValueChange={setSelectedCardId}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Selecione um cartao" />
+                <SelectValue placeholder="Selecione um cartão" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os Cartoes</SelectItem>
+                <SelectItem value="all">Todos os Cartões</SelectItem>
                 {creditCards.map((cc) => (
                   <SelectItem key={cc.id} value={cc.id}>
                     <span className="flex items-center gap-2">
@@ -127,7 +127,7 @@ export function CreditCardSpending({
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>Limite: {formatCurrency(selectedCard.creditLimit)}</span>
             <span className={selectedCard.available < 0 ? "text-red-600" : "text-green-600"}>
-              {selectedCard.available >= 0 ? "Disponivel: " : "Excedido: "}
+              {selectedCard.available >= 0 ? "Disponível: " : "Excedido: "}
               {formatCurrency(Math.abs(selectedCard.available))}
             </span>
           </div>

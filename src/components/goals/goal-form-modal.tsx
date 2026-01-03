@@ -20,9 +20,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { IconColorPicker } from "@/components/ui/icon-color-picker";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 interface Goal {
   id: string;
@@ -47,22 +47,6 @@ interface GoalFormModalProps {
   editingGoal?: Goal | null;
   onSuccess?: () => void;
 }
-
-const EMOJI_OPTIONS = ["🎯", "✈️", "🏠", "🚗", "💍", "🎓", "💻", "📱", "🏖️", "💰", "🎁", "🛒", "👴"];
-const COLOR_OPTIONS = [
-  "#8b5cf6", // violet
-  "#ec4899", // pink
-  "#f43f5e", // rose
-  "#ef4444", // red
-  "#f97316", // orange
-  "#eab308", // yellow
-  "#22c55e", // green
-  "#14b8a6", // teal
-  "#06b6d4", // cyan
-  "#3b82f6", // blue
-  "#6366f1", // indigo
-  "#a855f7", // purple
-];
 
 export function GoalFormModal({
   open,
@@ -211,46 +195,13 @@ export function GoalFormModal({
             />
           </div>
 
-          {/* Icon */}
-          <div className="space-y-2">
-            <Label>Ícone</Label>
-            <div className="flex flex-wrap gap-2">
-              {EMOJI_OPTIONS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, icon: emoji })}
-                  className={cn(
-                    "w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all",
-                    formData.icon === emoji
-                      ? "bg-primary/20 ring-2 ring-primary"
-                      : "bg-muted hover:bg-muted/80"
-                  )}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Color */}
-          <div className="space-y-2">
-            <Label>Cor</Label>
-            <div className="flex flex-wrap gap-2">
-              {COLOR_OPTIONS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, color })}
-                  className={cn(
-                    "w-8 h-8 rounded-full transition-all",
-                    formData.color === color && "ring-2 ring-offset-2 ring-primary"
-                  )}
-                  style={{ backgroundColor: color }}
-                />
-              ))}
-            </div>
-          </div>
+          {/* Icon and Color */}
+          <IconColorPicker
+            icon={formData.icon}
+            color={formData.color}
+            onIconChange={(icon) => setFormData({ ...formData, icon })}
+            onColorChange={(color) => setFormData({ ...formData, color })}
+          />
 
           {/* Target Amount */}
           <div className="space-y-2">
@@ -299,7 +250,7 @@ export function GoalFormModal({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Conta onde o dinheiro da meta sera guardado
+              Conta onde o dinheiro da meta será guardado
             </p>
           </div>
         </div>

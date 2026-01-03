@@ -30,7 +30,7 @@ export async function handleConnectionRequest(
   if (!userId) {
     await sendMessage(
       chatId,
-      '❌ Link de conexao invalido. Gere um novo no app.'
+      '❌ Link de conexão inválido. Gere um novo no app.'
     );
     return;
   }
@@ -41,7 +41,7 @@ export async function handleConnectionRequest(
   if (!user) {
     await sendMessage(
       chatId,
-      '❌ Usuario nao encontrado. Gere um novo link no app.'
+      '❌ Usuário não encontrado. Gere um novo link no app.'
     );
     return;
   }
@@ -52,8 +52,8 @@ export async function handleConnectionRequest(
   if (connectionIssue?.type === 'telegram_connected_to_other') {
     await sendMessage(
       chatId,
-      '❌ Este Telegram ja esta conectado a outra conta.\n\n' +
-        'Desconecte primeiro nas Configuracoes do app.'
+      '❌ Este Telegram já está conectado a outra conta.\n\n' +
+        'Desconecte primeiro nas Configurações do app.'
     );
     return;
   }
@@ -61,8 +61,8 @@ export async function handleConnectionRequest(
   if (connectionIssue?.type === 'user_has_other_telegram') {
     await sendMessage(
       chatId,
-      '❌ Sua conta ja esta conectada a outro Telegram.\n\n' +
-        'Desconecte primeiro nas Configuracoes do app.'
+      '❌ Sua conta já está conectada a outro Telegram.\n\n' +
+        'Desconecte primeiro nas Configurações do app.'
     );
     return;
   }
@@ -70,15 +70,15 @@ export async function handleConnectionRequest(
   // Connect the accounts
   await connectTelegramUser(chatId, userId, telegramUserId, username, firstName);
 
-  const name = user.displayName || user.name || 'Usuario';
+  const name = user.displayName || user.name || 'Usuário';
 
   await sendMessage(
     chatId,
     `✅ <b>Conta conectada com sucesso!</b>\n\n` +
-      `Ola, <b>${name}</b>! Agora voce pode registrar seus gastos enviando mensagens.\n\n` +
+      `Olá, <b>${name}</b>! Agora você pode registrar seus gastos enviando mensagens.\n\n` +
       `<b>Como usar:</b>\n` +
       `• Envie o valor: <code>50</code> ou <code>50,00</code>\n` +
-      `• Com descricao: <code>50 mercado</code>\n\n` +
+      `• Com descrição: <code>50 mercado</code>\n\n` +
       `Use /ajuda para ver todos os comandos.`
   );
 }
@@ -124,30 +124,30 @@ export async function handleStart(
       .where(eq(users.id, telegramUser.userId))
       .limit(1);
 
-    const name = user[0]?.displayName || user[0]?.name || 'Usuario';
+    const name = user[0]?.displayName || user[0]?.name || 'Usuário';
 
     await sendMessage(
       chatId,
-      `👋 Ola, <b>${name}</b>!\n\n` +
-        `Sua conta ja esta conectada.\n\n` +
+      `👋 Olá, <b>${name}</b>!\n\n` +
+        `Sua conta já está conectada.\n\n` +
         `<b>Como registrar gastos:</b>\n` +
         `• Envie o valor: <code>50</code> ou <code>50,00</code>\n` +
-        `• Com descricao: <code>50 mercado</code>\n\n` +
+        `• Com descrição: <code>50 mercado</code>\n\n` +
         `<b>Comandos:</b>\n` +
         `/ajuda - Ver todos os comandos\n` +
-        `/desfazer - Desfazer ultimo registro`
+        `/desfazer - Desfazer último registro`
     );
   } else {
     // Not connected
     await sendMessage(
       chatId,
       `👋 Bem-vindo ao <b>HiveBudget</b>!\n\n` +
-        `Para registrar seus gastos pelo Telegram, voce precisa conectar sua conta.\n\n` +
+        `Para registrar seus gastos pelo Telegram, você precisa conectar sua conta.\n\n` +
         `<b>Como conectar:</b>\n` +
         `1. Acesse o app em hivebudget.com.br\n` +
-        `2. Va em Configuracoes > Conectar Telegram\n` +
+        `2. Vá em Configurações > Conectar Telegram\n` +
         `3. Clique no link gerado\n\n` +
-        `Aguardando conexao...`
+        `Aguardando conexão...`
     );
   }
 }
@@ -171,17 +171,17 @@ export async function handleVerificationCode(chatId: number, code: string) {
       context.verificationExpiry &&
       new Date(context.verificationExpiry) < new Date()
     ) {
-      await sendMessage(chatId, '❌ Codigo expirado. Gere um novo link no app.');
+      await sendMessage(chatId, '❌ Código expirado. Gere um novo link no app.');
       return;
     }
 
     await sendMessage(
       chatId,
       `✅ <b>Conta conectada com sucesso!</b>\n\n` +
-        `Agora voce pode registrar seus gastos enviando mensagens.\n\n` +
+        `Agora você pode registrar seus gastos enviando mensagens.\n\n` +
         `<b>Exemplos:</b>\n` +
         `• <code>50</code> - Registra R$ 50,00\n` +
-        `• <code>35,90 almoco</code> - R$ 35,90 com descricao\n\n` +
+        `• <code>35,90 almoço</code> - R$ 35,90 com descrição\n\n` +
         `Use /ajuda para ver todos os comandos.`
     );
 
@@ -189,7 +189,7 @@ export async function handleVerificationCode(chatId: number, code: string) {
   } else {
     await sendMessage(
       chatId,
-      '❌ Codigo invalido. Tente gerar um novo link no app.'
+      '❌ Código inválido. Tente gerar um novo link no app.'
     );
   }
 }
@@ -200,18 +200,18 @@ export async function handleVerificationCode(chatId: number, code: string) {
 export async function handleHelp(chatId: number) {
   await sendMessage(
     chatId,
-    `📚 <b>Comandos disponiveis:</b>\n\n` +
+    `📚 <b>Comandos disponíveis:</b>\n\n` +
       `<b>Registrar gastos:</b>\n` +
       `• Envie apenas o valor: <code>50</code>\n` +
-      `• Com descricao: <code>50 mercado</code>\n` +
-      `• Com virgula: <code>35,90</code>\n\n` +
+      `• Com descrição: <code>50 mercado</code>\n` +
+      `• Com vírgula: <code>35,90</code>\n\n` +
       `<b>Comandos:</b>\n` +
       `/ajuda - Esta mensagem\n` +
-      `/desfazer - Desfazer ultimo registro\n` +
-      `/cancelar - Cancelar operacao atual\n\n` +
+      `/desfazer - Desfazer último registro\n` +
+      `/cancelar - Cancelar operação atual\n\n` +
       `<b>Dicas:</b>\n` +
-      `• O bot ira perguntar a categoria\n` +
-      `• Voce pode confirmar ou cancelar antes de salvar`
+      `• O bot irá perguntar a categoria\n` +
+      `• Você pode confirmar ou cancelar antes de salvar`
   );
 }
 
@@ -224,7 +224,7 @@ export async function handleUndo(chatId: number) {
   if (!telegramUser?.userId) {
     await sendMessage(
       chatId,
-      '❌ Voce precisa conectar sua conta primeiro. Use /start'
+      '❌ Você precisa conectar sua conta primeiro. Use /start'
     );
     return;
   }
@@ -232,7 +232,7 @@ export async function handleUndo(chatId: number) {
   const context = telegramUser.context as TelegramConversationContext;
 
   if (!context.lastTransactionId) {
-    await sendMessage(chatId, '❌ Nenhuma transacao recente para desfazer.');
+    await sendMessage(chatId, '❌ Nenhuma transação recente para desfazer.');
     return;
   }
 
@@ -245,9 +245,9 @@ export async function handleUndo(chatId: number) {
   if (deleted.length > 0) {
     await sendMessage(
       chatId,
-      `✅ Transacao desfeita!\n\n` +
+      `✅ Transação desfeita!\n\n` +
         `Valor: ${formatCurrency(deleted[0].amount)}\n` +
-        `Descricao: ${deleted[0].description || '(sem descricao)'}`
+        `Descrição: ${deleted[0].description || '(sem descrição)'}`
     );
 
     // Clear last transaction from context
@@ -258,7 +258,7 @@ export async function handleUndo(chatId: number) {
   } else {
     await sendMessage(
       chatId,
-      '❌ Transacao nao encontrada ou ja foi removida.'
+      '❌ Transação não encontrada ou já foi removida.'
     );
   }
 }
@@ -268,5 +268,5 @@ export async function handleUndo(chatId: number) {
  */
 export async function handleCancel(chatId: number) {
   await updateTelegramUser(chatId, 'IDLE', {});
-  await sendMessage(chatId, '❌ Operacao cancelada.');
+  await sendMessage(chatId, '❌ Operação cancelada.');
 }

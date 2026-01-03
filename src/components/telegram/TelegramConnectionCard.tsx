@@ -119,7 +119,7 @@ export function TelegramConnectionCard() {
             <div className="space-y-4">
               <div className="rounded-lg border bg-muted/50 p-4">
                 <p className="text-sm">
-                  Conectado como: <strong>@{status.username || status.firstName || "Usuario"}</strong>
+                  Conectado como: <strong>@{status.username || status.firstName || "Usuário"}</strong>
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
                   Envie valores diretamente no chat do bot para registrar gastos.
@@ -130,7 +130,7 @@ export function TelegramConnectionCard() {
                 <p className="text-sm font-medium mb-2">Como usar:</p>
                 <ul className="text-xs text-muted-foreground space-y-1">
                   <li>• Envie <code className="bg-muted px-1 rounded">50</code> para registrar R$ 50,00</li>
-                  <li>• Envie <code className="bg-muted px-1 rounded">35,90 almoco</code> com descricao</li>
+                  <li>• Envie <code className="bg-muted px-1 rounded">35,90 almoço</code> com descrição</li>
                   <li>• Use <code className="bg-muted px-1 rounded">/ajuda</code> para ver comandos</li>
                 </ul>
               </div>
@@ -154,7 +154,7 @@ export function TelegramConnectionCard() {
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
                       1
                     </span>
-                    <span>Clique no botao abaixo para abrir o Telegram</span>
+                    <span>Clique no botão abaixo para abrir o Telegram</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
@@ -166,7 +166,7 @@ export function TelegramConnectionCard() {
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
                       3
                     </span>
-                    <span>Pronto! Sua conta sera conectada automaticamente</span>
+                    <span>Pronto! Sua conta será conectada automaticamente</span>
                   </li>
                 </ol>
               </div>
@@ -194,12 +194,12 @@ export function TelegramConnectionCard() {
                   ) : (
                     <Send className="h-4 w-4" />
                   )}
-                  Gerar link de conexao
+                  Gerar link de conexão
                 </Button>
               )}
 
               <p className="text-xs text-center text-muted-foreground">
-                O link expira em 10 minutos por seguranca
+                O link expira em 10 minutos por segurança
               </p>
             </div>
           )}
@@ -212,7 +212,7 @@ export function TelegramConnectionCard() {
           <AlertDialogHeader>
             <AlertDialogTitle>Desconectar Telegram?</AlertDialogTitle>
             <AlertDialogDescription>
-              Voce nao podera mais registrar gastos pelo Telegram ate conectar novamente.
+              Você não poderá mais registrar gastos pelo Telegram até conectar novamente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

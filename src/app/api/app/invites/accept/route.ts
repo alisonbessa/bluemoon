@@ -48,9 +48,11 @@ export const POST = withAuthRequired(async (req, context) => {
     return NextResponse.json({ error: "Invite has expired" }, { status: 400 });
   }
 
-  // Check if user's email matches invite email
+  // Get user data
   const user = await getUser();
-  if (user?.email?.toLowerCase() !== invite.email.toLowerCase()) {
+
+  // If invite has a specific email, check if user's email matches
+  if (invite.email && user?.email?.toLowerCase() !== invite.email.toLowerCase()) {
     return NextResponse.json(
       {
         error: "This invite was sent to a different email address",

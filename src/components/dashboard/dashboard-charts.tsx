@@ -41,9 +41,9 @@ interface DailyData {
   income: number;
   expense: number;
   balance: number;
-  plannedIncome?: number;
-  plannedExpense?: number;
-  plannedBalance?: number;
+  pendingIncome?: number;
+  pendingExpense?: number;
+  pendingBalance?: number;
 }
 
 interface MonthlyData {
@@ -74,25 +74,25 @@ const dailyChartConfig = {
     label: "Receitas",
     color: "hsl(142, 76%, 36%)",
   },
-  expense: {
+  expenseNegative: {
     label: "Despesas",
     color: "hsl(0, 84%, 60%)",
   },
   balance: {
-    label: "Saldo",
+    label: "Saldo Realizado",
     color: "hsl(221, 83%, 53%)",
   },
-  plannedIncome: {
-    label: "Receitas Previstas",
-    color: "hsl(142, 50%, 60%)",
+  pendingIncome: {
+    label: "Receitas Pendentes",
+    color: "hsl(142, 76%, 36%)",
   },
-  plannedExpense: {
-    label: "Despesas Previstas",
-    color: "hsl(0, 50%, 75%)",
+  pendingExpenseNegative: {
+    label: "Despesas Pendentes",
+    color: "hsl(0, 84%, 60%)",
   },
-  plannedBalance: {
-    label: "Saldo Previsto",
-    color: "hsl(221, 50%, 70%)",
+  pendingBalance: {
+    label: "Saldo Projetado",
+    color: "hsl(221, 83%, 53%)",
   },
 };
 
@@ -101,7 +101,7 @@ const monthlyChartConfig = {
     label: "Receitas",
     color: "hsl(142, 76%, 36%)",
   },
-  expense: {
+  expenseNegative: {
     label: "Despesas",
     color: "hsl(0, 84%, 60%)",
   },
@@ -115,7 +115,7 @@ export function DashboardCharts({
   isLoading,
 }: DashboardChartsProps) {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("12months");
-  const [showPlanned, setShowPlanned] = useState(false);
+  const [showPending, setShowPending] = useState(false);
 
   // Filter monthly data based on selected period
   const getFilteredMonthlyData = () => {
@@ -145,7 +145,7 @@ export function DashboardCharts({
   const transformedDailyData = dailyData.map((item) => ({
     ...item,
     expenseNegative: -item.expense,
-    plannedExpenseNegative: -(item.plannedExpense || 0),
+    pendingExpenseNegative: -(item.pendingExpense || 0),
   }));
 
   // Transform monthly data to have negative expenses for stacked bar effect
@@ -170,19 +170,19 @@ export function DashboardCharts({
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-base">Saldo Diario</CardTitle>
+              <CardTitle className="text-base">Saldo Diário</CardTitle>
               <CardDescription>
-                Receitas, despesas e saldo acumulado do mes
+                Receitas, despesas e saldo acumulado do mês
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Switch
-                id="show-planned"
-                checked={showPlanned}
-                onCheckedChange={setShowPlanned}
+                id="show-pending"
+                checked={showPending}
+                onCheckedChange={setShowPending}
               />
-              <Label htmlFor="show-planned" className="text-sm text-muted-foreground">
-                Mostrar previsto
+              <Label htmlFor="show-pending" className="text-sm text-muted-foreground">
+                Mostrar pendentes
               </Label>
             </div>
           </div>
@@ -212,11 +212,18 @@ export function DashboardCharts({
               <ChartTooltip
                 content={
                   <ChartTooltipContent
-                    formatter={(value, name) => (
-                      <span className="font-medium">
-                        {formatCurrency(Math.abs(Number(value)))}
-                      </span>
-                    )}
+                    labelFormatter={(label) => `Dia ${label}`}
+                    formatter={(value, name, item) => {
+                      const config = dailyChartConfig[item.dataKey as keyof typeof dailyChartConfig];
+                      return (
+                        <>
+                          <span className="text-muted-foreground">{config?.label || name}</span>
+                          <span className="ml-auto font-mono font-medium">
+                            {formatCurrency(Math.abs(Number(value)))}
+                          </span>
+                        </>
+                      );
+                    }}
                   />
                 }
               />
@@ -224,32 +231,28 @@ export function DashboardCharts({
                 dataKey="income"
                 fill="var(--color-income)"
                 radius={[4, 4, 0, 0]}
-                name="Receitas"
                 stackId="stack"
               />
-              {showPlanned && (
+              {showPending && (
                 <Bar
-                  dataKey="plannedIncome"
-                  fill="var(--color-income)"
+                  dataKey="pendingIncome"
+                  fill="var(--color-pendingIncome)"
                   radius={[4, 4, 0, 0]}
-                  name="Receitas Previstas"
                   stackId="stack"
                   fillOpacity={0.3}
                 />
               )}
               <Bar
                 dataKey="expenseNegative"
-                fill="var(--color-expense)"
+                fill="var(--color-expenseNegative)"
                 radius={[0, 0, 4, 4]}
-                name="Despesas"
                 stackId="stack"
               />
-              {showPlanned && (
+              {showPending && (
                 <Bar
-                  dataKey="plannedExpenseNegative"
-                  fill="var(--color-expense)"
+                  dataKey="pendingExpenseNegative"
+                  fill="var(--color-pendingExpenseNegative)"
                   radius={[0, 0, 4, 4]}
-                  name="Despesas Previstas"
                   stackId="stack"
                   fillOpacity={0.3}
                 />
@@ -260,17 +263,15 @@ export function DashboardCharts({
                 stroke="var(--color-balance)"
                 strokeWidth={2}
                 dot={false}
-                name="Saldo"
               />
-              {showPlanned && (
+              {showPending && (
                 <Line
                   type="monotone"
-                  dataKey="plannedBalance"
-                  stroke="var(--color-plannedBalance)"
+                  dataKey="pendingBalance"
+                  stroke="var(--color-pendingBalance)"
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   dot={false}
-                  name="Saldo Previsto"
                 />
               )}
             </ComposedChart>
@@ -325,12 +326,18 @@ export function DashboardCharts({
               <ChartTooltip
                 content={
                   <ChartTooltipContent
-                    formatter={(value, name) => (
-                      <span className="font-medium">
-                        {formatCurrency(Math.abs(Number(value)))}
-                      </span>
-                    )}
                     labelFormatter={(label) => `${label}`}
+                    formatter={(value, name, item) => {
+                      const config = monthlyChartConfig[item.dataKey as keyof typeof monthlyChartConfig];
+                      return (
+                        <>
+                          <span className="text-muted-foreground">{config?.label || name}</span>
+                          <span className="ml-auto font-mono font-medium">
+                            {formatCurrency(Math.abs(Number(value)))}
+                          </span>
+                        </>
+                      );
+                    }}
                   />
                 }
               />
@@ -338,14 +345,12 @@ export function DashboardCharts({
                 dataKey="income"
                 fill="var(--color-income)"
                 radius={[4, 4, 0, 0]}
-                name="Receitas"
                 stackId="stack"
               />
               <Bar
                 dataKey="expenseNegative"
-                fill="var(--color-expense)"
+                fill="var(--color-expenseNegative)"
                 radius={[0, 0, 4, 4]}
-                name="Despesas"
                 stackId="stack"
               />
             </BarChart>

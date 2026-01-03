@@ -91,7 +91,6 @@ export default function AccountsPage() {
     "savings",
     "credit_card",
     "cash",
-    "investment",
     "benefit",
   ]);
 
