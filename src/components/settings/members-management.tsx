@@ -96,15 +96,20 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showPreInviteModal, setShowPreInviteModal] = useState(false);
   const [isCreatingInvite, setIsCreatingInvite] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [cancelInviteId, setCancelInviteId] = useState<string | null>(null);
+  const [budgetName, setBudgetName] = useState<string>("");
+  const [editingBudgetName, setEditingBudgetName] = useState<string>("");
+  const [isSavingBudgetName, setIsSavingBudgetName] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [membersRes, invitesRes] = await Promise.all([
+      const [membersRes, invitesRes, budgetRes] = await Promise.all([
         fetch(`/api/app/members?budgetId=${budgetId}`),
         fetch(`/api/app/invites?budgetId=${budgetId}`),
+        fetch(`/api/app/budget?budgetId=${budgetId}`),
       ]);
 
       if (membersRes.ok) {
@@ -115,6 +120,11 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
       if (invitesRes.ok) {
         const data = await invitesRes.json();
         setInvites(data.invites || []);
+      }
+
+      if (budgetRes.ok) {
+        const data = await budgetRes.json();
+        setBudgetName(data.budget?.name || "");
       }
     } catch (error) {
       console.error("Error fetching members data:", error);
@@ -129,6 +139,43 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
       fetchData();
     }
   }, [budgetId, fetchData]);
+
+  const handleOpenPreInvite = () => {
+    setEditingBudgetName(budgetName);
+    setShowPreInviteModal(true);
+  };
+
+  const handleSaveBudgetNameAndCreateInvite = async () => {
+    setIsSavingBudgetName(true);
+
+    try {
+      // Only update budget name if it changed
+      if (editingBudgetName.trim() && editingBudgetName !== budgetName) {
+        const updateRes = await fetch("/api/app/budget", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ budgetId, name: editingBudgetName.trim() }),
+        });
+
+        if (!updateRes.ok) {
+          toast.error("Erro ao atualizar nome do orçamento");
+          setIsSavingBudgetName(false);
+          return;
+        }
+
+        setBudgetName(editingBudgetName.trim());
+      }
+
+      // Now create the invite
+      await handleCreateInvite();
+      setShowPreInviteModal(false);
+    } catch (error) {
+      console.error("Error saving budget name:", error);
+      toast.error("Erro ao salvar alterações");
+    } finally {
+      setIsSavingBudgetName(false);
+    }
+  };
 
   const handleCreateInvite = async () => {
     setIsCreatingInvite(true);
@@ -224,11 +271,10 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
             {!hasConnectedPartner && pendingInvites.length === 0 && (
               <Button
                 size="sm"
-                onClick={handleCreateInvite}
-                disabled={isCreatingInvite}
+                onClick={handleOpenPreInvite}
               >
                 <UserPlus className="mr-2 h-4 w-4" />
-                {isCreatingInvite ? "Criando..." : "Criar link de convite"}
+                Criar link de convite
               </Button>
             )}
           </div>
@@ -288,11 +334,10 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={handleCreateInvite}
-                      disabled={isCreatingInvite}
+                      onClick={handleOpenPreInvite}
                     >
                       <UserPlus className="mr-2 h-4 w-4" />
-                      {isCreatingInvite ? "Criando..." : "Convidar"}
+                      Convidar
                     </Button>
                   )}
                 </div>
@@ -438,6 +483,59 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
 
           <DialogFooter>
             <Button onClick={closeInviteModal}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pre-Invite Modal - Edit Budget Name */}
+      <Dialog open={showPreInviteModal} onOpenChange={setShowPreInviteModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convidar para o Orçamento</DialogTitle>
+            <DialogDescription>
+              Revise o nome do seu orçamento antes de enviar o convite. É esse nome que seu parceiro(a) vai ver.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="budget-name">Nome do Orçamento</Label>
+              <Input
+                id="budget-name"
+                value={editingBudgetName}
+                onChange={(e) => setEditingBudgetName(e.target.value)}
+                placeholder="Ex: Orçamento da Família Silva"
+              />
+              <p className="text-xs text-muted-foreground">
+                Este nome aparecerá no convite e na página de aceitar convite.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowPreInviteModal(false)}
+              disabled={isSavingBudgetName || isCreatingInvite}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveBudgetNameAndCreateInvite}
+              disabled={isSavingBudgetName || isCreatingInvite || !editingBudgetName.trim()}
+            >
+              {isSavingBudgetName || isCreatingInvite ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Criar Link de Convite
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
