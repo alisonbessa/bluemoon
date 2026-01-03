@@ -8,24 +8,38 @@ import { z } from "zod";
 import { capitalizeWords } from "@/lib/utils";
 
 // Default categories to create for new budgets
+// These are the base categories - personal category is added dynamically with user's name
 const DEFAULT_CATEGORIES = [
-  // Essencial
-  { groupCode: "essential", name: "Moradia", icon: "🏠" },
-  { groupCode: "essential", name: "Contas de Casa", icon: "💡" },
+  // Essencial - Gastos fixos e obrigatórios
+  { groupCode: "essential", name: "Moradia", icon: "🏠" }, // Aluguel, condomínio, IPTU
+  { groupCode: "essential", name: "Contas de Casa", icon: "💡" }, // Água, luz, gás, internet
   { groupCode: "essential", name: "Mercado", icon: "🛒" },
-  { groupCode: "essential", name: "Transporte", icon: "🚗" },
-  { groupCode: "essential", name: "Saúde", icon: "💊" },
-  // Estilo de Vida
-  { groupCode: "lifestyle", name: "Alimentação Fora", icon: "🍽️" },
+  { groupCode: "essential", name: "Transporte", icon: "🚗" }, // Combustível, transporte público, Uber
+  { groupCode: "essential", name: "Saúde", icon: "💊" }, // Plano, farmácia, consultas
+  { groupCode: "essential", name: "Educação", icon: "📚" },
+
+  // Estilo de Vida - Gastos variáveis de qualidade de vida
+  { groupCode: "lifestyle", name: "Alimentação Fora", icon: "🍽️" }, // Restaurantes, delivery
   { groupCode: "lifestyle", name: "Vestuário", icon: "👕" },
-  { groupCode: "lifestyle", name: "Streaming", icon: "📺" },
+  { groupCode: "lifestyle", name: "Beleza", icon: "💇" }, // Cabelo, estética
+  { groupCode: "lifestyle", name: "Streaming", icon: "📺" }, // Netflix, Spotify, etc
   { groupCode: "lifestyle", name: "Academia", icon: "💪" },
+  { groupCode: "lifestyle", name: "Pets", icon: "🐾" },
+  { groupCode: "lifestyle", name: "Presentes", icon: "🎁" },
+  { groupCode: "lifestyle", name: "Assinaturas", icon: "📱" }, // Apps, serviços
+
   // Investimentos
   { groupCode: "investments", name: "Reserva de Emergência", icon: "🏦" },
-  { groupCode: "investments", name: "Poupança", icon: "🐷" },
-  // Metas
+  { groupCode: "investments", name: "Investimentos", icon: "📈" },
+
+  // Metas - Usuário cria as próprias, mas deixamos uma de exemplo
   { groupCode: "goals", name: "Viagem", icon: "✈️" },
 ] as const;
+
+// Helper to get first name from display name
+function getFirstName(displayName: string): string {
+  return displayName.split(" ")[0];
+}
 
 const welcomeSchema = z.object({
   displayName: z.string().min(1),
@@ -113,7 +127,14 @@ export const POST = withAuthRequired(async (request, context) => {
       const allGroups = await tx.select().from(groups);
 
       // Create default categories for the budget
-      const categoryInserts = DEFAULT_CATEGORIES.map((cat) => {
+      const categoryInserts: Array<{
+        budgetId: string;
+        groupId: string;
+        name: string;
+        icon: string;
+        behavior: "refill_up";
+        plannedAmount: number;
+      }> = DEFAULT_CATEGORIES.map((cat) => {
         const group = allGroups.find((g) => g.code === cat.groupCode);
         return {
           budgetId: newBudget.id,
@@ -124,6 +145,20 @@ export const POST = withAuthRequired(async (request, context) => {
           plannedAmount: 0,
         };
       });
+
+      // Add personal spending category in "Prazeres" group
+      const pleasuresGroup = allGroups.find((g) => g.code === "pleasures");
+      if (pleasuresGroup) {
+        const firstName = getFirstName(formattedName);
+        categoryInserts.push({
+          budgetId: newBudget.id,
+          groupId: pleasuresGroup.id,
+          name: `Gastos de ${firstName}`,
+          icon: "🎉",
+          behavior: "refill_up" as const,
+          plannedAmount: 0,
+        });
+      }
 
       await tx.insert(categories).values(categoryInserts);
 

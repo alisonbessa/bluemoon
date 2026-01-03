@@ -101,9 +101,9 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "categories-intro",
         route: "/app/categories",
-        title: "Categorias de Gastos",
+        title: "Suas Categorias",
         content:
-          "As categorias organizam suas despesas. Já criamos algumas sugestões baseadas no seu perfil.",
+          "Já criamos categorias organizadas em grupos para facilitar seu controle financeiro. Veja como está organizado!",
         placement: "center",
       },
       {
@@ -111,16 +111,24 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/categories",
         title: "Grupos de Categorias",
         content:
-          "Categorias são organizadas em grupos: Essenciais (moradia, contas), Estilo de Vida (lazer, compras), Metas (objetivos financeiros).",
+          "Suas despesas são organizadas em: Essencial (moradia, contas, mercado), Estilo de Vida (restaurantes, compras), Prazeres (seus gastos pessoais) e Investimentos.",
         targetSelector: '[data-tutorial="category-groups"]',
         placement: "bottom",
       },
       {
+        id: "categories-personal",
+        route: "/app/categories",
+        title: "Gastos Pessoais",
+        content:
+          "No grupo \"Prazeres\" você encontra sua categoria pessoal com seu nome. Use para gastos que são só seus, sem precisar justificar!",
+        placement: "center",
+      },
+      {
         id: "categories-action",
         route: "/app/categories",
-        title: "Personalize se quiser",
+        title: "Personalize como quiser",
         content:
-          "Você pode adicionar, editar ou remover categorias a qualquer momento. Vamos para as metas!",
+          "Adicione, edite ou remova categorias clicando nelas. Você pode ajustar tudo a qualquer momento. Vamos ver as metas!",
         placement: "center",
       },
 
