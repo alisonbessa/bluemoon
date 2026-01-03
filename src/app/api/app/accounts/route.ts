@@ -7,16 +7,19 @@ import { z } from "zod";
 import { accountTypeEnum } from "@/db/schema/accounts";
 import { capitalizeWords } from "@/lib/utils";
 
+// Max value in cents (R$ 10,000,000,000.00 = R$ 10 billion)
+const MAX_CENTS = 1_000_000_000_000;
+
 const createAccountSchema = z.object({
   budgetId: z.string().uuid(),
   name: z.string().min(1).max(100),
   type: accountTypeEnum,
   color: z.string().optional(),
   icon: z.string().optional(),
-  balance: z.number().int().default(0),
+  balance: z.number().int().min(-MAX_CENTS).max(MAX_CENTS).default(0),
   ownerId: z.string().uuid().optional().nullable(),
   // Credit card fields
-  creditLimit: z.number().int().optional(),
+  creditLimit: z.number().int().min(0).max(MAX_CENTS).optional(),
   closingDay: z.number().int().min(1).max(31).optional(),
   dueDay: z.number().int().min(1).max(31).optional(),
 });

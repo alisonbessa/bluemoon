@@ -35,7 +35,7 @@ export async function handleExpenseIntent(
   userContext: UserContext,
   initialMessagesToDelete: number[] = []
 ): Promise<void> {
-  const { budgetId, memberId, defaultAccountId, categories, currentYear, currentMonth } = userContext;
+  const { budgetId, memberId, defaultAccountId, categories, accounts, currentYear, currentMonth } = userContext;
 
   if (!defaultAccountId) {
     await sendMessage(
@@ -44,6 +44,11 @@ export async function handleExpenseIntent(
     );
     return;
   }
+
+  // Try to match account from hint (e.g., "paguei com o cartão flash")
+  const matchedAccount = data?.accountHint ? matchAccount(data.accountHint, accounts) : null;
+  const accountId = matchedAccount?.id || defaultAccountId;
+  const accountName = matchedAccount?.name;
 
   // Try to match category
   const categoryMatch = matchCategory(data?.categoryHint, categories);
@@ -129,7 +134,7 @@ export async function handleExpenseIntent(
       .insert(transactions)
       .values({
         budgetId,
-        accountId: defaultAccountId,
+        accountId,
         categoryId,
         memberId,
         type: "expense",
@@ -150,6 +155,7 @@ export async function handleExpenseIntent(
       `✅ <b>Gasto registrado!</b>\n\n` +
         `${categoryIcon || "📁"} ${categoryName}\n` +
         `Valor: ${formatCurrency(data.amount)}\n` +
+        (accountName ? `Conta: ${accountName}\n` : "") +
         (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
         `Use /desfazer para remover.`
     );
@@ -161,6 +167,9 @@ export async function handleExpenseIntent(
     let message = `📝 <b>Confirmar registro?</b>\n\n`;
     message += `${categoryIcon || "📁"} ${categoryName}\n`;
     message += `Valor: ${formatCurrency(data.amount)}\n`;
+    if (accountName) {
+      message += `Conta: ${accountName}\n`;
+    }
     if (data.description) {
       message += `Descrição: ${data.description}\n`;
     }
@@ -179,6 +188,8 @@ export async function handleExpenseIntent(
         description: data.description,
         categoryId,
         categoryName,
+        accountId,
+        accountName,
       },
       scheduledTransactionId: scheduledMatch?.transaction.id,
       messagesToDelete: [...initialMessagesToDelete, confirmMsgId],
@@ -213,6 +224,8 @@ export async function handleExpenseIntent(
       pendingExpense: {
         amount: data.amount,
         description: data.description,
+        accountId,
+        accountName,
       },
       pendingNewCategory: {
         suggestedName,
@@ -228,6 +241,7 @@ export async function handleExpenseIntent(
     chatId,
     `💰 <b>Registrar gasto</b>\n\n` +
       `Valor: ${formatCurrency(data.amount)}\n` +
+      (accountName ? `Conta: ${accountName}\n` : "") +
       (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
       `Selecione a categoria:`,
     {
@@ -239,6 +253,8 @@ export async function handleExpenseIntent(
     pendingExpense: {
       amount: data.amount,
       description: data.description,
+      accountId,
+      accountName,
     },
     messagesToDelete: [...initialMessagesToDelete, catSelectMsgId],
   });
@@ -607,4 +623,50 @@ function suggestGroupForCategory(hint: string): GroupCode {
 
   // Default to lifestyle for unknown categories
   return "lifestyle";
+}
+
+/**
+ * Match account from hint text
+ * Returns the matched account or null if no match found
+ */
+function matchAccount(
+  hint: string,
+  accounts: Array<{ id: string; name: string; type: string }>
+): { id: string; name: string } | null {
+  if (!hint || accounts.length === 0) return null;
+
+  const normalizeText = (text: string) =>
+    text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  const normalizedHint = normalizeText(hint);
+
+  // Direct name match (e.g., "flash" matches "Flash")
+  for (const account of accounts) {
+    const normalizedName = normalizeText(account.name);
+    if (
+      normalizedName.includes(normalizedHint) ||
+      normalizedHint.includes(normalizedName)
+    ) {
+      return { id: account.id, name: account.name };
+    }
+  }
+
+  // Common aliases for account types
+  const aliases: Record<string, string[]> = {
+    credit_card: ["cartao", "credito", "cartao de credito"],
+    checking: ["debito", "conta corrente", "corrente"],
+    savings: ["poupanca"],
+    benefit: ["vr", "va", "flash", "alelo", "sodexo", "ticket", "beneficio"],
+    cash: ["dinheiro", "especie"],
+  };
+
+  // Try matching by type aliases
+  for (const account of accounts) {
+    const typeAliases = aliases[account.type] || [];
+    if (typeAliases.some((alias) => normalizedHint.includes(alias))) {
+      return { id: account.id, name: account.name };
+    }
+  }
+
+  return null;
 }

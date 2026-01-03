@@ -86,8 +86,9 @@ export default function AccountsPage() {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Erro ao criar conta");
+      const text = await response.text();
+      const error = text ? JSON.parse(text) : { message: `Erro ${response.status}` };
+      throw new Error(error.message || error.error || "Erro ao criar conta");
     }
 
     toast.success("Conta criada com sucesso!");

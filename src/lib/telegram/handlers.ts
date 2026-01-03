@@ -738,12 +738,14 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
   } else {
     // Create new transaction
     const capitalizedDescription = capitalizeFirst(context.pendingExpense.description);
+    // Use account from context if specified, otherwise default
+    const transactionAccountId = context.pendingExpense.accountId || budgetInfo.defaultAccount.id;
 
     const [newTransaction] = await db
       .insert(transactions)
       .values({
         budgetId: budgetInfo.budget.id,
-        accountId: budgetInfo.defaultAccount.id,
+        accountId: transactionAccountId,
         categoryId: context.pendingExpense.categoryId,
         memberId: budgetInfo.member.id,
         type: "expense",
@@ -767,6 +769,7 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
       `✅ <b>Gasto registrado!</b>\n\n` +
         `Valor: <b>${formatCurrency(context.pendingExpense.amount)}</b>\n` +
         `Categoria: ${context.pendingExpense.categoryName}\n` +
+        (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
         (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
         `Use /desfazer para remover este registro.`
     );
@@ -1299,12 +1302,14 @@ async function handleGroupSelection(chatId: number, groupId: string, callbackQue
 
   // Now create the transaction with the new category
   const capitalizedDescription = capitalizeFirst(context.pendingExpense.description);
+  // Use account from context if specified, otherwise default
+  const transactionAccountId = context.pendingExpense.accountId || budgetInfo.defaultAccount!.id;
 
   const [newTransaction] = await db
     .insert(transactions)
     .values({
       budgetId: budgetInfo.budget.id,
-      accountId: budgetInfo.defaultAccount!.id,
+      accountId: transactionAccountId,
       categoryId: newCategory.id,
       memberId: budgetInfo.member.id,
       type: "expense",
@@ -1329,6 +1334,7 @@ async function handleGroupSelection(chatId: number, groupId: string, callbackQue
       `📁 Nova categoria: <b>${categoryName}</b>\n` +
       `📂 Grupo: ${group?.name || "—"}\n\n` +
       `💰 Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
+      (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
       (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
       `Use /desfazer para remover o gasto.`
   );

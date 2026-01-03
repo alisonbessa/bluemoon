@@ -58,14 +58,19 @@ export const parseCurrency = parseCurrencyToCents;
  */
 export const formatCurrencyCompact = formatAmount;
 
+// Maximum value in cents (R$ 10,000,000,000.00 = 1 trillion cents)
+// Using bigint in database to support this range
+const MAX_CENTS = 1_000_000_000_000;
+
 /**
  * Format currency input from raw digit string
  * Used for live-formatting as user types in currency inputs
  * Example: "12345" -> "123,45"
+ * Limits to MAX_CENTS to prevent PostgreSQL integer overflow
  */
 export function formatCurrencyFromDigits(digits: string): string {
   const onlyDigits = digits.replace(/\D/g, '');
-  const cents = parseInt(onlyDigits || '0', 10);
+  const cents = Math.min(parseInt(onlyDigits || '0', 10), MAX_CENTS);
   return formatAmount(cents);
 }
 

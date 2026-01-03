@@ -91,7 +91,7 @@ export function useRecurringBills(categoryId?: string) {
       }),
       action: async () => {
         const response = await fetch(`${BILLS_BASE_KEY}/${id}`, {
-          method: 'PUT',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),
         });

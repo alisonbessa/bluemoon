@@ -130,7 +130,7 @@ export function RecurringBillForm({
         : '/api/app/recurring-bills';
 
       const response = await fetch(url, {
-        method: editingBill ? 'PUT' : 'POST',
+        method: editingBill ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           budgetId,

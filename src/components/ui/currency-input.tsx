@@ -44,15 +44,19 @@ export function parseDisplayToCents(display: string): number {
   return isNaN(parsed) ? 0 : Math.round(parsed * 100);
 }
 
+// Maximum value in cents (R$ 10,000,000,000.00 = R$ 10 billion)
+const MAX_CENTS = 1_000_000_000_000;
+
 /**
  * Format raw digit input to display format
  * As user types "12345", it shows "123,45"
+ * Limits to MAX_CENTS to prevent overflow
  */
 function formatDigitsToDisplay(digits: string): string {
   // Remove all non-digits
   const onlyDigits = digits.replace(/\D/g, "");
-  // Parse as integer (cents)
-  const cents = parseInt(onlyDigits || "0", 10);
+  // Parse as integer (cents), limited to MAX_CENTS
+  const cents = Math.min(parseInt(onlyDigits || "0", 10), MAX_CENTS);
   return formatCentsToDisplay(cents);
 }
 
@@ -82,8 +86,8 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       const formatted = formatDigitsToDisplay(e.target.value);
       setDisplayValue(formatted);
 
-      // Extract cents from formatted value
-      const cents = parseInt(formatted.replace(/\D/g, "") || "0", 10);
+      // Extract cents from formatted value (already limited by formatDigitsToDisplay)
+      const cents = Math.min(parseInt(formatted.replace(/\D/g, "") || "0", 10), MAX_CENTS);
       onChange(cents);
     };
 
