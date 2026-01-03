@@ -24,7 +24,11 @@
       "Bash(npx drizzle-kit generate:*)",
       "Bash(npx tsx scripts/add-income-source-column.ts)",
       "Bash(git push:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(git stash drop:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []
