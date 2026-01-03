@@ -212,7 +212,7 @@ export default function AcceptInvitePage({
               <Button variant="outline" asChild>
                 <Link href="/">Voltar</Link>
               </Button>
-              <Button onClick={() => router.push("/login")}>
+              <Button onClick={() => router.push("/sign-in")}>
                 Fazer login com outro email
               </Button>
             </div>
@@ -298,7 +298,7 @@ export default function AcceptInvitePage({
               <Button
                 className="w-full"
                 onClick={() =>
-                  router.push(`/login?callbackUrl=/invite/${token}`)
+                  router.push(`/sign-in?callbackUrl=/invite/${token}`)
                 }
               >
                 <LogIn className="mr-2 h-4 w-4" />
@@ -307,7 +307,7 @@ export default function AcceptInvitePage({
               <p className="text-xs text-center text-muted-foreground">
                 Não tem uma conta?{" "}
                 <Link
-                  href={`/signup?callbackUrl=/invite/${token}${invite.email ? `&email=${encodeURIComponent(invite.email)}` : ""}`}
+                  href={`/sign-up?callbackUrl=/invite/${token}${invite.email ? `&email=${encodeURIComponent(invite.email)}` : ""}`}
                   className="text-primary hover:underline"
                 >
                   Criar conta
