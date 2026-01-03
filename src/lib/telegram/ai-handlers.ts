@@ -19,7 +19,16 @@ import {
   createConfirmationKeyboard,
   createNewCategoryKeyboard,
   createGroupKeyboard,
+  deleteMessages,
 } from "./bot";
+
+/**
+ * Capitalize first letter of a string
+ */
+function capitalizeFirst(text: string | undefined): string | undefined {
+  if (!text) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
 import type { GroupCode } from "@/db/schema/groups";
 
 /**
@@ -115,6 +124,13 @@ export async function handleExpenseIntent(
   // HIGH CONFIDENCE without scheduled match: Auto-save new transaction
   // Note: We NEVER auto-save when updating scheduled transactions - always confirm
   if (finalConfidence >= CONFIDENCE_THRESHOLDS.HIGH && categoryId && !scheduledMatch) {
+    // Delete processing messages before showing final result
+    if (initialMessagesToDelete.length > 0) {
+      await deleteMessages(chatId, initialMessagesToDelete);
+    }
+
+    const capitalizedDescription = capitalizeFirst(data.description);
+
     // Create new transaction
     const [newTransaction] = await db
       .insert(transactions)
@@ -126,7 +142,7 @@ export async function handleExpenseIntent(
         type: "expense",
         status: "cleared",
         amount: data.amount,
-        description: data.description,
+        description: capitalizedDescription,
         date: data.date || getTodayNoonUTC(),
         source: "telegram",
       })
@@ -141,7 +157,7 @@ export async function handleExpenseIntent(
       `✅ <b>Gasto registrado!</b>\n\n` +
         `${categoryIcon || "📁"} ${categoryName}\n` +
         `Valor: ${formatCurrency(data.amount)}\n` +
-        (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
+        (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
         `Use /desfazer para remover.`
     );
     return;
@@ -357,6 +373,14 @@ export async function handleIncomeIntent(
   // Note: We NEVER auto-save when updating scheduled transactions - always confirm
   if (finalConfidence >= CONFIDENCE_THRESHOLDS.HIGH && !scheduledMatch) {
     console.log("[handleIncomeIntent] HIGH CONFIDENCE path: Auto-saving new transaction");
+
+    // Delete processing messages before showing final result
+    if (initialMessagesToDelete.length > 0) {
+      await deleteMessages(chatId, initialMessagesToDelete);
+    }
+
+    const capitalizedDescription = capitalizeFirst(data.description);
+
     // Create new income transaction
     const [newTransaction] = await db
       .insert(transactions)
@@ -368,7 +392,7 @@ export async function handleIncomeIntent(
         type: "income",
         status: "cleared",
         amount: data.amount,
-        description: data.description || incomeSourceName,
+        description: capitalizedDescription || incomeSourceName,
         date: data.date || getTodayNoonUTC(),
         source: "telegram",
       })
@@ -383,7 +407,7 @@ export async function handleIncomeIntent(
       `✅ <b>Receita registrada!</b>\n\n` +
         (incomeSourceName ? `Fonte: ${incomeSourceName}\n` : "") +
         `Valor: ${formatCurrency(data.amount)}\n` +
-        (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
+        (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
         `Use /desfazer para remover.`
     );
     return;

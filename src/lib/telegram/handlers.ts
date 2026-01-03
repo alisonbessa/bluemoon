@@ -226,6 +226,12 @@ function buildUserContext(userId: string, budgetInfo: NonNullable<Awaited<Return
   };
 }
 
+// Capitalize first letter of a string
+function capitalizeFirst(text: string | undefined): string | undefined {
+  if (!text) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 // Parse amount from text (supports "50", "50,00", "50.00", "R$ 50,00")
 function parseAmount(text: string): number | null {
   // Remove currency symbol and spaces
@@ -736,6 +742,8 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
     );
   } else {
     // Create new transaction
+    const capitalizedDescription = capitalizeFirst(context.pendingExpense.description);
+
     const [newTransaction] = await db
       .insert(transactions)
       .values({
@@ -746,7 +754,7 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
         type: "expense",
         status: "cleared",
         amount: context.pendingExpense.amount,
-        description: context.pendingExpense.description,
+        description: capitalizedDescription,
         date: getTodayNoonUTC(),
         source: "telegram",
       })
@@ -764,7 +772,7 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
       `✅ <b>Gasto registrado!</b>\n\n` +
         `Valor: <b>${formatCurrency(context.pendingExpense.amount)}</b>\n` +
         `Categoria: ${context.pendingExpense.categoryName}\n` +
-        (context.pendingExpense.description ? `Descrição: ${context.pendingExpense.description}\n\n` : "\n") +
+        (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
         `Use /desfazer para remover este registro.`
     );
   }
@@ -1029,6 +1037,8 @@ async function handleIncomeConfirmation(chatId: number, confirmed: boolean, call
     );
   } else {
     // Create new income transaction
+    const capitalizedDescription = capitalizeFirst(context.pendingIncome.description);
+
     const [newTransaction] = await db
       .insert(transactions)
       .values({
@@ -1039,7 +1049,7 @@ async function handleIncomeConfirmation(chatId: number, confirmed: boolean, call
         type: "income",
         status: "cleared",
         amount: context.pendingIncome.amount,
-        description: context.pendingIncome.description || context.pendingIncome.incomeSourceName,
+        description: capitalizedDescription || context.pendingIncome.incomeSourceName,
         date: getTodayNoonUTC(),
         source: "telegram",
       })
@@ -1056,7 +1066,7 @@ async function handleIncomeConfirmation(chatId: number, confirmed: boolean, call
       `<b>Receita registrada!</b>\n\n` +
         (context.pendingIncome.incomeSourceName ? `Fonte: ${context.pendingIncome.incomeSourceName}\n` : "") +
         `Valor: ${formatCurrency(context.pendingIncome.amount)}\n` +
-        (context.pendingIncome.description ? `Descrição: ${context.pendingIncome.description}\n\n` : "\n") +
+        (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
         `Use /desfazer para remover.`
     );
   }
@@ -1293,6 +1303,8 @@ async function handleGroupSelection(chatId: number, groupId: string, callbackQue
     .returning();
 
   // Now create the transaction with the new category
+  const capitalizedDescription = capitalizeFirst(context.pendingExpense.description);
+
   const [newTransaction] = await db
     .insert(transactions)
     .values({
@@ -1303,7 +1315,7 @@ async function handleGroupSelection(chatId: number, groupId: string, callbackQue
       type: "expense",
       status: "cleared",
       amount: context.pendingExpense.amount,
-      description: context.pendingExpense.description,
+      description: capitalizedDescription,
       date: getTodayNoonUTC(),
       source: "telegram",
     })
@@ -1322,7 +1334,7 @@ async function handleGroupSelection(chatId: number, groupId: string, callbackQue
       `📁 Nova categoria: <b>${categoryName}</b>\n` +
       `📂 Grupo: ${group?.name || "—"}\n\n` +
       `💰 Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
-      (context.pendingExpense.description ? `Descrição: ${context.pendingExpense.description}\n\n` : "\n") +
+      (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
       `Use /desfazer para remover o gasto.`
   );
 }
