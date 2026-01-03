@@ -12,6 +12,7 @@ import {
   ClipboardList,
   Menu,
   Ticket,
+  Bot,
 } from "lucide-react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { appConfig } from "@/lib/config";
@@ -29,6 +30,7 @@ const navigation = [
   { name: "Users", href: "/super-admin/users", icon: Users },
   { name: "Lifetime Deal", href: "/super-admin/coupons", icon: Ticket },
   { name: "Messages", href: "/super-admin/messages", icon: MessageSquare },
+  { name: "Telegram AI", href: "/super-admin/telegram-ai", icon: Bot },
   { name: "Waitlist", href: "/super-admin/waitlist", icon: ClipboardList },
   { name: "Logout", href: "/super-admin/logout", icon: LogOut },
 ];

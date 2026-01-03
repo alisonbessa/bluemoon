@@ -1,9 +1,11 @@
 import type {
   TelegramSendMessageOptions,
   TelegramInlineKeyboardMarkup,
+  TelegramFile,
 } from "./types";
 
 const TELEGRAM_API = "https://api.telegram.org/bot";
+const TELEGRAM_FILE_API = "https://api.telegram.org/file/bot";
 
 function getBotToken(): string {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -33,6 +35,12 @@ async function callTelegramApi<T>(method: string, body: object): Promise<T> {
   return data.result;
 }
 
+interface TelegramMessage {
+  message_id: number;
+  chat: { id: number };
+  text?: string;
+}
+
 export async function sendMessage(
   chatId: number,
   text: string,
@@ -40,7 +48,7 @@ export async function sendMessage(
     parseMode?: "HTML" | "Markdown" | "MarkdownV2";
     replyMarkup?: TelegramInlineKeyboardMarkup;
   }
-): Promise<void> {
+): Promise<number> {
   const body: TelegramSendMessageOptions = {
     chat_id: chatId,
     text,
@@ -51,7 +59,33 @@ export async function sendMessage(
     body.reply_markup = options.replyMarkup;
   }
 
-  await callTelegramApi("sendMessage", body);
+  const result = await callTelegramApi<TelegramMessage>("sendMessage", body);
+  return result.message_id;
+}
+
+/**
+ * Delete a message from a chat
+ */
+export async function deleteMessage(chatId: number, messageId: number): Promise<boolean> {
+  try {
+    await callTelegramApi("deleteMessage", {
+      chat_id: chatId,
+      message_id: messageId,
+    });
+    return true;
+  } catch (error) {
+    // Message might already be deleted or too old (>48h)
+    console.warn(`[Telegram] Failed to delete message ${messageId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Delete multiple messages from a chat
+ */
+export async function deleteMessages(chatId: number, messageIds: number[]): Promise<void> {
+  // Delete messages in parallel for speed
+  await Promise.all(messageIds.map((id) => deleteMessage(chatId, id)));
 }
 
 export async function answerCallbackQuery(
@@ -120,4 +154,81 @@ export function createConfirmationKeyboard(): TelegramInlineKeyboardMarkup {
       ],
     ],
   };
+}
+
+// Create income source selection keyboard
+export function createIncomeSourceKeyboard(
+  sources: Array<{ id: string; name: string }>
+): TelegramInlineKeyboardMarkup {
+  const buttons = sources.map((source) => ({
+    text: source.name,
+    callback_data: `income_${source.id}`,
+  }));
+
+  // Organize in rows of 2
+  const rows: Array<Array<{ text: string; callback_data: string }>> = [];
+  for (let i = 0; i < buttons.length; i += 2) {
+    rows.push(buttons.slice(i, i + 2));
+  }
+
+  // Add cancel button
+  rows.push([{ text: "❌ Cancelar", callback_data: "cancel" }]);
+
+  return { inline_keyboard: rows };
+}
+
+// Create keyboard for new category suggestion
+export function createNewCategoryKeyboard(suggestedName: string): TelegramInlineKeyboardMarkup {
+  return {
+    inline_keyboard: [
+      [
+        { text: `✅ Criar "${suggestedName}"`, callback_data: "newcat_accept" },
+      ],
+      [
+        { text: "✏️ Mudar nome", callback_data: "newcat_rename" },
+        { text: "📁 Escolher existente", callback_data: "newcat_existing" },
+      ],
+      [
+        { text: "❌ Cancelar", callback_data: "cancel" },
+      ],
+    ],
+  };
+}
+
+// Create keyboard for group selection
+export function createGroupKeyboard(
+  groups: Array<{ id: string; name: string; icon?: string | null }>
+): TelegramInlineKeyboardMarkup {
+  const buttons = groups.map((group) => ({
+    text: `${group.icon || "📁"} ${group.name}`,
+    callback_data: `group_${group.id}`,
+  }));
+
+  // One group per row for clarity
+  const rows = buttons.map((btn) => [btn]);
+
+  // Add cancel button
+  rows.push([{ text: "❌ Cancelar", callback_data: "cancel" }]);
+
+  return { inline_keyboard: rows };
+}
+
+// Get file info from Telegram
+export async function getFile(fileId: string): Promise<TelegramFile> {
+  return callTelegramApi<TelegramFile>("getFile", { file_id: fileId });
+}
+
+// Download file from Telegram servers
+export async function downloadFile(filePath: string): Promise<Buffer> {
+  const token = getBotToken();
+  const url = `${TELEGRAM_FILE_API}${token}/${filePath}`;
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Failed to download file: ${response.statusText}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
 }

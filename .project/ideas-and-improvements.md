@@ -737,10 +737,149 @@ export async function createPendingTransaction(params: {
 
 ---
 
+## Planos e Estrutura de Membros
+
+### Planos Disponíveis
+
+| Plano | Preço | `maxMembers` | `canInvitePartner` |
+|-------|-------|--------------|-------------------|
+| **Individual** | R$ 14,90/mês | 1 | ❌ |
+| **Duo** | R$ 19,90/mês | 2 | ✅ |
+
+### Schema de Quotas (Atualizar)
+
+**Arquivo:** `src/db/schema/plans.ts`
+
+```typescript
+export const quotaSchema = z.object({
+  // Membros
+  maxMembers: z.number().default(1), // 1 = individual, 2 = duo
+  canInvitePartner: z.boolean().default(false),
+
+  // Categorias pessoais
+  personalCategories: z.boolean().default(true),
+
+  // Integrações
+  telegramIntegration: z.boolean().default(true),
+
+  // Dados
+  exportData: z.boolean().default(true),
+});
+
+export type Quotas = z.infer<typeof quotaSchema>;
+
+export const defaultQuotas: Quotas = {
+  maxMembers: 1,
+  canInvitePartner: false,
+  personalCategories: true,
+  telegramIntegration: true,
+  exportData: true,
+};
+```
+
+### Comportamento por Plano
+
+#### Individual (`maxMembers: 1`)
+- ❌ Card "Membros do Orçamento" não aparece em Settings
+- ❌ Botão "Convidar Parceiro" não existe
+- ❌ Onboarding não pergunta sobre parceiro/família
+- ✅ Categoria "Gastos Pessoais" (sem nome no título, já que é só ele)
+
+#### Duo (`maxMembers: 2`)
+- ✅ Card "Membros do Orçamento" aparece
+- ✅ Pode convidar 1 parceiro
+- ✅ Cada um tem "Prazeres - [Nome]"
+- ✅ Onboarding pergunta sobre parceiro
+
+### Seed dos Planos
+
+**Arquivo:** `scripts/seed-plans.ts` (criar)
+
+```typescript
+const plansToSeed = [
+  {
+    codename: "individual",
+    name: "Individual",
+    default: true,
+    hasMonthlyPricing: true,
+    monthlyPrice: 1490, // R$ 14,90 em centavos
+    quotas: {
+      maxMembers: 1,
+      canInvitePartner: false,
+      personalCategories: true,
+      telegramIntegration: true,
+      exportData: true,
+    },
+  },
+  {
+    codename: "duo",
+    name: "Duo",
+    default: false,
+    hasMonthlyPricing: true,
+    monthlyPrice: 1990, // R$ 19,90 em centavos
+    quotas: {
+      maxMembers: 2,
+      canInvitePartner: true,
+      personalCategories: true,
+      telegramIntegration: true,
+      exportData: true,
+    },
+  },
+];
+```
+
+### Verificação de Plano nos Componentes
+
+**Arquivo:** `src/components/settings/members-management.tsx`
+
+```typescript
+// Verificar plano antes de mostrar card de membros
+const { user } = useUser();
+const canInvitePartner = user?.currentPlan?.quotas?.canInvitePartner ?? false;
+
+// Se não pode convidar, não renderiza o componente
+if (!canInvitePartner) {
+  return null;
+}
+```
+
+**Arquivo:** `src/components/onboarding/steps/step-household.tsx`
+
+```typescript
+// Verificar plano antes de mostrar opções de parceiro
+const { user } = useUser();
+const maxMembers = user?.currentPlan?.quotas?.maxMembers ?? 1;
+
+// Se plano individual, pular step ou mostrar versão simplificada
+if (maxMembers === 1) {
+  return <IndividualHouseholdStep />;
+}
+```
+
+---
+
+## Categorias Pessoais ("Prazeres")
+
+### Estado Atual
+- Grupo "Prazeres" existe no sistema
+- Cada membro pode ter categoria "Prazeres - [Nome]"
+- Campo `memberId` na categoria identifica o dono
+- Campo `monthlyPleasureBudget` no membro define orçamento
+
+### Privacidade (Futuro)
+Por enquanto, tudo 100% transparente entre o casal.
+
+Para futuro, considerar:
+- Campo `isPrivate` na categoria ou transação
+- Transações privadas mostram valor mas ocultam descrição
+- Ex: "🔒 Gasto pessoal (João) - R$ 50,00"
+
+---
+
 ## Notas de Feedback de Usuários
 
 (Adicionar feedback aqui conforme recebido)
 
 ---
 
-*Última atualização: Dezembro 2025*
+*Última atualização: Janeiro 2026*
