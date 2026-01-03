@@ -14,13 +14,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Send, ExternalLink, Loader2, Unlink, CheckCircle2 } from "lucide-react";
+import { Send, ExternalLink, Loader2, Unlink, CheckCircle2, Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface ConnectionStatus {
   connected: boolean;
   username?: string;
   firstName?: string;
+  code?: string;
+  botUsername?: string;
   deepLink?: string;
   expiresAt?: string;
 }
@@ -147,42 +149,97 @@ export function TelegramConnectionCard() {
           ) : (
             // Not connected state
             <div className="space-y-4">
-              <div className="rounded-lg border bg-muted/50 p-4">
-                <h4 className="font-medium mb-2">Como funciona:</h4>
-                <ol className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                      1
-                    </span>
-                    <span>Clique no botão abaixo para abrir o Telegram</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                      2
-                    </span>
-                    <span>Pressione "Iniciar" no Telegram</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                      3
-                    </span>
-                    <span>Pronto! Sua conta será conectada automaticamente</span>
-                  </li>
-                </ol>
-              </div>
+              {status?.code ? (
+                <>
+                  {/* Verification Code Display */}
+                  <div className="rounded-lg border-2 border-primary/20 bg-primary/5 p-4 text-center">
+                    <p className="text-xs text-muted-foreground mb-2">Seu código de conexão:</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <code className="text-3xl font-bold tracking-widest text-primary">
+                        {status.code}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          navigator.clipboard.writeText(status.code!);
+                          toast.success("Código copiado!");
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Expira em 10 minutos
+                    </p>
+                  </div>
 
-              {status?.deepLink ? (
-                <Button asChild className="w-full gap-2">
-                  <a
-                    href={status.deepLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Send className="h-4 w-4" />
-                    Conectar Telegram
-                    <ExternalLink className="h-3 w-3 ml-1" />
-                  </a>
-                </Button>
+                  {/* Instructions */}
+                  <div className="rounded-lg border bg-muted/50 p-4">
+                    <h4 className="font-medium mb-2">Como conectar:</h4>
+                    <ol className="space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-start gap-2">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                          1
+                        </span>
+                        <span>
+                          Abra o bot{" "}
+                          <a
+                            href={status.deepLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary font-medium hover:underline"
+                          >
+                            @{status.botUsername}
+                          </a>{" "}
+                          no Telegram
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                          2
+                        </span>
+                        <span>
+                          Envie o código <strong>{status.code}</strong> no chat
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+                          3
+                        </span>
+                        <span>Pronto! Sua conta será conectada</span>
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button asChild className="flex-1 gap-2">
+                      <a
+                        href={status.deepLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Send className="h-4 w-4" />
+                        Abrir Telegram
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleRefreshLink}
+                      disabled={isLoading}
+                      title="Gerar novo código"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </>
               ) : (
                 <Button
                   className="w-full gap-2"
@@ -194,13 +251,9 @@ export function TelegramConnectionCard() {
                   ) : (
                     <Send className="h-4 w-4" />
                   )}
-                  Gerar link de conexão
+                  Gerar código de conexão
                 </Button>
               )}
-
-              <p className="text-xs text-center text-muted-foreground">
-                O link expira em 10 minutos por segurança
-              </p>
             </div>
           )}
         </CardContent>
