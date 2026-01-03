@@ -28,7 +28,9 @@
       "Bash(git stash drop:*)",
       "Bash(git fetch:*)",
       "Bash(git merge:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(curl:*)",
+      "Bash(TELEGRAM_BOT_TOKEN=\"${TELEGRAM_BOT_TOKEN:-}\" npx tsx:*)"
     ],
     "deny": [],
     "ask": []

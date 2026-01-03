@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { users, budgets, budgetMembers, groups, categories, incomeSources } from "@/db/schema";
+import { users, budgets, budgetMembers, groups, categories, incomeSources, financialAccounts } from "@/db/schema";
 import { defaultGroups } from "@/db/schema/groups";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -159,6 +159,15 @@ export const POST = withAuthRequired(async (request, context) => {
           displayOrder: 1,
         },
       ]);
+
+      // Create default financial account (checking) so Telegram can work immediately
+      await tx.insert(financialAccounts).values({
+        budgetId: newBudget.id,
+        name: "Conta Corrente",
+        type: "checking",
+        balance: 0,
+        displayOrder: 0,
+      });
 
       // Create household members
       let colorIndex = 1;

@@ -69,15 +69,18 @@ interface SetupSummary {
   totalMonthlyIncome: number;
 }
 
+const TUTORIAL_STARTED_KEY = "hivebudget_tutorial_started";
+
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isLoading, error, mutate } = useUser();
-  const { isActive: isTutorialActive, currentStep } = useTutorial();
+  const { isActive: isTutorialActive, currentStep, startTutorial } = useTutorial();
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationSummary, setCelebrationSummary] = useState<SetupSummary | undefined>();
   const initializingRef = useRef(false);
+  const tutorialStartedRef = useRef(false);
 
   // Auto-initialize budget for new users (creates budget, groups, categories silently)
   useEffect(() => {
@@ -112,6 +115,17 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         if (response.ok) {
           localStorage.setItem(BUDGET_INITIALIZED_KEY, "true");
           await mutate();
+
+          // Auto-start tutorial for new users (only once)
+          const tutorialAlreadyStarted = localStorage.getItem(TUTORIAL_STARTED_KEY) === "true";
+          if (!tutorialAlreadyStarted && !tutorialStartedRef.current) {
+            tutorialStartedRef.current = true;
+            localStorage.setItem(TUTORIAL_STARTED_KEY, "true");
+            // Small delay to ensure state is updated
+            setTimeout(() => {
+              startTutorial("initial-setup");
+            }, 500);
+          }
         }
       } catch (error) {
         console.error("Error initializing budget:", error);
@@ -121,7 +135,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     };
 
     initializeBudget();
-  }, [user, isLoading, mutate]);
+  }, [user, isLoading, mutate, startTutorial]);
 
   // Detect when tutorial reaches the final step
   useEffect(() => {
