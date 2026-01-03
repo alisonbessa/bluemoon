@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,37 +44,8 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import confetti from "canvas-confetti";
 import { GoalFormModal } from "@/components/goals/goal-form-modal";
-
-interface Goal {
-  id: string;
-  budgetId: string;
-  accountId: string | null;
-  name: string;
-  icon: string;
-  color: string;
-  targetAmount: number;
-  currentAmount: number;
-  targetDate: string;
-  isCompleted: boolean;
-  completedAt: string | null;
-  isArchived: boolean;
-  displayOrder: number;
-  createdAt: string;
-  updatedAt: string;
-  // Calculated metrics
-  progress: number;
-  monthsRemaining: number;
-  monthlyTarget: number;
-  remaining: number;
-}
-
-interface Account {
-  id: string;
-  name: string;
-  icon: string | null;
-  type: string;
-  balance: number;
-}
+import { useGoals, useBudgets, useAccounts } from "@/hooks";
+import type { Goal } from "@/types";
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -91,50 +62,19 @@ function formatFullDate(dateString: string): string {
 }
 
 export default function GoalsPage() {
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [budgets, setBudgets] = useState<{ id: string; name: string }[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // SWR hooks for cached data fetching
+  const { goals, isLoading: goalsLoading, mutate: mutateGoals } = useGoals();
+  const { budgets, isLoading: budgetsLoading } = useBudgets();
+  const { accounts, isLoading: accountsLoading, mutate: mutateAccounts } = useAccounts();
+
+  const isLoading = goalsLoading || budgetsLoading || accountsLoading;
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [deletingGoal, setDeletingGoal] = useState<Goal | null>(null);
   const [contributeGoal, setContributeGoal] = useState<Goal | null>(null);
   const [contributeAmountCents, setContributeAmountCents] = useState(0);
   const [contributeFromAccountId, setContributeFromAccountId] = useState("");
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [goalsRes, budgetsRes, accountsRes] = await Promise.all([
-        fetch("/api/app/goals"),
-        fetch("/api/app/budgets"),
-        fetch("/api/app/accounts"),
-      ]);
-
-      if (goalsRes.ok) {
-        const data = await goalsRes.json();
-        setGoals(data.goals || []);
-      }
-
-      if (budgetsRes.ok) {
-        const data = await budgetsRes.json();
-        setBudgets(data.budgets || []);
-      }
-
-      if (accountsRes.ok) {
-        const data = await accountsRes.json();
-        setAccounts(data.accounts || []);
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("Erro ao carregar dados");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const openCreateForm = () => {
     setEditingGoal(null);
@@ -149,7 +89,7 @@ export default function GoalsPage() {
   const handleFormSuccess = () => {
     setIsFormOpen(false);
     setEditingGoal(null);
-    fetchData();
+    mutateGoals();
   };
 
   const handleDelete = async () => {
@@ -167,7 +107,7 @@ export default function GoalsPage() {
 
       toast.success("Meta arquivada!");
       setDeletingGoal(null);
-      fetchData();
+      mutateGoals();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao arquivar meta");
     }
@@ -221,7 +161,8 @@ export default function GoalsPage() {
       setContributeGoal(null);
       setContributeAmountCents(0);
       setContributeFromAccountId("");
-      fetchData();
+      mutateGoals();
+      mutateAccounts(); // Account balance changed
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao contribuir");
     }

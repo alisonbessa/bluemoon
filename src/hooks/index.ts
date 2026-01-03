@@ -13,9 +13,29 @@ export {
   useCredits,
 } from './use-current-user';
 
-// Data fetching
+// Data fetching (legacy hooks)
 export { useBudgetData } from './use-budget-data';
 export { useTransactionData } from './use-transaction-data';
+
+// Centralized SWR data hooks
+export {
+  useBudgets,
+  usePrimaryBudget,
+  useAccounts,
+  useActiveAccounts,
+  useCategories,
+  useFlatCategories,
+  useGoals,
+  useActiveGoals,
+  useCompletedGoals,
+  useIncomeSources,
+  useIncomeSourcesByMember,
+  useMembers,
+  useAllocations,
+  useCurrentMonthAllocations,
+  useRecurringBills,
+  useCategoryRecurringBills,
+} from './data';
 
 // UI utilities
 export { useIsMobile } from './use-mobile';
