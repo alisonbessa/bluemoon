@@ -50,7 +50,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatCurrencyFromDigits } from "@/lib/formatters";
 import { GoalFormModal } from "@/components/goals";
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
 
@@ -814,15 +814,6 @@ export default function BudgetPage() {
     }
   };
 
-  const formatInputValue = (value: string): string => {
-    const onlyDigits = value.replace(/\D/g, "");
-    const cents = parseInt(onlyDigits || "0", 10);
-    return (cents / 100).toLocaleString("pt-BR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
   const openEditIncomeModal = (item: IncomeSourceData) => {
     setEditingIncome({
       incomeSource: item.incomeSource,
@@ -1501,7 +1492,7 @@ export default function BudgetPage() {
                   className="pl-9"
                   placeholder="0,00"
                   value={editValue}
-                  onChange={(e) => setEditValue(formatInputValue(e.target.value))}
+                  onChange={(e) => setEditValue(formatCurrencyFromDigits(e.target.value))}
                   onFocus={(e) => e.target.select()}
                 />
               </div>
@@ -2061,7 +2052,7 @@ export default function BudgetPage() {
                   className="pl-9"
                   placeholder="0,00"
                   value={editIncomeValue}
-                  onChange={(e) => setEditIncomeValue(formatInputValue(e.target.value))}
+                  onChange={(e) => setEditIncomeValue(formatCurrencyFromDigits(e.target.value))}
                   onFocus={(e) => e.target.select()}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
