@@ -2,22 +2,25 @@
  * useBudgetData Hook
  *
  * Custom hook for managing budget page data and state.
- * Separates data fetching logic from UI components.
+ * Now uses centralized SWR hooks for cached data fetching.
  */
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { toast } from 'sonner';
-import { budgetService } from '@/services/budget.service';
+import { useState, useCallback, useMemo } from 'react';
+import {
+  useBudgets,
+  useMembers,
+  useAccounts,
+  useActiveGoals,
+  useAllocations,
+} from './data';
 import type {
   Budget,
   GroupData,
   IncomeData,
   Goal,
-  MemberSummary,
 } from '@/types';
-import type { Account } from '@/types/account';
 
 interface UseBudgetDataReturn {
   // Data
@@ -27,8 +30,8 @@ interface UseBudgetDataReturn {
   incomeData: IncomeData | null;
   totalIncome: number;
   goals: Goal[];
-  members: MemberSummary[];
-  accounts: Account[];
+  members: ReturnType<typeof useMembers>['members'];
+  accounts: ReturnType<typeof useAccounts>['accounts'];
 
   // State
   isLoading: boolean;
@@ -38,68 +41,34 @@ interface UseBudgetDataReturn {
   // Actions
   setCurrentYear: (year: number) => void;
   setCurrentMonth: (month: number) => void;
-  refetch: () => Promise<void>;
+  refetch: () => void;
   handlePrevMonth: () => void;
   handleNextMonth: () => void;
 }
 
 export function useBudgetData(): UseBudgetDataReturn {
   const today = new Date();
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [groupsData, setGroupsData] = useState<GroupData[]>([]);
-  const [totals, setTotals] = useState({ allocated: 0, spent: 0, available: 0 });
-  const [incomeData, setIncomeData] = useState<IncomeData | null>(null);
-  const [totalIncome, setTotalIncome] = useState(0);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [members, setMembers] = useState<MemberSummary[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [budgetsRes, membersRes, accountsRes] = await Promise.all([
-        budgetService.getBudgets(),
-        budgetService.getMembers(),
-        budgetService.getAccounts(),
-      ]);
+  // Use centralized SWR hooks
+  const { budgets, isLoading: budgetsLoading, mutate: mutateBudgets } = useBudgets();
+  const { members, isLoading: membersLoading, mutate: mutateMembers } = useMembers();
+  const { accounts, isLoading: accountsLoading, mutate: mutateAccounts } = useAccounts();
+  const { goals, isLoading: goalsLoading, mutate: mutateGoals } = useActiveGoals();
+  const {
+    groups: groupsData,
+    totals,
+    income: incomeData,
+    isLoading: allocationsLoading,
+    mutate: mutateAllocations,
+  } = useAllocations(currentYear, currentMonth);
 
-      setMembers(membersRes.members || []);
-      setAccounts(accountsRes.accounts as Account[] || []);
-      setBudgets(budgetsRes.budgets || []);
+  const isLoading = budgetsLoading || membersLoading || accountsLoading || goalsLoading || allocationsLoading;
 
-      if (budgetsRes.budgets?.length > 0) {
-        const [allocData, goalsData] = await Promise.all([
-          budgetService.getAllocations(
-            budgetsRes.budgets[0].id,
-            currentYear,
-            currentMonth
-          ),
-          budgetService.getGoals(budgetsRes.budgets[0].id),
-        ]);
-
-        setGroupsData(allocData.groups || []);
-        setTotals(allocData.totals || { allocated: 0, spent: 0, available: 0 });
-
-        if (allocData.income) {
-          setIncomeData(allocData.income);
-          setTotalIncome(allocData.income.totals.planned || 0);
-        }
-
-        setGoals(goalsData.goals?.filter((g: Goal) => !g.isCompleted) || []);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Erro ao carregar dados');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentYear, currentMonth]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const totalIncome = useMemo(() => {
+    return incomeData?.totals?.planned || 0;
+  }, [incomeData]);
 
   const handlePrevMonth = useCallback(() => {
     if (currentMonth === 1) {
@@ -119,6 +88,14 @@ export function useBudgetData(): UseBudgetDataReturn {
     }
   }, [currentMonth]);
 
+  const refetch = useCallback(() => {
+    mutateBudgets();
+    mutateMembers();
+    mutateAccounts();
+    mutateGoals();
+    mutateAllocations();
+  }, [mutateBudgets, mutateMembers, mutateAccounts, mutateGoals, mutateAllocations]);
+
   return {
     budgets,
     groupsData,
@@ -133,7 +110,7 @@ export function useBudgetData(): UseBudgetDataReturn {
     currentMonth,
     setCurrentYear,
     setCurrentMonth,
-    refetch: fetchData,
+    refetch,
     handlePrevMonth,
     handleNextMonth,
   };

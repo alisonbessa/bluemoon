@@ -4,6 +4,9 @@ import type {
   TelegramFile,
 } from "./types";
 
+// Re-export formatCurrency for convenience in telegram handlers
+export { formatCurrency } from "@/lib/formatters";
+
 const TELEGRAM_API = "https://api.telegram.org/bot";
 const TELEGRAM_FILE_API = "https://api.telegram.org/file/bot";
 
@@ -113,13 +116,6 @@ export async function editMessageText(
     text,
     parse_mode: options?.parseMode || "HTML",
     reply_markup: options?.replyMarkup,
-  });
-}
-
-export function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
   });
 }
 

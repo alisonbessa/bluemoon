@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import useUser from "@/lib/users/useUser";
+import { useUser } from "@/hooks/use-current-user";
 import Link from "next/link";
 import {
   LayoutDashboard,

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { MONTHS_PT as monthNamesFull } from '@/lib/date-utils';
+import { formatCurrencyFromDigits } from '@/lib/formatters';
 import type { Category, CategoryBehavior } from '@/types/category';
 
 interface AllocationEditModalProps {
@@ -69,15 +70,6 @@ export function AllocationEditModal({
   onSave,
   getMonthlyValue,
 }: AllocationEditModalProps) {
-  const formatInputValue = (value: string): string => {
-    const onlyDigits = value.replace(/\D/g, '');
-    const cents = parseInt(onlyDigits || '0', 10);
-    return (cents / 100).toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[480px]">
@@ -106,7 +98,7 @@ export function AllocationEditModal({
                 className="pl-9"
                 placeholder="0,00"
                 value={editValue}
-                onChange={(e) => setEditValue(formatInputValue(e.target.value))}
+                onChange={(e) => setEditValue(formatCurrencyFromDigits(e.target.value))}
                 onFocus={(e) => e.target.select()}
               />
             </div>

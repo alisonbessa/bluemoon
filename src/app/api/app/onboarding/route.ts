@@ -437,11 +437,12 @@ export const POST = withAuthRequired(async (req, context) => {
   // Personal spending categories - one per member (each person as a group)
   for (const member of allMembers) {
     if (member.type !== "pet") {
+      const firstName = member.name.split(" ")[0];
       categoryInserts.push({
         budgetId: newBudget.id,
         groupId: groupByCode.pleasures.id,
         memberId: member.id,
-        name: `Gastos de ${member.name}`,
+        name: `Gastos - ${firstName}`,
         icon: "🎉",
         behavior: "refill_up",
         plannedAmount: 0,

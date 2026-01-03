@@ -17,6 +17,7 @@ import {
   ArrowRightIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatCurrencyCompact } from "@/lib/formatters";
 import Link from "next/link";
 
 interface ScheduledTransaction {
@@ -37,13 +38,6 @@ interface ScheduledTransactionsListProps {
   year: number;
   month: number;
   refreshKey?: number;
-}
-
-function formatCurrencyCompact(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 }
 
 export function ScheduledTransactionsList({

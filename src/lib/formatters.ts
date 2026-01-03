@@ -8,12 +8,17 @@
 /**
  * Format cents to Brazilian Real currency string
  */
-export function formatCurrency(cents: number, options?: { showSign?: boolean }): string {
+export function formatCurrency(
+  cents: number,
+  options?: { showSign?: boolean; decimals?: number }
+): string {
   const value = cents / 100;
+  const decimalDigits = options?.decimals ?? 2;
   const formatted = value.toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-    minimumFractionDigits: 2,
+    minimumFractionDigits: decimalDigits,
+    maximumFractionDigits: decimalDigits,
   });
 
   if (options?.showSign && cents > 0) {
@@ -40,6 +45,33 @@ export function formatAmount(cents: number): string {
 export function parseCurrencyToCents(value: string): number {
   const cleanValue = value.replace(/[^\d,-]/g, '').replace(',', '.');
   return Math.round(parseFloat(cleanValue || '0') * 100);
+}
+
+/**
+ * Alias for parseCurrencyToCents for backward compatibility
+ */
+export const parseCurrency = parseCurrencyToCents;
+
+/**
+ * Format cents to compact number string (without currency symbol)
+ * Alias for formatAmount for semantic clarity
+ */
+export const formatCurrencyCompact = formatAmount;
+
+// Maximum value in cents (R$ 10,000,000,000.00 = 1 trillion cents)
+// Using bigint in database to support this range
+const MAX_CENTS = 1_000_000_000_000;
+
+/**
+ * Format currency input from raw digit string
+ * Used for live-formatting as user types in currency inputs
+ * Example: "12345" -> "123,45"
+ * Limits to MAX_CENTS to prevent PostgreSQL integer overflow
+ */
+export function formatCurrencyFromDigits(digits: string): string {
+  const onlyDigits = digits.replace(/\D/g, '');
+  const cents = Math.min(parseInt(onlyDigits || '0', 10), MAX_CENTS);
+  return formatAmount(cents);
 }
 
 /**
@@ -89,21 +121,5 @@ export function formatRelativeTime(date: Date | string): string {
   return `${Math.floor(diffInDays / 365)} anos atrás`;
 }
 
-/**
- * Capitalize first letter of each word
- */
-export function capitalizeWords(str: string): string {
-  return str
-    .toLowerCase()
-    .split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-/**
- * Truncate text with ellipsis
- */
-export function truncate(str: string, maxLength: number): string {
-  if (str.length <= maxLength) return str;
-  return `${str.slice(0, maxLength - 3)}...`;
-}
+// Re-export string utilities for backward compatibility
+export { capitalizeWords, truncate } from './string-utils';

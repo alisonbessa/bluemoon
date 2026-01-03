@@ -15,12 +15,24 @@ export interface Category {
   budgetId: string;
 }
 
+export interface RecurringBillSummary {
+  id: string;
+  name: string;
+  amount: number;
+  frequency: string;
+  dueDay: number | null;
+  dueMonth: number | null;
+  account: { id: string; name: string; icon: string | null } | null;
+}
+
 export interface CategoryAllocation {
   category: Category;
   allocated: number;
   carriedOver: number;
   spent: number;
   available: number;
+  isOtherMemberCategory?: boolean;
+  recurringBills?: RecurringBillSummary[];
 }
 
 export interface Group {

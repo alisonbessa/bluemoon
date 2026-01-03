@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Loader2, User } from "lucide-react";
 
-import useUser from "@/lib/users/useUser";
+import { useUser } from "@/hooks/use-current-user";
 import {
   profileUpdateSchema,
   ProfileUpdateValues,

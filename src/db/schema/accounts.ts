@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text, integer, boolean, index } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, bigint, boolean, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { budgetMembers } from "./budget-members";
@@ -27,18 +27,18 @@ export const financialAccounts = pgTable("financial_accounts", {
   color: text("color").default("#6366f1"),
   icon: text("icon"), // Emoji or icon identifier
 
-  // Balance tracking (in cents)
-  balance: integer("balance").notNull().default(0),
-  clearedBalance: integer("cleared_balance").notNull().default(0), // Reconciled balance
+  // Balance tracking (in cents) - using bigint to support up to R$ 10 billion
+  balance: bigint("balance", { mode: "number" }).notNull().default(0),
+  clearedBalance: bigint("cleared_balance", { mode: "number" }).notNull().default(0), // Reconciled balance
 
   // Credit card specific fields
-  creditLimit: integer("credit_limit"), // In cents
+  creditLimit: bigint("credit_limit", { mode: "number" }), // In cents
   closingDay: integer("closing_day"), // Day of month (1-31)
   dueDay: integer("due_day"), // Day of month (1-31)
   paymentAccountId: text("payment_account_id"), // Account used to pay this credit card (self-reference)
 
   // Benefit specific fields (VR, VA, etc)
-  monthlyDeposit: integer("monthly_deposit"), // In cents - value deposited each month
+  monthlyDeposit: bigint("monthly_deposit", { mode: "number" }), // In cents - value deposited each month
   depositDay: integer("deposit_day"), // Day of month (1-31) when benefit is deposited
 
   isArchived: boolean("is_archived").default(false),

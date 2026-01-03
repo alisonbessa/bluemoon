@@ -1,11 +1,14 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { financialAccounts, budgetMembers } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, or, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { accountTypeEnum } from "@/db/schema/accounts";
 import { capitalizeWords } from "@/lib/utils";
+
+// Max value in cents (R$ 10,000,000,000.00 = R$ 10 billion)
+const MAX_CENTS = 1_000_000_000_000;
 
 const createAccountSchema = z.object({
   budgetId: z.string().uuid(),
@@ -13,10 +16,10 @@ const createAccountSchema = z.object({
   type: accountTypeEnum,
   color: z.string().optional(),
   icon: z.string().optional(),
-  balance: z.number().int().default(0),
+  balance: z.number().int().min(-MAX_CENTS).max(MAX_CENTS).default(0),
   ownerId: z.string().uuid().optional().nullable(),
   // Credit card fields
-  creditLimit: z.number().int().optional(),
+  creditLimit: z.number().int().min(0).max(MAX_CENTS).optional(),
   closingDay: z.number().int().min(1).max(31).optional(),
   dueDay: z.number().int().min(1).max(31).optional(),
 });
@@ -30,7 +33,18 @@ async function getUserBudgetIds(userId: string) {
   return memberships.map((m) => m.budgetId);
 }
 
+// Helper to get user's member ID in a specific budget
+async function getUserMemberIdInBudget(userId: string, budgetId: string) {
+  const membership = await db
+    .select({ memberId: budgetMembers.id })
+    .from(budgetMembers)
+    .where(and(eq(budgetMembers.userId, userId), eq(budgetMembers.budgetId, budgetId)))
+    .limit(1);
+  return membership[0]?.memberId || null;
+}
+
 // GET - Get accounts for user's budgets
+// Only returns accounts owned by the user OR shared accounts (ownerId is null)
 export const GET = withAuthRequired(async (req, context) => {
   const { session } = context;
   const { searchParams } = new URL(req.url);
@@ -42,9 +56,21 @@ export const GET = withAuthRequired(async (req, context) => {
     return NextResponse.json({ accounts: [] });
   }
 
-  const whereCondition = budgetId
+  // Get user's member ID for visibility filtering
+  const activeBudgetId = budgetId || budgetIds[0];
+  const userMemberId = await getUserMemberIdInBudget(session.user.id, activeBudgetId);
+
+  // Base condition: account belongs to user's budgets
+  const budgetCondition = budgetId
     ? and(eq(financialAccounts.budgetId, budgetId), inArray(financialAccounts.budgetId, budgetIds))
     : inArray(financialAccounts.budgetId, budgetIds);
+
+  // Visibility condition: owned by user OR shared (ownerId is null)
+  const visibilityCondition = userMemberId
+    ? or(eq(financialAccounts.ownerId, userMemberId), isNull(financialAccounts.ownerId))
+    : isNull(financialAccounts.ownerId);
+
+  const whereCondition = and(budgetCondition, visibilityCondition);
 
   const userAccounts = await db
     .select({

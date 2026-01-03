@@ -10,6 +10,7 @@ import {
   HoverActions,
 } from '@/components/ui/compact-table';
 import { cn } from '@/lib/utils';
+import { formatCurrencyCompact } from '@/lib/formatters';
 import type { TransactionWithRelations } from '@/types';
 
 const GRID_COLS = '24px 1fr 120px 120px 100px';
@@ -22,13 +23,6 @@ interface TransactionListProps {
   onEdit: (transaction: TransactionWithRelations) => void;
   onDelete: (transaction: TransactionWithRelations) => void;
   onCreateNew: () => void;
-}
-
-function formatCurrencyCompact(cents: number): string {
-  return (cents / 100).toLocaleString('pt-BR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 }
 
 function getTypeIcon(type: string) {

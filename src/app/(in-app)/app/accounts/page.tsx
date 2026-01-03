@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -36,33 +36,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { formatCurrency, formatCurrencyCompact } from "@/lib/formatters";
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
-
-interface Member {
-  id: string;
-  name: string;
-  color?: string | null;
-  type: string;
-}
-
-interface AccountWithOwner extends Account {
-  owner?: Member | null;
-}
-
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
-function formatCurrencyCompact(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
+import { useAccounts, useBudgets, useMembers } from "@/hooks";
 
 const GRID_COLS = "24px 1fr 100px 100px 120px";
 
@@ -76,16 +52,19 @@ const TYPE_CONFIG = {
 };
 
 export default function AccountsPage() {
-  const [accounts, setAccounts] = useState<AccountWithOwner[]>([]);
-  const [budgets, setBudgets] = useState<{ id: string; name: string }[]>([]);
-  const [members, setMembers] = useState<Member[]>([]);
+  // SWR hooks for cached data fetching
+  const { accounts, isLoading: accountsLoading, mutate: mutateAccounts } = useAccounts();
+  const { budgets, isLoading: budgetsLoading } = useBudgets();
+  const { members, isLoading: membersLoading } = useMembers();
+
+  const isLoading = accountsLoading || budgetsLoading || membersLoading;
+
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
-  const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [preselectedType, setPreselectedType] = useState<string | undefined>(undefined);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
-  const [includeInvestments, setIncludeInvestments] = useState(true);
+  const [includeInvestments, setIncludeInvestments] = useState(false);
   const { isExpanded, toggleGroup } = useExpandedGroups([
     "checking",
     "savings",
@@ -93,40 +72,6 @@ export default function AccountsPage() {
     "cash",
     "benefit",
   ]);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const [accountsRes, budgetsRes, membersRes] = await Promise.all([
-        fetch("/api/app/accounts"),
-        fetch("/api/app/budgets"),
-        fetch("/api/app/members"),
-      ]);
-
-      if (accountsRes.ok) {
-        const data = await accountsRes.json();
-        setAccounts(data.accounts || []);
-      }
-
-      if (budgetsRes.ok) {
-        const data = await budgetsRes.json();
-        setBudgets(data.budgets || []);
-      }
-
-      if (membersRes.ok) {
-        const data = await membersRes.json();
-        setMembers(data.members || []);
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("Erro ao carregar dados");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const handleCreateAccount = async (data: AccountFormData) => {
     if (budgets.length === 0) {
@@ -141,12 +86,13 @@ export default function AccountsPage() {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Erro ao criar conta");
+      const text = await response.text();
+      const error = text ? JSON.parse(text) : { message: `Erro ${response.status}` };
+      throw new Error(error.message || error.error || "Erro ao criar conta");
     }
 
     toast.success("Conta criada com sucesso!");
-    fetchData();
+    mutateAccounts();
 
     // Notify tutorial that user created an account
     if (isTutorialActive) {
@@ -170,7 +116,7 @@ export default function AccountsPage() {
 
     toast.success("Conta atualizada com sucesso!");
     setEditingAccount(null);
-    fetchData();
+    mutateAccounts();
   };
 
   const handleDeleteAccount = async () => {
@@ -188,7 +134,7 @@ export default function AccountsPage() {
 
       toast.success("Conta excluída com sucesso!");
       setDeletingAccount(null);
-      fetchData();
+      mutateAccounts();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao excluir conta");
     }

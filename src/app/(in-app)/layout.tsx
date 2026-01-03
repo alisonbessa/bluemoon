@@ -9,7 +9,7 @@ import {
 } from "@/components/tutorial";
 import React, { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import useUser from "@/lib/users/useUser";
+import { useUser } from "@/hooks/use-current-user";
 
 const BUDGET_INITIALIZED_KEY = "hivebudget_budget_initialized";
 

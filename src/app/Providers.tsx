@@ -18,7 +18,16 @@ function Providers({ children }: { children: React.ReactNode }) {
     >
       <Suspense>
         <SessionProvider>
-          <SWRConfig value={{ fetcher }}>
+          <SWRConfig
+            value={{
+              fetcher,
+              dedupingInterval: 60000, // 1 minuto - evita chamadas duplicadas
+              revalidateOnFocus: false, // não revalidar ao focar na janela
+              revalidateIfStale: true,
+              errorRetryCount: 3,
+              shouldRetryOnError: true,
+            }}
+          >
             <Next13ProgressBar
               height="4px"
               color="hsl(var(--primary))"

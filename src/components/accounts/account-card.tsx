@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, CreditCard, Landmark, Wallet, PiggyBank, TrendingUp, UtensilsCrossed } from "lucide-react";
 import type { AccountType } from "@/db/schema/accounts";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/formatters";
 import type { Account } from "./types";
 
 interface AccountCardProps {
@@ -49,13 +50,6 @@ const TYPE_CONFIG: Record<
     defaultIcon: "🍽️",
   },
 };
-
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
 
 export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
   const config = TYPE_CONFIG[account.type];

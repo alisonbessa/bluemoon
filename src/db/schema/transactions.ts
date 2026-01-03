@@ -5,6 +5,7 @@ import { financialAccounts } from "./accounts";
 import { categories } from "./categories";
 import { budgetMembers } from "./budget-members";
 import { incomeSources } from "./income-sources";
+import { recurringBills } from "./recurring-bills";
 import { z } from "zod";
 
 export const financialTransactionTypeEnum = z.enum(["income", "expense", "transfer"]);
@@ -54,6 +55,9 @@ export const transactions = pgTable("transactions", {
   recurrenceDay: integer("recurrence_day"), // Day of month (1-31) or day of week (0-6)
   recurrenceEndDate: timestamp("recurrence_end_date", { mode: "date" }), // When recurrence ends (null = never)
   recurrenceParentId: text("recurrence_parent_id"), // Reference to the original recurring transaction
+
+  // Link to recurring bill (for auto-generated transactions)
+  recurringBillId: text("recurring_bill_id").references(() => recurringBills.id, { onDelete: "set null" }),
 
   // Source tracking (telegram, web, etc.)
   source: text("source").default("web"),
@@ -109,5 +113,9 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
     fields: [transactions.recurrenceParentId],
     references: [transactions.id],
     relationName: "recurrenceParent",
+  }),
+  recurringBill: one(recurringBills, {
+    fields: [transactions.recurringBillId],
+    references: [recurringBills.id],
   }),
 }));

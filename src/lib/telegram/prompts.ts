@@ -73,6 +73,15 @@ REGRAS DE RECEITA:
 - "freelance" → fonte de renda tipo freelance
 - "vr", "va" → fonte de renda tipo benefit
 
+REGRAS DE CONTA DE PAGAMENTO:
+- Se o usuário mencionar como pagou (ex: "no cartão", "no débito", "com o flash", "no crédito"), identifique a conta
+- Faça correspondência com as contas disponíveis: ${accountList}
+- "cartão flash" ou "flash" → conta Flash (benefício)
+- "nubank", "roxinho" → conta Nubank
+- "cartão", "crédito" → provavelmente cartão de crédito
+- "débito", "conta corrente" → conta bancária principal
+- Se não mencionar forma de pagamento, deixe accountHint vazio
+
 Responda APENAS com JSON válido no formato:
 {
   "intent": "REGISTER_EXPENSE" | "REGISTER_INCOME" | "QUERY_BALANCE" | "QUERY_CATEGORY" | "QUERY_GOAL" | "TRANSFER" | "UNKNOWN",
@@ -81,7 +90,8 @@ Responda APENAS com JSON válido no formato:
     // Para REGISTER_EXPENSE:
     "amount": número em reais ou null se não mencionado,
     "description": "descrição opcional",
-    "categoryHint": "nome da categoria mais provável ou vazio"
+    "categoryHint": "nome da categoria mais provável ou vazio",
+    "accountHint": "nome da conta usada para pagar ou vazio"
 
     // Para REGISTER_INCOME:
     "amount": número em reais ou null se não mencionado,
@@ -111,10 +121,16 @@ Responda APENAS com JSON válido no formato:
 EXEMPLOS:
 
 Entrada: "gastei 50 no mercado"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "mercado", "categoryHint": "Alimentação"}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "mercado", "categoryHint": "Alimentação", "accountHint": ""}}
 
 Entrada: "paguei 200 de luz"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 200.00, "description": "conta de luz", "categoryHint": "Energia"}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 200.00, "description": "conta de luz", "categoryHint": "Energia", "accountHint": ""}}
+
+Entrada: "gastei 50 na churrascaria e paguei com o cartão flash"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "churrascaria", "categoryHint": "Alimentação", "accountHint": "Flash"}}
+
+Entrada: "comprei 80 de remédio no débito"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 80.00, "description": "remédio", "categoryHint": "Saúde", "accountHint": "conta corrente"}}
 
 Entrada: "recebi 5000 de salário"
 Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.95, "data": {"amount": 5000.00, "description": "salário", "incomeSourceHint": "Salário"}}
@@ -123,7 +139,7 @@ Entrada: "recebi salário da Radix"
 Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.90, "data": {"amount": null, "description": "salário", "incomeSourceHint": "Radix"}}
 
 Entrada: "paguei a conta de luz"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.88, "data": {"amount": null, "description": "conta de luz", "categoryHint": "Energia"}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.88, "data": {"amount": null, "description": "conta de luz", "categoryHint": "Energia", "accountHint": ""}}
 
 Entrada: "chegou o VR"
 Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.85, "data": {"amount": null, "description": "VR", "incomeSourceHint": "Vale Refeição"}}

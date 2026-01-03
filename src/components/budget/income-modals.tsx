@@ -29,7 +29,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatCurrencyFromDigits } from '@/lib/formatters';
 import { MONTHS_PT as monthNamesFull } from '@/lib/date-utils';
 import type { IncomeSource, IncomeSourceData, IncomeSourceFormData, MemberSummary } from '@/types';
 import { INCOME_TYPE_CONFIG, FREQUENCY_LABELS } from '@/types/income';
@@ -62,15 +62,6 @@ export function EditIncomeModal({
   setEditValue,
   onSave,
 }: EditIncomeModalProps) {
-  const formatInputValue = (value: string): string => {
-    const onlyDigits = value.replace(/\D/g, '');
-    const cents = parseInt(onlyDigits || '0', 10);
-    return (cents / 100).toLocaleString('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
   const incomeTypeIcon = editingIncome?.incomeSource.type
     ? INCOME_TYPE_CONFIG[editingIncome.incomeSource.type]?.icon || '💵'
     : '💵';
@@ -100,7 +91,7 @@ export function EditIncomeModal({
                 className="pl-9"
                 placeholder="0,00"
                 value={editValue}
-                onChange={(e) => setEditValue(formatInputValue(e.target.value))}
+                onChange={(e) => setEditValue(formatCurrencyFromDigits(e.target.value))}
                 onFocus={(e) => e.target.select()}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {

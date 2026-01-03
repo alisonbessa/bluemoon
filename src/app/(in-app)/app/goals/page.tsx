@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,7 +20,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -42,72 +41,11 @@ import {
   Archive,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/formatters";
 import confetti from "canvas-confetti";
-
-interface Goal {
-  id: string;
-  budgetId: string;
-  accountId: string | null;
-  name: string;
-  icon: string;
-  color: string;
-  targetAmount: number;
-  currentAmount: number;
-  targetDate: string;
-  isCompleted: boolean;
-  completedAt: string | null;
-  isArchived: boolean;
-  displayOrder: number;
-  createdAt: string;
-  updatedAt: string;
-  // Calculated metrics
-  progress: number;
-  monthsRemaining: number;
-  monthlyTarget: number;
-  remaining: number;
-}
-
-interface Account {
-  id: string;
-  name: string;
-  icon: string | null;
-  type: string;
-  balance: number;
-}
-
-interface GoalFormData {
-  name: string;
-  icon: string;
-  color: string;
-  targetAmount: number;
-  initialAmount: number;
-  targetDate: string;
-  accountId: string;
-}
-
-const EMOJI_OPTIONS = ["🎯", "✈️", "🏠", "🚗", "💍", "🎓", "💻", "📱", "🏖️", "💰", "🎁", "🛒"];
-const COLOR_OPTIONS = [
-  "#8b5cf6", // violet
-  "#ec4899", // pink
-  "#f43f5e", // rose
-  "#ef4444", // red
-  "#f97316", // orange
-  "#eab308", // yellow
-  "#22c55e", // green
-  "#14b8a6", // teal
-  "#06b6d4", // cyan
-  "#3b82f6", // blue
-  "#6366f1", // indigo
-  "#a855f7", // purple
-];
-
-function formatCurrency(cents: number): string {
-  return (cents / 100).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
+import { GoalFormModal } from "@/components/goals/goal-form-modal";
+import { useGoals, useBudgets, useAccounts } from "@/hooks";
+import type { Goal } from "@/types";
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -124,151 +62,34 @@ function formatFullDate(dateString: string): string {
 }
 
 export default function GoalsPage() {
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [budgets, setBudgets] = useState<{ id: string; name: string }[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // SWR hooks for cached data fetching
+  const { goals, isLoading: goalsLoading, mutate: mutateGoals } = useGoals();
+  const { budgets, isLoading: budgetsLoading } = useBudgets();
+  const { accounts, isLoading: accountsLoading, mutate: mutateAccounts } = useAccounts();
+
+  const isLoading = goalsLoading || budgetsLoading || accountsLoading;
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [deletingGoal, setDeletingGoal] = useState<Goal | null>(null);
   const [contributeGoal, setContributeGoal] = useState<Goal | null>(null);
-
-  const [formData, setFormData] = useState<GoalFormData>({
-    name: "",
-    icon: "🎯",
-    color: "#8b5cf6",
-    targetAmount: 0,
-    initialAmount: 0,
-    targetDate: "",
-    accountId: "",
-  });
   const [contributeAmountCents, setContributeAmountCents] = useState(0);
   const [contributeFromAccountId, setContributeFromAccountId] = useState("");
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [goalsRes, budgetsRes, accountsRes] = await Promise.all([
-        fetch("/api/app/goals"),
-        fetch("/api/app/budgets"),
-        fetch("/api/app/accounts"),
-      ]);
-
-      if (goalsRes.ok) {
-        const data = await goalsRes.json();
-        setGoals(data.goals || []);
-      }
-
-      if (budgetsRes.ok) {
-        const data = await budgetsRes.json();
-        setBudgets(data.budgets || []);
-      }
-
-      if (accountsRes.ok) {
-        const data = await accountsRes.json();
-        setAccounts(data.accounts || []);
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("Erro ao carregar dados");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      icon: "🎯",
-      color: "#8b5cf6",
-      targetAmount: 0,
-      initialAmount: 0,
-      targetDate: "",
-      accountId: "",
-    });
-  };
-
   const openCreateForm = () => {
-    resetForm();
     setEditingGoal(null);
     setIsFormOpen(true);
   };
 
   const openEditForm = (goal: Goal) => {
-    setFormData({
-      name: goal.name,
-      icon: goal.icon,
-      color: goal.color,
-      targetAmount: goal.targetAmount,
-      initialAmount: 0, // Can't edit initial amount after creation
-      targetDate: goal.targetDate.split("T")[0],
-      accountId: goal.accountId || "",
-    });
     setEditingGoal(goal);
     setIsFormOpen(true);
   };
 
-  const handleSubmit = async () => {
-    if (!formData.name.trim()) {
-      toast.error("Nome da meta é obrigatório");
-      return;
-    }
-    if (formData.targetAmount <= 0) {
-      toast.error("Valor alvo deve ser maior que zero");
-      return;
-    }
-    if (!formData.targetDate) {
-      toast.error("Data limite é obrigatória");
-      return;
-    }
-    if (!formData.accountId) {
-      toast.error("Selecione a conta destino");
-      return;
-    }
-
-    try {
-      const payload = {
-        name: formData.name,
-        icon: formData.icon,
-        color: formData.color,
-        targetAmount: formData.targetAmount,
-        initialAmount: formData.initialAmount,
-        targetDate: formData.targetDate,
-        budgetId: budgets[0]?.id,
-        accountId: formData.accountId,
-      };
-
-      let response;
-      if (editingGoal) {
-        response = await fetch(`/api/app/goals/${editingGoal.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      } else {
-        response = await fetch("/api/app/goals", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      }
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao salvar meta");
-      }
-
-      toast.success(editingGoal ? "Meta atualizada!" : "Meta criada!");
-      setIsFormOpen(false);
-      setEditingGoal(null);
-      resetForm();
-      fetchData();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar meta");
-    }
+  const handleFormSuccess = () => {
+    setIsFormOpen(false);
+    setEditingGoal(null);
+    mutateGoals();
   };
 
   const handleDelete = async () => {
@@ -286,7 +107,7 @@ export default function GoalsPage() {
 
       toast.success("Meta arquivada!");
       setDeletingGoal(null);
-      fetchData();
+      mutateGoals();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao arquivar meta");
     }
@@ -340,7 +161,8 @@ export default function GoalsPage() {
       setContributeGoal(null);
       setContributeAmountCents(0);
       setContributeFromAccountId("");
-      fetchData();
+      mutateGoals();
+      mutateAccounts(); // Account balance changed
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao contribuir");
     }
@@ -522,159 +344,19 @@ export default function GoalsPage() {
         </div>
       )}
 
-      {/* Create/Edit Goal Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingGoal ? "Editar Meta" : "Nova Meta"}</DialogTitle>
-            <DialogDescription>
-              {editingGoal
-                ? "Altere os dados da sua meta financeira"
-                : "Defina uma meta financeira com valor e prazo"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome da meta</Label>
-              <Input
-                id="name"
-                placeholder="Ex: Viagem Disney, Casa própria..."
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-
-            {/* Icon */}
-            <div className="space-y-2">
-              <Label>Ícone</Label>
-              <div className="flex flex-wrap gap-2">
-                {EMOJI_OPTIONS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, icon: emoji })}
-                    className={cn(
-                      "w-10 h-10 rounded-lg text-xl flex items-center justify-center transition-all",
-                      formData.icon === emoji
-                        ? "bg-primary/20 ring-2 ring-primary"
-                        : "bg-muted hover:bg-muted/80"
-                    )}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Color */}
-            <div className="space-y-2">
-              <Label>Cor</Label>
-              <div className="flex flex-wrap gap-2">
-                {COLOR_OPTIONS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, color })}
-                    className={cn(
-                      "w-8 h-8 rounded-full transition-all",
-                      formData.color === color && "ring-2 ring-offset-2 ring-primary"
-                    )}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Target Amount */}
-            <div className="space-y-2">
-              <Label htmlFor="targetAmount">Valor alvo</Label>
-              <CurrencyInput
-                id="targetAmount"
-                value={formData.targetAmount}
-                onChange={(valueInCents) =>
-                  setFormData({ ...formData, targetAmount: valueInCents })
-                }
-                placeholder="0,00"
-              />
-            </div>
-
-            {/* Initial Amount - only show when creating */}
-            {!editingGoal && (
-              <div className="space-y-2">
-                <Label htmlFor="initialAmount">Valor inicial (opcional)</Label>
-                <CurrencyInput
-                  id="initialAmount"
-                  value={formData.initialAmount}
-                  onChange={(valueInCents) =>
-                    setFormData({ ...formData, initialAmount: valueInCents })
-                  }
-                  placeholder="0,00"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Já tem algum valor guardado para essa meta?
-                </p>
-              </div>
-            )}
-
-            {/* Target Date */}
-            <div className="space-y-2">
-              <Label htmlFor="targetDate">Data limite</Label>
-              <Input
-                id="targetDate"
-                type="date"
-                value={formData.targetDate}
-                onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
-                min={new Date().toISOString().split("T")[0]}
-              />
-            </div>
-
-            {/* Destination Account - required */}
-            <div className="space-y-2">
-              <Label htmlFor="accountId">Conta destino</Label>
-              <Select
-                value={formData.accountId}
-                onValueChange={(value) => setFormData({ ...formData, accountId: value })}
-              >
-                <SelectTrigger id="accountId">
-                  <SelectValue placeholder="Selecione uma conta" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      <span className="flex items-center gap-2">
-                        <span>{account.icon || "💳"}</span>
-                        <span>{account.name}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Conta onde o dinheiro da meta será guardado
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              className="w-1/4"
-              onClick={() => {
-                setIsFormOpen(false);
-                setEditingGoal(null);
-                resetForm();
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button className="w-1/4" onClick={handleSubmit}>
-              {editingGoal ? "Salvar" : "Criar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Create/Edit Goal Modal - using unified GoalFormModal */}
+      {budgets[0]?.id && (
+        <GoalFormModal
+          open={isFormOpen}
+          onOpenChange={(open) => {
+            setIsFormOpen(open);
+            if (!open) setEditingGoal(null);
+          }}
+          budgetId={budgets[0].id}
+          editingGoal={editingGoal}
+          onSuccess={handleFormSuccess}
+        />
+      )}
 
       {/* Contribute Dialog */}
       <Dialog open={!!contributeGoal} onOpenChange={(open) => !open && setContributeGoal(null)}>
