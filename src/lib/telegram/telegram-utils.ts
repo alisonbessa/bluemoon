@@ -3,6 +3,15 @@
  */
 
 /**
+ * Get today's date at noon UTC
+ * This avoids timezone display issues where 02:00 UTC could show as previous day in Brazil (UTC-3)
+ */
+export function getTodayNoonUTC(): Date {
+  const today = new Date();
+  return new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 12, 0, 0));
+}
+
+/**
  * Parse amount from text input
  * Supports formats: "50", "50,00", "50.00", "R$ 50,00"
  * Returns amount in cents

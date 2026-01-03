@@ -9,7 +9,13 @@ export type TelegramConversationStep =
   | "AWAITING_AMOUNT"
   | "AWAITING_DESCRIPTION"
   | "AWAITING_CATEGORY"
-  | "AWAITING_CONFIRMATION";
+  | "AWAITING_CONFIRMATION"
+  | "AWAITING_INCOME_SOURCE"
+  | "AWAITING_ACCOUNT"
+  | "AWAITING_TRANSFER_DEST"
+  | "AWAITING_NEW_CATEGORY_CONFIRM"    // User can accept suggested category or choose existing
+  | "AWAITING_NEW_CATEGORY_NAME"       // User is typing a custom name
+  | "AWAITING_NEW_CATEGORY_GROUP";     // User is selecting a group
 
 // Context data stored during conversation
 export interface TelegramConversationContext {
@@ -18,10 +24,34 @@ export interface TelegramConversationContext {
     description?: string;
     categoryId?: string;
     categoryName?: string;
+    accountId?: string;
+  };
+  pendingIncome?: {
+    amount: number;
+    description?: string;
+    incomeSourceId?: string;
+    incomeSourceName?: string;
+    accountId?: string;
+  };
+  pendingTransfer?: {
+    amount: number;
+    fromAccountId?: string;
+    toAccountId?: string;
+    description?: string;
+  };
+  pendingNewCategory?: {
+    suggestedName: string;      // AI's suggestion based on description
+    customName?: string;        // User's custom name if they changed it
+    suggestedGroupId?: string;  // AI's suggested group
+    groupId?: string;           // Selected group
   };
   verificationCode?: string;
   verificationExpiry?: string;
   lastTransactionId?: string;
+  lastQueryResult?: string;
+  lastAILogId?: string; // For tracking AI log resolution
+  messagesToDelete?: number[]; // Message IDs to delete when flow completes
+  scheduledTransactionId?: string; // ID of scheduled transaction to update (instead of creating new)
 }
 
 export const telegramUsers = pgTable("telegram_users", {

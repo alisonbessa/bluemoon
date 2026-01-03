@@ -1,10 +1,31 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { users, budgets, budgetMembers } from "@/db/schema";
+import { users, budgets, budgetMembers, groups, categories, incomeSources } from "@/db/schema";
+import { defaultGroups } from "@/db/schema/groups";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { capitalizeWords } from "@/lib/utils";
+
+// Default categories to create for new budgets
+const DEFAULT_CATEGORIES = [
+  // Essencial
+  { groupCode: "essential", name: "Moradia", icon: "🏠" },
+  { groupCode: "essential", name: "Contas de Casa", icon: "💡" },
+  { groupCode: "essential", name: "Mercado", icon: "🛒" },
+  { groupCode: "essential", name: "Transporte", icon: "🚗" },
+  { groupCode: "essential", name: "Saúde", icon: "💊" },
+  // Estilo de Vida
+  { groupCode: "lifestyle", name: "Alimentação Fora", icon: "🍽️" },
+  { groupCode: "lifestyle", name: "Vestuário", icon: "👕" },
+  { groupCode: "lifestyle", name: "Streaming", icon: "📺" },
+  { groupCode: "lifestyle", name: "Academia", icon: "💪" },
+  // Investimentos
+  { groupCode: "investments", name: "Reserva de Emergência", icon: "🏦" },
+  { groupCode: "investments", name: "Poupança", icon: "🐷" },
+  // Metas
+  { groupCode: "goals", name: "Viagem", icon: "✈️" },
+] as const;
 
 const welcomeSchema = z.object({
   displayName: z.string().min(1),
@@ -73,17 +94,71 @@ export const POST = withAuthRequired(async (request, context) => {
         })
         .returning();
 
-      // Note: Groups are global (seeded data), not per-budget
-      // Categories link to groups via groupId
+      // Ensure groups exist (seed if needed) - groups are global, not per-budget
+      const existingGroups = await tx.select().from(groups);
+
+      if (existingGroups.length === 0) {
+        await tx.insert(groups).values(
+          defaultGroups.map((g) => ({
+            code: g.code,
+            name: g.name,
+            description: g.description,
+            icon: g.icon,
+            displayOrder: g.displayOrder,
+          }))
+        );
+      }
+
+      // Get all groups for creating default categories
+      const allGroups = await tx.select().from(groups);
+
+      // Create default categories for the budget
+      const categoryInserts = DEFAULT_CATEGORIES.map((cat) => {
+        const group = allGroups.find((g) => g.code === cat.groupCode);
+        return {
+          budgetId: newBudget.id,
+          groupId: group!.id,
+          name: cat.name,
+          icon: cat.icon,
+          behavior: "refill_up" as const,
+          plannedAmount: 0,
+        };
+      });
+
+      await tx.insert(categories).values(categoryInserts);
 
       // Create owner member (the user themselves)
-      await tx.insert(budgetMembers).values({
+      const [ownerMember] = await tx.insert(budgetMembers).values({
         budgetId: newBudget.id,
         userId: userId,
         name: formattedName,
         type: "owner",
         color: MEMBER_COLORS[0],
-      });
+      }).returning();
+
+      // Create default income sources
+      await tx.insert(incomeSources).values([
+        {
+          budgetId: newBudget.id,
+          memberId: ownerMember.id,
+          name: "Salário",
+          type: "salary",
+          amount: 0,
+          frequency: "monthly",
+          dayOfMonth: 5,
+          displayOrder: 0,
+        },
+        {
+          budgetId: newBudget.id,
+          memberId: ownerMember.id,
+          name: "Vale Refeição",
+          type: "benefit",
+          amount: 0,
+          frequency: "monthly",
+          dayOfMonth: 1,
+          displayOrder: 1,
+        },
+      ]);
 
       // Create household members
       let colorIndex = 1;

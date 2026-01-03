@@ -4,18 +4,14 @@ import { AppHeader } from "@/components/layout/app-header";
 import {
   TutorialProvider,
   TutorialOverlay,
-  WelcomeModal,
   CelebrationModal,
   useTutorial,
-  isTutorialCompleted,
 } from "@/components/tutorial";
-import React, { Suspense, useEffect, useState, useCallback } from "react";
+import React, { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import useUser from "@/lib/users/useUser";
-import { toast } from "sonner";
 
-const TUTORIAL_STORAGE_KEY = "hivebudget_tutorial_completed";
-const WELCOME_COMPLETED_KEY = "hivebudget_welcome_completed";
+const BUDGET_INITIALIZED_KEY = "hivebudget_budget_initialized";
 
 function DashboardSkeleton() {
   return (
@@ -73,40 +69,59 @@ interface SetupSummary {
   totalMonthlyIncome: number;
 }
 
-interface WelcomeData {
-  displayName: string;
-  household: Array<{
-    type: "partner" | "child" | "adult" | "pet";
-    count: number;
-  }>;
-}
-
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isLoading, error, mutate } = useUser();
-  const { startTutorial, isActive: isTutorialActive, currentStep } = useTutorial();
+  const { isActive: isTutorialActive, currentStep } = useTutorial();
 
-  const [showWelcome, setShowWelcome] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationSummary, setCelebrationSummary] = useState<SetupSummary | undefined>();
+  const initializingRef = useRef(false);
 
-  // Check if user needs onboarding (new user, never completed tutorial)
+  // Auto-initialize budget for new users (creates budget, groups, categories silently)
   useEffect(() => {
     if (isLoading || !user) return;
+    if (initializingRef.current) return;
 
-    // Don't show welcome if tutorial is already active (user is in the middle of it)
-    if (isTutorialActive) return;
+    // Check if budget was already initialized
+    const budgetInitialized = localStorage.getItem(BUDGET_INITIALIZED_KEY) === "true";
+    if (budgetInitialized) return;
 
-    // Check if welcome was already completed
-    const welcomeCompleted = localStorage.getItem(WELCOME_COMPLETED_KEY) === "true";
-    const tutorialCompleted = isTutorialCompleted();
-
-    // Show welcome if user hasn't completed onboarding and hasn't seen welcome yet
-    if (!user.onboardingCompletedAt && !welcomeCompleted && !tutorialCompleted) {
-      setShowWelcome(true);
+    // Check if user already has onboarding completed (existing user)
+    if (user.onboardingCompletedAt) {
+      localStorage.setItem(BUDGET_INITIALIZED_KEY, "true");
+      return;
     }
-  }, [user, isLoading, isTutorialActive]);
+
+    // Auto-create budget for new user
+    const initializeBudget = async () => {
+      initializingRef.current = true;
+      try {
+        const displayName = user?.name || user?.email?.split("@")[0] || "Usuário";
+
+        const response = await fetch("/api/app/onboarding/welcome", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            displayName,
+            household: [],
+          }),
+        });
+
+        if (response.ok) {
+          localStorage.setItem(BUDGET_INITIALIZED_KEY, "true");
+          await mutate();
+        }
+      } catch (error) {
+        console.error("Error initializing budget:", error);
+      } finally {
+        initializingRef.current = false;
+      }
+    };
+
+    initializeBudget();
+  }, [user, isLoading, mutate]);
 
   // Detect when tutorial reaches the final step
   useEffect(() => {
@@ -149,43 +164,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const handleWelcomeComplete = async (data: WelcomeData) => {
-    try {
-      // Save user display name and create initial budget/members
-      const response = await fetch("/api/app/onboarding/welcome", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao salvar dados");
-      }
-
-      // Mark welcome as completed
-      localStorage.setItem(WELCOME_COMPLETED_KEY, "true");
-      setShowWelcome(false);
-
-      // Refresh user data
-      await mutate();
-
-      // Start the tutorial
-      startTutorial("initial-setup");
-    } catch (error) {
-      console.error("Error completing welcome:", error);
-      toast.error("Erro ao salvar. Tente novamente.");
-      throw error;
-    }
-  };
-
-  const handleWelcomeSkip = () => {
-    // Mark as completed so user doesn't see it again
-    localStorage.setItem(WELCOME_COMPLETED_KEY, "true");
-    localStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
-    setShowWelcome(false);
-    toast.info("Você pode acessar o tutorial nas configurações a qualquer momento.");
-  };
-
   const handleCelebrationClose = () => {
     setShowCelebration(false);
     // Ensure user stays on dashboard
@@ -213,13 +191,6 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col h-screen gap-4">
       <AppHeader />
       <div className="grow p-4 sm:p-2 max-w-7xl mx-auto w-full">{children}</div>
-
-      {/* Welcome Modal for new users */}
-      <WelcomeModal
-        isOpen={showWelcome}
-        onComplete={handleWelcomeComplete}
-        onSkip={handleWelcomeSkip}
-      />
 
       {/* Celebration Modal when tutorial completes */}
       <CelebrationModal
