@@ -87,6 +87,50 @@ async function getMe() {
   return data;
 }
 
+async function getCommands() {
+  const response = await fetch(`${BASE_URL}/getMyCommands`);
+  const data = await response.json();
+
+  console.log("\n📋 Comandos configurados:\n");
+  if (data.ok && data.result.length > 0) {
+    data.result.forEach((cmd: { command: string; description: string }) => {
+      console.log(`  /${cmd.command} - ${cmd.description}`);
+    });
+  } else {
+    console.log("  Nenhum comando configurado");
+  }
+
+  return data;
+}
+
+async function setCommands() {
+  const commands = [
+    { command: "start", description: "Iniciar o bot" },
+    { command: "ajuda", description: "Ver como usar o bot" },
+    { command: "desfazer", description: "Desfazer último registro" },
+    { command: "cancelar", description: "Cancelar operação atual" },
+  ];
+
+  const response = await fetch(`${BASE_URL}/setMyCommands`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ commands }),
+  });
+
+  const data = await response.json();
+
+  if (data.ok) {
+    console.log("\n✅ Comandos configurados com sucesso!");
+    commands.forEach((cmd) => {
+      console.log(`  /${cmd.command} - ${cmd.description}`);
+    });
+  } else {
+    console.log(`\n❌ Erro ao configurar comandos: ${data.description}`);
+  }
+
+  return data;
+}
+
 async function main() {
   const [command, ...args] = process.argv.slice(2);
 
@@ -96,6 +140,11 @@ async function main() {
     case "info":
       await getMe();
       await getWebhookInfo();
+      await getCommands();
+      break;
+
+    case "commands":
+      await setCommands();
       break;
 
     case "set":
@@ -122,12 +171,14 @@ async function main() {
 📱 Telegram Webhook CLI
 
 Comandos:
-  info              Ver informacoes do bot e webhook atual
+  info              Ver informacoes do bot, webhook e comandos
+  commands          Configurar comandos do menu do bot
   set <URL> [SEC]   Configurar webhook (SEC = secret_token opcional)
   delete            Remover webhook
 
 Exemplos:
   npx tsx scripts/telegram-webhook.ts info
+  npx tsx scripts/telegram-webhook.ts commands
   npx tsx scripts/telegram-webhook.ts set https://hivebudget.com.br/api/telegram/webhook
   npx tsx scripts/telegram-webhook.ts set https://hivebudget.com.br/api/telegram/webhook meu_secret_token
   npx tsx scripts/telegram-webhook.ts delete
