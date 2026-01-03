@@ -53,6 +53,7 @@ import { toast } from "sonner";
 import { formatCurrency, formatCurrencyFromDigits } from "@/lib/formatters";
 import { GoalFormModal } from "@/components/goals";
 import { useTutorial } from "@/components/tutorial/tutorial-provider";
+import { CategoryWithBills } from "@/components/budget/category-with-bills";
 
 interface Category {
   id: string;
@@ -71,6 +72,16 @@ interface Group {
   displayOrder: number;
 }
 
+interface RecurringBillSummary {
+  id: string;
+  name: string;
+  amount: number;
+  frequency: string;
+  dueDay: number | null;
+  dueMonth: number | null;
+  account: { id: string; name: string; icon: string | null } | null;
+}
+
 interface CategoryAllocation {
   category: Category;
   allocated: number;
@@ -78,6 +89,7 @@ interface CategoryAllocation {
   spent: number;
   available: number;
   isOtherMemberCategory?: boolean; // True if category belongs to another member
+  recurringBills?: RecurringBillSummary[];
 }
 
 interface GroupData {
@@ -1303,67 +1315,46 @@ export default function BudgetPage() {
                   const isSelected = selectedCategories.includes(item.category.id);
                   const isOtherMember = item.isOtherMemberCategory;
 
-                  return (
-                    <div
-                      key={item.category.id}
-                      className={cn(
-                        "group/row grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b text-sm",
-                        isSelected && "bg-primary/5",
-                        isOtherMember
-                          ? "opacity-75 cursor-default"
-                          : "hover:bg-muted/20 cursor-pointer"
-                      )}
-                      onClick={isOtherMember ? undefined : () => openEditModal(item.category, item.allocated)}
-                      data-tutorial="category-row"
-                    >
-                      {!isOtherMember ? (
-                        <Checkbox
-                          checked={isSelected}
-                          className="h-3.5 w-3.5"
-                          onCheckedChange={() => toggleCategorySelection(item.category.id)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      ) : (
+                  // For other member categories, show simple read-only row
+                  if (isOtherMember) {
+                    return (
+                      <div
+                        key={item.category.id}
+                        className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b text-sm opacity-75 cursor-default"
+                        data-tutorial="category-row"
+                      >
                         <div className="h-3.5 w-3.5" />
-                      )}
-                      <div className="flex items-center gap-1.5 pl-5">
-                        <span>{item.category.icon || "📌"}</span>
-                        <span>{item.category.name}</span>
-                        {!isOtherMember && (
-                          <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditCategoryModal(item.category);
-                              }}
-                              className="p-1 rounded hover:bg-muted"
-                              title="Editar categoria"
-                            >
-                              <Pencil className="h-3 w-3 text-muted-foreground" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeletingCategory(item.category);
-                              }}
-                              className="p-1 rounded hover:bg-destructive/10"
-                              title="Excluir categoria"
-                            >
-                              <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-1.5 pl-5">
+                          <span>{item.category.icon || "📌"}</span>
+                          <span>{item.category.name}</span>
+                        </div>
+                        <div className="text-right text-xs tabular-nums">{formatCurrency(item.allocated)}</div>
+                        <div className="text-right text-xs tabular-nums">{formatCurrency(item.spent)}</div>
+                        <div className={cn(
+                          "text-right text-xs tabular-nums font-medium px-1",
+                          item.available > 0 ? "text-green-600" :
+                          item.available < 0 ? "text-red-600 bg-red-100 dark:bg-red-900/30 rounded" : ""
+                        )}>
+                          {formatCurrency(item.available)}
+                        </div>
                       </div>
-                      <div className="text-right text-xs tabular-nums">{formatCurrency(item.allocated)}</div>
-                      <div className="text-right text-xs tabular-nums">{formatCurrency(item.spent)}</div>
-                      <div className={cn(
-                        "text-right text-xs tabular-nums font-medium px-1",
-                        item.available > 0 ? "text-green-600" :
-                        item.available < 0 ? "text-red-600 bg-red-100 dark:bg-red-900/30 rounded" : ""
-                      )}>
-                        {formatCurrency(item.available)}
-                      </div>
-                    </div>
+                    );
+                  }
+
+                  // For own categories, use CategoryWithBills component
+                  return (
+                    <CategoryWithBills
+                      key={item.category.id}
+                      item={item}
+                      budgetId={budgets[0]?.id || ""}
+                      accounts={accounts}
+                      isSelected={isSelected}
+                      onToggleSelection={() => toggleCategorySelection(item.category.id)}
+                      onEditAllocation={openEditModal}
+                      onEditCategory={openEditCategoryModal}
+                      onDeleteCategory={setDeletingCategory}
+                      onBillsChange={fetchData}
+                    />
                   );
                 })}
               </div>

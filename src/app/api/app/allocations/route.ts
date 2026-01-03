@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus } from "@/db/schema";
+import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus, recurringBills, financialAccounts } from "@/db/schema";
 import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -57,7 +57,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const endDate = new Date(year, month, 0, 23, 59, 59);
 
   // PERFORMANCE: Run independent queries in parallel
-  const [budgetCategories, allocations, spending] = await Promise.all([
+  const [budgetCategories, allocations, spending, bills] = await Promise.all([
     // Get all categories with their groups
     db
       .select({
@@ -102,10 +102,67 @@ export const GET = withAuthRequired(async (req, context) => {
         )
       )
       .groupBy(transactions.categoryId),
+
+    // Get recurring bills with account info
+    db
+      .select({
+        bill: recurringBills,
+        account: {
+          id: financialAccounts.id,
+          name: financialAccounts.name,
+          icon: financialAccounts.icon,
+        },
+      })
+      .from(recurringBills)
+      .leftJoin(financialAccounts, eq(recurringBills.accountId, financialAccounts.id))
+      .where(
+        and(
+          eq(recurringBills.budgetId, budgetId),
+          eq(recurringBills.isActive, true)
+        )
+      )
+      .orderBy(recurringBills.displayOrder),
   ]);
 
   const spendingMap = new Map(spending.map((s) => [s.categoryId, Number(s.totalSpent) || 0]));
   const allocationsMap = new Map(allocations.map((a) => [a.categoryId, a]));
+
+  // Group bills by categoryId
+  const billsMap = new Map<string, Array<{
+    id: string;
+    name: string;
+    amount: number;
+    frequency: string;
+    dueDay: number | null;
+    dueMonth: number | null;
+    account: { id: string; name: string; icon: string | null } | null;
+  }>>();
+
+  for (const { bill, account } of bills) {
+    if (!billsMap.has(bill.categoryId)) {
+      billsMap.set(bill.categoryId, []);
+    }
+    billsMap.get(bill.categoryId)!.push({
+      id: bill.id,
+      name: bill.name,
+      amount: bill.amount,
+      frequency: bill.frequency,
+      dueDay: bill.dueDay,
+      dueMonth: bill.dueMonth,
+      account: account?.id ? { id: account.id, name: account.name, icon: account.icon } : null,
+    });
+  }
+
+  // Type for recurring bills in category
+  type RecurringBillSummary = {
+    id: string;
+    name: string;
+    amount: number;
+    frequency: string;
+    dueDay: number | null;
+    dueMonth: number | null;
+    account: { id: string; name: string; icon: string | null } | null;
+  };
 
   // Group categories by group
   const groupedData = new Map<string, {
@@ -117,6 +174,7 @@ export const GET = withAuthRequired(async (req, context) => {
       spent: number;
       available: number;
       isOtherMemberCategory: boolean; // True if category belongs to another member
+      recurringBills: RecurringBillSummary[]; // Recurring bills for this category
     }>;
     totals: { allocated: number; spent: number; available: number };
   }>();
@@ -131,7 +189,13 @@ export const GET = withAuthRequired(async (req, context) => {
     }
 
     const allocation = allocationsMap.get(category.id);
-    const allocated = allocation?.allocated || category.plannedAmount || 0;
+    const categoryBills = billsMap.get(category.id) || [];
+
+    // If category has recurring bills, sum their amounts as the allocated value
+    const billsTotal = categoryBills.reduce((sum, bill) => sum + bill.amount, 0);
+    const allocated = categoryBills.length > 0
+      ? billsTotal
+      : (allocation?.allocated || category.plannedAmount || 0);
     const carriedOver = allocation?.carriedOver || 0;
     const spent = spendingMap.get(category.id) || 0;
     const available = allocated + carriedOver - spent;
@@ -147,6 +211,7 @@ export const GET = withAuthRequired(async (req, context) => {
       spent,
       available,
       isOtherMemberCategory,
+      recurringBills: categoryBills,
     });
     groupData.totals.allocated += allocated + carriedOver;
     groupData.totals.spent += spent;
