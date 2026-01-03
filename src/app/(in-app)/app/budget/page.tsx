@@ -77,6 +77,7 @@ interface CategoryAllocation {
   carriedOver: number;
   spent: number;
   available: number;
+  isOtherMemberCategory?: boolean; // True if category belongs to another member
 }
 
 interface GroupData {
@@ -1300,48 +1301,58 @@ export default function BudgetPage() {
                 {/* Categories */}
                 {isExpanded && filteredCategories.map((item) => {
                   const isSelected = selectedCategories.includes(item.category.id);
+                  const isOtherMember = item.isOtherMemberCategory;
 
                   return (
                     <div
                       key={item.category.id}
                       className={cn(
-                        "group/row grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b hover:bg-muted/20 text-sm cursor-pointer",
-                        isSelected && "bg-primary/5"
+                        "group/row grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b text-sm",
+                        isSelected && "bg-primary/5",
+                        isOtherMember
+                          ? "opacity-75 cursor-default"
+                          : "hover:bg-muted/20 cursor-pointer"
                       )}
-                      onClick={() => openEditModal(item.category, item.allocated)}
+                      onClick={isOtherMember ? undefined : () => openEditModal(item.category, item.allocated)}
                       data-tutorial="category-row"
                     >
-                      <Checkbox
-                        checked={isSelected}
-                        className="h-3.5 w-3.5"
-                        onCheckedChange={() => toggleCategorySelection(item.category.id)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
+                      {!isOtherMember ? (
+                        <Checkbox
+                          checked={isSelected}
+                          className="h-3.5 w-3.5"
+                          onCheckedChange={() => toggleCategorySelection(item.category.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <div className="h-3.5 w-3.5" />
+                      )}
                       <div className="flex items-center gap-1.5 pl-5">
                         <span>{item.category.icon || "📌"}</span>
                         <span>{item.category.name}</span>
-                        <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEditCategoryModal(item.category);
-                            }}
-                            className="p-1 rounded hover:bg-muted"
-                            title="Editar categoria"
-                          >
-                            <Pencil className="h-3 w-3 text-muted-foreground" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeletingCategory(item.category);
-                            }}
-                            className="p-1 rounded hover:bg-destructive/10"
-                            title="Excluir categoria"
-                          >
-                            <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                          </button>
-                        </div>
+                        {!isOtherMember && (
+                          <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditCategoryModal(item.category);
+                              }}
+                              className="p-1 rounded hover:bg-muted"
+                              title="Editar categoria"
+                            >
+                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingCategory(item.category);
+                              }}
+                              className="p-1 rounded hover:bg-destructive/10"
+                              title="Excluir categoria"
+                            >
+                              <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                       <div className="text-right text-xs tabular-nums">{formatCurrency(item.allocated)}</div>
                       <div className="text-right text-xs tabular-nums">{formatCurrency(item.spent)}</div>

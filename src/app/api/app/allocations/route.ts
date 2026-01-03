@@ -22,6 +22,16 @@ async function getUserBudgetIds(userId: string) {
   return memberships.map((m) => m.budgetId);
 }
 
+// Helper to get user's member ID in a specific budget
+async function getUserMemberIdInBudget(userId: string, budgetId: string) {
+  const membership = await db
+    .select({ memberId: budgetMembers.id })
+    .from(budgetMembers)
+    .where(and(eq(budgetMembers.userId, userId), eq(budgetMembers.budgetId, budgetId)))
+    .limit(1);
+  return membership[0]?.memberId || null;
+}
+
 // GET - Get allocations for a specific month with spending data
 export const GET = withAuthRequired(async (req, context) => {
   const { session } = context;
@@ -38,6 +48,9 @@ export const GET = withAuthRequired(async (req, context) => {
   if (!budgetIds.includes(budgetId)) {
     return NextResponse.json({ error: "Budget not found or access denied" }, { status: 404 });
   }
+
+  // Get user's member ID for visibility filtering
+  const userMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
 
   // Calculate date range for this month
   const startDate = new Date(year, month - 1, 1);
@@ -103,6 +116,7 @@ export const GET = withAuthRequired(async (req, context) => {
       carriedOver: number;
       spent: number;
       available: number;
+      isOtherMemberCategory: boolean; // True if category belongs to another member
     }>;
     totals: { allocated: number; spent: number; available: number };
   }>();
@@ -122,6 +136,9 @@ export const GET = withAuthRequired(async (req, context) => {
     const spent = spendingMap.get(category.id) || 0;
     const available = allocated + carriedOver - spent;
 
+    // Check if this category belongs to another member (not the current user)
+    const isOtherMemberCategory = category.memberId !== null && category.memberId !== userMemberId;
+
     const groupData = groupedData.get(group.id)!;
     groupData.categories.push({
       category,
@@ -129,6 +146,7 @@ export const GET = withAuthRequired(async (req, context) => {
       carriedOver,
       spent,
       available,
+      isOtherMemberCategory,
     });
     groupData.totals.allocated += allocated + carriedOver;
     groupData.totals.spent += spent;
