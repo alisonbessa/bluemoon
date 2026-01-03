@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import {
   telegramUsers,
+  telegramPendingConnections,
   transactions,
   categories,
   budgetMembers,
@@ -11,7 +12,7 @@ import {
   incomeSources,
   goals,
 } from "@/db/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, gt } from "drizzle-orm";
 import type { TelegramMessage, TelegramCallbackQuery, UserContext } from "./types";
 import type { TelegramConversationStep, TelegramConversationContext } from "@/db/schema/telegram-users";
 import {
@@ -378,56 +379,97 @@ async function handleStart(chatId: number, telegramUserId: number, username?: st
     await sendMessage(
       chatId,
       `👋 Bem-vindo ao <b>HiveBudget</b>!\n\n` +
-        `Para registrar seus gastos pelo Telegram, você precisa conectar sua conta.\n\n` +
+        `Para registrar seus gastos pelo Telegram, conecte sua conta:\n\n` +
         `<b>Como conectar:</b>\n` +
-        `1. Acesse o app em hivebudget.com.br\n` +
+        `1. Acesse hivebudget.com\n` +
         `2. Vá em Configurações > Conectar Telegram\n` +
-        `3. Clique no link gerado\n\n` +
-        `Aguardando conexão...`
+        `3. Copie o código de 6 caracteres\n` +
+        `4. Envie o código aqui neste chat\n\n` +
+        `Aguardando seu código...`
     );
   }
 }
 
+// Check if a string looks like a verification code (6 uppercase alphanumeric)
+function isVerificationCode(text: string): boolean {
+  return /^[A-Z2-9]{6}$/.test(text.toUpperCase());
+}
+
 // Handle verification code for connection
-async function handleVerificationCode(chatId: number, code: string) {
-  // Find user with this verification code
-  const [telegramUser] = await db
+async function handleVerificationCodeConnection(
+  chatId: number,
+  telegramUserId: number,
+  username: string | undefined,
+  firstName: string | undefined,
+  code: string
+): Promise<boolean> {
+  // Normalize code to uppercase
+  const normalizedCode = code.toUpperCase().trim();
+
+  // Look up the code in pending connections
+  const [pending] = await db
     .select()
-    .from(telegramUsers)
-    .where(eq(telegramUsers.chatId, chatId));
-
-  if (!telegramUser) {
-    await sendMessage(chatId, "❌ Erro ao conectar. Tente novamente.");
-    return;
-  }
-
-  // Look for pending verification in users table or a separate verification table
-  // For simplicity, we'll check the code in the context
-  const context = telegramUser.context as TelegramConversationContext;
-
-  if (context.verificationCode === code) {
-    // Check expiry
-    if (context.verificationExpiry && new Date(context.verificationExpiry) < new Date()) {
-      await sendMessage(chatId, "❌ Código expirado. Gere um novo link no app.");
-      return;
-    }
-
-    // Code matches - but we need the userId from somewhere
-    // This will be set when generating the link
-    await sendMessage(
-      chatId,
-      `✅ <b>Conta conectada com sucesso!</b>\n\n` +
-        `Agora você pode registrar seus gastos enviando mensagens.\n\n` +
-        `<b>Exemplos:</b>\n` +
-        `• <code>50</code> - Registra R$ 50,00\n` +
-        `• <code>35,90 almoço</code> - R$ 35,90 com descrição\n\n` +
-        `Use /ajuda para ver todos os comandos.`
+    .from(telegramPendingConnections)
+    .where(
+      and(
+        eq(telegramPendingConnections.code, normalizedCode),
+        gt(telegramPendingConnections.expiresAt, new Date())
+      )
     );
 
-    await updateTelegramUser(chatId, "IDLE", {});
-  } else {
-    await sendMessage(chatId, "❌ Código inválido. Tente gerar um novo link no app.");
+  if (!pending) {
+    return false; // Code not found or expired
   }
+
+  // Get or create telegram user
+  const telegramUser = await getOrCreateTelegramUser(chatId, telegramUserId, username, firstName);
+
+  // Check if this Telegram is already connected to a different user
+  if (telegramUser.userId && telegramUser.userId !== pending.userId) {
+    await sendMessage(
+      chatId,
+      `❌ Este Telegram já está conectado a outra conta.\n\n` +
+        `Para conectar a uma conta diferente, primeiro desconecte no app atual.`
+    );
+    return true; // Code was valid, just can't connect
+  }
+
+  // Connect the account
+  await db
+    .update(telegramUsers)
+    .set({
+      userId: pending.userId,
+      telegramUserId,
+      username,
+      firstName,
+      updatedAt: new Date(),
+    })
+    .where(eq(telegramUsers.chatId, chatId));
+
+  // Delete the used code
+  await db
+    .delete(telegramPendingConnections)
+    .where(eq(telegramPendingConnections.id, pending.id));
+
+  // Get user name for welcome message
+  const [user] = await db
+    .select({ displayName: users.displayName, name: users.name })
+    .from(users)
+    .where(eq(users.id, pending.userId));
+
+  const userName = user?.displayName || user?.name || "Usuário";
+
+  await sendMessage(
+    chatId,
+    `✅ <b>Conta conectada com sucesso!</b>\n\n` +
+      `Olá, <b>${userName}</b>! Agora você pode registrar seus gastos enviando mensagens.\n\n` +
+      `<b>Exemplos:</b>\n` +
+      `• <code>50</code> - Registra R$ 50,00\n` +
+      `• <code>35,90 almoço</code> - R$ 35,90 com descrição\n\n` +
+      `Use /ajuda para ver todos os comandos.`
+  );
+
+  return true;
 }
 
 // Handle /ajuda or /help command
@@ -864,20 +906,35 @@ export async function handleMessage(message: TelegramMessage) {
 
   // Check if user is connected
   if (!telegramUser?.userId) {
+    // User not connected - check if they're sending a verification code
+    if (isVerificationCode(text)) {
+      const wasValidCode = await handleVerificationCodeConnection(
+        chatId,
+        from.id,
+        from.username,
+        from.first_name,
+        text
+      );
+      if (wasValidCode) {
+        return; // Code was processed (valid or already connected)
+      }
+      // Code was invalid/expired - fall through to show connection instructions
+    }
+
     await sendMessage(
       chatId,
-      "Você precisa conectar sua conta primeiro.\n\n" +
-        "Acesse o app e vá em Configurações > Conectar Telegram"
+      "👋 Para usar o bot, você precisa conectar sua conta.\n\n" +
+        "<b>Como conectar:</b>\n" +
+        "1. Acesse hivebudget.com\n" +
+        "2. Vá em Configurações > Conectar Telegram\n" +
+        "3. Copie o código e envie aqui\n\n" +
+        "Ou use /start para mais informações."
     );
     return;
   }
 
   // Handle based on current step
   switch (telegramUser.currentStep) {
-    case "AWAITING_VERIFICATION_CODE":
-      await handleVerificationCode(chatId, text);
-      break;
-
     case "AWAITING_NEW_CATEGORY_NAME":
       await handleCustomCategoryName(chatId, text);
       break;

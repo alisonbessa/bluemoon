@@ -1,16 +1,22 @@
 import { NextResponse } from "next/server";
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { telegramUsers } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { telegramUsers, telegramPendingConnections } from "@/db/schema";
+import { eq, and, gt } from "drizzle-orm";
 import crypto from "crypto";
 
-// Generate a secure random code
-function generateVerificationCode(): string {
-  return crypto.randomBytes(16).toString("hex");
+// Generate a short, user-friendly verification code (6 characters)
+function generateShortCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Removed confusing chars like O, 0, I, 1
+  let code = "";
+  const bytes = crypto.randomBytes(6);
+  for (let i = 0; i < 6; i++) {
+    code += chars[bytes[i] % chars.length];
+  }
+  return code;
 }
 
-// GET - Generate connection link for authenticated user
+// GET - Generate connection code for authenticated user
 export const GET = withAuthRequired(async (_req, context) => {
   const { session } = context;
   const userId = session.user.id;
@@ -29,24 +35,52 @@ export const GET = withAuthRequired(async (_req, context) => {
     });
   }
 
-  // Generate verification code
-  const code = generateVerificationCode();
+  // Check for existing valid pending connection
+  const [existingPending] = await db
+    .select()
+    .from(telegramPendingConnections)
+    .where(
+      and(
+        eq(telegramPendingConnections.userId, userId),
+        gt(telegramPendingConnections.expiresAt, new Date())
+      )
+    );
+
+  if (existingPending) {
+    const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "hivebudget_bot";
+    return NextResponse.json({
+      connected: false,
+      code: existingPending.code,
+      expiresAt: existingPending.expiresAt.toISOString(),
+      botUsername,
+      deepLink: `https://t.me/${botUsername}`,
+    });
+  }
+
+  // Delete any expired codes for this user
+  await db
+    .delete(telegramPendingConnections)
+    .where(eq(telegramPendingConnections.userId, userId));
+
+  // Generate new verification code
+  const code = generateShortCode();
   const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  // Store the code temporarily (we'll store it when the user clicks the link)
-  // For now, we encode it in the deep link itself
-  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "hivebudget_bot";
+  // Store the pending connection
+  await db.insert(telegramPendingConnections).values({
+    code,
+    userId,
+    expiresAt: expiry,
+  });
 
-  // Create a deep link with the verification code
-  // Format: https://t.me/botusername?start=connect_CODE_USERID
-  const startParam = `connect_${code}_${userId}`;
-  const deepLink = `https://t.me/${botUsername}?start=${startParam}`;
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "hivebudget_bot";
 
   return NextResponse.json({
     connected: false,
-    deepLink,
+    code,
     expiresAt: expiry.toISOString(),
-    code, // Return code for verification on the server side
+    botUsername,
+    deepLink: `https://t.me/${botUsername}`,
   });
 });
 

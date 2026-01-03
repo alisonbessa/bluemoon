@@ -21,4 +21,5 @@ export * from "./monthly-income-allocations";
 export * from "./monthly-budget-status";
 export * from "./telegram-users";
 export * from "./telegram-ai-logs";
+export * from "./telegram-pending-connections";
 export * from "./goals";
