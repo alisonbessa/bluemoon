@@ -72,7 +72,7 @@ export default function AccountsPage() {
   const [preselectedType, setPreselectedType] = useState<string | undefined>(undefined);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
-  const [includeInvestments, setIncludeInvestments] = useState(true);
+  const [includeInvestments, setIncludeInvestments] = useState(false);
   const { isExpanded, toggleGroup } = useExpandedGroups([
     "checking",
     "savings",

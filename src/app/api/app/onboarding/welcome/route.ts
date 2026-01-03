@@ -28,12 +28,8 @@ const DEFAULT_CATEGORIES = [
   { groupCode: "lifestyle", name: "Presentes", icon: "🎁" },
   { groupCode: "lifestyle", name: "Assinaturas", icon: "📱" }, // Apps, serviços
 
-  // Investimentos
-  { groupCode: "investments", name: "Reserva de Emergência", icon: "🏦" },
-  { groupCode: "investments", name: "Investimentos", icon: "📈" },
-
-  // Metas - Usuário cria as próprias, mas deixamos uma de exemplo
-  { groupCode: "goals", name: "Viagem", icon: "✈️" },
+  // Note: Investimentos e Metas não são criados por padrão
+  // O usuário pode criar suas próprias categorias nesses grupos
 ] as const;
 
 // Helper to get first name from display name
@@ -153,7 +149,7 @@ export const POST = withAuthRequired(async (request, context) => {
         categoryInserts.push({
           budgetId: newBudget.id,
           groupId: pleasuresGroup.id,
-          name: `Gastos de ${firstName}`,
+          name: `Gastos - ${firstName}`,
           icon: "🎉",
           behavior: "refill_up" as const,
           plannedAmount: 0,

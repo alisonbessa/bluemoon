@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,9 +20,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { IconColorPicker } from "@/components/ui/icon-color-picker";
+import { IconPicker } from "@/components/ui/icon-color-picker";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+// Colors for random selection
+const GOAL_COLORS = [
+  "#8b5cf6", "#ec4899", "#ef4444", "#f97316",
+  "#eab308", "#22c55e", "#14b8a6", "#06b6d4",
+  "#3b82f6", "#6366f1"
+];
 
 interface Goal {
   id: string;
@@ -48,6 +55,10 @@ interface GoalFormModalProps {
   onSuccess?: () => void;
 }
 
+function getRandomColor() {
+  return GOAL_COLORS[Math.floor(Math.random() * GOAL_COLORS.length)];
+}
+
 export function GoalFormModal({
   open,
   onOpenChange,
@@ -57,11 +68,16 @@ export function GoalFormModal({
 }: GoalFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
+
+  // Random color for new goals - memoized to not change on re-renders
+  const randomColor = useMemo(() => getRandomColor(), [open, editingGoal]);
+
   const [formData, setFormData] = useState({
     name: editingGoal?.name || "",
     icon: editingGoal?.icon || "🎯",
-    color: editingGoal?.color || "#8b5cf6",
+    color: editingGoal?.color || randomColor,
     targetAmount: editingGoal?.targetAmount || 0, // stored in cents
+    initialAmount: 0, // only for creation
     targetDate: editingGoal?.targetDate?.split("T")[0] || "",
     accountId: editingGoal?.accountId || "",
   });
@@ -84,6 +100,7 @@ export function GoalFormModal({
         icon: editingGoal.icon,
         color: editingGoal.color,
         targetAmount: editingGoal.targetAmount,
+        initialAmount: 0,
         targetDate: editingGoal.targetDate?.split("T")[0] || "",
         accountId: editingGoal.accountId || "",
       });
@@ -91,20 +108,22 @@ export function GoalFormModal({
       setFormData({
         name: "",
         icon: "🎯",
-        color: "#8b5cf6",
+        color: randomColor,
         targetAmount: 0,
+        initialAmount: 0,
         targetDate: "",
         accountId: "",
       });
     }
-  }, [editingGoal, open]);
+  }, [editingGoal, open, randomColor]);
 
   const resetForm = () => {
     setFormData({
       name: "",
       icon: "🎯",
-      color: "#8b5cf6",
+      color: getRandomColor(),
       targetAmount: 0,
+      initialAmount: 0,
       targetDate: "",
       accountId: "",
     });
@@ -135,6 +154,7 @@ export function GoalFormModal({
         icon: formData.icon,
         color: formData.color,
         targetAmount: formData.targetAmount,
+        initialAmount: formData.initialAmount,
         targetDate: formData.targetDate,
         accountId: formData.accountId,
         budgetId,
@@ -184,7 +204,7 @@ export function GoalFormModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Name */}
+          {/* Row 1: Name */}
           <div className="space-y-2">
             <Label htmlFor="goal-name">Nome da meta</Label>
             <Input
@@ -195,63 +215,73 @@ export function GoalFormModal({
             />
           </div>
 
-          {/* Icon and Color */}
-          <IconColorPicker
+          {/* Icon Picker (without color - auto-generated) */}
+          <IconPicker
             icon={formData.icon}
-            color={formData.color}
             onIconChange={(icon) => setFormData({ ...formData, icon })}
-            onColorChange={(color) => setFormData({ ...formData, color })}
           />
 
-          {/* Target Amount */}
-          <div className="space-y-2">
-            <Label htmlFor="goal-targetAmount">Valor alvo</Label>
-            <CurrencyInput
-              id="goal-targetAmount"
-              value={formData.targetAmount}
-              onChange={(valueInCents) =>
-                setFormData({ ...formData, targetAmount: valueInCents })
-              }
-              placeholder="0,00"
-            />
+          {/* Row 2: Target Amount + Initial Amount */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="goal-targetAmount">Valor alvo</Label>
+              <CurrencyInput
+                id="goal-targetAmount"
+                value={formData.targetAmount}
+                onChange={(valueInCents) =>
+                  setFormData({ ...formData, targetAmount: valueInCents })
+                }
+                placeholder="0,00"
+              />
+            </div>
+            {!editingGoal && (
+              <div className="space-y-2">
+                <Label htmlFor="goal-initialAmount">Valor inicial</Label>
+                <CurrencyInput
+                  id="goal-initialAmount"
+                  value={formData.initialAmount}
+                  onChange={(valueInCents) =>
+                    setFormData({ ...formData, initialAmount: valueInCents })
+                  }
+                  placeholder="0,00"
+                />
+              </div>
+            )}
           </div>
 
-          {/* Target Date */}
-          <div className="space-y-2">
-            <Label htmlFor="goal-targetDate">Data limite</Label>
-            <Input
-              id="goal-targetDate"
-              type="date"
-              value={formData.targetDate}
-              onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
-              min={new Date().toISOString().split("T")[0]}
-            />
-          </div>
-
-          {/* Destination Account */}
-          <div className="space-y-2">
-            <Label htmlFor="goal-accountId">Conta destino</Label>
-            <Select
-              value={formData.accountId}
-              onValueChange={(value) => setFormData({ ...formData, accountId: value })}
-            >
-              <SelectTrigger id="goal-accountId">
-                <SelectValue placeholder="Selecione uma conta" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    <span className="flex items-center gap-2">
-                      <span>{account.icon || "💳"}</span>
-                      <span>{account.name}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Conta onde o dinheiro da meta será guardado
-            </p>
+          {/* Row 3: Target Date + Destination Account */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="goal-targetDate">Data limite</Label>
+              <Input
+                id="goal-targetDate"
+                type="date"
+                value={formData.targetDate}
+                onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
+                min={new Date().toISOString().split("T")[0]}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="goal-accountId">Conta destino</Label>
+              <Select
+                value={formData.accountId}
+                onValueChange={(value) => setFormData({ ...formData, accountId: value })}
+              >
+                <SelectTrigger id="goal-accountId">
+                  <SelectValue placeholder="Selecione uma conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      <span className="flex items-center gap-2">
+                        <span>{account.icon || "💳"}</span>
+                        <span>{account.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
