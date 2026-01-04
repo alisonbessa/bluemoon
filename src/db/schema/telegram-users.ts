@@ -26,6 +26,8 @@ export interface TelegramConversationContext {
     categoryName?: string;
     accountId?: string;
     accountName?: string;
+    isInstallment?: boolean;
+    totalInstallments?: number;
   };
   pendingIncome?: {
     amount: number;

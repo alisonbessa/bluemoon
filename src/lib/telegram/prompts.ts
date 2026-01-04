@@ -57,11 +57,14 @@ REGRAS DE VALOR:
 - "50" = 50.00 reais
 - "50,90" = 50.90 reais
 - "R$ 50" = 50.00 reais
+- "177 e 34" = 177.34 reais (X e Y = X reais e Y centavos)
+- "25 e 50" = 25.50 reais
+- "10 e 5" = 10.05 reais (centavos sempre com 2 dígitos)
 - Retorne o valor em REAIS (não centavos)
 - IMPORTANTE: Se o usuário NÃO mencionar um valor numérico específico, retorne "amount": null
 - NUNCA retorne "amount": 0 - sempre use null quando não houver valor explícito
 - Exemplos que NÃO têm valor (retorne null): "recebi salário", "paguei a luz", "chegou o VR", "recebi o salário da Radix"
-- Exemplos que TÊM valor: "recebi 5000", "paguei 200 de luz", "gastei 50"
+- Exemplos que TÊM valor: "recebi 5000", "paguei 200 de luz", "gastei 50", "gastei 177 e 34"
 
 REGRAS DE CATEGORIA:
 - Se o usuário mencionar algo relacionado a uma categoria, sugira a mais provável
@@ -82,6 +85,14 @@ REGRAS DE CONTA DE PAGAMENTO:
 - "débito", "conta corrente" → conta bancária principal
 - Se não mencionar forma de pagamento, deixe accountHint vazio
 
+REGRAS DE PARCELAMENTO:
+- Identifique compras parceladas: "em X vezes", "Xx", "parcelado em X", "em X parcelas"
+- Exemplos: "3x", "em 10x", "em 12 vezes", "parcelei em 5x", "dividi em 6"
+- O número de parcelas deve ser de 2 a 24
+- Compras parceladas geralmente são no cartão de crédito
+- Se mencionar parcelamento, retorne isInstallment: true e totalInstallments com o número
+- Se não mencionar parcelamento, retorne isInstallment: false
+
 Responda APENAS com JSON válido no formato:
 {
   "intent": "REGISTER_EXPENSE" | "REGISTER_INCOME" | "QUERY_BALANCE" | "QUERY_CATEGORY" | "QUERY_GOAL" | "TRANSFER" | "UNKNOWN",
@@ -91,7 +102,9 @@ Responda APENAS com JSON válido no formato:
     "amount": número em reais ou null se não mencionado,
     "description": "descrição opcional",
     "categoryHint": "nome da categoria mais provável ou vazio",
-    "accountHint": "nome da conta usada para pagar ou vazio"
+    "accountHint": "nome da conta usada para pagar ou vazio",
+    "isInstallment": true ou false,
+    "totalInstallments": número de parcelas (2-24) ou null se não parcelado
 
     // Para REGISTER_INCOME:
     "amount": número em reais ou null se não mencionado,
@@ -121,16 +134,28 @@ Responda APENAS com JSON válido no formato:
 EXEMPLOS:
 
 Entrada: "gastei 50 no mercado"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "mercado", "categoryHint": "Alimentação", "accountHint": ""}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "mercado", "categoryHint": "Alimentação", "accountHint": "", "isInstallment": false, "totalInstallments": null}}
+
+Entrada: "gastei 177 e 34 no restaurante"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 177.34, "description": "restaurante", "categoryHint": "Alimentação", "accountHint": "", "isInstallment": false, "totalInstallments": null}}
 
 Entrada: "paguei 200 de luz"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 200.00, "description": "conta de luz", "categoryHint": "Energia", "accountHint": ""}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 200.00, "description": "conta de luz", "categoryHint": "Energia", "accountHint": "", "isInstallment": false, "totalInstallments": null}}
 
 Entrada: "gastei 50 na churrascaria e paguei com o cartão flash"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "churrascaria", "categoryHint": "Alimentação", "accountHint": "Flash"}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "churrascaria", "categoryHint": "Alimentação", "accountHint": "Flash", "isInstallment": false, "totalInstallments": null}}
 
 Entrada: "comprei 80 de remédio no débito"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 80.00, "description": "remédio", "categoryHint": "Saúde", "accountHint": "conta corrente"}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 80.00, "description": "remédio", "categoryHint": "Saúde", "accountHint": "conta corrente", "isInstallment": false, "totalInstallments": null}}
+
+Entrada: "comprei uma TV de 2000 em 10x no cartão"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 2000.00, "description": "TV", "categoryHint": "Eletrônicos", "accountHint": "cartão de crédito", "isInstallment": true, "totalInstallments": 10}}
+
+Entrada: "parcelei o sofá de 3500 em 12 vezes"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 3500.00, "description": "sofá", "categoryHint": "Casa", "accountHint": "", "isInstallment": true, "totalInstallments": 12}}
+
+Entrada: "gastei 600 no dentista em 3x"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 600.00, "description": "dentista", "categoryHint": "Saúde", "accountHint": "", "isInstallment": true, "totalInstallments": 3}}
 
 Entrada: "recebi 5000 de salário"
 Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.95, "data": {"amount": 5000.00, "description": "salário", "incomeSourceHint": "Salário"}}
@@ -139,7 +164,7 @@ Entrada: "recebi salário da Radix"
 Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.90, "data": {"amount": null, "description": "salário", "incomeSourceHint": "Radix"}}
 
 Entrada: "paguei a conta de luz"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.88, "data": {"amount": null, "description": "conta de luz", "categoryHint": "Energia", "accountHint": ""}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.88, "data": {"amount": null, "description": "conta de luz", "categoryHint": "Energia", "accountHint": "", "isInstallment": false, "totalInstallments": null}}
 
 Entrada: "chegou o VR"
 Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.85, "data": {"amount": null, "description": "VR", "incomeSourceHint": "Vale Refeição"}}

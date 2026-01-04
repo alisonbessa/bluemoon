@@ -741,38 +741,111 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
     // Use account from context if specified, otherwise default
     const transactionAccountId = context.pendingExpense.accountId || budgetInfo.defaultAccount.id;
 
-    const [newTransaction] = await db
-      .insert(transactions)
-      .values({
-        budgetId: budgetInfo.budget.id,
-        accountId: transactionAccountId,
-        categoryId: context.pendingExpense.categoryId,
-        memberId: budgetInfo.member.id,
-        type: "expense",
-        status: "cleared",
-        amount: context.pendingExpense.amount,
-        description: capitalizedDescription,
-        date: getTodayNoonUTC(),
-        source: "telegram",
-      })
-      .returning();
+    // Handle installments
+    if (context.pendingExpense.isInstallment && context.pendingExpense.totalInstallments && context.pendingExpense.totalInstallments > 1) {
+      const totalInstallments = context.pendingExpense.totalInstallments;
+      const installmentAmount = Math.round(context.pendingExpense.amount / totalInstallments);
+      const transactionDate = getTodayNoonUTC();
 
-    transactionId = newTransaction.id;
+      // Create parent transaction (first installment)
+      const [parentTransaction] = await db
+        .insert(transactions)
+        .values({
+          budgetId: budgetInfo.budget.id,
+          accountId: transactionAccountId,
+          categoryId: context.pendingExpense.categoryId,
+          memberId: budgetInfo.member.id,
+          type: "expense",
+          status: "cleared",
+          amount: installmentAmount,
+          description: capitalizedDescription,
+          date: transactionDate,
+          isInstallment: true,
+          installmentNumber: 1,
+          totalInstallments,
+          source: "telegram",
+        })
+        .returning();
 
-    // Update state with last transaction for undo
-    await updateTelegramUser(chatId, "IDLE", {
-      lastTransactionId: transactionId,
-    });
+      // Batch insert remaining installments
+      const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => {
+        const installmentDate = new Date(transactionDate);
+        installmentDate.setMonth(installmentDate.getMonth() + (i + 1));
 
-    await sendMessage(
-      chatId,
-      `✅ <b>Gasto registrado!</b>\n\n` +
-        `Valor: <b>${formatCurrency(context.pendingExpense.amount)}</b>\n` +
-        `Categoria: ${context.pendingExpense.categoryName}\n` +
-        (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
-        (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
-        `Use /desfazer para remover este registro.`
-    );
+        return {
+          budgetId: budgetInfo.budget.id,
+          accountId: transactionAccountId,
+          categoryId: context.pendingExpense!.categoryId,
+          memberId: budgetInfo.member.id,
+          type: "expense" as const,
+          status: "cleared" as const,
+          amount: installmentAmount,
+          description: capitalizedDescription,
+          date: installmentDate,
+          isInstallment: true,
+          installmentNumber: i + 2,
+          totalInstallments,
+          parentTransactionId: parentTransaction.id,
+          source: "telegram" as const,
+        };
+      });
+
+      if (installmentValues.length > 0) {
+        await db.insert(transactions).values(installmentValues);
+      }
+
+      transactionId = parentTransaction.id;
+
+      // Update state with last transaction for undo
+      await updateTelegramUser(chatId, "IDLE", {
+        lastTransactionId: transactionId,
+      });
+
+      await sendMessage(
+        chatId,
+        `✅ <b>Compra parcelada registrada!</b>\n\n` +
+          `Valor total: <b>${formatCurrency(context.pendingExpense.amount)}</b>\n` +
+          `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
+          `Categoria: ${context.pendingExpense.categoryName}\n` +
+          (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
+          (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
+          `Use /desfazer para remover este registro.`
+      );
+    } else {
+      // Non-installment transaction
+      const [newTransaction] = await db
+        .insert(transactions)
+        .values({
+          budgetId: budgetInfo.budget.id,
+          accountId: transactionAccountId,
+          categoryId: context.pendingExpense.categoryId,
+          memberId: budgetInfo.member.id,
+          type: "expense",
+          status: "cleared",
+          amount: context.pendingExpense.amount,
+          description: capitalizedDescription,
+          date: getTodayNoonUTC(),
+          source: "telegram",
+        })
+        .returning();
+
+      transactionId = newTransaction.id;
+
+      // Update state with last transaction for undo
+      await updateTelegramUser(chatId, "IDLE", {
+        lastTransactionId: transactionId,
+      });
+
+      await sendMessage(
+        chatId,
+        `✅ <b>Gasto registrado!</b>\n\n` +
+          `Valor: <b>${formatCurrency(context.pendingExpense.amount)}</b>\n` +
+          `Categoria: ${context.pendingExpense.categoryName}\n` +
+          (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
+          (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
+          `Use /desfazer para remover este registro.`
+      );
+    }
   }
 }
 
@@ -1305,39 +1378,119 @@ async function handleGroupSelection(chatId: number, groupId: string, callbackQue
   // Use account from context if specified, otherwise default
   const transactionAccountId = context.pendingExpense.accountId || budgetInfo.defaultAccount!.id;
 
-  const [newTransaction] = await db
-    .insert(transactions)
-    .values({
-      budgetId: budgetInfo.budget.id,
-      accountId: transactionAccountId,
-      categoryId: newCategory.id,
-      memberId: budgetInfo.member.id,
-      type: "expense",
-      status: "cleared",
-      amount: context.pendingExpense.amount,
-      description: capitalizedDescription,
-      date: getTodayNoonUTC(),
-      source: "telegram",
-    })
-    .returning();
+  let transactionId: string;
 
-  await updateTelegramUser(chatId, "IDLE", {
-    lastTransactionId: newTransaction.id,
-  });
+  // Handle installments
+  if (context.pendingExpense.isInstallment && context.pendingExpense.totalInstallments && context.pendingExpense.totalInstallments > 1) {
+    const totalInstallments = context.pendingExpense.totalInstallments;
+    const installmentAmount = Math.round(context.pendingExpense.amount / totalInstallments);
+    const transactionDate = getTodayNoonUTC();
 
-  // Get group name
-  const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
+    // Create parent transaction (first installment)
+    const [parentTransaction] = await db
+      .insert(transactions)
+      .values({
+        budgetId: budgetInfo.budget.id,
+        accountId: transactionAccountId,
+        categoryId: newCategory.id,
+        memberId: budgetInfo.member.id,
+        type: "expense",
+        status: "cleared",
+        amount: installmentAmount,
+        description: capitalizedDescription,
+        date: transactionDate,
+        isInstallment: true,
+        installmentNumber: 1,
+        totalInstallments,
+        source: "telegram",
+      })
+      .returning();
 
-  await sendMessage(
-    chatId,
-    `✅ <b>Categoria criada e gasto registrado!</b>\n\n` +
-      `📁 Nova categoria: <b>${categoryName}</b>\n` +
-      `📂 Grupo: ${group?.name || "—"}\n\n` +
-      `💰 Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
-      (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
-      (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
-      `Use /desfazer para remover o gasto.`
-  );
+    // Batch insert remaining installments
+    const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => {
+      const installmentDate = new Date(transactionDate);
+      installmentDate.setMonth(installmentDate.getMonth() + (i + 1));
+
+      return {
+        budgetId: budgetInfo.budget.id,
+        accountId: transactionAccountId,
+        categoryId: newCategory.id,
+        memberId: budgetInfo.member.id,
+        type: "expense" as const,
+        status: "cleared" as const,
+        amount: installmentAmount,
+        description: capitalizedDescription,
+        date: installmentDate,
+        isInstallment: true,
+        installmentNumber: i + 2,
+        totalInstallments,
+        parentTransactionId: parentTransaction.id,
+        source: "telegram" as const,
+      };
+    });
+
+    if (installmentValues.length > 0) {
+      await db.insert(transactions).values(installmentValues);
+    }
+
+    transactionId = parentTransaction.id;
+
+    await updateTelegramUser(chatId, "IDLE", {
+      lastTransactionId: transactionId,
+    });
+
+    // Get group name
+    const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
+
+    await sendMessage(
+      chatId,
+      `✅ <b>Categoria criada e compra parcelada registrada!</b>\n\n` +
+        `📁 Nova categoria: <b>${categoryName}</b>\n` +
+        `📂 Grupo: ${group?.name || "—"}\n\n` +
+        `💰 Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
+        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
+        (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
+        (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
+        `Use /desfazer para remover o gasto.`
+    );
+  } else {
+    // Non-installment transaction
+    const [newTransaction] = await db
+      .insert(transactions)
+      .values({
+        budgetId: budgetInfo.budget.id,
+        accountId: transactionAccountId,
+        categoryId: newCategory.id,
+        memberId: budgetInfo.member.id,
+        type: "expense",
+        status: "cleared",
+        amount: context.pendingExpense.amount,
+        description: capitalizedDescription,
+        date: getTodayNoonUTC(),
+        source: "telegram",
+      })
+      .returning();
+
+    transactionId = newTransaction.id;
+
+    await updateTelegramUser(chatId, "IDLE", {
+      lastTransactionId: transactionId,
+    });
+
+    // Get group name
+    const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
+
+    await sendMessage(
+      chatId,
+      `✅ <b>Categoria criada e gasto registrado!</b>\n\n` +
+        `📁 Nova categoria: <b>${categoryName}</b>\n` +
+        `📂 Grupo: ${group?.name || "—"}\n\n` +
+        `💰 Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
+        (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
+        (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
+        `Use /desfazer para remover o gasto.`
+    );
+  }
 }
 
 // Handle custom category name input

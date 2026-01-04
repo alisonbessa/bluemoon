@@ -129,7 +129,76 @@ export async function handleExpenseIntent(
 
     const capitalizedDescription = capitalizeFirst(data.description);
 
-    // Create new transaction
+    // Handle installments
+    if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
+      const installmentAmount = Math.round(data.amount / data.totalInstallments);
+      const transactionDate = data.date || getTodayNoonUTC();
+
+      // Create parent transaction (first installment)
+      const [parentTransaction] = await db
+        .insert(transactions)
+        .values({
+          budgetId,
+          accountId,
+          categoryId,
+          memberId,
+          type: "expense",
+          status: "cleared",
+          amount: installmentAmount,
+          description: capitalizedDescription,
+          date: transactionDate,
+          isInstallment: true,
+          installmentNumber: 1,
+          totalInstallments: data.totalInstallments,
+          source: "telegram",
+        })
+        .returning();
+
+      // Batch insert remaining installments
+      const installmentValues = Array.from({ length: data.totalInstallments - 1 }, (_, i) => {
+        const installmentDate = new Date(transactionDate);
+        installmentDate.setMonth(installmentDate.getMonth() + (i + 1));
+
+        return {
+          budgetId,
+          accountId,
+          categoryId,
+          memberId,
+          type: "expense" as const,
+          status: "cleared" as const,
+          amount: installmentAmount,
+          description: capitalizedDescription,
+          date: installmentDate,
+          isInstallment: true,
+          installmentNumber: i + 2,
+          totalInstallments: data.totalInstallments,
+          parentTransactionId: parentTransaction.id,
+          source: "telegram" as const,
+        };
+      });
+
+      if (installmentValues.length > 0) {
+        await db.insert(transactions).values(installmentValues);
+      }
+
+      await updateTelegramContext(chatId, "IDLE", {
+        lastTransactionId: parentTransaction.id,
+      });
+
+      await sendMessage(
+        chatId,
+        `✅ <b>Compra parcelada registrada!</b>\n\n` +
+          `${categoryIcon || "📁"} ${categoryName}\n` +
+          `Valor total: ${formatCurrency(data.amount)}\n` +
+          `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
+          (accountName ? `Conta: ${accountName}\n` : "") +
+          (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
+          `Use /desfazer para remover.`
+      );
+      return;
+    }
+
+    // Create new transaction (non-installment)
     const [newTransaction] = await db
       .insert(transactions)
       .values({
@@ -166,7 +235,16 @@ export async function handleExpenseIntent(
   if (finalConfidence >= CONFIDENCE_THRESHOLDS.MEDIUM && categoryId) {
     let message = `📝 <b>Confirmar registro?</b>\n\n`;
     message += `${categoryIcon || "📁"} ${categoryName}\n`;
-    message += `Valor: ${formatCurrency(data.amount)}\n`;
+
+    // Show installment info if applicable
+    if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
+      const installmentAmount = Math.round(data.amount / data.totalInstallments);
+      message += `Valor total: ${formatCurrency(data.amount)}\n`;
+      message += `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
+    } else {
+      message += `Valor: ${formatCurrency(data.amount)}\n`;
+    }
+
     if (accountName) {
       message += `Conta: ${accountName}\n`;
     }
@@ -190,6 +268,8 @@ export async function handleExpenseIntent(
         categoryName,
         accountId,
         accountName,
+        isInstallment: data.isInstallment,
+        totalInstallments: data.totalInstallments,
       },
       scheduledTransactionId: scheduledMatch?.transaction.id,
       messagesToDelete: [...initialMessagesToDelete, confirmMsgId],
@@ -208,10 +288,17 @@ export async function handleExpenseIntent(
     const suggestedName = formatCategoryName(data.categoryHint!);
     const suggestedGroupCode = suggestGroupForCategory(data.categoryHint!);
 
+    let valueText = `Valor: ${formatCurrency(data.amount)}\n`;
+    if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
+      const installmentAmount = Math.round(data.amount / data.totalInstallments);
+      valueText = `Valor total: ${formatCurrency(data.amount)}\n` +
+        `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
+    }
+
     const newCatMsgId = await sendMessage(
       chatId,
       `💰 <b>Registrar gasto</b>\n\n` +
-        `Valor: ${formatCurrency(data.amount)}\n` +
+        valueText +
         (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
         `Não encontrei a categoria "<b>${data.categoryHint}</b>".\n` +
         `Deseja criar uma nova categoria?`,
@@ -226,6 +313,8 @@ export async function handleExpenseIntent(
         description: data.description,
         accountId,
         accountName,
+        isInstallment: data.isInstallment,
+        totalInstallments: data.totalInstallments,
       },
       pendingNewCategory: {
         suggestedName,
@@ -237,10 +326,17 @@ export async function handleExpenseIntent(
   }
 
   // LOW CONFIDENCE or no category: Ask for category selection
+  let valueText = `Valor: ${formatCurrency(data.amount)}\n`;
+  if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
+    const installmentAmount = Math.round(data.amount / data.totalInstallments);
+    valueText = `Valor total: ${formatCurrency(data.amount)}\n` +
+      `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
+  }
+
   const catSelectMsgId = await sendMessage(
     chatId,
     `💰 <b>Registrar gasto</b>\n\n` +
-      `Valor: ${formatCurrency(data.amount)}\n` +
+      valueText +
       (accountName ? `Conta: ${accountName}\n` : "") +
       (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
       `Selecione a categoria:`,
@@ -255,6 +351,8 @@ export async function handleExpenseIntent(
       description: data.description,
       accountId,
       accountName,
+      isInstallment: data.isInstallment,
+      totalInstallments: data.totalInstallments,
     },
     messagesToDelete: [...initialMessagesToDelete, catSelectMsgId],
   });
