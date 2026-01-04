@@ -18,7 +18,11 @@ import {
   Ticket,
 } from "lucide-react";
 
-export function UserButton() {
+interface UserButtonProps {
+  compact?: boolean;
+}
+
+export function UserButton({ compact = false }: UserButtonProps) {
   const { user } = useUser();
 
   const getInitials = (name: string) => {
@@ -42,9 +46,11 @@ export function UserButton() {
             )}
           </AvatarFallback>
         </Avatar>
-        <span className="hidden text-sm font-medium md:inline-block">
-          {user?.name || user?.email}
-        </span>
+        {!compact && (
+          <span className="hidden text-sm font-medium md:inline-block">
+            {user?.name || user?.email}
+          </span>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <div className="flex items-center justify-start gap-2 p-2">

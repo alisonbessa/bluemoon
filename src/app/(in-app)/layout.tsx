@@ -1,6 +1,8 @@
 "use client";
 
 import { AppHeader } from "@/components/layout/app-header";
+import { AppSidebar } from "@/components/layout/app-sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import {
   TutorialProvider,
   TutorialOverlay,
@@ -15,45 +17,44 @@ const BUDGET_INITIALIZED_KEY = "hivebudget_budget_initialized";
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col h-screen">
-      {/* Header Shimmer */}
-      <div className="border-b border-border/40 bg-background">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-4">
-            <div className="h-8 w-32 bg-gray-200 rounded-md animate-pulse" />
-            <div className="hidden md:flex gap-4">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-4 w-20 bg-gray-200 rounded-md animate-pulse"
-                />
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse" />
-            <div className="h-4 w-24 bg-gray-200 rounded-md animate-pulse" />
-          </div>
+    <div className="flex h-screen">
+      {/* Sidebar Shimmer */}
+      <div className="hidden md:flex w-16 flex-col border-r bg-background p-2">
+        <div className="h-8 w-8 bg-muted rounded-lg animate-pulse mb-4" />
+        <div className="flex flex-col gap-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-8 w-8 bg-muted rounded-md animate-pulse" />
+          ))}
         </div>
       </div>
 
-      {/* Content Shimmer */}
-      <div className="grow p-4">
-        <div className="max-w-7xl mx-auto flex flex-col gap-6">
-          <div className="h-8 w-64 bg-gray-200 rounded-md animate-pulse" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="p-6 rounded-lg border border-border/40 bg-card"
-              >
-                <div className="flex flex-col gap-4">
-                  <div className="h-4 w-24 bg-gray-200 rounded-md animate-pulse" />
-                  <div className="h-8 w-32 bg-gray-200 rounded-md animate-pulse" />
-                  <div className="h-4 w-full bg-gray-200 rounded-md animate-pulse" />
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header Shimmer */}
+        <div className="h-14 border-b bg-background flex items-center px-4 gap-4">
+          <div className="h-6 w-6 bg-muted rounded animate-pulse" />
+          <div className="flex-1" />
+          <div className="h-8 w-8 bg-muted rounded-full animate-pulse" />
+        </div>
+
+        {/* Content Shimmer */}
+        <div className="flex-1 p-4">
+          <div className="max-w-7xl mx-auto flex flex-col gap-6">
+            <div className="h-8 w-64 bg-muted rounded-md animate-pulse" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="p-6 rounded-lg border border-border/40 bg-card"
+                >
+                  <div className="flex flex-col gap-4">
+                    <div className="h-4 w-24 bg-muted rounded-md animate-pulse" />
+                    <div className="h-8 w-32 bg-muted rounded-md animate-pulse" />
+                    <div className="h-4 w-full bg-muted rounded-md animate-pulse" />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -202,20 +203,23 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex flex-col h-screen gap-4">
-      <AppHeader />
-      <div className="grow p-4 sm:p-2 max-w-7xl mx-auto w-full">{children}</div>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <AppHeader />
+        <div className="flex-1 p-4 sm:p-2 max-w-7xl mx-auto w-full">{children}</div>
 
-      {/* Celebration Modal when tutorial completes */}
-      <CelebrationModal
-        isOpen={showCelebration}
-        onClose={handleCelebrationClose}
-        summary={celebrationSummary}
-      />
+        {/* Celebration Modal when tutorial completes */}
+        <CelebrationModal
+          isOpen={showCelebration}
+          onClose={handleCelebrationClose}
+          summary={celebrationSummary}
+        />
 
-      {/* Tutorial Overlay (spotlight + tooltip) */}
-      <TutorialOverlay />
-    </div>
+        {/* Tutorial Overlay (spotlight + tooltip) */}
+        <TutorialOverlay />
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 

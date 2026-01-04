@@ -369,14 +369,14 @@ export default function TransactionsPage() {
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Transações</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Transacoes</h1>
           <p className="text-sm text-muted-foreground">
-            Gerencie todas as suas movimentações financeiras
+            Gerencie todas as suas movimentacoes financeiras
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {/* Month Navigation */}
           <MonthSelector
             year={currentYear}
@@ -384,44 +384,44 @@ export default function TransactionsPage() {
             onChange={handleMonthChange}
           />
           <Button onClick={openCreateForm} size="sm">
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Transação
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Nova Transacao</span>
           </Button>
         </div>
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-lg border bg-card p-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <TrendingUp className="h-4 w-4 text-green-500" />
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="rounded-lg border bg-card p-2 sm:p-3">
+          <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
             <span>Receitas</span>
           </div>
-          <div className="mt-1 text-xl font-bold text-green-600">
-            {formatCurrency(totalIncome)}
+          <div className="mt-1 text-base sm:text-xl font-bold text-green-600">
+            {formatCurrencyCompact(totalIncome)}
           </div>
         </div>
 
-        <div className="rounded-lg border bg-card p-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <TrendingDown className="h-4 w-4 text-red-500" />
+        <div className="rounded-lg border bg-card p-2 sm:p-3">
+          <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+            <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />
             <span>Despesas</span>
           </div>
-          <div className="mt-1 text-xl font-bold text-red-600">
-            {formatCurrency(totalExpenses)}
+          <div className="mt-1 text-base sm:text-xl font-bold text-red-600">
+            {formatCurrencyCompact(totalExpenses)}
           </div>
         </div>
 
-        <div className="rounded-lg border bg-card p-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Receipt className="h-4 w-4" />
+        <div className="rounded-lg border bg-card p-2 sm:p-3">
+          <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+            <Receipt className="h-3 w-3 sm:h-4 sm:w-4" />
             <span>Saldo</span>
           </div>
           <div className={cn(
-            "mt-1 text-xl font-bold",
+            "mt-1 text-base sm:text-xl font-bold",
             totalIncome - totalExpenses >= 0 ? "text-green-600" : "text-red-600"
           )}>
-            {formatCurrency(totalIncome - totalExpenses)}
+            {formatCurrencyCompact(totalIncome - totalExpenses)}
           </div>
         </div>
       </div>
@@ -511,16 +511,16 @@ export default function TransactionsPage() {
         />
       )}
 
-      {/* Compact Transactions Table */}
+      {/* Transactions List */}
       {transactions.length > 0 ? (
         <div className="rounded-lg border bg-card">
-          {/* Table Header */}
+          {/* Desktop Table Header - Hidden on mobile */}
           <div
-            className={COMPACT_TABLE_STYLES.header}
+            className={cn(COMPACT_TABLE_STYLES.header, "hidden md:grid")}
             style={{ gridTemplateColumns: GRID_COLS }}
           >
             <div></div>
-            <div>Descrição</div>
+            <div>Descricao</div>
             <div>Categoria</div>
             <div>Conta</div>
             <div className="text-right">Valor</div>
@@ -538,6 +538,7 @@ export default function TransactionsPage() {
 
             return (
               <div key={dateKey}>
+                {/* Date Group Header */}
                 <GroupToggleRow
                   isExpanded={expanded}
                   onToggle={() => toggleGroup(dateKey)}
@@ -555,60 +556,107 @@ export default function TransactionsPage() {
                   summaryClassName={dayTotal >= 0 ? "text-green-600" : "text-red-600"}
                 />
 
-                {/* Transaction Rows */}
+                {/* Transaction Rows - Desktop Table */}
                 {expanded && dayTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className={COMPACT_TABLE_STYLES.itemRow}
-                    style={{ gridTemplateColumns: GRID_COLS }}
-                  >
-                    <div className="flex items-center justify-center">
-                      {getTypeIcon(transaction.type)}
-                    </div>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="truncate font-medium">
-                        {transaction.description || "Sem descrição"}
-                      </span>
-                      {transaction.isInstallment && transaction.installmentNumber && transaction.totalInstallments && (
-                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                          {transaction.installmentNumber}/{transaction.totalInstallments}
+                  <div key={transaction.id}>
+                    {/* Desktop Row */}
+                    <div
+                      className={cn(COMPACT_TABLE_STYLES.itemRow, "hidden md:grid")}
+                      style={{ gridTemplateColumns: GRID_COLS }}
+                    >
+                      <div className="flex items-center justify-center">
+                        {getTypeIcon(transaction.type)}
+                      </div>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="truncate font-medium">
+                          {transaction.description || "Sem descricao"}
                         </span>
-                      )}
-                      <HoverActions
-                        onEdit={() => openEditForm(transaction)}
-                        onDelete={() => setDeletingTransaction(transaction)}
-                        editTitle="Editar transação"
-                        deleteTitle="Excluir transação"
-                      />
+                        {transaction.isInstallment && transaction.installmentNumber && transaction.totalInstallments && (
+                          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                            {transaction.installmentNumber}/{transaction.totalInstallments}
+                          </span>
+                        )}
+                        <HoverActions
+                          onEdit={() => openEditForm(transaction)}
+                          onDelete={() => setDeletingTransaction(transaction)}
+                          editTitle="Editar transacao"
+                          deleteTitle="Excluir transacao"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground truncate">
+                        {transaction.category ? (
+                          <>
+                            <span>{transaction.category.icon || "📌"}</span>
+                            <span className="truncate">{transaction.category.name}</span>
+                          </>
+                        ) : (
+                          <span className="text-xs">Sem categoria</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-muted-foreground truncate">
+                        {transaction.account ? (
+                          <>
+                            <span>{transaction.account.icon || "🏦"}</span>
+                            <span className="truncate">{transaction.account.name}</span>
+                          </>
+                        ) : (
+                          <span className="text-xs">-</span>
+                        )}
+                      </div>
+                      <div className={cn(
+                        "text-right font-medium tabular-nums",
+                        transaction.type === "income" ? "text-green-600" :
+                        transaction.type === "expense" ? "text-red-600" : "text-blue-600"
+                      )}>
+                        {transaction.type === "expense" && "-"}
+                        {transaction.type === "income" && "+"}
+                        {formatCurrencyCompact(Math.abs(transaction.amount))}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-muted-foreground truncate">
-                      {transaction.category ? (
-                        <>
-                          <span>{transaction.category.icon || "📌"}</span>
-                          <span className="truncate">{transaction.category.name}</span>
-                        </>
-                      ) : (
-                        <span className="text-xs">Sem categoria</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-muted-foreground truncate">
-                      {transaction.account ? (
-                        <>
-                          <span>{transaction.account.icon || "🏦"}</span>
-                          <span className="truncate">{transaction.account.name}</span>
-                        </>
-                      ) : (
-                        <span className="text-xs">-</span>
-                      )}
-                    </div>
-                    <div className={cn(
-                      "text-right font-medium tabular-nums",
-                      transaction.type === "income" ? "text-green-600" :
-                      transaction.type === "expense" ? "text-red-600" : "text-blue-600"
-                    )}>
-                      {transaction.type === "expense" && "-"}
-                      {transaction.type === "income" && "+"}
-                      {formatCurrencyCompact(Math.abs(transaction.amount))}
+
+                    {/* Mobile Card */}
+                    <div
+                      className="md:hidden flex items-center justify-between p-3 border-t cursor-pointer hover:bg-muted/50"
+                      onClick={() => openEditForm(transaction)}
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex-shrink-0">
+                          {getTypeIcon(transaction.type)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium truncate">
+                              {transaction.description || "Sem descricao"}
+                            </span>
+                            {transaction.isInstallment && transaction.installmentNumber && transaction.totalInstallments && (
+                              <span className="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded flex-shrink-0">
+                                {transaction.installmentNumber}/{transaction.totalInstallments}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                            {transaction.category && (
+                              <span className="flex items-center gap-1">
+                                {transaction.category.icon || "📌"} {transaction.category.name}
+                              </span>
+                            )}
+                            {transaction.account && (
+                              <span className="flex items-center gap-1">
+                                {transaction.account.icon || "🏦"} {transaction.account.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={cn(
+                        "font-medium tabular-nums text-right flex-shrink-0 ml-2",
+                        transaction.type === "income" ? "text-green-600" :
+                        transaction.type === "expense" ? "text-red-600" : "text-blue-600"
+                      )}>
+                        {transaction.type === "expense" && "-"}
+                        {transaction.type === "income" && "+"}
+                        {formatCurrencyCompact(Math.abs(transaction.amount))}
+                      </div>
                     </div>
                   </div>
                 ))}
