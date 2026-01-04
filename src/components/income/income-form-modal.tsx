@@ -111,7 +111,7 @@ export function IncomeFormModal({
         }
       }}
     >
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Renda' : 'Nova Fonte de Renda'}
