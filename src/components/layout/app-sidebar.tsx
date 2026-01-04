@@ -104,6 +104,13 @@ function SidebarUserMenu() {
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <Sidebar
@@ -134,7 +141,7 @@ export function AppSidebar() {
                       isActive={isActive}
                       tooltip={item.label}
                     >
-                      <Link href={item.href} data-tutorial={item.tutorialId}>
+                      <Link href={item.href} data-tutorial={item.tutorialId} onClick={handleNavClick}>
                         <item.icon className="size-4" />
                         <span>{item.label}</span>
                       </Link>
