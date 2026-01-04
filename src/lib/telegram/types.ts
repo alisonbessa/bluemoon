@@ -100,6 +100,8 @@ export interface ExtractedExpenseData {
   categoryHint?: string;
   accountHint?: string;
   date?: Date;
+  isInstallment?: boolean;
+  totalInstallments?: number;
 }
 
 export interface ExtractedIncomeData {

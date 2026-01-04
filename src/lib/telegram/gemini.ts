@@ -152,11 +152,20 @@ function normalizeExtractedData(
 
   switch (intent) {
     case "REGISTER_EXPENSE":
-    case "REGISTER_INCOME":
       return {
         amount: normalizeAmount(data.amount),
         description: data.description as string | undefined,
         categoryHint: data.categoryHint as string | undefined,
+        accountHint: data.accountHint as string | undefined,
+        date: data.date ? new Date(data.date as string) : undefined,
+        isInstallment: data.isInstallment === true,
+        totalInstallments: normalizeInstallments(data.totalInstallments),
+      };
+
+    case "REGISTER_INCOME":
+      return {
+        amount: normalizeAmount(data.amount),
+        description: data.description as string | undefined,
         incomeSourceHint: data.incomeSourceHint as string | undefined,
         accountHint: data.accountHint as string | undefined,
         date: data.date ? new Date(data.date as string) : undefined,
@@ -195,6 +204,16 @@ function normalizeAmount(amount: unknown): number {
     return Math.round(amount * 100);
   }
   return 0;
+}
+
+/**
+ * Normalize installment count (2-24 range)
+ */
+function normalizeInstallments(installments: unknown): number | undefined {
+  if (typeof installments === "number" && installments >= 2 && installments <= 24) {
+    return Math.round(installments);
+  }
+  return undefined;
 }
 
 /**

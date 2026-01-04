@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { formatCurrencyFromDigits, parseCurrency } from '@/lib/formatters';
 
 interface Category {
@@ -49,6 +50,8 @@ interface TransactionFormData {
   incomeSourceId: string;
   toAccountId: string;
   date: string;
+  isInstallment?: boolean;
+  totalInstallments?: number;
 }
 
 interface TransactionFormModalProps {
@@ -81,6 +84,11 @@ export function TransactionFormModal({
     { value: 'income', label: 'Receita', color: 'text-green-500' },
     { value: 'transfer', label: 'Transferência', color: 'text-blue-500' },
   ];
+
+  // Check if selected account is a credit card (for installment option)
+  const selectedAccount = accounts.find(a => a.id === formData.accountId);
+  const isCreditCard = selectedAccount?.type === 'credit_card';
+  const showInstallmentOption = formData.type === 'expense' && isCreditCard && !isEditing;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -243,6 +251,57 @@ export function TransactionFormModal({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {/* Installment option (only for credit card expenses, not when editing) */}
+          {showInstallmentOption && (
+            <div className="space-y-3 rounded-lg border p-3 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="installment" className="cursor-pointer">
+                  Parcelar compra
+                </Label>
+                <Switch
+                  id="installment"
+                  checked={formData.isInstallment || false}
+                  onCheckedChange={(checked) =>
+                    setFormData({
+                      ...formData,
+                      isInstallment: checked,
+                      totalInstallments: checked ? 2 : undefined,
+                    })
+                  }
+                />
+              </div>
+              {formData.isInstallment && (
+                <div className="space-y-2">
+                  <Label htmlFor="totalInstallments">Número de parcelas</Label>
+                  <Select
+                    value={String(formData.totalInstallments || 2)}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        totalInstallments: parseInt(value),
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 23 }, (_, i) => i + 2).map((num) => (
+                        <SelectItem key={num} value={String(num)}>
+                          {num}x {parseCurrency(formData.amount) > 0 && (
+                            <span className="text-muted-foreground ml-1">
+                              (R$ {(parseCurrency(formData.amount) / num / 100).toFixed(2).replace('.', ',')}/mês)
+                            </span>
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
 

@@ -44,6 +44,7 @@ import {
   TrendingDown,
   ArrowLeftRight,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { MonthSelector } from "@/components/ui/month-selector";
 import { format, isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -150,6 +151,8 @@ export default function TransactionsPage() {
     incomeSourceId: "",
     toAccountId: "",
     date: format(new Date(), "yyyy-MM-dd"),
+    isInstallment: false,
+    totalInstallments: 2,
   });
 
   const fetchData = useCallback(async () => {
@@ -216,6 +219,8 @@ export default function TransactionsPage() {
       incomeSourceId: "",
       toAccountId: "",
       date: format(new Date(), "yyyy-MM-dd"),
+      isInstallment: false,
+      totalInstallments: 2,
     });
     setEditingTransaction(null);
     setIsFormOpen(true);
@@ -231,6 +236,8 @@ export default function TransactionsPage() {
       incomeSourceId: (transaction as Transaction & { incomeSourceId?: string }).incomeSourceId || "",
       toAccountId: (transaction as Transaction & { toAccountId?: string }).toAccountId || "",
       date: format(new Date(transaction.date), "yyyy-MM-dd"),
+      isInstallment: false, // Editing doesn't allow changing installment
+      totalInstallments: 2,
     });
     setEditingTransaction(transaction);
     setIsFormOpen(true);
@@ -254,6 +261,11 @@ export default function TransactionsPage() {
 
     setIsSubmitting(true);
     try {
+      // Check if this is an installment purchase
+      const selectedAccount = accounts.find(a => a.id === formData.accountId);
+      const isCreditCard = selectedAccount?.type === "credit_card";
+      const canBeInstallment = formData.type === "expense" && isCreditCard && !editingTransaction;
+
       const payload = {
         budgetId: budgets[0].id,
         type: formData.type,
@@ -264,6 +276,11 @@ export default function TransactionsPage() {
         incomeSourceId: formData.type === "income" ? (formData.incomeSourceId || undefined) : undefined,
         toAccountId: formData.type === "transfer" ? (formData.toAccountId || undefined) : undefined,
         date: new Date(formData.date).toISOString(),
+        // Installment fields (only for new credit card expenses)
+        ...(canBeInstallment && formData.isInstallment ? {
+          isInstallment: true,
+          totalInstallments: formData.totalInstallments,
+        } : {}),
       };
 
       if (editingTransaction) {
@@ -468,6 +485,8 @@ export default function TransactionsPage() {
               incomeSourceId: scheduled.incomeSourceId || "",
               toAccountId: "",
               date: format(new Date(scheduled.dueDate), "yyyy-MM-dd"),
+              isInstallment: false,
+              totalInstallments: 2,
             });
             setEditingTransaction(null);
             setIsFormOpen(true);
@@ -821,6 +840,65 @@ export default function TransactionsPage() {
                 </Select>
               </div>
             )}
+
+            {/* Installment option (only for credit card expenses when creating) */}
+            {(() => {
+              const selectedAccount = accounts.find(a => a.id === formData.accountId);
+              const isCreditCard = selectedAccount?.type === "credit_card";
+              const showInstallmentOption = formData.type === "expense" && isCreditCard && !editingTransaction;
+
+              if (!showInstallmentOption) return null;
+
+              return (
+                <div className="space-y-3 rounded-lg border p-3 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="installment" className="cursor-pointer">
+                      Parcelar compra
+                    </Label>
+                    <Switch
+                      id="installment"
+                      checked={formData.isInstallment}
+                      onCheckedChange={(checked) =>
+                        setFormData({
+                          ...formData,
+                          isInstallment: checked,
+                          totalInstallments: checked ? 2 : 2,
+                        })
+                      }
+                    />
+                  </div>
+                  {formData.isInstallment && (
+                    <div className="space-y-2">
+                      <Label htmlFor="totalInstallments">Número de parcelas</Label>
+                      <Select
+                        value={String(formData.totalInstallments)}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            totalInstallments: parseInt(value),
+                          })
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 23 }, (_, i) => i + 2).map((num) => (
+                            <SelectItem key={num} value={String(num)}>
+                              {num}x {parseCurrency(formData.amount) > 0 && (
+                                <span className="text-muted-foreground ml-1">
+                                  (R$ {(parseCurrency(formData.amount) / num / 100).toFixed(2).replace(".", ",")}/mês)
+                                </span>
+                              )}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {formData.type === "income" && (
               <div className="space-y-2">
