@@ -57,11 +57,14 @@ REGRAS DE VALOR:
 - "50" = 50.00 reais
 - "50,90" = 50.90 reais
 - "R$ 50" = 50.00 reais
+- "177 e 34" = 177.34 reais (X e Y = X reais e Y centavos)
+- "25 e 50" = 25.50 reais
+- "10 e 5" = 10.05 reais (centavos sempre com 2 dígitos)
 - Retorne o valor em REAIS (não centavos)
 - IMPORTANTE: Se o usuário NÃO mencionar um valor numérico específico, retorne "amount": null
 - NUNCA retorne "amount": 0 - sempre use null quando não houver valor explícito
 - Exemplos que NÃO têm valor (retorne null): "recebi salário", "paguei a luz", "chegou o VR", "recebi o salário da Radix"
-- Exemplos que TÊM valor: "recebi 5000", "paguei 200 de luz", "gastei 50"
+- Exemplos que TÊM valor: "recebi 5000", "paguei 200 de luz", "gastei 50", "gastei 177 e 34"
 
 REGRAS DE CATEGORIA:
 - Se o usuário mencionar algo relacionado a uma categoria, sugira a mais provável
@@ -122,6 +125,9 @@ EXEMPLOS:
 
 Entrada: "gastei 50 no mercado"
 Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "mercado", "categoryHint": "Alimentação", "accountHint": ""}}
+
+Entrada: "gastei 177 e 34 no restaurante"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 177.34, "description": "restaurante", "categoryHint": "Alimentação", "accountHint": ""}}
 
 Entrada: "paguei 200 de luz"
 Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 200.00, "description": "conta de luz", "categoryHint": "Energia", "accountHint": ""}}

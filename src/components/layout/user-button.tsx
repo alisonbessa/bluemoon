@@ -47,7 +47,7 @@ export function UserButton({ compact = false }: UserButtonProps) {
           </AvatarFallback>
         </Avatar>
         {!compact && (
-          <span className="hidden text-sm font-medium md:inline-block">
+          <span className="text-sm font-medium">
             {user?.name || user?.email}
           </span>
         )}

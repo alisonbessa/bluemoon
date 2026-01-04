@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { appConfig } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboardIcon,
@@ -11,6 +10,8 @@ import {
   ReceiptIcon,
   CreditCardIcon,
   SettingsIcon,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,6 +27,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { UserButton } from "@/components/layout/user-button";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   {
@@ -48,7 +50,7 @@ const navItems = [
   },
   {
     href: "/app/transactions",
-    label: "Transacoes",
+    label: "Transações",
     icon: ReceiptIcon,
     tutorialId: "nav-transactions",
   },
@@ -66,24 +68,26 @@ const navItems = [
   },
 ];
 
-function SidebarLogo() {
-  const { state } = useSidebar();
+function SidebarToggle() {
+  const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
 
   return (
-    <Link href="/app" className="flex items-center gap-2 px-2 py-1">
-      <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-        {appConfig.projectName.charAt(0)}
-      </div>
-      <span
-        className={cn(
-          "text-lg font-bold transition-opacity duration-200",
-          isCollapsed ? "opacity-0 hidden" : "opacity-100"
-        )}
+    <div className={cn("flex w-full", isCollapsed ? "justify-center" : "justify-end px-2")}>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={toggleSidebar}
+        className="size-8"
+        title={isCollapsed ? "Expandir menu" : "Recolher menu"}
       >
-        {appConfig.projectName}
-      </span>
-    </Link>
+        {isCollapsed ? (
+          <PanelLeftOpenIcon className="size-4" />
+        ) : (
+          <PanelLeftCloseIcon className="size-4" />
+        )}
+      </Button>
+    </div>
   );
 }
 
@@ -102,12 +106,18 @@ export function AppSidebar() {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <SidebarLogo />
+    <Sidebar
+      collapsible="icon"
+      side="left"
+      mobileSide="right"
+      className="top-14 h-[calc(100svh-3.5rem)]"
+    >
+      {/* Toggle button at the top - hidden on mobile */}
+      <SidebarHeader className="hidden md:flex items-center py-2">
+        <SidebarToggle />
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="pt-2">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>

@@ -371,9 +371,9 @@ export default function TransactionsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Transacoes</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Transações</h1>
           <p className="text-sm text-muted-foreground">
-            Gerencie todas as suas movimentacoes financeiras
+            Gerencie todas as suas movimentações financeiras
           </p>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
@@ -385,7 +385,7 @@ export default function TransactionsPage() {
           />
           <Button onClick={openCreateForm} size="sm">
             <Plus className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Nova Transacao</span>
+            <span className="hidden sm:inline">Nova Transação</span>
           </Button>
         </div>
       </div>
@@ -520,7 +520,7 @@ export default function TransactionsPage() {
             style={{ gridTemplateColumns: GRID_COLS }}
           >
             <div></div>
-            <div>Descricao</div>
+            <div>Descrição</div>
             <div>Categoria</div>
             <div>Conta</div>
             <div className="text-right">Valor</div>
@@ -569,7 +569,7 @@ export default function TransactionsPage() {
                       </div>
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="truncate font-medium">
-                          {transaction.description || "Sem descricao"}
+                          {transaction.description || "Sem descrição"}
                         </span>
                         {transaction.isInstallment && transaction.installmentNumber && transaction.totalInstallments && (
                           <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
@@ -579,8 +579,8 @@ export default function TransactionsPage() {
                         <HoverActions
                           onEdit={() => openEditForm(transaction)}
                           onDelete={() => setDeletingTransaction(transaction)}
-                          editTitle="Editar transacao"
-                          deleteTitle="Excluir transacao"
+                          editTitle="Editar transação"
+                          deleteTitle="Excluir transação"
                         />
                       </div>
                       <div className="flex items-center gap-1.5 text-muted-foreground truncate">
@@ -626,7 +626,7 @@ export default function TransactionsPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <span className="font-medium truncate">
-                              {transaction.description || "Sem descricao"}
+                              {transaction.description || "Sem descrição"}
                             </span>
                             {transaction.isInstallment && transaction.installmentNumber && transaction.totalInstallments && (
                               <span className="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded flex-shrink-0">
