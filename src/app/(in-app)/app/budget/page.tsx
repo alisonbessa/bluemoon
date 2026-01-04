@@ -1049,7 +1049,8 @@ export default function BudgetPage() {
             </div>
 
             {isIncomeExpanded && (
-              <>
+              <div className="overflow-x-auto">
+                <div className="min-w-[550px]">
                 {/* Income Table Header */}
                 <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
                   <div />
@@ -1213,7 +1214,8 @@ export default function BudgetPage() {
                 );
               })
             )}
-              </>
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -1242,7 +1244,8 @@ export default function BudgetPage() {
             </div>
 
             {isExpensesExpanded && (
-              <>
+              <div className="overflow-x-auto">
+                <div className="min-w-[550px]">
                 {/* Expenses Table Header */}
                 <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
                   <div />
@@ -1251,13 +1254,16 @@ export default function BudgetPage() {
                   <div className="text-right">Gasto</div>
                   <div className="text-right">Disponível</div>
                 </div>
-              </>
+                </div>
+              </div>
             )}
           </>
         )}
 
         {groupsData.length > 0 && isExpensesExpanded ? (
-          groupsData.map(({ group, categories, totals: groupTotals }) => {
+          <div className="overflow-x-auto">
+            <div className="min-w-[550px]">
+          {groupsData.map(({ group, categories, totals: groupTotals }) => {
             const isExpanded = expandedGroups.includes(group.id);
             const filteredCategories = filterCategories(categories);
             const categoryIds = categories.map((c) => c.category.id);
@@ -1359,7 +1365,9 @@ export default function BudgetPage() {
                 })}
               </div>
             );
-          })
+          })}
+            </div>
+          </div>
         ) : groupsData.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <PiggyBank className="h-12 w-12 text-muted-foreground" />
@@ -1403,7 +1411,8 @@ export default function BudgetPage() {
           </div>
 
           {isGoalsExpanded && goals.length > 0 && (
-            <>
+            <div className="overflow-x-auto">
+              <div className="min-w-[550px]">
               {/* Goals Table Header */}
               <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
                 <div />
@@ -1446,7 +1455,8 @@ export default function BudgetPage() {
                   </div>
                 </Link>
               ))}
-            </>
+              </div>
+            </div>
           )}
 
           {/* Empty state for goals */}

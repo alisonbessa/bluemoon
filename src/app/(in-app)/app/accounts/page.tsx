@@ -211,7 +211,7 @@ export default function AccountsPage() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-lg border bg-card p-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Wallet className="h-4 w-4" />
@@ -270,9 +270,9 @@ export default function AccountsPage() {
       {/* Compact Accounts Table */}
       {accounts.length > 0 ? (
         <div className="rounded-lg border bg-card">
-          {/* Table Header */}
+          {/* Table Header - Desktop only */}
           <div
-            className={COMPACT_TABLE_STYLES.header}
+            className={cn(COMPACT_TABLE_STYLES.header, "hidden md:grid")}
             style={{ gridTemplateColumns: GRID_COLS }}
           >
             <div></div>
@@ -324,70 +324,129 @@ export default function AccountsPage() {
                     const isCreditCardAccount = account.type === "credit_card";
 
                     return (
-                      <div
-                        key={account.id}
-                        className={COMPACT_TABLE_STYLES.itemRow}
-                        style={{ gridTemplateColumns: GRID_COLS }}
-                      >
-                        <div className="flex items-center justify-center">
-                          <span className="text-base">
-                            {account.icon || config.icon}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="truncate font-medium">{account.name}</span>
-                          {isCreditCardAccount && account.closingDay && (
-                            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                              Fecha dia {account.closingDay}
-                            </span>
-                          )}
-                          <HoverActions
-                            onEdit={() => setEditingAccount(account)}
-                            onDelete={() => setDeletingAccount(account)}
-                            editTitle="Editar conta"
-                            deleteTitle="Excluir conta"
-                          />
-                        </div>
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          {account.owner ? (
-                            <>
-                              <span
-                                className="h-2 w-2 rounded-full flex-shrink-0"
-                                style={{
-                                  backgroundColor: account.owner.color || "#6366f1",
-                                }}
-                              />
-                              <span className="truncate text-xs">
-                                {account.owner.name}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-xs">Compartilhado</span>
-                          )}
-                        </div>
-                        <div className="text-right text-muted-foreground">
-                          {isCreditCardAccount && account.creditLimit ? (
-                            <span className="text-xs">
-                              {formatCurrencyCompact(account.creditLimit)}
-                            </span>
-                          ) : (
-                            <span className="text-xs">-</span>
-                          )}
-                        </div>
+                      <div key={account.id}>
+                        {/* Desktop Row */}
                         <div
-                          className={cn(
-                            "text-right font-medium tabular-nums",
-                            isCreditCardAccount
-                              ? account.balance > 0
-                                ? "text-red-600"
-                                : "text-foreground"
-                              : account.balance >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          )}
+                          className={cn(COMPACT_TABLE_STYLES.itemRow, "hidden md:grid")}
+                          style={{ gridTemplateColumns: GRID_COLS }}
                         >
-                          {isCreditCardAccount && account.balance > 0 && "-"}
-                          {formatCurrencyCompact(Math.abs(account.balance))}
+                          <div className="flex items-center justify-center">
+                            <span className="text-base">
+                              {account.icon || config.icon}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="truncate font-medium">{account.name}</span>
+                            {isCreditCardAccount && account.closingDay && (
+                              <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                                Fecha dia {account.closingDay}
+                              </span>
+                            )}
+                            <HoverActions
+                              onEdit={() => setEditingAccount(account)}
+                              onDelete={() => setDeletingAccount(account)}
+                              editTitle="Editar conta"
+                              deleteTitle="Excluir conta"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            {account.owner ? (
+                              <>
+                                <span
+                                  className="h-2 w-2 rounded-full flex-shrink-0"
+                                  style={{
+                                    backgroundColor: account.owner.color || "#6366f1",
+                                  }}
+                                />
+                                <span className="truncate text-xs">
+                                  {account.owner.name}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-xs">Compartilhado</span>
+                            )}
+                          </div>
+                          <div className="text-right text-muted-foreground">
+                            {isCreditCardAccount && account.creditLimit ? (
+                              <span className="text-xs">
+                                {formatCurrencyCompact(account.creditLimit)}
+                              </span>
+                            ) : (
+                              <span className="text-xs">-</span>
+                            )}
+                          </div>
+                          <div
+                            className={cn(
+                              "text-right font-medium tabular-nums",
+                              isCreditCardAccount
+                                ? account.balance > 0
+                                  ? "text-red-600"
+                                  : "text-foreground"
+                                : account.balance >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            )}
+                          >
+                            {isCreditCardAccount && account.balance > 0 && "-"}
+                            {formatCurrencyCompact(Math.abs(account.balance))}
+                          </div>
+                        </div>
+
+                        {/* Mobile Card */}
+                        <div
+                          className="md:hidden flex items-center justify-between p-3 border-t cursor-pointer hover:bg-muted/50"
+                          onClick={() => setEditingAccount(account)}
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="flex-shrink-0 text-lg">
+                              {account.icon || config.icon}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium truncate">
+                                  {account.name}
+                                </span>
+                                {isCreditCardAccount && account.closingDay && (
+                                  <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded flex-shrink-0">
+                                    Fecha dia {account.closingDay}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                {account.owner ? (
+                                  <span className="flex items-center gap-1">
+                                    <span
+                                      className="h-2 w-2 rounded-full"
+                                      style={{
+                                        backgroundColor: account.owner.color || "#6366f1",
+                                      }}
+                                    />
+                                    {account.owner.name}
+                                  </span>
+                                ) : (
+                                  <span>Compartilhado</span>
+                                )}
+                                {isCreditCardAccount && account.creditLimit && (
+                                  <span>• Limite: {formatCurrencyCompact(account.creditLimit)}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div
+                            className={cn(
+                              "font-medium tabular-nums text-right flex-shrink-0 ml-2",
+                              isCreditCardAccount
+                                ? account.balance > 0
+                                  ? "text-red-600"
+                                  : "text-foreground"
+                                : account.balance >= 0
+                                ? "text-green-600"
+                                : "text-red-600"
+                            )}
+                          >
+                            {isCreditCardAccount && account.balance > 0 && "-"}
+                            {formatCurrencyCompact(Math.abs(account.balance))}
+                          </div>
                         </div>
                       </div>
                     );

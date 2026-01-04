@@ -411,17 +411,16 @@ export function AccountForm({
 
           </div>
 
-          <DialogFooter className="flex justify-end gap-2">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
-              className="w-1/4"
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting || !formData.name} className="w-1/4">
+            <Button type="submit" disabled={isSubmitting || !formData.name}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {mode === "create" ? "Adicionar" : "Salvar"}
             </Button>
