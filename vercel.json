@@ -1,4 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm db:push && pnpm build"
+  "buildCommand": "pnpm drizzle-kit push --accept-data-loss && pnpm build"
 }
