@@ -23,6 +23,7 @@ import {
   createCategoryKeyboard,
   createConfirmationKeyboard,
   createGroupKeyboard,
+  createAccountKeyboard,
   deleteMessages,
 } from "./bot";
 import { parseUserMessage } from "./gemini";
@@ -668,6 +669,78 @@ async function handleCategorySelection(chatId: number, categoryId: string, callb
   });
 }
 
+// Handle account selection callback
+async function handleAccountSelection(chatId: number, accountId: string, callbackQueryId: string) {
+  const [telegramUser] = await db
+    .select()
+    .from(telegramUsers)
+    .where(eq(telegramUsers.chatId, chatId));
+
+  if (!telegramUser?.userId) {
+    await answerCallbackQuery(callbackQueryId, "Erro: conta não conectada");
+    return;
+  }
+
+  const context = telegramUser.context as TelegramConversationContext;
+
+  if (!context.pendingExpense) {
+    await answerCallbackQuery(callbackQueryId, "Erro: nenhum gasto pendente");
+    return;
+  }
+
+  // Get account info
+  const [account] = await db
+    .select()
+    .from(financialAccounts)
+    .where(eq(financialAccounts.id, accountId));
+
+  if (!account) {
+    await answerCallbackQuery(callbackQueryId, "Conta não encontrada");
+    return;
+  }
+
+  await answerCallbackQuery(callbackQueryId);
+
+  // Get budget info to show categories
+  const budgetInfo = await getUserBudgetInfo(telegramUser.userId);
+
+  if (!budgetInfo) {
+    await sendMessage(chatId, "Erro ao carregar informações. Tente novamente.");
+    return;
+  }
+
+  // Build value text
+  let valueText = `Valor: ${formatCurrency(context.pendingExpense.amount)}\n`;
+  if (context.pendingExpense.isInstallment && context.pendingExpense.totalInstallments && context.pendingExpense.totalInstallments > 1) {
+    const installmentAmount = Math.round(context.pendingExpense.amount / context.pendingExpense.totalInstallments);
+    valueText = `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
+      `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
+  }
+
+  // Now ask for category
+  const catSelectMsgId = await sendMessage(
+    chatId,
+    `💰 <b>Registrar gasto</b>\n\n` +
+      valueText +
+      `Conta: ${account.name}\n` +
+      (context.pendingExpense.description ? `Descrição: ${context.pendingExpense.description}\n\n` : "\n") +
+      `Selecione a categoria:`,
+    {
+      replyMarkup: createCategoryKeyboard(budgetInfo.categories),
+    }
+  );
+
+  // Update context with account and proceed to category selection
+  await updateTelegramUser(chatId, "AWAITING_CATEGORY", {
+    pendingExpense: {
+      ...context.pendingExpense,
+      accountId: account.id,
+      accountName: account.name,
+    },
+    messagesToDelete: [...(context.messagesToDelete || []), catSelectMsgId],
+  });
+}
+
 // Handle confirmation callback
 async function handleConfirmation(chatId: number, confirmed: boolean, callbackQueryId: string) {
   const [telegramUser] = await db
@@ -1018,6 +1091,7 @@ export async function handleMessage(message: TelegramMessage) {
       await handleCustomCategoryName(chatId, text);
       break;
 
+    case "AWAITING_ACCOUNT":
     case "AWAITING_CATEGORY":
     case "AWAITING_CONFIRMATION":
     case "AWAITING_NEW_CATEGORY_CONFIRM":
@@ -1575,6 +1649,9 @@ export async function handleCallbackQuery(query: TelegramCallbackQuery) {
   } else if (data.startsWith("income_")) {
     // Income source selection (if implemented)
     await answerCallbackQuery(query.id, "Fonte selecionada");
+  } else if (data.startsWith("acc_")) {
+    const accountId = data.replace("acc_", "");
+    await handleAccountSelection(chatId, accountId, query.id);
   } else if (data === "confirm") {
     // Determine what to confirm based on context
     if (context?.pendingIncome) {

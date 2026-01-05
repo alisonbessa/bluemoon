@@ -268,14 +268,14 @@ export function RecurringBillForm({
           <div className="grid gap-2">
             <Label>Conta de pagamento (opcional)</Label>
             <Select
-              value={accountId || ''}
-              onValueChange={(v) => setAccountId(v || undefined)}
+              value={accountId || 'none'}
+              onValueChange={(v) => setAccountId(v === 'none' ? undefined : v)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a conta" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma conta</SelectItem>
+                <SelectItem value="none">Nenhuma conta</SelectItem>
                 {accounts.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
                     <span className="flex items-center gap-2">
