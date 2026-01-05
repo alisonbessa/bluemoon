@@ -32,6 +32,8 @@ interface RecurringBillSummary {
   frequency: string;
   dueDay: number | null;
   dueMonth: number | null;
+  isAutoDebit?: boolean;
+  isVariable?: boolean;
   account: { id: string; name: string; icon: string | null } | null;
 }
 
@@ -41,7 +43,6 @@ interface Category {
   icon?: string | null;
   behavior: 'set_aside' | 'refill_up';
   plannedAmount: number;
-  dueDay?: number | null;
 }
 
 interface CategoryAllocation {

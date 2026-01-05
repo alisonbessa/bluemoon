@@ -209,6 +209,57 @@ export function createGroupKeyboard(
   return { inline_keyboard: rows };
 }
 
+// Create keyboard for account selection
+export function createAccountKeyboard(
+  accounts: Array<{ id: string; name: string; type: string; icon?: string | null }>
+): TelegramInlineKeyboardMarkup {
+  // Get icon based on account type
+  const getAccountIcon = (type: string, icon?: string | null) => {
+    if (icon) return icon;
+    switch (type) {
+      case "credit_card": return "💳";
+      case "checking": return "🏦";
+      case "savings": return "🐷";
+      case "benefit": return "🍽️";
+      case "cash": return "💵";
+      case "investment": return "📈";
+      default: return "💰";
+    }
+  };
+
+  const buttons = accounts.map((account) => ({
+    text: `${getAccountIcon(account.type, account.icon)} ${account.name}`,
+    callback_data: `acc_${account.id}`,
+  }));
+
+  // Organize in rows of 2
+  const rows: Array<Array<{ text: string; callback_data: string }>> = [];
+  for (let i = 0; i < buttons.length; i += 2) {
+    rows.push(buttons.slice(i, i + 2));
+  }
+
+  // Add cancel button
+  rows.push([{ text: "❌ Cancelar", callback_data: "cancel" }]);
+
+  return { inline_keyboard: rows };
+}
+
+// Create keyboard for adjustments after registration
+export function createAdjustmentKeyboard(): TelegramInlineKeyboardMarkup {
+  return {
+    inline_keyboard: [
+      [
+        { text: "💰 Valor", callback_data: "adjust_amount" },
+        { text: "📁 Categoria", callback_data: "adjust_category" },
+        { text: "🏦 Conta", callback_data: "adjust_account" },
+      ],
+      [
+        { text: "✅ OK", callback_data: "adjust_done" },
+      ],
+    ],
+  };
+}
+
 // Get file info from Telegram
 export async function getFile(fileId: string): Promise<TelegramFile> {
   return callTelegramApi<TelegramFile>("getFile", { file_id: fileId });

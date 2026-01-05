@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
 interface Account {
@@ -36,6 +37,8 @@ interface RecurringBillSummary {
   frequency: string;
   dueDay: number | null;
   dueMonth: number | null;
+  isAutoDebit?: boolean;
+  isVariable?: boolean;
   account: { id: string; name: string; icon: string | null } | null;
 }
 
@@ -88,6 +91,8 @@ export function RecurringBillForm({
   const [dueDay, setDueDay] = useState<number | undefined>(undefined);
   const [dueMonth, setDueMonth] = useState<number | undefined>(undefined);
   const [accountId, setAccountId] = useState<string | undefined>(undefined);
+  const [isAutoDebit, setIsAutoDebit] = useState(false);
+  const [isVariable, setIsVariable] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset form when opening or when editing bill changes
@@ -100,6 +105,8 @@ export function RecurringBillForm({
         setDueDay(editingBill.dueDay ?? undefined);
         setDueMonth(editingBill.dueMonth ?? undefined);
         setAccountId(editingBill.account?.id ?? undefined);
+        setIsAutoDebit(editingBill.isAutoDebit ?? false);
+        setIsVariable(editingBill.isVariable ?? false);
       } else {
         setName('');
         setAmount(0);
@@ -107,6 +114,8 @@ export function RecurringBillForm({
         setDueDay(undefined);
         setDueMonth(undefined);
         setAccountId(undefined);
+        setIsAutoDebit(false);
+        setIsVariable(false);
       }
     }
   }, [isOpen, editingBill]);
@@ -119,6 +128,11 @@ export function RecurringBillForm({
 
     if (amount <= 0) {
       toast.error('Digite um valor válido');
+      return;
+    }
+
+    if (!accountId) {
+      toast.error('Selecione uma conta de pagamento');
       return;
     }
 
@@ -140,7 +154,9 @@ export function RecurringBillForm({
           frequency,
           dueDay: frequency !== 'weekly' ? dueDay : null,
           dueMonth: frequency === 'yearly' ? dueMonth : null,
-          accountId: accountId || null,
+          accountId,
+          isAutoDebit,
+          isVariable,
         }),
       });
 
@@ -266,7 +282,7 @@ export function RecurringBillForm({
 
           {/* Account */}
           <div className="grid gap-2">
-            <Label>Conta de pagamento (opcional)</Label>
+            <Label>Conta de pagamento</Label>
             <Select
               value={accountId || ''}
               onValueChange={(v) => setAccountId(v || undefined)}
@@ -275,7 +291,6 @@ export function RecurringBillForm({
                 <SelectValue placeholder="Selecione a conta" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma conta</SelectItem>
                 {accounts.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
                     <span className="flex items-center gap-2">
@@ -290,6 +305,40 @@ export function RecurringBillForm({
               De onde sairá o pagamento desta conta
             </p>
           </div>
+
+          {/* Auto Debit */}
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="autoDebit" className="text-sm font-medium">
+                Débito automático
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Confirmar automaticamente na data de vencimento
+              </p>
+            </div>
+            <Switch
+              id="autoDebit"
+              checked={isAutoDebit}
+              onCheckedChange={setIsAutoDebit}
+            />
+          </div>
+
+          {/* Variable Amount */}
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="variable" className="text-sm font-medium">
+                Valor variável
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                O valor é uma estimativa (ex: conta de luz)
+              </p>
+            </div>
+            <Switch
+              id="variable"
+              checked={isVariable}
+              onCheckedChange={setIsVariable}
+            />
+          </div>
         </div>
 
         <DialogFooter className="flex justify-end gap-2">
@@ -303,7 +352,7 @@ export function RecurringBillForm({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !name.trim() || amount <= 0}
+            disabled={isSubmitting || !name.trim() || amount <= 0 || !accountId}
             className="w-1/4"
           >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { budgetMembers, categories, groups, incomeSources, transactions, monthlyAllocations, goals, goalContributions } from "@/db/schema";
+import { budgetMembers, incomeSources, transactions, goals, goalContributions, recurringBills, categories } from "@/db/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -22,11 +22,14 @@ interface ScheduledTransaction {
   dueDay: number;
   dueDate: string;
   isPaid: boolean;
-  sourceType: "category" | "income_source" | "goal";
+  isAutoDebit?: boolean;
+  isVariable?: boolean;
+  sourceType: "recurring_bill" | "income_source" | "goal";
   sourceId: string;
   categoryId?: string;
   incomeSourceId?: string;
   goalId?: string;
+  recurringBillId?: string;
 }
 
 // GET - Get scheduled/projected transactions for a month
@@ -50,29 +53,24 @@ export const GET = withAuthRequired(async (req, context) => {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
 
-  // Get categories with dueDay (fixed expenses)
-  const [categoriesWithDueDay, incomeSourcesWithDay, existingTransactions, activeGoals, existingGoalContributions] = await Promise.all([
-    // Categories with dueDay set
+  // Fetch all data in parallel
+  const [activeBills, incomeSourcesWithDay, existingTransactions, activeGoals, existingGoalContributions] = await Promise.all([
+    // Active recurring bills with category info
     db
       .select({
-        category: categories,
-        group: groups,
-        allocation: monthlyAllocations,
+        bill: recurringBills,
+        category: {
+          id: categories.id,
+          name: categories.name,
+          icon: categories.icon,
+        },
       })
-      .from(categories)
-      .innerJoin(groups, eq(categories.groupId, groups.id))
-      .leftJoin(
-        monthlyAllocations,
-        and(
-          eq(monthlyAllocations.categoryId, categories.id),
-          eq(monthlyAllocations.year, year),
-          eq(monthlyAllocations.month, month)
-        )
-      )
+      .from(recurringBills)
+      .leftJoin(categories, eq(recurringBills.categoryId, categories.id))
       .where(
         and(
-          eq(categories.budgetId, budgetId),
-          eq(categories.isArchived, false)
+          eq(recurringBills.budgetId, budgetId),
+          eq(recurringBills.isActive, true)
         )
       ),
 
@@ -90,7 +88,7 @@ export const GET = withAuthRequired(async (req, context) => {
     // Get existing transactions for this month to check what's already paid
     db
       .select({
-        categoryId: transactions.categoryId,
+        recurringBillId: transactions.recurringBillId,
         incomeSourceId: transactions.incomeSourceId,
         status: transactions.status,
         amount: transactions.amount,
@@ -131,13 +129,13 @@ export const GET = withAuthRequired(async (req, context) => {
   ]);
 
   // Build map of already paid items
-  const paidCategories = new Set<string>();
+  const paidBills = new Set<string>();
   const paidIncomeSources = new Set<string>();
   const paidGoals = new Set<string>();
 
   for (const tx of existingTransactions) {
-    if (tx.categoryId && tx.type === "expense") {
-      paidCategories.add(tx.categoryId);
+    if (tx.recurringBillId && tx.type === "expense") {
+      paidBills.add(tx.recurringBillId);
     }
     if (tx.incomeSourceId && tx.type === "income") {
       paidIncomeSources.add(tx.incomeSourceId);
@@ -151,29 +149,33 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const scheduledTransactions: ScheduledTransaction[] = [];
 
-  // Add scheduled expenses from categories with dueDay
-  for (const { category, group, allocation } of categoriesWithDueDay) {
-    if (category.dueDay) {
-      // Use allocation amount or planned amount
-      const amount = allocation?.allocated || category.plannedAmount || 0;
-      if (amount > 0) {
-        const dueDate = new Date(year, month - 1, Math.min(category.dueDay, endDate.getDate()));
+  // Add scheduled expenses from recurring bills
+  for (const { bill, category } of activeBills) {
+    // Check frequency - skip yearly bills that don't match this month
+    if (bill.frequency === "yearly" && bill.dueMonth !== month) continue;
 
-        scheduledTransactions.push({
-          id: `expense-${category.id}-${year}-${month}`,
-          type: "expense",
-          name: category.name,
-          icon: category.icon || group.icon,
-          amount: amount,
-          dueDay: category.dueDay,
-          dueDate: dueDate.toISOString(),
-          isPaid: paidCategories.has(category.id),
-          sourceType: "category",
-          sourceId: category.id,
-          categoryId: category.id,
-        });
-      }
-    }
+    // Weekly bills - for now, just show one per month (TODO: implement weekly properly)
+    if (bill.amount <= 0) continue;
+
+    const dueDay = bill.dueDay ? Math.min(bill.dueDay, endDate.getDate()) : 1;
+    const dueDate = new Date(year, month - 1, dueDay);
+
+    scheduledTransactions.push({
+      id: `bill-${bill.id}-${year}-${month}`,
+      type: "expense",
+      name: bill.name,
+      icon: category?.icon || "💰",
+      amount: bill.amount,
+      dueDay: dueDay,
+      dueDate: dueDate.toISOString(),
+      isPaid: paidBills.has(bill.id),
+      isAutoDebit: bill.isAutoDebit ?? false,
+      isVariable: bill.isVariable ?? false,
+      sourceType: "recurring_bill",
+      sourceId: bill.id,
+      categoryId: bill.categoryId,
+      recurringBillId: bill.id,
+    });
   }
 
   // Add scheduled income from income sources

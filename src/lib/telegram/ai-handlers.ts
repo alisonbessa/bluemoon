@@ -20,6 +20,7 @@ import {
   createConfirmationKeyboard,
   createNewCategoryKeyboard,
   createGroupKeyboard,
+  createAccountKeyboard,
   deleteMessages,
 } from "./bot";
 import type { GroupCode } from "@/db/schema/groups";
@@ -325,7 +326,7 @@ export async function handleExpenseIntent(
     return;
   }
 
-  // LOW CONFIDENCE or no category: Ask for category selection
+  // LOW CONFIDENCE or no category: Ask for account first (if not specified), then category
   let valueText = `Valor: ${formatCurrency(data.amount)}\n`;
   if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
     const installmentAmount = Math.round(data.amount / data.totalInstallments);
@@ -333,6 +334,32 @@ export async function handleExpenseIntent(
       `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
   }
 
+  // If no account was specified, ask for account first
+  if (!matchedAccount && accounts.length > 1) {
+    const accSelectMsgId = await sendMessage(
+      chatId,
+      `💰 <b>Registrar gasto</b>\n\n` +
+        valueText +
+        (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
+        `Qual a forma de pagamento?`,
+      {
+        replyMarkup: createAccountKeyboard(accounts),
+      }
+    );
+
+    await updateTelegramContext(chatId, "AWAITING_ACCOUNT", {
+      pendingExpense: {
+        amount: data.amount,
+        description: data.description,
+        isInstallment: data.isInstallment,
+        totalInstallments: data.totalInstallments,
+      },
+      messagesToDelete: [...initialMessagesToDelete, accSelectMsgId],
+    });
+    return;
+  }
+
+  // Account already selected (or only one account), ask for category
   const catSelectMsgId = await sendMessage(
     chatId,
     `💰 <b>Registrar gasto</b>\n\n` +

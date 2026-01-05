@@ -19,7 +19,8 @@ export const recurringBills = pgTable("recurring_bills", {
     .notNull()
     .references(() => categories.id, { onDelete: "cascade" }),
   accountId: text("account_id")
-    .references(() => financialAccounts.id, { onDelete: "set null" }), // conta de onde sai o pagamento
+    .notNull()
+    .references(() => financialAccounts.id, { onDelete: "cascade" }), // conta de onde sai o pagamento (obrigatório)
 
   name: text("name").notNull(), // "Aluguel", "Condominio", etc
   amount: integer("amount").notNull().default(0), // valor em centavos
@@ -28,6 +29,10 @@ export const recurringBills = pgTable("recurring_bills", {
   frequency: text("frequency").$type<RecurringBillFrequency>().notNull().default("monthly"),
   dueDay: integer("due_day"), // dia do vencimento (1-31) para monthly
   dueMonth: integer("due_month"), // mes do vencimento (1-12) para yearly
+
+  // Automation settings
+  isAutoDebit: boolean("is_auto_debit").default(false), // true = confirma automaticamente no vencimento
+  isVariable: boolean("is_variable").default(false), // true = valor é estimativa (ex: conta de luz)
 
   isActive: boolean("is_active").default(true),
   displayOrder: integer("display_order").notNull().default(0),
