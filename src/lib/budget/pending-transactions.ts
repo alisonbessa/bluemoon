@@ -1,11 +1,9 @@
 import { db } from "@/db";
 import {
-  categories,
-  groups,
   incomeSources,
   transactions,
-  monthlyAllocations,
   financialAccounts,
+  recurringBills,
 } from "@/db/schema";
 import { eq, and, gte, lte, isNotNull } from "drizzle-orm";
 
@@ -39,7 +37,7 @@ export async function ensurePendingTransactionsForMonth(
   // Check existing transactions for this month
   const existingTransactions = await db
     .select({
-      categoryId: transactions.categoryId,
+      recurringBillId: transactions.recurringBillId,
       incomeSourceId: transactions.incomeSourceId,
     })
     .from(transactions)
@@ -51,35 +49,21 @@ export async function ensurePendingTransactionsForMonth(
       )
     );
 
-  const existingCategoryIds = new Set(
-    existingTransactions.filter((t) => t.categoryId).map((t) => t.categoryId)
+  const existingBillIds = new Set(
+    existingTransactions.filter((t) => t.recurringBillId).map((t) => t.recurringBillId)
   );
   const existingIncomeIds = new Set(
     existingTransactions.filter((t) => t.incomeSourceId).map((t) => t.incomeSourceId)
   );
 
-  // Get all categories with dueDay
-  const categoriesWithDueDay = await db
-    .select({
-      category: categories,
-      group: groups,
-      allocation: monthlyAllocations,
-    })
-    .from(categories)
-    .innerJoin(groups, eq(categories.groupId, groups.id))
-    .leftJoin(
-      monthlyAllocations,
-      and(
-        eq(monthlyAllocations.categoryId, categories.id),
-        eq(monthlyAllocations.year, year),
-        eq(monthlyAllocations.month, month)
-      )
-    )
+  // Get all active recurring bills
+  const activeBills = await db
+    .select()
+    .from(recurringBills)
     .where(
       and(
-        eq(categories.budgetId, budgetId),
-        eq(categories.isArchived, false),
-        isNotNull(categories.dueDay)
+        eq(recurringBills.budgetId, budgetId),
+        eq(recurringBills.isActive, true)
       )
     );
 
@@ -99,7 +83,7 @@ export async function ensurePendingTransactionsForMonth(
       )
     );
 
-  // Get default account for transactions without specific account
+  // Get default account for income transactions without specific account
   const defaultAccount = await db
     .select()
     .from(financialAccounts)
@@ -110,27 +94,33 @@ export async function ensurePendingTransactionsForMonth(
     return { created: 0, expenses: 0, income: 0, alreadyExisted: true };
   }
 
-  // Create pending expense transactions (only for categories not yet in this month)
+  // Create pending expense transactions from recurring bills
   const expenseTransactions = [];
-  for (const { category, allocation } of categoriesWithDueDay) {
-    if (existingCategoryIds.has(category.id)) continue;
+  for (const bill of activeBills) {
+    // Skip if already has transaction this month
+    if (existingBillIds.has(bill.id)) continue;
 
-    const amount = allocation?.allocated || category.plannedAmount || 0;
-    if (amount <= 0) continue;
+    // Check frequency
+    if (bill.frequency === "yearly" && bill.dueMonth !== month) continue;
+    // Weekly bills: simplified for now, just generate one per month
+    // TODO: implement weekly logic properly
 
-    const dueDay = Math.min(category.dueDay!, lastDayOfMonth);
+    if (bill.amount <= 0) continue;
+
+    const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
     const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0)); // Noon UTC to avoid timezone issues
 
     expenseTransactions.push({
       budgetId,
-      accountId: defaultAccount[0].id,
-      categoryId: category.id,
+      accountId: bill.accountId,
+      categoryId: bill.categoryId,
+      recurringBillId: bill.id,
       type: "expense" as const,
       status: "pending" as const,
-      amount: amount,
-      description: `${category.name} (agendado)`,
+      amount: bill.amount,
+      description: bill.name,
       date: dueDate,
-      source: "scheduled",
+      source: "recurring",
     });
   }
 

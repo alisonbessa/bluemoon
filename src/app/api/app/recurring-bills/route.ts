@@ -9,12 +9,14 @@ import { recurringBillFrequencyEnum } from "@/db/schema/recurring-bills";
 const createRecurringBillSchema = z.object({
   budgetId: z.string().uuid(),
   categoryId: z.string().uuid(),
-  accountId: z.string().uuid().optional().nullable(),
+  accountId: z.string().uuid(), // obrigatório
   name: z.string().min(1).max(100),
   amount: z.number().int().min(0),
   frequency: recurringBillFrequencyEnum.default("monthly"),
-  dueDay: z.number().int().min(1).max(31).optional(),
-  dueMonth: z.number().int().min(1).max(12).optional(),
+  dueDay: z.number().int().min(1).max(31).optional().nullable(),
+  dueMonth: z.number().int().min(1).max(12).optional().nullable(),
+  isAutoDebit: z.boolean().default(false),
+  isVariable: z.boolean().default(false),
 });
 
 // Helper to get user's budget IDs

@@ -8,12 +8,14 @@ import { recurringBillFrequencyEnum } from "@/db/schema/recurring-bills";
 
 const updateRecurringBillSchema = z.object({
   categoryId: z.string().uuid().optional(),
-  accountId: z.string().uuid().optional().nullable(),
+  accountId: z.string().uuid().optional(), // pode mudar a conta, mas é obrigatório ter uma
   name: z.string().min(1).max(100).optional(),
   amount: z.number().int().min(0).optional(),
   frequency: recurringBillFrequencyEnum.optional(),
   dueDay: z.number().int().min(1).max(31).optional().nullable(),
   dueMonth: z.number().int().min(1).max(12).optional().nullable(),
+  isAutoDebit: z.boolean().optional(),
+  isVariable: z.boolean().optional(),
   isActive: z.boolean().optional(),
   displayOrder: z.number().int().optional(),
 });

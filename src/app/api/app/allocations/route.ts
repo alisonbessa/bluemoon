@@ -4,6 +4,7 @@ import { monthlyAllocations, budgetMembers, categories, groups, transactions, in
 import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { ensurePendingTransactionsForMonth } from "@/lib/budget/pending-transactions";
 
 const upsertAllocationSchema = z.object({
   budgetId: z.string().uuid(),
@@ -48,6 +49,10 @@ export const GET = withAuthRequired(async (req, context) => {
   if (!budgetIds.includes(budgetId)) {
     return NextResponse.json({ error: "Budget not found or access denied" }, { status: 404 });
   }
+
+  // Lazy generation: ensure pending transactions exist for this month
+  // This is idempotent - it only creates transactions that don't exist yet
+  await ensurePendingTransactionsForMonth(budgetId, year, month);
 
   // Get user's member ID for visibility filtering
   const userMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
@@ -135,6 +140,8 @@ export const GET = withAuthRequired(async (req, context) => {
     frequency: string;
     dueDay: number | null;
     dueMonth: number | null;
+    isAutoDebit: boolean;
+    isVariable: boolean;
     account: { id: string; name: string; icon: string | null } | null;
   }>>();
 
@@ -149,6 +156,8 @@ export const GET = withAuthRequired(async (req, context) => {
       frequency: bill.frequency,
       dueDay: bill.dueDay,
       dueMonth: bill.dueMonth,
+      isAutoDebit: bill.isAutoDebit ?? false,
+      isVariable: bill.isVariable ?? false,
       account: account?.id ? { id: account.id, name: account.name, icon: account.icon } : null,
     });
   }
@@ -161,6 +170,8 @@ export const GET = withAuthRequired(async (req, context) => {
     frequency: string;
     dueDay: number | null;
     dueMonth: number | null;
+    isAutoDebit: boolean;
+    isVariable: boolean;
     account: { id: string; name: string; icon: string | null } | null;
   };
 

@@ -5,7 +5,7 @@ import { eq, and, gte, lte } from "drizzle-orm";
 
 /**
  * Generates transactions for active recurring bills
- * Runs daily at 6:00 AM (UTC-3 = Brasilia time)
+ * Runs on day 1 of each month at 6:00 AM (UTC-3 = Brasilia time)
  *
  * For each active recurring bill:
  * 1. Check if a transaction already exists for this bill in the current month
@@ -16,7 +16,7 @@ export const generateRecurringTransactions = inngest.createFunction(
     id: "generate-recurring-transactions",
     name: "Generate Recurring Transactions",
   },
-  { cron: "0 9 * * *" }, // 9:00 UTC = 6:00 AM Brasilia
+  { cron: "0 9 1 * *" }, // Day 1 at 9:00 UTC = 6:00 AM Brasilia
   async ({ step }) => {
     const now = new Date();
     const year = now.getFullYear();

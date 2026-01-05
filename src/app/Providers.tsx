@@ -23,7 +23,8 @@ function Providers({ children }: { children: React.ReactNode }) {
               fetcher,
               dedupingInterval: 60000, // 1 minuto - evita chamadas duplicadas
               revalidateOnFocus: false, // não revalidar ao focar na janela
-              revalidateIfStale: true,
+              revalidateIfStale: false, // não revalidar em background ao navegar
+              revalidateOnMount: true, // revalidar apenas no primeiro mount
               errorRetryCount: 3,
               shouldRetryOnError: true,
             }}

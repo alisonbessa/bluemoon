@@ -26,7 +26,6 @@ export const categories = pgTable("categories", {
   // Budget behavior
   behavior: text("behavior").$type<CategoryBehavior>().notNull().default("refill_up"),
   plannedAmount: integer("planned_amount").notNull().default(0), // In cents
-  dueDay: integer("due_day"), // Day of month when this expense is due (1-31)
 
   // For goals with target
   targetAmount: integer("target_amount"), // Target amount for goals (in cents)

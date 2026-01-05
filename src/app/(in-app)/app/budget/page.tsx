@@ -61,7 +61,6 @@ interface Category {
   icon?: string | null;
   behavior: "set_aside" | "refill_up";
   plannedAmount: number;
-  dueDay?: number | null;
 }
 
 interface Group {
@@ -79,6 +78,8 @@ interface RecurringBillSummary {
   frequency: string;
   dueDay: number | null;
   dueMonth: number | null;
+  isAutoDebit?: boolean;
+  isVariable?: boolean;
   account: { id: string; name: string; icon: string | null } | null;
 }
 
@@ -436,7 +437,7 @@ export default function BudgetPage() {
     setEditValue((allocated / 100).toFixed(2).replace(".", ","));
     setEditBehavior(category.behavior);
     setEditFrequency("monthly");
-    setEditDueDay(category.dueDay ?? null);
+    setEditDueDay(null);
     setEditWeekday(null);
     setEditYearMonth(null);
   };
@@ -512,13 +513,10 @@ export default function BudgetPage() {
         throw new Error("Erro ao atualizar alocação");
       }
 
-      // Update category behavior and dueDay if changed
+      // Update category behavior if changed
       const categoryUpdates: Record<string, unknown> = {};
       if (editBehavior !== editingCategory.category.behavior) {
         categoryUpdates.behavior = editBehavior;
-      }
-      if (editDueDay !== (editingCategory.category.dueDay ?? null)) {
-        categoryUpdates.dueDay = editDueDay;
       }
 
       if (Object.keys(categoryUpdates).length > 0) {

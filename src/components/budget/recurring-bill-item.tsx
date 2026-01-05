@@ -1,8 +1,9 @@
 'use client';
 
-import { Pencil, Trash2, Calendar, Wallet } from 'lucide-react';
+import { Pencil, Trash2, Calendar, Wallet, Zap, TrendingUp } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface RecurringBillSummary {
   id: string;
@@ -11,6 +12,8 @@ interface RecurringBillSummary {
   frequency: string;
   dueDay: number | null;
   dueMonth: number | null;
+  isAutoDebit?: boolean;
+  isVariable?: boolean;
   account: { id: string; name: string; icon: string | null } | null;
 }
 
@@ -55,6 +58,22 @@ export function RecurringBillItem({ bill, onEdit, onDelete }: RecurringBillItemP
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {/* Name */}
         <span className="text-sm truncate">{bill.name}</span>
+
+        {/* Auto Debit Badge */}
+        {bill.isAutoDebit && (
+          <Badge variant="secondary" className="hidden sm:flex items-center gap-1 px-1.5 py-0 h-5 text-[10px] shrink-0">
+            <Zap className="h-2.5 w-2.5" />
+            Auto
+          </Badge>
+        )}
+
+        {/* Variable Badge */}
+        {bill.isVariable && (
+          <Badge variant="outline" className="hidden sm:flex items-center gap-1 px-1.5 py-0 h-5 text-[10px] shrink-0">
+            <TrendingUp className="h-2.5 w-2.5" />
+            Variável
+          </Badge>
+        )}
 
         {/* Due Date Badge */}
         <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground shrink-0">

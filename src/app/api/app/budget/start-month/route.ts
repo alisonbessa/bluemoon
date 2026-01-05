@@ -2,13 +2,11 @@ import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import {
   budgetMembers,
-  categories,
-  groups,
   incomeSources,
   transactions,
-  monthlyAllocations,
   monthlyBudgetStatus,
   financialAccounts,
+  recurringBills,
 } from "@/db/schema";
 import { eq, and, gte, lte, isNotNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -77,28 +75,14 @@ export const POST = withAuthRequired(async (req, context) => {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
 
-  // Get all categories with dueDay and their allocations
-  const categoriesWithDueDay = await db
-    .select({
-      category: categories,
-      group: groups,
-      allocation: monthlyAllocations,
-    })
-    .from(categories)
-    .innerJoin(groups, eq(categories.groupId, groups.id))
-    .leftJoin(
-      monthlyAllocations,
-      and(
-        eq(monthlyAllocations.categoryId, categories.id),
-        eq(monthlyAllocations.year, year),
-        eq(monthlyAllocations.month, month)
-      )
-    )
+  // Get all active recurring bills
+  const activeBills = await db
+    .select()
+    .from(recurringBills)
     .where(
       and(
-        eq(categories.budgetId, budgetId),
-        eq(categories.isArchived, false),
-        isNotNull(categories.dueDay)
+        eq(recurringBills.budgetId, budgetId),
+        eq(recurringBills.isActive, true)
       )
     );
 
@@ -137,6 +121,7 @@ export const POST = withAuthRequired(async (req, context) => {
     .select({
       categoryId: transactions.categoryId,
       incomeSourceId: transactions.incomeSourceId,
+      recurringBillId: transactions.recurringBillId,
     })
     .from(transactions)
     .where(
@@ -147,34 +132,40 @@ export const POST = withAuthRequired(async (req, context) => {
       )
     );
 
-  const existingCategoryIds = new Set(
-    existingTransactions.filter((t) => t.categoryId).map((t) => t.categoryId)
+  const existingBillIds = new Set(
+    existingTransactions.filter((t) => t.recurringBillId).map((t) => t.recurringBillId)
   );
   const existingIncomeIds = new Set(
     existingTransactions.filter((t) => t.incomeSourceId).map((t) => t.incomeSourceId)
   );
 
-  // Create pending expense transactions
+  // Create pending expense transactions from recurring bills
   const expenseTransactions = [];
-  for (const { category, allocation } of categoriesWithDueDay) {
-    if (existingCategoryIds.has(category.id)) continue;
+  for (const bill of activeBills) {
+    // Skip if already has transaction this month
+    if (existingBillIds.has(bill.id)) continue;
 
-    const amount = allocation?.allocated || category.plannedAmount || 0;
-    if (amount <= 0) continue;
+    // Check frequency
+    if (bill.frequency === "yearly" && bill.dueMonth !== month) continue;
+    // Weekly bills: generate 4-5 transactions (one per week) - simplified for now, just generate one
+    // TODO: implement weekly logic properly
 
-    const dueDay = Math.min(category.dueDay!, endDate.getDate());
+    if (bill.amount <= 0) continue;
+
+    const dueDay = bill.dueDay ? Math.min(bill.dueDay, endDate.getDate()) : 1;
     const dueDate = new Date(year, month - 1, dueDay);
 
     expenseTransactions.push({
       budgetId,
-      accountId: defaultAccount[0].id,
-      categoryId: category.id,
+      accountId: bill.accountId,
+      categoryId: bill.categoryId,
+      recurringBillId: bill.id,
       type: "expense" as const,
       status: "pending" as const,
-      amount: amount,
-      description: `${category.name} (agendado)`,
+      amount: bill.amount,
+      description: bill.name,
       date: dueDate,
-      source: "scheduled",
+      source: "recurring",
     });
   }
 
