@@ -140,8 +140,12 @@
   },
   "pnpm": {
     "ignoredBuiltDependencies": [
+      "@sentry/cli",
+      "core-js",
       "esbuild",
       "inngest-cli",
+      "msw",
+      "protobufjs",
       "sharp"
     ],
     "onlyBuiltDependencies": [
