@@ -55,6 +55,7 @@ import {
   formatCurrencyCompact,
   formatCurrencyFromDigits,
   parseCurrency,
+  parseLocalDate,
 } from "@/lib/formatters";
 import { ScheduledTransactions } from "@/components/transactions";
 
@@ -103,11 +104,11 @@ interface Budget {
 const GRID_COLS = "24px 1fr 120px 120px 100px";
 
 // Group transactions by date
-function groupTransactionsByDate(transactions: Transaction[]): Map<string, Transaction[]> {
+function groupTransactionsByDate(transactions: Transaction[], parseDateFn: typeof parseLocalDate): Map<string, Transaction[]> {
   const grouped = new Map<string, Transaction[]>();
 
   for (const transaction of transactions) {
-    const dateKey = format(new Date(transaction.date), "yyyy-MM-dd");
+    const dateKey = format(parseDateFn(transaction.date), "yyyy-MM-dd");
     const existing = grouped.get(dateKey) || [];
     grouped.set(dateKey, [...existing, transaction]);
   }
@@ -235,7 +236,7 @@ export default function TransactionsPage() {
       categoryId: transaction.categoryId || "",
       incomeSourceId: (transaction as Transaction & { incomeSourceId?: string }).incomeSourceId || "",
       toAccountId: (transaction as Transaction & { toAccountId?: string }).toAccountId || "",
-      date: format(new Date(transaction.date), "yyyy-MM-dd"),
+      date: format(parseLocalDate(transaction.date), "yyyy-MM-dd"),
       isInstallment: false, // Editing doesn't allow changing installment
       totalInstallments: 2,
     });
@@ -348,9 +349,9 @@ export default function TransactionsPage() {
     return matchesSearch && matchesType;
   });
 
-  const groupedTransactions = groupTransactionsByDate(filteredTransactions);
+  const groupedTransactions = groupTransactionsByDate(filteredTransactions, parseLocalDate);
   const sortedDates = Array.from(groupedTransactions.keys()).sort((a, b) =>
-    new Date(b).getTime() - new Date(a).getTime()
+    parseLocalDate(b).getTime() - parseLocalDate(a).getTime()
   );
 
   // Calculate totals for the selected month (transactions are already filtered by month from API)
@@ -484,7 +485,7 @@ export default function TransactionsPage() {
               categoryId: scheduled.categoryId || "",
               incomeSourceId: scheduled.incomeSourceId || "",
               toAccountId: "",
-              date: format(new Date(scheduled.dueDate), "yyyy-MM-dd"),
+              date: format(parseLocalDate(scheduled.dueDate), "yyyy-MM-dd"),
               isInstallment: false,
               totalInstallments: 2,
             });
@@ -562,7 +563,7 @@ export default function TransactionsPage() {
                   isExpanded={expanded}
                   onToggle={() => toggleGroup(dateKey)}
                   icon="📅"
-                  label={format(new Date(dateKey), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                  label={format(parseLocalDate(dateKey), "EEEE, dd 'de' MMMM", { locale: ptBR })}
                   count={dayTransactions.length}
                   gridCols={GRID_COLS}
                   emptyColsCount={2}
