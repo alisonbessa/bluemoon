@@ -17,11 +17,12 @@ import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { RecurringBillItem } from './recurring-bill-item';
-import { RecurringBillForm } from './recurring-bill-form';
+import { UnifiedExpenseForm } from '@/components/expenses';
 
 interface Account {
   id: string;
   name: string;
+  type: string;
   icon?: string | null;
 }
 
@@ -259,18 +260,29 @@ export function CategoryWithBills({
       )}
 
       {/* Bill Form Modal */}
-      <RecurringBillForm
+      <UnifiedExpenseForm
         isOpen={isBillFormOpen}
         onClose={() => {
           setIsBillFormOpen(false);
           setEditingBill(null);
         }}
-        categoryId={item.category.id}
-        categoryName={item.category.name}
+        onSuccess={handleBillFormSuccess}
         budgetId={budgetId}
         accounts={accounts}
-        editingBill={editingBill}
-        onSuccess={handleBillFormSuccess}
+        categories={[{ id: item.category.id, name: item.category.name, icon: item.category.icon }]}
+        defaultCategoryId={item.category.id}
+        defaultIsRecurring={true}
+        editingBill={editingBill ? {
+          id: editingBill.id,
+          name: editingBill.name,
+          amount: editingBill.amount,
+          frequency: editingBill.frequency as 'weekly' | 'monthly' | 'yearly',
+          dueDay: editingBill.dueDay,
+          dueMonth: editingBill.dueMonth,
+          accountId: editingBill.account?.id || accounts[0]?.id || '',
+          isAutoDebit: editingBill.isAutoDebit ?? false,
+          isVariable: editingBill.isVariable ?? false,
+        } : null}
       />
 
       {/* Delete Bill Confirmation */}

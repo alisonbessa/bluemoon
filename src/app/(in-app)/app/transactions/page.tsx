@@ -58,6 +58,7 @@ import {
   parseLocalDate,
 } from "@/lib/formatters";
 import { ScheduledTransactions } from "@/components/transactions";
+import { UnifiedExpenseForm } from "@/components/expenses";
 
 interface Category {
   id: string;
@@ -138,6 +139,7 @@ export default function TransactionsPage() {
 
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -413,6 +415,10 @@ export default function TransactionsPage() {
             month={currentMonth}
             onChange={handleMonthChange}
           />
+          <Button onClick={() => setIsExpenseFormOpen(true)} variant="outline" size="sm">
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Nova Despesa</span>
+          </Button>
           <Button onClick={openCreateForm} size="sm">
             <Plus className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Nova Transação</span>
@@ -981,6 +987,20 @@ export default function TransactionsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Unified Expense Form (Despesa única ou recorrente) */}
+      <UnifiedExpenseForm
+        isOpen={isExpenseFormOpen}
+        onClose={() => setIsExpenseFormOpen(false)}
+        onSuccess={() => {
+          fetchData();
+          setScheduledRefreshKey((k) => k + 1);
+        }}
+        budgetId={budgets[0]?.id || ""}
+        accounts={accounts}
+        categories={categories}
+        defaultIsRecurring={false}
+      />
     </div>
   );
 }
