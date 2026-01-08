@@ -514,34 +514,18 @@ export default function TransactionsPage() {
             setIsFormOpen(true);
           }}
           onConfirm={async (scheduled) => {
-            // Directly create the transaction as cleared (confirmed)
-            if (accounts.length === 0) {
-              toast.error("Nenhuma conta encontrada");
-              return;
-            }
-
+            // Update existing pending transaction to cleared status
             try {
-              const payload = {
-                budgetId: budgets[0].id,
-                type: scheduled.type,
-                amount: scheduled.amount,
-                description: scheduled.name,
-                accountId: accounts[0].id,
-                categoryId: scheduled.categoryId || undefined,
-                incomeSourceId: scheduled.incomeSourceId || undefined,
-                recurringBillId: scheduled.recurringBillId || undefined,
-                date: new Date(scheduled.dueDate).toISOString(),
-                status: "cleared", // Confirmed = cleared status
-              };
-
-              const response = await fetch("/api/app/transactions", {
-                method: "POST",
+              const response = await fetch(`/api/app/transactions/${scheduled.id}`, {
+                method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                body: JSON.stringify({
+                  status: "cleared",
+                }),
               });
 
               if (!response.ok) {
-                throw new Error("Erro ao criar transação");
+                throw new Error("Erro ao confirmar transação");
               }
 
               toast.success("Transação confirmada!");
