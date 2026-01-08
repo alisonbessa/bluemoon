@@ -39,6 +39,7 @@ export async function ensurePendingTransactionsForMonth(
     .select({
       recurringBillId: transactions.recurringBillId,
       incomeSourceId: transactions.incomeSourceId,
+      date: transactions.date,
     })
     .from(transactions)
     .where(
@@ -49,9 +50,23 @@ export async function ensurePendingTransactionsForMonth(
       )
     );
 
+  // For monthly/yearly: just track if bill has any transaction
+  // For weekly: track specific dates to avoid duplicates
   const existingBillIds = new Set(
     existingTransactions.filter((t) => t.recurringBillId).map((t) => t.recurringBillId)
   );
+
+  // Also track exact dates for weekly bills (to avoid duplicates)
+  const existingBillDates = new Map<string, Set<string>>();
+  existingTransactions.filter((t) => t.recurringBillId && t.date).forEach((t) => {
+    const key = t.recurringBillId!;
+    if (!existingBillDates.has(key)) {
+      existingBillDates.set(key, new Set());
+    }
+    // Store date as ISO string (date only, no time)
+    const dateStr = t.date.toISOString().split('T')[0];
+    existingBillDates.get(key)!.add(dateStr);
+  });
   const existingIncomeIds = new Set(
     existingTransactions.filter((t) => t.incomeSourceId).map((t) => t.incomeSourceId)
   );
@@ -97,31 +112,81 @@ export async function ensurePendingTransactionsForMonth(
   // Create pending expense transactions from recurring bills
   const expenseTransactions = [];
   for (const bill of activeBills) {
-    // Skip if already has transaction this month
-    if (existingBillIds.has(bill.id)) continue;
-
-    // Check frequency
-    if (bill.frequency === "yearly" && bill.dueMonth !== month) continue;
-    // Weekly bills: simplified for now, just generate one per month
-    // TODO: implement weekly logic properly
-
     if (bill.amount <= 0) continue;
 
-    const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
-    const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0)); // Noon UTC to avoid timezone issues
+    // Handle different frequencies
+    if (bill.frequency === "weekly") {
+      // Weekly bills: generate for each occurrence in the month
+      // dueDay for weekly = day of week (0=Sunday, 1=Monday, ..., 6=Saturday)
+      const dayOfWeek = bill.dueDay ?? 1; // Default to Monday if not set
+      const existingDates = existingBillDates.get(bill.id) || new Set();
 
-    expenseTransactions.push({
-      budgetId,
-      accountId: bill.accountId,
-      categoryId: bill.categoryId,
-      recurringBillId: bill.id,
-      type: "expense" as const,
-      status: "pending" as const,
-      amount: bill.amount,
-      description: bill.name,
-      date: dueDate,
-      source: "recurring",
-    });
+      // Find all occurrences of this day of week in the month
+      for (let day = 1; day <= lastDayOfMonth; day++) {
+        const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+        if (date.getUTCDay() === dayOfWeek) {
+          const dateStr = date.toISOString().split('T')[0];
+
+          // Skip if transaction already exists for this date
+          if (existingDates.has(dateStr)) continue;
+
+          expenseTransactions.push({
+            budgetId,
+            accountId: bill.accountId,
+            categoryId: bill.categoryId,
+            recurringBillId: bill.id,
+            type: "expense" as const,
+            status: "pending" as const,
+            amount: bill.amount,
+            description: `${bill.name} (${date.getUTCDate()}/${month})`,
+            date,
+            source: "recurring",
+          });
+        }
+      }
+    } else if (bill.frequency === "yearly") {
+      // Yearly bills: only generate in the specified month
+      if (bill.dueMonth !== month) continue;
+
+      // Skip if already has transaction this month
+      if (existingBillIds.has(bill.id)) continue;
+
+      const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
+      const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0));
+
+      expenseTransactions.push({
+        budgetId,
+        accountId: bill.accountId,
+        categoryId: bill.categoryId,
+        recurringBillId: bill.id,
+        type: "expense" as const,
+        status: "pending" as const,
+        amount: bill.amount,
+        description: bill.name,
+        date: dueDate,
+        source: "recurring",
+      });
+    } else {
+      // Monthly bills (default)
+      // Skip if already has transaction this month
+      if (existingBillIds.has(bill.id)) continue;
+
+      const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
+      const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0));
+
+      expenseTransactions.push({
+        budgetId,
+        accountId: bill.accountId,
+        categoryId: bill.categoryId,
+        recurringBillId: bill.id,
+        type: "expense" as const,
+        status: "pending" as const,
+        amount: bill.amount,
+        description: bill.name,
+        date: dueDate,
+        source: "recurring",
+      });
+    }
   }
 
   // Create pending income transactions (only for sources not yet in this month)
