@@ -277,6 +277,7 @@ export default function TransactionsPage() {
         incomeSourceId: formData.type === "income" ? (formData.incomeSourceId || undefined) : undefined,
         toAccountId: formData.type === "transfer" ? (formData.toAccountId || undefined) : undefined,
         date: new Date(formData.date).toISOString(),
+        status: "cleared", // Manual transactions are confirmed by default
         // Installment fields (only for new credit card expenses)
         ...(canBeInstallment && formData.isInstallment ? {
           isInstallment: true,
