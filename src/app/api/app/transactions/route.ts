@@ -206,14 +206,25 @@ export const POST = withAuthRequired(async (req, context) => {
 
     const createdTransactions = [parentTransaction, ...remainingInstallments];
 
-    // Update account balance
-    await db
-      .update(financialAccounts)
-      .set({
-        balance: financialAccounts.balance,
-        updatedAt: new Date(),
-      })
+    // Update account balance for installments
+    // Note: Only the first installment affects balance immediately (it's due now)
+    // Future installments will affect balance when they're confirmed
+    const [currentAccount] = await db
+      .select()
+      .from(financialAccounts)
       .where(eq(financialAccounts.id, accountId));
+
+    if (currentAccount) {
+      const balanceChange = type === "income" ? installmentAmount : -Math.abs(installmentAmount);
+
+      await db
+        .update(financialAccounts)
+        .set({
+          balance: currentAccount.balance + balanceChange,
+          updatedAt: new Date(),
+        })
+        .where(eq(financialAccounts.id, accountId));
+    }
 
     return NextResponse.json(
       { transactions: createdTransactions },
