@@ -129,33 +129,45 @@ export function TransactionFormModal({
             </div>
           </div>
 
-          {/* Amount */}
-          <div className="space-y-2">
-            <Label htmlFor="amount">Valor</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                R$
-              </span>
+          {/* Amount + Date */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="amount">Valor</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  R$
+                </span>
+                <Input
+                  id="amount"
+                  className="pl-10"
+                  placeholder="0,00"
+                  value={formData.amount}
+                  onChange={(e) => {
+                    const formatted = formatCurrencyFromDigits(e.target.value);
+                    setFormData({ ...formData, amount: formatted });
+                  }}
+                  onFocus={(e) => {
+                    if (parseCurrency(formData.amount) === 0) {
+                      setFormData({ ...formData, amount: '' });
+                    }
+                    e.target.select();
+                  }}
+                  onBlur={() => {
+                    if (!formData.amount.trim()) {
+                      setFormData({ ...formData, amount: '0,00' });
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="date">Data</Label>
               <Input
-                id="amount"
-                className="pl-10"
-                placeholder="0,00"
-                value={formData.amount}
-                onChange={(e) => {
-                  const formatted = formatCurrencyFromDigits(e.target.value);
-                  setFormData({ ...formData, amount: formatted });
-                }}
-                onFocus={(e) => {
-                  if (parseCurrency(formData.amount) === 0) {
-                    setFormData({ ...formData, amount: '' });
-                  }
-                  e.target.select();
-                }}
-                onBlur={() => {
-                  if (!formData.amount.trim()) {
-                    setFormData({ ...formData, amount: '0,00' });
-                  }
-                }}
+                id="date"
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               />
             </div>
           </div>
@@ -332,17 +344,6 @@ export function TransactionFormModal({
               </Select>
             </div>
           )}
-
-          {/* Date */}
-          <div className="space-y-2">
-            <Label htmlFor="date">Data</Label>
-            <Input
-              id="date"
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            />
-          </div>
         </div>
 
         <DialogFooter>

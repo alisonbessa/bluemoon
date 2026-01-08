@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -118,6 +119,7 @@ interface IncomeSource {
   memberId: string | null;
   member?: { id: string; name: string; color?: string | null } | null;
   account?: { id: string; name: string; icon?: string | null } | null;
+  isAutoConfirm?: boolean;
 }
 
 interface Account {
@@ -135,6 +137,7 @@ interface IncomeSourceFormData {
   dayOfMonth?: number;
   memberId?: string;
   accountId?: string;
+  isAutoConfirm?: boolean;
 }
 
 interface Member {
@@ -319,6 +322,7 @@ export default function BudgetPage() {
     dayOfMonth: undefined,
     memberId: undefined,
     accountId: undefined,
+    isAutoConfirm: false,
   });
   const [incomeSourceFormErrors, setIncomeSourceFormErrors] = useState<Record<string, boolean>>({});
 
@@ -658,6 +662,7 @@ export default function BudgetPage() {
       dayOfMonth: undefined,
       memberId: preselectedMemberId || members[0]?.id,
       accountId: undefined,
+      isAutoConfirm: false,
     });
     setEditingIncomeSource(null);
     setIncomeSourceFormErrors({});
@@ -673,6 +678,7 @@ export default function BudgetPage() {
       dayOfMonth: source.dayOfMonth || undefined,
       memberId: source.member?.id || source.memberId || undefined,
       accountId: source.account?.id,
+      isAutoConfirm: source.isAutoConfirm || false,
     });
     setEditingIncomeSource(source);
     setIncomeSourceFormErrors({});
@@ -2316,6 +2322,25 @@ export default function BudgetPage() {
                 </Select>
               </div>
             )}
+
+            {/* Confirmacao Automatica */}
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="incomeAutoConfirm" className="cursor-pointer">
+                  Confirmacao automatica
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Confirmar automaticamente quando chegar o dia
+                </p>
+              </div>
+              <Switch
+                id="incomeAutoConfirm"
+                checked={incomeSourceFormData.isAutoConfirm || false}
+                onCheckedChange={(checked) =>
+                  setIncomeSourceFormData(prev => ({ ...prev, isAutoConfirm: checked }))
+                }
+              />
+            </div>
           </div>
 
           <DialogFooter className="flex justify-end gap-2">
