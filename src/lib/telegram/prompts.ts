@@ -1,5 +1,15 @@
 import type { UserContext } from "./types";
 
+// Labels for account types in Portuguese
+const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  checking: "conta",
+  savings: "poupança",
+  credit_card: "cartão",
+  cash: "dinheiro",
+  investment: "investimento",
+  benefit: "benefício",
+};
+
 /**
  * Build the main prompt for parsing user messages
  */
@@ -9,7 +19,10 @@ export function buildParsePrompt(message: string, userContext: UserContext): str
   const categoryList = categories.map((c) => c.name).join(", ") || "Nenhuma";
   const incomeSourceList = incomeSources.map((s) => s.name).join(", ") || "Nenhuma";
   const goalList = goals.map((g) => g.name).join(", ") || "Nenhuma";
-  const accountList = accounts.map((a) => a.name).join(", ") || "Nenhuma";
+  // Include account type to help AI distinguish between accounts with similar names
+  const accountList = accounts
+    .map((a) => `${a.name} (${ACCOUNT_TYPE_LABELS[a.type] || a.type})`)
+    .join(", ") || "Nenhuma";
 
   // Format pending transactions for context
   const pendingIncomes = pendingTransactions
