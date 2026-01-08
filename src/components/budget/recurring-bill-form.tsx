@@ -60,6 +60,15 @@ const FREQUENCY_OPTIONS = [
 ];
 
 const DAYS_OF_MONTH = Array.from({ length: 31 }, (_, i) => i + 1);
+const DAYS_OF_WEEK = [
+  { value: 0, label: 'Domingo' },
+  { value: 1, label: 'Segunda-feira' },
+  { value: 2, label: 'Terça-feira' },
+  { value: 3, label: 'Quarta-feira' },
+  { value: 4, label: 'Quinta-feira' },
+  { value: 5, label: 'Sexta-feira' },
+  { value: 6, label: 'Sábado' },
+];
 const MONTHS = [
   { value: 1, label: 'Janeiro' },
   { value: 2, label: 'Fevereiro' },
@@ -152,7 +161,7 @@ export function RecurringBillForm({
           name: name.trim(),
           amount,
           frequency,
-          dueDay: frequency !== 'weekly' ? dueDay : null,
+          dueDay, // For weekly: day of week (0-6), for monthly/yearly: day of month (1-31)
           dueMonth: frequency === 'yearly' ? dueMonth : null,
           accountId,
           isAutoDebit,
@@ -237,7 +246,32 @@ export function RecurringBillForm({
             </div>
           </div>
 
-          {/* Due Day + Due Month */}
+          {/* Due Day for weekly */}
+          {frequency === 'weekly' && (
+            <div className="grid gap-2">
+              <Label>Dia da semana</Label>
+              <Select
+                value={dueDay?.toString() || ''}
+                onValueChange={(v) => setDueDay(v ? parseInt(v) : undefined)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o dia da semana" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DAYS_OF_WEEK.map((day) => (
+                    <SelectItem key={day.value} value={day.value.toString()}>
+                      {day.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                A transação será gerada para cada {DAYS_OF_WEEK.find(d => d.value === dueDay)?.label || 'dia'} do mês
+              </p>
+            </div>
+          )}
+
+          {/* Due Day + Due Month for monthly/yearly */}
           {frequency !== 'weekly' && (
             <div className={frequency === 'yearly' ? 'grid grid-cols-2 gap-4' : ''}>
               <div className="grid gap-2">
