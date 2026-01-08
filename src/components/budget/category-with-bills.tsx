@@ -86,9 +86,6 @@ export function CategoryWithBills({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const hasBills = item.recurringBills && item.recurringBills.length > 0;
-  const totalBillsAmount = hasBills
-    ? item.recurringBills!.reduce((sum, bill) => sum + bill.amount, 0)
-    : 0;
 
   const handleAddBill = (e: React.MouseEvent) => {
     e.stopPropagation();

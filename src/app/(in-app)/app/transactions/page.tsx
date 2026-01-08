@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { MonthSelector } from "@/components/ui/month-selector";
-import { format, isSameMonth } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
