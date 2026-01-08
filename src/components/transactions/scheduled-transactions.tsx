@@ -26,11 +26,12 @@ interface ScheduledTransaction {
   dueDay: number;
   dueDate: string;
   isPaid: boolean;
-  sourceType: "category" | "income_source" | "goal";
+  sourceType: "category" | "income_source" | "goal" | "recurring_bill";
   sourceId: string;
   categoryId?: string;
   incomeSourceId?: string;
   goalId?: string;
+  recurringBillId?: string;
 }
 
 interface ScheduledTotals {

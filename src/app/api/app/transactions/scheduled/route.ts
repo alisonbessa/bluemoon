@@ -128,16 +128,19 @@ export const GET = withAuthRequired(async (req, context) => {
       ),
   ]);
 
-  // Build map of already paid items
+  // Build map of already paid items (only count confirmed transactions)
   const paidBills = new Set<string>();
   const paidIncomeSources = new Set<string>();
   const paidGoals = new Set<string>();
 
   for (const tx of existingTransactions) {
-    if (tx.recurringBillId && tx.type === "expense") {
+    // Only mark as paid if status is "cleared" or "reconciled", not "pending"
+    const isConfirmed = tx.status === "cleared" || tx.status === "reconciled";
+
+    if (tx.recurringBillId && tx.type === "expense" && isConfirmed) {
       paidBills.add(tx.recurringBillId);
     }
-    if (tx.incomeSourceId && tx.type === "income") {
+    if (tx.incomeSourceId && tx.type === "income" && isConfirmed) {
       paidIncomeSources.add(tx.incomeSourceId);
     }
   }
