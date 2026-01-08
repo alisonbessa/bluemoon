@@ -15,6 +15,7 @@ const updateIncomeSourceSchema = z.object({
   amount: z.number().int().min(0).optional(),
   frequency: incomeFrequencyEnum.optional(),
   dayOfMonth: z.number().int().min(1).max(31).optional().nullable(),
+  isAutoConfirm: z.boolean().optional(),
   isActive: z.boolean().optional(),
   displayOrder: z.number().int().optional(),
 });

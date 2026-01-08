@@ -40,6 +40,9 @@ export const incomeSources = pgTable("income_sources", {
   frequency: text("frequency").$type<IncomeFrequency>().notNull().default("monthly"),
   dayOfMonth: integer("day_of_month"), // Dia do pagamento (1-31)
 
+  // Confirmação automática
+  isAutoConfirm: boolean("is_auto_confirm").default(false), // Confirmar automaticamente no dia
+
   isActive: boolean("is_active").default(true),
   displayOrder: integer("display_order").notNull().default(0),
 
