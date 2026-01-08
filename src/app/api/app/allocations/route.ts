@@ -407,18 +407,24 @@ export const GET = withAuthRequired(async (req, context) => {
       });
     }
 
-    // Use monthly allocation if it exists, otherwise use default amount
-    const defaultAmount = incomeSource.amount || 0;
+    // Calculate monthly amount based on frequency
+    // Weekly = 4x per month, Biweekly = 2x per month, Monthly = 1x per month
+    const frequencyMultiplier =
+      incomeSource.frequency === "weekly" ? 4 :
+      incomeSource.frequency === "biweekly" ? 2 : 1;
+    const defaultMonthlyAmount = (incomeSource.amount || 0) * frequencyMultiplier;
+
+    // Use monthly allocation if it exists, otherwise use calculated monthly amount
     const planned = incomeAllocationsMap.has(incomeSource.id)
       ? incomeAllocationsMap.get(incomeSource.id)!
-      : defaultAmount;
+      : defaultMonthlyAmount;
     const received = incomeReceivedMap.get(incomeSource.id) || 0;
 
     const memberData = incomeByMember.get(memberId)!;
     memberData.sources.push({
       incomeSource,
       planned,
-      defaultAmount,
+      defaultAmount: defaultMonthlyAmount, // Monthly amount considering frequency
       received,
     });
     memberData.totals.planned += planned;

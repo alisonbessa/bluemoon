@@ -71,6 +71,17 @@ export async function ensurePendingTransactionsForMonth(
     existingTransactions.filter((t) => t.incomeSourceId).map((t) => t.incomeSourceId)
   );
 
+  // Also track exact dates for income sources (for weekly/biweekly)
+  const existingIncomeDates = new Map<string, Set<string>>();
+  existingTransactions.filter((t) => t.incomeSourceId && t.date).forEach((t) => {
+    const key = t.incomeSourceId!;
+    if (!existingIncomeDates.has(key)) {
+      existingIncomeDates.set(key, new Set());
+    }
+    const dateStr = t.date.toISOString().split('T')[0];
+    existingIncomeDates.get(key)!.add(dateStr);
+  });
+
   // Get all active recurring bills
   const activeBills = await db
     .select()
@@ -189,27 +200,85 @@ export async function ensurePendingTransactionsForMonth(
     }
   }
 
-  // Create pending income transactions (only for sources not yet in this month)
+  // Create pending income transactions based on frequency
   const incomeTransactions = [];
   for (const { incomeSource, account } of incomeSourcesWithDay) {
-    if (existingIncomeIds.has(incomeSource.id)) continue;
-
     if (incomeSource.amount <= 0) continue;
 
-    const dueDay = Math.min(incomeSource.dayOfMonth!, lastDayOfMonth);
-    const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0)); // Noon UTC to avoid timezone issues
+    const frequency = incomeSource.frequency || "monthly";
+    const existingDates = existingIncomeDates.get(incomeSource.id) || new Set();
+    const accountId = account?.id || defaultAccount[0].id;
 
-    incomeTransactions.push({
-      budgetId,
-      accountId: account?.id || defaultAccount[0].id,
-      incomeSourceId: incomeSource.id,
-      type: "income" as const,
-      status: "pending" as const,
-      amount: incomeSource.amount,
-      description: `${incomeSource.name} (agendado)`,
-      date: dueDate,
-      source: "scheduled",
-    });
+    if (frequency === "weekly") {
+      // Weekly income: generate for each week of the month
+      // dayOfMonth for weekly = day of week (0=Sunday, 6=Saturday)
+      const dayOfWeek = incomeSource.dayOfMonth ?? 5; // Default to Friday
+
+      for (let day = 1; day <= lastDayOfMonth; day++) {
+        const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+        if (date.getUTCDay() === dayOfWeek) {
+          const dateStr = date.toISOString().split('T')[0];
+
+          if (existingDates.has(dateStr)) continue;
+
+          incomeTransactions.push({
+            budgetId,
+            accountId,
+            incomeSourceId: incomeSource.id,
+            type: "income" as const,
+            status: "pending" as const,
+            amount: incomeSource.amount,
+            description: `${incomeSource.name} (${date.getUTCDate()}/${month})`,
+            date,
+            source: "scheduled",
+          });
+        }
+      }
+    } else if (frequency === "biweekly") {
+      // Biweekly income: generate 2 times per month (around day 1 and day 15)
+      const baseDayOfMonth = incomeSource.dayOfMonth ?? 15;
+      const days = [
+        Math.min(baseDayOfMonth, lastDayOfMonth),
+        Math.min(baseDayOfMonth + 14, lastDayOfMonth)
+      ];
+
+      for (const day of days) {
+        const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+        const dateStr = date.toISOString().split('T')[0];
+
+        if (existingDates.has(dateStr)) continue;
+
+        incomeTransactions.push({
+          budgetId,
+          accountId,
+          incomeSourceId: incomeSource.id,
+          type: "income" as const,
+          status: "pending" as const,
+          amount: incomeSource.amount,
+          description: `${incomeSource.name} (dia ${day})`,
+          date,
+          source: "scheduled",
+        });
+      }
+    } else {
+      // Monthly income (default)
+      if (existingIncomeIds.has(incomeSource.id)) continue;
+
+      const dueDay = Math.min(incomeSource.dayOfMonth!, lastDayOfMonth);
+      const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0));
+
+      incomeTransactions.push({
+        budgetId,
+        accountId,
+        incomeSourceId: incomeSource.id,
+        type: "income" as const,
+        status: "pending" as const,
+        amount: incomeSource.amount,
+        description: `${incomeSource.name} (agendado)`,
+        date: dueDate,
+        source: "scheduled",
+      });
+    }
   }
 
   // Insert all new transactions
