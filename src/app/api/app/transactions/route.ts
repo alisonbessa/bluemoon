@@ -13,7 +13,9 @@ const createTransactionSchema = z.object({
   incomeSourceId: z.string().uuid().optional(), // For income transactions
   memberId: z.string().uuid().optional(),
   toAccountId: z.string().uuid().optional(), // For transfers
+  recurringBillId: z.string().uuid().optional(), // Link to recurring bill
   type: financialTransactionTypeEnum,
+  status: financialTransactionStatusEnum.optional(), // Allow setting status (default: pending)
   amount: z.number().int(), // In cents
   description: z.string().optional(),
   notes: z.string().optional(),
@@ -118,7 +120,9 @@ export const POST = withAuthRequired(async (req, context) => {
     categoryId,
     incomeSourceId,
     toAccountId,
+    recurringBillId,
     type,
+    status,
     amount,
     description,
     notes,
@@ -227,9 +231,11 @@ export const POST = withAuthRequired(async (req, context) => {
         accountId,
         categoryId: type === "expense" ? categoryId : undefined,
         incomeSourceId: type === "income" ? incomeSourceId : undefined,
+        recurringBillId,
         memberId,
         toAccountId,
         type,
+        status: status || "pending", // Use provided status or default to pending
         amount,
         description,
         notes,

@@ -205,78 +205,80 @@ export function RecurringBillForm({
             />
           </div>
 
-          {/* Amount */}
-          <div className="grid gap-2">
-            <Label htmlFor="billAmount">Valor</Label>
-            <CurrencyInput
-              id="billAmount"
-              value={amount}
-              onChange={setAmount}
-              placeholder="0,00"
-            />
-          </div>
-
-          {/* Frequency */}
-          <div className="grid gap-2">
-            <Label>Frequência</Label>
-            <Select
-              value={frequency}
-              onValueChange={(v) => setFrequency(v as 'weekly' | 'monthly' | 'yearly')}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FREQUENCY_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Due Day - for monthly/yearly */}
-          {frequency !== 'weekly' && (
+          {/* Amount + Frequency */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label>Dia do vencimento</Label>
+              <Label htmlFor="billAmount">Valor</Label>
+              <CurrencyInput
+                id="billAmount"
+                value={amount}
+                onChange={setAmount}
+                placeholder="0,00"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Frequência</Label>
               <Select
-                value={dueDay?.toString() || ''}
-                onValueChange={(v) => setDueDay(v ? parseInt(v) : undefined)}
+                value={frequency}
+                onValueChange={(v) => setFrequency(v as 'weekly' | 'monthly' | 'yearly')}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o dia" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {DAYS_OF_MONTH.map((day) => (
-                    <SelectItem key={day} value={day.toString()}>
-                      Dia {day}
+                  {FREQUENCY_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          )}
+          </div>
 
-          {/* Due Month - for yearly only */}
-          {frequency === 'yearly' && (
-            <div className="grid gap-2">
-              <Label>Mês do vencimento</Label>
-              <Select
-                value={dueMonth?.toString() || ''}
-                onValueChange={(v) => setDueMonth(v ? parseInt(v) : undefined)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o mês" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MONTHS.map((month) => (
-                    <SelectItem key={month.value} value={month.value.toString()}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Due Day + Due Month */}
+          {frequency !== 'weekly' && (
+            <div className={frequency === 'yearly' ? 'grid grid-cols-2 gap-4' : ''}>
+              <div className="grid gap-2">
+                <Label>Dia do vencimento</Label>
+                <Select
+                  value={dueDay?.toString() || ''}
+                  onValueChange={(v) => setDueDay(v ? parseInt(v) : undefined)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o dia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DAYS_OF_MONTH.map((day) => (
+                      <SelectItem key={day} value={day.toString()}>
+                        Dia {day}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {frequency === 'yearly' && (
+                <div className="grid gap-2">
+                  <Label>Mês do vencimento</Label>
+                  <Select
+                    value={dueMonth?.toString() || ''}
+                    onValueChange={(v) => setDueMonth(v ? parseInt(v) : undefined)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o mês" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MONTHS.map((month) => (
+                        <SelectItem key={month.value} value={month.value.toString()}>
+                          {month.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
 

@@ -82,10 +82,25 @@ export function formatPercentage(value: number, decimals = 1): string {
 }
 
 /**
+ * Parse a date string as a local date (ignoring timezone)
+ * This fixes the common issue where "2024-01-15T00:00:00.000Z" becomes
+ * January 14th at 21:00 in Brazil (UTC-3)
+ */
+export function parseLocalDate(date: Date | string): Date {
+  if (date instanceof Date) return date;
+
+  // If it's an ISO string with timezone, extract just the date part
+  // and create a date at noon local time to avoid any timezone issues
+  const dateStr = date.split('T')[0]; // "2024-01-15"
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0); // noon local time
+}
+
+/**
  * Format date to Brazilian format
  */
 export function formatDate(date: Date | string, options?: Intl.DateTimeFormatOptions): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d = parseLocalDate(date);
   return d.toLocaleDateString('pt-BR', options ?? {
     day: '2-digit',
     month: '2-digit',
@@ -97,7 +112,7 @@ export function formatDate(date: Date | string, options?: Intl.DateTimeFormatOpt
  * Format date to short format (e.g., "15 Jan")
  */
 export function formatDateShort(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d = parseLocalDate(date);
   return d.toLocaleDateString('pt-BR', {
     day: 'numeric',
     month: 'short',

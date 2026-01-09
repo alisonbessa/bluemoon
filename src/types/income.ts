@@ -46,6 +46,7 @@ export interface IncomeSourceFormData {
   dayOfMonth?: number;
   memberId?: string;
   accountId?: string;
+  isAutoConfirm?: boolean;
 }
 
 export const INCOME_TYPE_CONFIG: Record<IncomeType, { label: string; icon: string }> = {

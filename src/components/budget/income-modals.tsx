@@ -29,6 +29,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { formatCurrency, formatCurrencyFromDigits } from '@/lib/formatters';
 import { MONTHS_PT as monthNamesFull } from '@/lib/date-utils';
 import type { IncomeSource, IncomeSourceData, IncomeSourceFormData, MemberSummary } from '@/types';
@@ -345,6 +346,25 @@ export function IncomeSourceFormModal({
               </Select>
             </div>
           )}
+
+          {/* Confirmacao Automatica */}
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="isAutoConfirm" className="cursor-pointer">
+                Confirmacao automatica
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Confirmar automaticamente quando chegar o dia
+              </p>
+            </div>
+            <Switch
+              id="isAutoConfirm"
+              checked={formData.isAutoConfirm || false}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, isAutoConfirm: checked })
+              }
+            />
+          </div>
         </div>
 
         <DialogFooter className="flex justify-end gap-2">

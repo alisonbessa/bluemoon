@@ -16,6 +16,7 @@ const createIncomeSourceSchema = z.object({
   amount: z.number().int().min(0),
   frequency: incomeFrequencyEnum.default("monthly"),
   dayOfMonth: z.number().int().min(1).max(31).optional(),
+  isAutoConfirm: z.boolean().optional().default(false),
 });
 
 // Helper to get user's budget IDs

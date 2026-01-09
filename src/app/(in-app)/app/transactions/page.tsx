@@ -55,6 +55,7 @@ import {
   formatCurrencyCompact,
   formatCurrencyFromDigits,
   parseCurrency,
+  parseLocalDate,
 } from "@/lib/formatters";
 import { ScheduledTransactions } from "@/components/transactions";
 
@@ -103,11 +104,11 @@ interface Budget {
 const GRID_COLS = "24px 1fr 120px 120px 100px";
 
 // Group transactions by date
-function groupTransactionsByDate(transactions: Transaction[]): Map<string, Transaction[]> {
+function groupTransactionsByDate(transactions: Transaction[], parseDateFn: typeof parseLocalDate): Map<string, Transaction[]> {
   const grouped = new Map<string, Transaction[]>();
 
   for (const transaction of transactions) {
-    const dateKey = format(new Date(transaction.date), "yyyy-MM-dd");
+    const dateKey = format(parseDateFn(transaction.date), "yyyy-MM-dd");
     const existing = grouped.get(dateKey) || [];
     grouped.set(dateKey, [...existing, transaction]);
   }
@@ -235,7 +236,7 @@ export default function TransactionsPage() {
       categoryId: transaction.categoryId || "",
       incomeSourceId: (transaction as Transaction & { incomeSourceId?: string }).incomeSourceId || "",
       toAccountId: (transaction as Transaction & { toAccountId?: string }).toAccountId || "",
-      date: format(new Date(transaction.date), "yyyy-MM-dd"),
+      date: format(parseLocalDate(transaction.date), "yyyy-MM-dd"),
       isInstallment: false, // Editing doesn't allow changing installment
       totalInstallments: 2,
     });
@@ -339,26 +340,37 @@ export default function TransactionsPage() {
     }
   };
 
+  // Filter out pending transactions - they only appear in the scheduled widget
   const filteredTransactions = transactions.filter((t) => {
+    const isNotPending = t.status !== "pending";
     const matchesSearch = !searchTerm ||
       (t.description?.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (t.category?.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (t.account?.name.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesType = typeFilter === "all" || t.type === typeFilter;
-    return matchesSearch && matchesType;
+    return isNotPending && matchesSearch && matchesType;
   });
 
-  const groupedTransactions = groupTransactionsByDate(filteredTransactions);
+  const groupedTransactions = groupTransactionsByDate(filteredTransactions, parseLocalDate);
   const sortedDates = Array.from(groupedTransactions.keys()).sort((a, b) =>
-    new Date(b).getTime() - new Date(a).getTime()
+    parseLocalDate(b).getTime() - parseLocalDate(a).getTime()
   );
 
   // Calculate totals for the selected month (transactions are already filtered by month from API)
-  const totalIncome = transactions
+  // Confirmed = cleared or reconciled, Planned = all including pending
+  const confirmedIncome = transactions
+    .filter((t) => t.type === "income" && t.status !== "pending")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const plannedIncome = transactions
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalExpenses = transactions
+  const confirmedExpenses = transactions
+    .filter((t) => t.type === "expense" && t.status !== "pending")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const plannedExpenses = transactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
 
@@ -415,7 +427,12 @@ export default function TransactionsPage() {
             <span>Receitas</span>
           </div>
           <div className="mt-1 text-base sm:text-xl font-bold text-green-600">
-            {formatCurrencyCompact(totalIncome)}
+            {formatCurrencyCompact(confirmedIncome)}
+            {plannedIncome > confirmedIncome && (
+              <span className="text-xs sm:text-sm font-normal text-muted-foreground ml-1">
+                / {formatCurrencyCompact(plannedIncome)}
+              </span>
+            )}
           </div>
         </div>
 
@@ -425,7 +442,12 @@ export default function TransactionsPage() {
             <span>Despesas</span>
           </div>
           <div className="mt-1 text-base sm:text-xl font-bold text-red-600">
-            {formatCurrencyCompact(totalExpenses)}
+            {formatCurrencyCompact(confirmedExpenses)}
+            {plannedExpenses > confirmedExpenses && (
+              <span className="text-xs sm:text-sm font-normal text-muted-foreground ml-1">
+                / {formatCurrencyCompact(plannedExpenses)}
+              </span>
+            )}
           </div>
         </div>
 
@@ -436,9 +458,9 @@ export default function TransactionsPage() {
           </div>
           <div className={cn(
             "mt-1 text-base sm:text-xl font-bold",
-            totalIncome - totalExpenses >= 0 ? "text-green-600" : "text-red-600"
+            confirmedIncome - confirmedExpenses >= 0 ? "text-green-600" : "text-red-600"
           )}>
-            {formatCurrencyCompact(totalIncome - totalExpenses)}
+            {formatCurrencyCompact(confirmedIncome - confirmedExpenses)}
           </div>
         </div>
       </div>
@@ -484,7 +506,7 @@ export default function TransactionsPage() {
               categoryId: scheduled.categoryId || "",
               incomeSourceId: scheduled.incomeSourceId || "",
               toAccountId: "",
-              date: format(new Date(scheduled.dueDate), "yyyy-MM-dd"),
+              date: format(parseLocalDate(scheduled.dueDate), "yyyy-MM-dd"),
               isInstallment: false,
               totalInstallments: 2,
             });
@@ -492,7 +514,7 @@ export default function TransactionsPage() {
             setIsFormOpen(true);
           }}
           onConfirm={async (scheduled) => {
-            // Directly create the transaction as paid
+            // Directly create the transaction as cleared (confirmed)
             if (accounts.length === 0) {
               toast.error("Nenhuma conta encontrada");
               return;
@@ -507,7 +529,9 @@ export default function TransactionsPage() {
                 accountId: accounts[0].id,
                 categoryId: scheduled.categoryId || undefined,
                 incomeSourceId: scheduled.incomeSourceId || undefined,
+                recurringBillId: scheduled.recurringBillId || undefined,
                 date: new Date(scheduled.dueDate).toISOString(),
+                status: "cleared", // Confirmed = cleared status
               };
 
               const response = await fetch("/api/app/transactions", {
@@ -562,7 +586,7 @@ export default function TransactionsPage() {
                   isExpanded={expanded}
                   onToggle={() => toggleGroup(dateKey)}
                   icon="📅"
-                  label={format(new Date(dateKey), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                  label={format(parseLocalDate(dateKey), "EEEE, dd 'de' MMMM", { locale: ptBR })}
                   count={dayTransactions.length}
                   gridCols={GRID_COLS}
                   emptyColsCount={2}

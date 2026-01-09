@@ -220,10 +220,16 @@ export function AccountForm({
                 id="name"
                 placeholder={
                   isCreditCard
-                    ? "Ex: Nubank"
+                    ? "Ex: Cartão Nubank, C6 Crédito"
                     : formData.type === "benefit"
-                      ? "Ex: VR, VA, Alelo"
-                      : "Ex: Banco do Brasil"
+                      ? "Ex: Flash, VR Alelo"
+                      : formData.type === "savings"
+                        ? "Ex: Poupança Itaú, Reserva"
+                        : formData.type === "cash"
+                          ? "Ex: Carteira, Dinheiro Casa"
+                          : formData.type === "investment"
+                            ? "Ex: XP Investimentos, Nubank RDB"
+                            : "Ex: Conta Itaú, BB Corrente"
                 }
                 value={formData.name}
                 onChange={(e) => {
@@ -282,47 +288,50 @@ export function AccountForm({
               </div>
             )}
 
-            <div className="grid gap-2">
-              <Label htmlFor="balance">{getBalanceLabel()}</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  R$
-                </span>
-                <Input
-                  id="balance"
-                  className="pl-10"
-                  placeholder="0,00"
-                  value={balanceInput}
-                  onChange={(e) => {
-                    // Format as user types - only accept digits
-                    const formatted = formatCurrencyFromDigits(e.target.value);
-                    setBalanceInput(formatted);
-                  }}
-                  onFocus={(e) => {
-                    // Clear the input on focus if it's 0,00
-                    if (parseCurrency(balanceInput) === 0) {
-                      setBalanceInput("");
-                    }
-                    // Select all text
-                    e.target.select();
-                  }}
-                  onBlur={() => {
-                    // Ensure proper formatting on blur
-                    if (!balanceInput.trim()) {
-                      setBalanceInput("0,00");
-                    }
-                  }}
-                />
+            {/* Balance + Credit Limit (side by side for credit cards) */}
+            <div className={isCreditCard ? "grid grid-cols-2 gap-4" : ""}>
+              <div className="grid gap-2">
+                <Label htmlFor="balance">{getBalanceLabel()}</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    R$
+                  </span>
+                  <Input
+                    id="balance"
+                    className="pl-10"
+                    placeholder="0,00"
+                    value={balanceInput}
+                    onChange={(e) => {
+                      // Format as user types - only accept digits
+                      const formatted = formatCurrencyFromDigits(e.target.value);
+                      setBalanceInput(formatted);
+                    }}
+                    onFocus={(e) => {
+                      // Clear the input on focus if it's 0,00
+                      if (parseCurrency(balanceInput) === 0) {
+                        setBalanceInput("");
+                      }
+                      // Select all text
+                      e.target.select();
+                    }}
+                    onBlur={() => {
+                      // Ensure proper formatting on blur
+                      if (!balanceInput.trim()) {
+                        setBalanceInput("0,00");
+                      }
+                    }}
+                  />
+                </div>
+                {!isCreditCard && (
+                  <p className="text-xs text-muted-foreground">
+                    {getBalanceDescription()}
+                  </p>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                {getBalanceDescription()}
-              </p>
-            </div>
 
-            {isCreditCard && (
-              <>
+              {isCreditCard && (
                 <div className="grid gap-2">
-                  <Label htmlFor="creditLimit">Limite do Cartão</Label>
+                  <Label htmlFor="creditLimit">Limite</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                       R$
@@ -350,7 +359,11 @@ export function AccountForm({
                     />
                   </div>
                 </div>
+              )}
+            </div>
 
+            {isCreditCard && (
+              <>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="closingDay">Dia do Fechamento</Label>

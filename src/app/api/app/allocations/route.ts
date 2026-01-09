@@ -355,9 +355,14 @@ export const GET = withAuthRequired(async (req, context) => {
     return g;
   });
 
-  // Also get total income/expense from ALL transactions (even without incomeSourceId or categoryId)
+  // Get total income/expense from ALL transactions (even without incomeSourceId or categoryId)
+  // Separate confirmed (cleared/reconciled) from pending for accurate reporting
   const [transactionTotals] = await db
     .select({
+      // Confirmed totals (cleared or reconciled only)
+      confirmedIncome: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'income' AND ${transactions.status} IN ('cleared', 'reconciled') THEN ${transactions.amount} ELSE 0 END), 0)`,
+      confirmedExpense: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'expense' AND ${transactions.status} IN ('cleared', 'reconciled') THEN ${transactions.amount} ELSE 0 END), 0)`,
+      // Total (including pending)
       totalIncome: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'income' THEN ${transactions.amount} ELSE 0 END), 0)`,
       totalExpense: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'expense' THEN ${transactions.amount} ELSE 0 END), 0)`,
     })
@@ -371,10 +376,12 @@ export const GET = withAuthRequired(async (req, context) => {
       )
     );
 
-  // Use the actual transaction totals for received/spent
-  // But keep planned from income sources
-  const actualIncome = Number(transactionTotals?.totalIncome) || 0;
-  const actualExpense = Number(transactionTotals?.totalExpense) || 0;
+  // Confirmed = only cleared/reconciled transactions
+  const confirmedIncome = Number(transactionTotals?.confirmedIncome) || 0;
+  const confirmedExpense = Number(transactionTotals?.confirmedExpense) || 0;
+  // Total = all transactions including pending
+  const totalIncome = Number(transactionTotals?.totalIncome) || 0;
+  const totalExpense = Number(transactionTotals?.totalExpense) || 0;
 
   // Get month status
   const [monthStatus] = await db
@@ -415,15 +422,19 @@ export const GET = withAuthRequired(async (req, context) => {
     groups: groupedResult,
     totals: {
       ...overallTotals,
-      // Use actual expense total from all transactions (more accurate)
-      spent: actualExpense,
+      // Confirmed expenses (cleared/reconciled only)
+      spent: confirmedExpense,
+      // Total expenses including pending
+      totalSpent: totalExpense,
     },
     income: {
       byMember: incomeGroups,
       totals: {
         ...incomeTotals,
-        // Use actual income total from all transactions (more accurate)
-        received: actualIncome,
+        // Confirmed income (cleared/reconciled only)
+        received: confirmedIncome,
+        // Total income including pending
+        totalReceived: totalIncome,
       },
     },
   });

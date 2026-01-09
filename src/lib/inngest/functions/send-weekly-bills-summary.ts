@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { telegramUsers, transactions, recurringBills, budgetMembers } from "@/db/schema";
 import { eq, and, gte, lte, isNotNull, inArray } from "drizzle-orm";
 import { sendMessage } from "@/lib/telegram/bot";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, parseLocalDate } from "@/lib/formatters";
 
 /**
  * Sends weekly bills summary to connected Telegram users
@@ -112,7 +112,7 @@ export const sendWeeklyBillsSummary = inngest.createFunction(
         let totalAmount = 0;
         const lines = upcomingTransactions.map((t) => {
           totalAmount += t.amount;
-          const date = new Date(t.date);
+          const date = parseLocalDate(t.date);
           const dayName = dayNames[date.getDay()];
           const dayNum = date.getDate().toString().padStart(2, "0");
           const isAutoDebit = t.recurringBillId && autoDebitIds.has(t.recurringBillId);

@@ -5,7 +5,7 @@ import { format, isSameMonth } from 'date-fns';
 import { toast } from 'sonner';
 import { transactionService } from '@/services/transaction.service';
 import { useExpandedGroups } from '@/components/ui/compact-table';
-import { formatCurrencyCompact, parseCurrency } from '@/lib/formatters';
+import { formatCurrencyCompact, parseCurrency, parseLocalDate } from '@/lib/formatters';
 import type { TransactionWithRelations } from '@/types';
 
 interface Category {
@@ -123,7 +123,7 @@ export function useTransactionData() {
   const groupedTransactions = useMemo(() => {
     const grouped = new Map<string, TransactionWithRelations[]>();
     for (const transaction of filteredTransactions) {
-      const dateKey = format(new Date(transaction.date), 'yyyy-MM-dd');
+      const dateKey = format(parseLocalDate(transaction.date), 'yyyy-MM-dd');
       const existing = grouped.get(dateKey) || [];
       grouped.set(dateKey, [...existing, transaction]);
     }
@@ -133,7 +133,7 @@ export function useTransactionData() {
   // Sorted date keys (newest first)
   const sortedDates = useMemo(() => {
     return Array.from(groupedTransactions.keys()).sort(
-      (a, b) => new Date(b).getTime() - new Date(a).getTime()
+      (a, b) => parseLocalDate(b).getTime() - parseLocalDate(a).getTime()
     );
   }, [groupedTransactions]);
 
@@ -141,7 +141,7 @@ export function useTransactionData() {
   const currentMonthTotals = useMemo(() => {
     const now = new Date();
     const currentMonthTransactions = transactions.filter((t) =>
-      isSameMonth(new Date(t.date), now)
+      isSameMonth(parseLocalDate(t.date), now)
     );
 
     const income = currentMonthTransactions
@@ -179,7 +179,7 @@ export function useTransactionData() {
       categoryId: transaction.categoryId || '',
       incomeSourceId: transaction.incomeSourceId || '',
       toAccountId: transaction.toAccountId || '',
-      date: format(new Date(transaction.date), 'yyyy-MM-dd'),
+      date: format(parseLocalDate(transaction.date), 'yyyy-MM-dd'),
     });
     setEditingTransaction(transaction);
     setIsFormOpen(true);
