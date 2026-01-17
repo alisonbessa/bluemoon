@@ -132,6 +132,88 @@ export const GET = withAuthRequired(async (req, context) => {
   const spendingMap = new Map(spending.map((s) => [s.categoryId, Number(s.totalSpent) || 0]));
   const allocationsMap = new Map(allocations.map((a) => [a.categoryId, a]));
 
+  // Calculate carriedOver from previous month
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear = month === 1 ? year - 1 : year;
+
+  const prevMonthAllocationsList = await db
+    .select()
+    .from(monthlyAllocations)
+    .where(
+      and(
+        eq(monthlyAllocations.budgetId, budgetId),
+        eq(monthlyAllocations.year, prevYear),
+        eq(monthlyAllocations.month, prevMonth)
+      )
+    );
+
+  const hasPreviousMonthData = prevMonthAllocationsList.length > 0;
+
+  if (hasPreviousMonthData) {
+    // Calculate date range for previous month
+    const prevStartDate = new Date(prevYear, prevMonth - 1, 1);
+    const prevEndDate = new Date(prevYear, prevMonth, 0, 23, 59, 59);
+
+    // Get spending per category for previous month
+    const prevSpending = await db
+      .select({
+        categoryId: transactions.categoryId,
+        totalSpent: sql<number>`SUM(CASE WHEN ${transactions.type} = 'expense' THEN ${transactions.amount} ELSE 0 END)`,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.budgetId, budgetId),
+          gte(transactions.date, prevStartDate),
+          lte(transactions.date, prevEndDate),
+          inArray(transactions.status, ["cleared", "reconciled"]) // Only count confirmed expenses
+        )
+      )
+      .groupBy(transactions.categoryId);
+
+    const prevSpendingMap = new Map(prevSpending.map((s) => [s.categoryId, Number(s.totalSpent) || 0]));
+
+    // Calculate carriedOver for each category
+    for (const prevAlloc of prevMonthAllocationsList) {
+      const prevSpent = prevSpendingMap.get(prevAlloc.categoryId) || 0;
+      const prevAvailable = (prevAlloc.allocated || 0) + (prevAlloc.carriedOver || 0) - prevSpent;
+
+      // Only carry over positive amounts (surplus), not negative (overspent)
+      const carryOver = Math.max(0, prevAvailable);
+
+      // Find or create current month allocation
+      const currentAlloc = allocationsMap.get(prevAlloc.categoryId);
+
+      if (currentAlloc) {
+        // Update if carriedOver is different
+        if (currentAlloc.carriedOver !== carryOver) {
+          await db
+            .update(monthlyAllocations)
+            .set({ carriedOver: carryOver, updatedAt: new Date() })
+            .where(eq(monthlyAllocations.id, currentAlloc.id));
+
+          // Update local map for this request
+          currentAlloc.carriedOver = carryOver;
+        }
+      } else if (carryOver > 0) {
+        // Create new allocation with carriedOver (only if there's something to carry)
+        const [newAlloc] = await db
+          .insert(monthlyAllocations)
+          .values({
+            budgetId,
+            categoryId: prevAlloc.categoryId,
+            year,
+            month,
+            allocated: 0,
+            carriedOver: carryOver,
+          })
+          .returning();
+
+        allocationsMap.set(prevAlloc.categoryId, newAlloc);
+      }
+    }
+  }
+
   // Group bills by categoryId
   const billsMap = new Map<string, Array<{
     id: string;
@@ -325,18 +407,24 @@ export const GET = withAuthRequired(async (req, context) => {
       });
     }
 
-    // Use monthly allocation if it exists, otherwise use default amount
-    const defaultAmount = incomeSource.amount || 0;
+    // Calculate monthly amount based on frequency
+    // Weekly = 4x per month, Biweekly = 2x per month, Monthly = 1x per month
+    const frequencyMultiplier =
+      incomeSource.frequency === "weekly" ? 4 :
+      incomeSource.frequency === "biweekly" ? 2 : 1;
+    const defaultMonthlyAmount = (incomeSource.amount || 0) * frequencyMultiplier;
+
+    // Use monthly allocation if it exists, otherwise use calculated monthly amount
     const planned = incomeAllocationsMap.has(incomeSource.id)
       ? incomeAllocationsMap.get(incomeSource.id)!
-      : defaultAmount;
+      : defaultMonthlyAmount;
     const received = incomeReceivedMap.get(incomeSource.id) || 0;
 
     const memberData = incomeByMember.get(memberId)!;
     memberData.sources.push({
       incomeSource,
       planned,
-      defaultAmount,
+      defaultAmount: defaultMonthlyAmount, // Monthly amount considering frequency
       received,
     });
     memberData.totals.planned += planned;
@@ -395,23 +483,6 @@ export const GET = withAuthRequired(async (req, context) => {
       )
     )
     .limit(1);
-
-  // Check if previous month has any allocations
-  const prevMonth = month === 1 ? 12 : month - 1;
-  const prevYear = month === 1 ? year - 1 : year;
-
-  const [prevMonthAllocations] = await db
-    .select({ count: sql<number>`COUNT(*)` })
-    .from(monthlyAllocations)
-    .where(
-      and(
-        eq(monthlyAllocations.budgetId, budgetId),
-        eq(monthlyAllocations.year, prevYear),
-        eq(monthlyAllocations.month, prevMonth)
-      )
-    );
-
-  const hasPreviousMonthData = (prevMonthAllocations?.count || 0) > 0;
 
   return NextResponse.json({
     year,

@@ -46,7 +46,7 @@ import {
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { MonthSelector } from "@/components/ui/month-selector";
-import { format, isSameMonth } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -58,6 +58,7 @@ import {
   parseLocalDate,
 } from "@/lib/formatters";
 import { ScheduledTransactions } from "@/components/transactions";
+import { UnifiedExpenseForm } from "@/components/expenses";
 
 interface Category {
   id: string;
@@ -138,6 +139,7 @@ export default function TransactionsPage() {
 
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -277,6 +279,7 @@ export default function TransactionsPage() {
         incomeSourceId: formData.type === "income" ? (formData.incomeSourceId || undefined) : undefined,
         toAccountId: formData.type === "transfer" ? (formData.toAccountId || undefined) : undefined,
         date: new Date(formData.date).toISOString(),
+        status: "cleared", // Manual transactions are confirmed by default
         // Installment fields (only for new credit card expenses)
         ...(canBeInstallment && formData.isInstallment ? {
           isInstallment: true,
@@ -412,6 +415,10 @@ export default function TransactionsPage() {
             month={currentMonth}
             onChange={handleMonthChange}
           />
+          <Button onClick={() => setIsExpenseFormOpen(true)} variant="outline" size="sm">
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Nova Despesa</span>
+          </Button>
           <Button onClick={openCreateForm} size="sm">
             <Plus className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Nova Transação</span>
@@ -514,34 +521,18 @@ export default function TransactionsPage() {
             setIsFormOpen(true);
           }}
           onConfirm={async (scheduled) => {
-            // Directly create the transaction as cleared (confirmed)
-            if (accounts.length === 0) {
-              toast.error("Nenhuma conta encontrada");
-              return;
-            }
-
+            // Update existing pending transaction to cleared status
             try {
-              const payload = {
-                budgetId: budgets[0].id,
-                type: scheduled.type,
-                amount: scheduled.amount,
-                description: scheduled.name,
-                accountId: accounts[0].id,
-                categoryId: scheduled.categoryId || undefined,
-                incomeSourceId: scheduled.incomeSourceId || undefined,
-                recurringBillId: scheduled.recurringBillId || undefined,
-                date: new Date(scheduled.dueDate).toISOString(),
-                status: "cleared", // Confirmed = cleared status
-              };
-
-              const response = await fetch("/api/app/transactions", {
-                method: "POST",
+              const response = await fetch(`/api/app/transactions/${scheduled.id}`, {
+                method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                body: JSON.stringify({
+                  status: "cleared",
+                }),
               });
 
               if (!response.ok) {
-                throw new Error("Erro ao criar transação");
+                throw new Error("Erro ao confirmar transação");
               }
 
               toast.success("Transação confirmada!");
@@ -996,6 +987,20 @@ export default function TransactionsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Unified Expense Form (Despesa única ou recorrente) */}
+      <UnifiedExpenseForm
+        isOpen={isExpenseFormOpen}
+        onClose={() => setIsExpenseFormOpen(false)}
+        onSuccess={() => {
+          fetchData();
+          setScheduledRefreshKey((k) => k + 1);
+        }}
+        budgetId={budgets[0]?.id || ""}
+        accounts={accounts}
+        categories={categories}
+        defaultIsRecurring={false}
+      />
     </div>
   );
 }

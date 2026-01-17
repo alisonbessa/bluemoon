@@ -39,6 +39,7 @@ export async function ensurePendingTransactionsForMonth(
     .select({
       recurringBillId: transactions.recurringBillId,
       incomeSourceId: transactions.incomeSourceId,
+      date: transactions.date,
     })
     .from(transactions)
     .where(
@@ -49,12 +50,37 @@ export async function ensurePendingTransactionsForMonth(
       )
     );
 
+  // For monthly/yearly: just track if bill has any transaction
+  // For weekly: track specific dates to avoid duplicates
   const existingBillIds = new Set(
     existingTransactions.filter((t) => t.recurringBillId).map((t) => t.recurringBillId)
   );
+
+  // Also track exact dates for weekly bills (to avoid duplicates)
+  const existingBillDates = new Map<string, Set<string>>();
+  existingTransactions.filter((t) => t.recurringBillId && t.date).forEach((t) => {
+    const key = t.recurringBillId!;
+    if (!existingBillDates.has(key)) {
+      existingBillDates.set(key, new Set());
+    }
+    // Store date as ISO string (date only, no time)
+    const dateStr = t.date.toISOString().split('T')[0];
+    existingBillDates.get(key)!.add(dateStr);
+  });
   const existingIncomeIds = new Set(
     existingTransactions.filter((t) => t.incomeSourceId).map((t) => t.incomeSourceId)
   );
+
+  // Also track exact dates for income sources (for weekly/biweekly)
+  const existingIncomeDates = new Map<string, Set<string>>();
+  existingTransactions.filter((t) => t.incomeSourceId && t.date).forEach((t) => {
+    const key = t.incomeSourceId!;
+    if (!existingIncomeDates.has(key)) {
+      existingIncomeDates.set(key, new Set());
+    }
+    const dateStr = t.date.toISOString().split('T')[0];
+    existingIncomeDates.get(key)!.add(dateStr);
+  });
 
   // Get all active recurring bills
   const activeBills = await db
@@ -97,54 +123,162 @@ export async function ensurePendingTransactionsForMonth(
   // Create pending expense transactions from recurring bills
   const expenseTransactions = [];
   for (const bill of activeBills) {
-    // Skip if already has transaction this month
-    if (existingBillIds.has(bill.id)) continue;
-
-    // Check frequency
-    if (bill.frequency === "yearly" && bill.dueMonth !== month) continue;
-    // Weekly bills: simplified for now, just generate one per month
-    // TODO: implement weekly logic properly
-
     if (bill.amount <= 0) continue;
 
-    const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
-    const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0)); // Noon UTC to avoid timezone issues
+    // Handle different frequencies
+    if (bill.frequency === "weekly") {
+      // Weekly bills: generate for each occurrence in the month
+      // dueDay for weekly = day of week (0=Sunday, 1=Monday, ..., 6=Saturday)
+      const dayOfWeek = bill.dueDay ?? 1; // Default to Monday if not set
+      const existingDates = existingBillDates.get(bill.id) || new Set();
 
-    expenseTransactions.push({
-      budgetId,
-      accountId: bill.accountId,
-      categoryId: bill.categoryId,
-      recurringBillId: bill.id,
-      type: "expense" as const,
-      status: "pending" as const,
-      amount: bill.amount,
-      description: bill.name,
-      date: dueDate,
-      source: "recurring",
-    });
+      // Find all occurrences of this day of week in the month
+      for (let day = 1; day <= lastDayOfMonth; day++) {
+        const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+        if (date.getUTCDay() === dayOfWeek) {
+          const dateStr = date.toISOString().split('T')[0];
+
+          // Skip if transaction already exists for this date
+          if (existingDates.has(dateStr)) continue;
+
+          expenseTransactions.push({
+            budgetId,
+            accountId: bill.accountId,
+            categoryId: bill.categoryId,
+            recurringBillId: bill.id,
+            type: "expense" as const,
+            status: "pending" as const,
+            amount: bill.amount,
+            description: `${bill.name} (${date.getUTCDate()}/${month})`,
+            date,
+            source: "recurring",
+          });
+        }
+      }
+    } else if (bill.frequency === "yearly") {
+      // Yearly bills: only generate in the specified month
+      if (bill.dueMonth !== month) continue;
+
+      // Skip if already has transaction this month
+      if (existingBillIds.has(bill.id)) continue;
+
+      const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
+      const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0));
+
+      expenseTransactions.push({
+        budgetId,
+        accountId: bill.accountId,
+        categoryId: bill.categoryId,
+        recurringBillId: bill.id,
+        type: "expense" as const,
+        status: "pending" as const,
+        amount: bill.amount,
+        description: bill.name,
+        date: dueDate,
+        source: "recurring",
+      });
+    } else {
+      // Monthly bills (default)
+      // Skip if already has transaction this month
+      if (existingBillIds.has(bill.id)) continue;
+
+      const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
+      const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0));
+
+      expenseTransactions.push({
+        budgetId,
+        accountId: bill.accountId,
+        categoryId: bill.categoryId,
+        recurringBillId: bill.id,
+        type: "expense" as const,
+        status: "pending" as const,
+        amount: bill.amount,
+        description: bill.name,
+        date: dueDate,
+        source: "recurring",
+      });
+    }
   }
 
-  // Create pending income transactions (only for sources not yet in this month)
+  // Create pending income transactions based on frequency
   const incomeTransactions = [];
   for (const { incomeSource, account } of incomeSourcesWithDay) {
-    if (existingIncomeIds.has(incomeSource.id)) continue;
-
     if (incomeSource.amount <= 0) continue;
 
-    const dueDay = Math.min(incomeSource.dayOfMonth!, lastDayOfMonth);
-    const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0)); // Noon UTC to avoid timezone issues
+    const frequency = incomeSource.frequency || "monthly";
+    const existingDates = existingIncomeDates.get(incomeSource.id) || new Set();
+    const accountId = account?.id || defaultAccount[0].id;
 
-    incomeTransactions.push({
-      budgetId,
-      accountId: account?.id || defaultAccount[0].id,
-      incomeSourceId: incomeSource.id,
-      type: "income" as const,
-      status: "pending" as const,
-      amount: incomeSource.amount,
-      description: `${incomeSource.name} (agendado)`,
-      date: dueDate,
-      source: "scheduled",
-    });
+    if (frequency === "weekly") {
+      // Weekly income: generate for each week of the month
+      // dayOfMonth for weekly = day of week (0=Sunday, 6=Saturday)
+      const dayOfWeek = incomeSource.dayOfMonth ?? 5; // Default to Friday
+
+      for (let day = 1; day <= lastDayOfMonth; day++) {
+        const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+        if (date.getUTCDay() === dayOfWeek) {
+          const dateStr = date.toISOString().split('T')[0];
+
+          if (existingDates.has(dateStr)) continue;
+
+          incomeTransactions.push({
+            budgetId,
+            accountId,
+            incomeSourceId: incomeSource.id,
+            type: "income" as const,
+            status: "pending" as const,
+            amount: incomeSource.amount,
+            description: `${incomeSource.name} (${date.getUTCDate()}/${month})`,
+            date,
+            source: "scheduled",
+          });
+        }
+      }
+    } else if (frequency === "biweekly") {
+      // Biweekly income: generate 2 times per month (around day 1 and day 15)
+      const baseDayOfMonth = incomeSource.dayOfMonth ?? 15;
+      const days = [
+        Math.min(baseDayOfMonth, lastDayOfMonth),
+        Math.min(baseDayOfMonth + 14, lastDayOfMonth)
+      ];
+
+      for (const day of days) {
+        const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+        const dateStr = date.toISOString().split('T')[0];
+
+        if (existingDates.has(dateStr)) continue;
+
+        incomeTransactions.push({
+          budgetId,
+          accountId,
+          incomeSourceId: incomeSource.id,
+          type: "income" as const,
+          status: "pending" as const,
+          amount: incomeSource.amount,
+          description: `${incomeSource.name} (dia ${day})`,
+          date,
+          source: "scheduled",
+        });
+      }
+    } else {
+      // Monthly income (default)
+      if (existingIncomeIds.has(incomeSource.id)) continue;
+
+      const dueDay = Math.min(incomeSource.dayOfMonth!, lastDayOfMonth);
+      const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0));
+
+      incomeTransactions.push({
+        budgetId,
+        accountId,
+        incomeSourceId: incomeSource.id,
+        type: "income" as const,
+        status: "pending" as const,
+        amount: incomeSource.amount,
+        description: `${incomeSource.name} (agendado)`,
+        date: dueDate,
+        source: "scheduled",
+      });
+    }
   }
 
   // Insert all new transactions

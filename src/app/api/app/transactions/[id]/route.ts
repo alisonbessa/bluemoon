@@ -102,10 +102,11 @@ export const PATCH = withAuthRequired(async (req, context) => {
 
   // Use transaction for atomic update of transaction and balance
   const updatedTransaction = await db.transaction(async (tx) => {
-    // If amount changed, update account balance
+    // If amount changed, update account balance(s)
     if (validation.data.amount !== undefined && validation.data.amount !== existingTransaction.amount) {
       const amountDiff = validation.data.amount - existingTransaction.amount;
 
+      // Update source account
       const [account] = await tx
         .select()
         .from(financialAccounts)
@@ -122,6 +123,25 @@ export const PATCH = withAuthRequired(async (req, context) => {
             updatedAt: new Date(),
           })
           .where(eq(financialAccounts.id, existingTransaction.accountId));
+      }
+
+      // For transfers, also update destination account
+      if (existingTransaction.type === "transfer" && existingTransaction.toAccountId) {
+        const [toAccount] = await tx
+          .select()
+          .from(financialAccounts)
+          .where(eq(financialAccounts.id, existingTransaction.toAccountId));
+
+        if (toAccount) {
+          // Destination gets positive difference (receives more/less money)
+          await tx
+            .update(financialAccounts)
+            .set({
+              balance: toAccount.balance + amountDiff,
+              updatedAt: new Date(),
+            })
+            .where(eq(financialAccounts.id, existingTransaction.toAccountId));
+        }
       }
     }
 
@@ -164,7 +184,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
   // Use transaction for atomic delete and balance update
   await db.transaction(async (tx) => {
-    // Reverse the balance change
+    // Reverse the balance change for source account
     const [account] = await tx
       .select()
       .from(financialAccounts)
@@ -183,6 +203,25 @@ export const DELETE = withAuthRequired(async (req, context) => {
           updatedAt: new Date(),
         })
         .where(eq(financialAccounts.id, existingTransaction.accountId));
+    }
+
+    // For transfers, also reverse the destination account balance
+    if (existingTransaction.type === "transfer" && existingTransaction.toAccountId) {
+      const [toAccount] = await tx
+        .select()
+        .from(financialAccounts)
+        .where(eq(financialAccounts.id, existingTransaction.toAccountId));
+
+      if (toAccount) {
+        // Reverse the transfer: destination loses the amount it received
+        await tx
+          .update(financialAccounts)
+          .set({
+            balance: toAccount.balance - Math.abs(existingTransaction.amount),
+            updatedAt: new Date(),
+          })
+          .where(eq(financialAccounts.id, existingTransaction.toAccountId));
+      }
     }
 
     // If this is a parent installment, delete child installments first

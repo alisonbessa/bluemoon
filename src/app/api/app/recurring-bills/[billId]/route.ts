@@ -12,13 +12,42 @@ const updateRecurringBillSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   amount: z.number().int().min(0).optional(),
   frequency: recurringBillFrequencyEnum.optional(),
-  dueDay: z.number().int().min(1).max(31).optional().nullable(),
+  dueDay: z.number().int().min(0).max(31).optional().nullable(), // 0-6 for weekly, 1-31 for monthly/yearly
   dueMonth: z.number().int().min(1).max(12).optional().nullable(),
   isAutoDebit: z.boolean().optional(),
   isVariable: z.boolean().optional(),
   isActive: z.boolean().optional(),
   displayOrder: z.number().int().optional(),
 });
+
+// Helper to validate frequency-dependent fields
+function validateFrequencyFields(
+  frequency: string,
+  dueDay: number | null | undefined,
+  dueMonth: number | null | undefined
+): { valid: boolean; error?: string } {
+  // Yearly requires dueMonth
+  if (frequency === "yearly" && !dueMonth) {
+    return { valid: false, error: "Despesa anual requer mês de vencimento" };
+  }
+
+  // Weekly dueDay should be 0-6 (day of week)
+  if (frequency === "weekly" && dueDay !== null && dueDay !== undefined) {
+    if (dueDay < 0 || dueDay > 6) {
+      return { valid: false, error: "Para semanal, dia deve ser 0 (Domingo) a 6 (Sábado)" };
+    }
+  }
+
+  // Monthly/Yearly dueDay should be 1-31 (day of month)
+  if ((frequency === "monthly" || frequency === "yearly") &&
+      dueDay !== null && dueDay !== undefined) {
+    if (dueDay < 1 || dueDay > 31) {
+      return { valid: false, error: "Para mensal/anual, dia deve ser 1 a 31" };
+    }
+  }
+
+  return { valid: true };
+}
 
 // Helper to get user's budget IDs
 async function getUserBudgetIds(userId: string) {
@@ -87,6 +116,19 @@ export const PATCH = withAuthRequired(async (req, context) => {
   if (!validation.success) {
     return NextResponse.json(
       { error: "Validation failed", details: validation.error.errors },
+      { status: 400 }
+    );
+  }
+
+  // Validate frequency-dependent fields using merged values (new + existing)
+  const frequency = validation.data.frequency ?? existingBill.frequency;
+  const dueDay = validation.data.dueDay !== undefined ? validation.data.dueDay : existingBill.dueDay;
+  const dueMonth = validation.data.dueMonth !== undefined ? validation.data.dueMonth : existingBill.dueMonth;
+
+  const frequencyValidation = validateFrequencyFields(frequency, dueDay, dueMonth);
+  if (!frequencyValidation.valid) {
+    return NextResponse.json(
+      { error: frequencyValidation.error },
       { status: 400 }
     );
   }

@@ -30,7 +30,15 @@
       "Bash(git merge:*)",
       "Bash(git stash:*)",
       "Bash(curl:*)",
-      "Bash(TELEGRAM_BOT_TOKEN=\"${TELEGRAM_BOT_TOKEN:-}\" npx tsx:*)"
+      "Bash(TELEGRAM_BOT_TOKEN=\"${TELEGRAM_BOT_TOKEN:-}\" npx tsx:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "Bash(pnpm dev)",
+      "Bash(pnpm next dev:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []
