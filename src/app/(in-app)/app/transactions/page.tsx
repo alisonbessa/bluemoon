@@ -28,12 +28,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  COMPACT_TABLE_STYLES,
-  GroupToggleRow,
-  HoverActions,
-  useExpandedGroups,
-} from "@/components/ui/compact-table";
 import { Label } from "@/components/ui/label";
 import {
   Plus,
@@ -42,23 +36,22 @@ import {
   Receipt,
   TrendingUp,
   TrendingDown,
-  ArrowLeftRight,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { MonthSelector } from "@/components/ui/month-selector";
-import { format } from "date-fns";
+import { type PeriodValue } from "@/components/ui/period-navigator";
+import { FilterChips } from "@/components/ui/filter-chips";
+import { format, getWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
-  formatCurrency,
   formatCurrencyCompact,
   formatCurrencyFromDigits,
   parseCurrency,
   parseLocalDate,
 } from "@/lib/formatters";
-import { ScheduledTransactions } from "@/components/transactions";
-import { UnifiedExpenseForm } from "@/components/expenses";
+import { TransactionWidget, TransactionFiltersSheet } from "@/components/transactions";
 
 interface Category {
   id: string;
@@ -88,6 +81,8 @@ interface Transaction {
   amount: number;
   type: "income" | "expense" | "transfer";
   categoryId?: string | null;
+  incomeSourceId?: string | null;
+  recurringBillId?: string | null;
   accountId: string;
   status: string;
   isInstallment?: boolean;
@@ -95,6 +90,7 @@ interface Transaction {
   totalInstallments?: number | null;
   account?: Account | null;
   category?: Category | null;
+  incomeSource?: IncomeSource | null;
 }
 
 interface Budget {
@@ -102,40 +98,98 @@ interface Budget {
   name: string;
 }
 
-const GRID_COLS = "24px 1fr 120px 120px 100px";
-
-// Group transactions by date
-function groupTransactionsByDate(transactions: Transaction[], parseDateFn: typeof parseLocalDate): Map<string, Transaction[]> {
-  const grouped = new Map<string, Transaction[]>();
-
-  for (const transaction of transactions) {
-    const dateKey = format(parseDateFn(transaction.date), "yyyy-MM-dd");
-    const existing = grouped.get(dateKey) || [];
-    grouped.set(dateKey, [...existing, transaction]);
-  }
-
-  return grouped;
-}
-
 export default function TransactionsPage() {
   const today = new Date();
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
+
+  // Use a single state object for period to avoid race conditions
+  const [periodValue, setPeriodValue] = useState<PeriodValue>({
+    year: today.getFullYear(),
+    month: today.getMonth() + 1,
+    week: getWeek(today, { weekStartsOn: 1, firstWeekContainsDate: 4 }),
+  });
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [scheduledRefreshKey, setScheduledRefreshKey] = useState(0);
+  const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const { isExpanded, toggleGroup, setExpandedGroups } = useExpandedGroups([]);
 
-  const handleMonthChange = (year: number, month: number) => {
-    setCurrentYear(year);
-    setCurrentMonth(month);
+  // Filter states
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [accountFilter, setAccountFilter] = useState<string>("all");
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+
+  const handlePeriodChange = (value: PeriodValue) => {
+    setPeriodValue(value);
   };
+
+  // Derived values for backwards compatibility
+  const currentYear = periodValue.year;
+  const currentMonth = periodValue.month;
+
+  const clearAllFilters = () => {
+    setTypeFilter("all");
+    setCategoryFilter("all");
+    setAccountFilter("all");
+    setSearchTerm("");
+  };
+
+  // Build filter chips for active filters
+  const buildFilterChips = () => {
+    const chips: { key: string; label: string; value: string }[] = [];
+
+    if (typeFilter !== "all") {
+      const typeLabels: Record<string, string> = {
+        income: "Receitas",
+        expense: "Despesas",
+        transfer: "Transferências",
+      };
+      chips.push({ key: "type", label: typeLabels[typeFilter], value: typeFilter });
+    }
+
+    if (categoryFilter !== "all") {
+      const category = categories.find((c) => c.id === categoryFilter);
+      if (category) {
+        chips.push({ key: "category", label: category.name, value: categoryFilter });
+      }
+    }
+
+    if (accountFilter !== "all") {
+      const account = accounts.find((a) => a.id === accountFilter);
+      if (account) {
+        chips.push({ key: "account", label: account.name, value: accountFilter });
+      }
+    }
+
+    if (searchTerm) {
+      chips.push({ key: "search", label: `"${searchTerm}"`, value: searchTerm });
+    }
+
+    return chips;
+  };
+
+  const handleRemoveFilter = (key: string) => {
+    switch (key) {
+      case "type":
+        setTypeFilter("all");
+        break;
+      case "category":
+        setCategoryFilter("all");
+        break;
+      case "account":
+        setAccountFilter("all");
+        break;
+      case "search":
+        setSearchTerm("");
+        break;
+    }
+  };
+
+  const filterChips = buildFilterChips();
 
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -159,9 +213,9 @@ export default function TransactionsPage() {
   });
 
   const fetchData = useCallback(async () => {
-    // Calculate start and end dates for the current month
-    const startDate = new Date(currentYear, currentMonth - 1, 1);
-    const endDate = new Date(currentYear, currentMonth, 0);
+    // Calculate monthly date range
+    const startDate = new Date(periodValue.year, periodValue.month - 1, 1);
+    const endDate = new Date(periodValue.year, periodValue.month, 0, 23, 59, 59);
 
     try {
       const [transactionsRes, categoriesRes, accountsRes, budgetsRes, incomeSourcesRes] = await Promise.all([
@@ -175,10 +229,6 @@ export default function TransactionsPage() {
       if (transactionsRes.ok) {
         const data = await transactionsRes.json();
         setTransactions(data.transactions || []);
-        // Expand current date by default
-        const now = new Date();
-        const currentDateKey = format(now, "yyyy-MM-dd");
-        setExpandedGroups([currentDateKey]);
       }
 
       if (categoriesRes.ok) {
@@ -206,7 +256,7 @@ export default function TransactionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentYear, currentMonth]);
+  }, [periodValue]);
 
   useEffect(() => {
     fetchData();
@@ -326,69 +376,115 @@ export default function TransactionsPage() {
   const handleDelete = async () => {
     if (!deletingTransaction) return;
 
+    const isFromPlanning = deletingTransaction.recurringBillId || deletingTransaction.incomeSourceId;
+
     try {
       const response = await fetch(`/api/app/transactions/${deletingTransaction.id}`, {
         method: "DELETE",
       });
 
       if (!response.ok) {
-        throw new Error("Erro ao excluir transação");
+        throw new Error(isFromPlanning ? "Erro ao desfazer confirmação" : "Erro ao excluir transação");
       }
 
-      toast.success("Transação excluída!");
+      toast.success(isFromPlanning ? "Confirmação desfeita!" : "Transação excluída!");
       setDeletingTransaction(null);
+      setWidgetRefreshKey((k) => k + 1);
       fetchData();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao excluir");
     }
   };
 
-  // Filter out pending transactions - they only appear in the scheduled widget
-  const filteredTransactions = transactions.filter((t) => {
-    const isNotPending = t.status !== "pending";
-    const matchesSearch = !searchTerm ||
-      (t.description?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.category?.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.account?.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesType = typeFilter === "all" || t.type === typeFilter;
-    return isNotPending && matchesSearch && matchesType;
-  });
+  const handleStartMonth = async () => {
+    if (budgets.length === 0) {
+      toast.error("Nenhum orçamento encontrado");
+      return;
+    }
 
-  const groupedTransactions = groupTransactionsByDate(filteredTransactions, parseLocalDate);
-  const sortedDates = Array.from(groupedTransactions.keys()).sort((a, b) =>
-    parseLocalDate(b).getTime() - parseLocalDate(a).getTime()
-  );
+    const response = await fetch("/api/app/budget/start-month", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        budgetId: budgets[0].id,
+        year: periodValue.year,
+        month: periodValue.month,
+      }),
+    });
 
-  // Calculate totals for the selected month (transactions are already filtered by month from API)
-  // Confirmed = cleared or reconciled, Planned = all including pending
-  const confirmedIncome = transactions
-    .filter((t) => t.type === "income" && t.status !== "pending")
-    .reduce((sum, t) => sum + t.amount, 0);
+    const data = await response.json();
 
-  const plannedIncome = transactions
+    if (!response.ok) {
+      throw new Error(data.error || "Erro ao iniciar o mês");
+    }
+
+    toast.success(`Mês iniciado! ${data.createdTransactions} transações criadas.`);
+    setWidgetRefreshKey((k) => k + 1);
+    fetchData();
+  };
+
+  const handleCopyPreviousMonth = async () => {
+    if (budgets.length === 0) {
+      toast.error("Nenhum orçamento encontrado");
+      return;
+    }
+
+    // Calculate previous month
+    let fromYear = periodValue.year;
+    let fromMonth = periodValue.month - 1;
+    if (fromMonth === 0) {
+      fromMonth = 12;
+      fromYear -= 1;
+    }
+
+    const response = await fetch("/api/app/allocations/copy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        budgetId: budgets[0].id,
+        fromYear,
+        fromMonth,
+        toYear: periodValue.year,
+        toMonth: periodValue.month,
+        mode: "all",
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      // Handle specific error for empty previous month
+      if (data.error?.includes("No allocations") || data.error?.includes("No categories")) {
+        toast.error("Nenhum planejamento encontrado para copiar", {
+          description: "Configure o orçamento na página de planejamento",
+          action: {
+            label: "Ir para Planejamento",
+            onClick: () => {
+              window.location.href = `/app/budget?year=${periodValue.year}&month=${periodValue.month}`;
+            },
+          },
+        });
+      } else {
+        toast.error(data.error || "Erro ao copiar planejamento");
+      }
+      return;
+    }
+
+    toast.success(`Planejamento copiado! ${data.copiedCount} alocações criadas.`);
+    setWidgetRefreshKey((k) => k + 1);
+  };
+
+  // Filter out pending transactions - they are shown in the scheduled section
+  const confirmedTransactions = transactions.filter((t) => t.status !== "pending");
+
+  // Calculate totals for the summary cards
+  const confirmedIncome = confirmedTransactions
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const confirmedExpenses = transactions
-    .filter((t) => t.type === "expense" && t.status !== "pending")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const plannedExpenses = transactions
+  const confirmedExpenses = confirmedTransactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "income":
-        return <TrendingUp className="h-3.5 w-3.5 text-green-500" />;
-      case "expense":
-        return <TrendingDown className="h-3.5 w-3.5 text-red-500" />;
-      case "transfer":
-        return <ArrowLeftRight className="h-3.5 w-3.5 text-blue-500" />;
-      default:
-        return null;
-    }
-  };
 
   if (isLoading) {
     return (
@@ -408,22 +504,10 @@ export default function TransactionsPage() {
             Gerencie todas as suas movimentações financeiras
           </p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          {/* Month Navigation */}
-          <MonthSelector
-            year={currentYear}
-            month={currentMonth}
-            onChange={handleMonthChange}
-          />
-          <Button onClick={() => setIsExpenseFormOpen(true)} variant="outline" size="sm">
-            <Plus className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Nova Despesa</span>
-          </Button>
-          <Button onClick={openCreateForm} size="sm">
-            <Plus className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Nova Transação</span>
-          </Button>
-        </div>
+        <Button onClick={openCreateForm} size="sm">
+          <Plus className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Nova Transação</span>
+        </Button>
       </div>
 
       {/* Summary */}
@@ -435,11 +519,6 @@ export default function TransactionsPage() {
           </div>
           <div className="mt-1 text-base sm:text-xl font-bold text-green-600">
             {formatCurrencyCompact(confirmedIncome)}
-            {plannedIncome > confirmedIncome && (
-              <span className="text-xs sm:text-sm font-normal text-muted-foreground ml-1">
-                / {formatCurrencyCompact(plannedIncome)}
-              </span>
-            )}
           </div>
         </div>
 
@@ -450,11 +529,6 @@ export default function TransactionsPage() {
           </div>
           <div className="mt-1 text-base sm:text-xl font-bold text-red-600">
             {formatCurrencyCompact(confirmedExpenses)}
-            {plannedExpenses > confirmedExpenses && (
-              <span className="text-xs sm:text-sm font-normal text-muted-foreground ml-1">
-                / {formatCurrencyCompact(plannedExpenses)}
-              </span>
-            )}
           </div>
         </div>
 
@@ -472,37 +546,128 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar transações..."
-            className="pl-10 h-9"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* Filters - Desktop */}
+      <div className="hidden sm:flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar transações..."
+              className="pl-10 h-9"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="income">Receitas</SelectItem>
+              <SelectItem value="expense">Despesas</SelectItem>
+              <SelectItem value="transfer">Transferências</SelectItem>
+            </SelectContent>
+          </Select>
+          {typeFilter !== "transfer" && (
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[160px] h-9">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas categorias</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.icon && <span className="mr-2">{cat.icon}</span>}
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Select value={accountFilter} onValueChange={setAccountFilter}>
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="Conta" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas contas</SelectItem>
+              {accounts.map((acc) => (
+                <SelectItem key={acc.id} value={acc.id}>
+                  {acc.icon && <span className="mr-2">{acc.icon}</span>}
+                  {acc.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-[160px] h-9">
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="income">Receitas</SelectItem>
-            <SelectItem value="expense">Despesas</SelectItem>
-            <SelectItem value="transfer">Transferências</SelectItem>
-          </SelectContent>
-        </Select>
+        {/* Filter Chips */}
+        <FilterChips
+          chips={filterChips}
+          onRemove={handleRemoveFilter}
+          onClearAll={clearAllFilters}
+        />
       </div>
 
-      {/* Scheduled Transactions */}
+      {/* Filters - Mobile */}
+      <div className="flex sm:hidden flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar..."
+              className="pl-10 h-9"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9"
+            onClick={() => setIsFilterSheetOpen(true)}
+          >
+            <SlidersHorizontal className="h-4 w-4 mr-2" />
+            Filtros
+          </Button>
+        </div>
+        {/* Filter Chips - Mobile */}
+        <FilterChips
+          chips={filterChips}
+          onRemove={handleRemoveFilter}
+          onClearAll={clearAllFilters}
+        />
+      </div>
+
+      {/* Filter Sheet for Mobile */}
+      <TransactionFiltersSheet
+        open={isFilterSheetOpen}
+        onOpenChange={setIsFilterSheetOpen}
+        typeFilter={typeFilter}
+        onTypeFilterChange={setTypeFilter}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={setCategoryFilter}
+        accountFilter={accountFilter}
+        onAccountFilterChange={setAccountFilter}
+        categories={categories}
+        accounts={accounts}
+        resultCount={confirmedTransactions.length}
+        onClear={clearAllFilters}
+      />
+
+      {/* Transaction Widget - Unified view of pending and confirmed transactions */}
       {budgets.length > 0 && (
-        <ScheduledTransactions
+        <TransactionWidget
           budgetId={budgets[0].id}
-          year={currentYear}
-          month={currentMonth}
-          refreshKey={scheduledRefreshKey}
+          refreshKey={widgetRefreshKey}
+          confirmedTransactions={confirmedTransactions}
+          searchTerm={searchTerm}
+          typeFilter={typeFilter}
+          categoryFilter={categoryFilter}
+          accountFilter={accountFilter}
+          periodValue={periodValue}
+          onPeriodChange={handlePeriodChange}
+          onStartMonth={handleStartMonth}
+          onCopyPreviousMonth={handleCopyPreviousMonth}
           onEdit={(scheduled) => {
             // Pre-fill the form with scheduled transaction data for editing before confirming
             setFormData({
@@ -521,197 +686,67 @@ export default function TransactionsPage() {
             setIsFormOpen(true);
           }}
           onConfirm={async (scheduled) => {
-            // Update existing pending transaction to cleared status
-            try {
-              const response = await fetch(`/api/app/transactions/${scheduled.id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  status: "cleared",
-                }),
-              });
+            if (accounts.length === 0) {
+              toast.error("Nenhuma conta encontrada");
+              return;
+            }
 
-              if (!response.ok) {
-                throw new Error("Erro ao confirmar transação");
+            try {
+              // Goals use the contribute endpoint to update currentAmount
+              if (scheduled.sourceType === "goal" && scheduled.goalId) {
+                const response = await fetch(`/api/app/goals/${scheduled.goalId}/contribute`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    fromAccountId: accounts[0].id,
+                    amount: scheduled.amount,
+                    year: currentYear,
+                    month: currentMonth,
+                  }),
+                });
+
+                if (!response.ok) {
+                  throw new Error("Erro ao contribuir para meta");
+                }
+
+                toast.success("Contribuição para meta confirmada!");
+              } else {
+                // Regular transactions (recurring bills, income sources)
+                const payload = {
+                  budgetId: budgets[0].id,
+                  type: scheduled.type,
+                  amount: scheduled.amount,
+                  description: scheduled.name,
+                  accountId: accounts[0].id,
+                  categoryId: scheduled.categoryId || undefined,
+                  incomeSourceId: scheduled.incomeSourceId || undefined,
+                  recurringBillId: scheduled.recurringBillId || undefined,
+                  date: new Date(scheduled.dueDate).toISOString(),
+                  status: "cleared",
+                };
+
+                const response = await fetch("/api/app/transactions", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(payload),
+                });
+
+                if (!response.ok) {
+                  throw new Error("Erro ao criar transação");
+                }
+
+                toast.success("Transação confirmada!");
               }
 
-              toast.success("Transação confirmada!");
-              setScheduledRefreshKey((k) => k + 1);
+              setWidgetRefreshKey((k) => k + 1);
               fetchData();
             } catch (error) {
               toast.error(error instanceof Error ? error.message : "Erro ao confirmar");
             }
           }}
+          onEditConfirmed={(transaction) => openEditForm(transaction as Transaction)}
+          onDeleteConfirmed={(transaction) => setDeletingTransaction(transaction as Transaction)}
         />
-      )}
-
-      {/* Transactions List */}
-      {transactions.length > 0 ? (
-        <div className="rounded-lg border bg-card">
-          {/* Desktop Table Header - Hidden on mobile */}
-          <div
-            className={cn(COMPACT_TABLE_STYLES.header, "hidden md:grid")}
-            style={{ gridTemplateColumns: GRID_COLS }}
-          >
-            <div></div>
-            <div>Descrição</div>
-            <div>Categoria</div>
-            <div>Conta</div>
-            <div className="text-right">Valor</div>
-          </div>
-
-          {/* Grouped by Date */}
-          {sortedDates.map((dateKey) => {
-            const dayTransactions = groupedTransactions.get(dateKey) || [];
-            const expanded = isExpanded(dateKey);
-            const dayTotal = dayTransactions.reduce((sum, t) => {
-              if (t.type === "income") return sum + t.amount;
-              if (t.type === "expense") return sum - t.amount;
-              return sum;
-            }, 0);
-
-            return (
-              <div key={dateKey}>
-                {/* Date Group Header */}
-                <GroupToggleRow
-                  isExpanded={expanded}
-                  onToggle={() => toggleGroup(dateKey)}
-                  icon="📅"
-                  label={format(parseLocalDate(dateKey), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                  count={dayTransactions.length}
-                  gridCols={GRID_COLS}
-                  emptyColsCount={2}
-                  summary={
-                    <>
-                      {dayTotal >= 0 ? "+" : ""}
-                      {formatCurrencyCompact(dayTotal)}
-                    </>
-                  }
-                  summaryClassName={dayTotal >= 0 ? "text-green-600" : "text-red-600"}
-                />
-
-                {/* Transaction Rows - Desktop Table */}
-                {expanded && dayTransactions.map((transaction) => (
-                  <div key={transaction.id}>
-                    {/* Desktop Row */}
-                    <div
-                      className={cn(COMPACT_TABLE_STYLES.itemRow, "hidden md:grid")}
-                      style={{ gridTemplateColumns: GRID_COLS }}
-                    >
-                      <div className="flex items-center justify-center">
-                        {getTypeIcon(transaction.type)}
-                      </div>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="truncate font-medium">
-                          {transaction.description || "Sem descrição"}
-                        </span>
-                        {transaction.isInstallment && transaction.installmentNumber && transaction.totalInstallments && (
-                          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                            {transaction.installmentNumber}/{transaction.totalInstallments}
-                          </span>
-                        )}
-                        <HoverActions
-                          onEdit={() => openEditForm(transaction)}
-                          onDelete={() => setDeletingTransaction(transaction)}
-                          editTitle="Editar transação"
-                          deleteTitle="Excluir transação"
-                        />
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground truncate">
-                        {transaction.category ? (
-                          <>
-                            <span>{transaction.category.icon || "📌"}</span>
-                            <span className="truncate">{transaction.category.name}</span>
-                          </>
-                        ) : (
-                          <span className="text-xs">Sem categoria</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground truncate">
-                        {transaction.account ? (
-                          <>
-                            <span>{transaction.account.icon || "🏦"}</span>
-                            <span className="truncate">{transaction.account.name}</span>
-                          </>
-                        ) : (
-                          <span className="text-xs">-</span>
-                        )}
-                      </div>
-                      <div className={cn(
-                        "text-right font-medium tabular-nums",
-                        transaction.type === "income" ? "text-green-600" :
-                        transaction.type === "expense" ? "text-red-600" : "text-blue-600"
-                      )}>
-                        {transaction.type === "expense" && "-"}
-                        {transaction.type === "income" && "+"}
-                        {formatCurrencyCompact(Math.abs(transaction.amount))}
-                      </div>
-                    </div>
-
-                    {/* Mobile Card */}
-                    <div
-                      className="md:hidden flex items-center justify-between p-3 border-t cursor-pointer hover:bg-muted/50"
-                      onClick={() => openEditForm(transaction)}
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="flex-shrink-0">
-                          {getTypeIcon(transaction.type)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium truncate">
-                              {transaction.description || "Sem descrição"}
-                            </span>
-                            {transaction.isInstallment && transaction.installmentNumber && transaction.totalInstallments && (
-                              <span className="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded flex-shrink-0">
-                                {transaction.installmentNumber}/{transaction.totalInstallments}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                            {transaction.category && (
-                              <span className="flex items-center gap-1">
-                                {transaction.category.icon || "📌"} {transaction.category.name}
-                              </span>
-                            )}
-                            {transaction.account && (
-                              <span className="flex items-center gap-1">
-                                {transaction.account.icon || "🏦"} {transaction.account.name}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className={cn(
-                        "font-medium tabular-nums text-right flex-shrink-0 ml-2",
-                        transaction.type === "income" ? "text-green-600" :
-                        transaction.type === "expense" ? "text-red-600" : "text-blue-600"
-                      )}>
-                        {transaction.type === "expense" && "-"}
-                        {transaction.type === "income" && "+"}
-                        {formatCurrencyCompact(Math.abs(transaction.amount))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="rounded-lg border border-dashed bg-card p-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <Receipt className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <h3 className="font-semibold">Nenhuma transação ainda</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Comece registrando sua primeira transação para acompanhar suas finanças
-          </p>
-          <Button className="mt-4" onClick={openCreateForm}>
-            <Plus className="mr-2 h-4 w-4" />
-            Adicionar Transação
-          </Button>
-        </div>
       )}
 
       {/* Create/Edit Transaction Dialog */}
@@ -729,6 +764,7 @@ export default function TransactionsPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Row 1: Type */}
             <div className="space-y-2">
               <Label>Tipo</Label>
               <div className="grid grid-cols-3 gap-2">
@@ -751,109 +787,227 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="amount">Valor</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  R$
-                </span>
-                <Input
-                  id="amount"
-                  className="pl-10"
-                  placeholder="0,00"
-                  value={formData.amount}
-                  onChange={(e) => {
-                    const formatted = formatCurrencyFromDigits(e.target.value);
-                    setFormData({ ...formData, amount: formatted });
-                  }}
-                  onFocus={(e) => {
-                    if (parseCurrency(formData.amount) === 0) {
-                      setFormData({ ...formData, amount: "" });
-                    }
-                    e.target.select();
-                  }}
-                  onBlur={() => {
-                    if (!formData.amount.trim()) {
-                      setFormData({ ...formData, amount: "0,00" });
-                    }
-                  }}
-                />
-              </div>
-            </div>
+            {/* Transfer layout: Amount+Date, Origin+Destination, Description */}
+            {formData.type === "transfer" ? (
+              <>
+                {/* Row 2: Amount + Date */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">Valor</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                        R$
+                      </span>
+                      <Input
+                        id="amount"
+                        className="pl-10"
+                        placeholder="0,00"
+                        value={formData.amount}
+                        onChange={(e) => {
+                          const formatted = formatCurrencyFromDigits(e.target.value);
+                          setFormData({ ...formData, amount: formatted });
+                        }}
+                        onFocus={(e) => {
+                          if (parseCurrency(formData.amount) === 0) {
+                            setFormData({ ...formData, amount: "" });
+                          }
+                          e.target.select();
+                        }}
+                        onBlur={() => {
+                          if (!formData.amount.trim()) {
+                            setFormData({ ...formData, amount: "0,00" });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Input
-                id="description"
-                placeholder="Ex: Supermercado"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Data</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    />
+                  </div>
+                </div>
 
-            <div className={formData.type === "transfer" ? "grid grid-cols-2 gap-4" : ""}>
-              <div className="space-y-2 w-full">
-                <Label htmlFor="account">{formData.type === "transfer" ? "Origem" : "Conta"}</Label>
-                <Select
-                  value={formData.accountId}
-                  onValueChange={(value) => setFormData({ ...formData, accountId: value })}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione uma conta" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.icon || "🏦"} {account.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.type === "transfer" && (
-                <div className="space-y-2 w-full">
-                  <Label htmlFor="toAccount">Destino</Label>
-                  <Select
-                    value={formData.toAccountId}
-                    onValueChange={(value) => setFormData({ ...formData, toAccountId: value })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a conta" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts
-                        .filter((account) => account.id !== formData.accountId)
-                        .map((account) => (
+                {/* Row 3: Origin + Destination */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="account">Origem</Label>
+                    <Select
+                      value={formData.accountId}
+                      onValueChange={(value) => setFormData({ ...formData, accountId: value })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             {account.icon || "🏦"} {account.name}
                           </SelectItem>
                         ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-            {formData.type === "expense" && (
-              <div className="space-y-2">
-                <Label htmlFor="category">Categoria</Label>
-                <Select
-                  value={formData.categoryId}
-                  onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.icon || "📌"} {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="toAccount">Destino</Label>
+                    <Select
+                      value={formData.toAccountId}
+                      onValueChange={(value) => setFormData({ ...formData, toAccountId: value })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts
+                          .filter((account) => account.id !== formData.accountId)
+                          .map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.icon || "🏦"} {account.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Row 4: Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="description">Descrição</Label>
+                  <Input
+                    id="description"
+                    placeholder="Ex: Transferência entre contas"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Expense/Income layout: Amount+Account, Description, Category/Source+Date */}
+                {/* Row 2: Amount + Account */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">Valor</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                        R$
+                      </span>
+                      <Input
+                        id="amount"
+                        className="pl-10"
+                        placeholder="0,00"
+                        value={formData.amount}
+                        onChange={(e) => {
+                          const formatted = formatCurrencyFromDigits(e.target.value);
+                          setFormData({ ...formData, amount: formatted });
+                        }}
+                        onFocus={(e) => {
+                          if (parseCurrency(formData.amount) === 0) {
+                            setFormData({ ...formData, amount: "" });
+                          }
+                          e.target.select();
+                        }}
+                        onBlur={() => {
+                          if (!formData.amount.trim()) {
+                            setFormData({ ...formData, amount: "0,00" });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="account">Conta</Label>
+                    <Select
+                      value={formData.accountId}
+                      onValueChange={(value) => setFormData({ ...formData, accountId: value })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.icon || "🏦"} {account.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Row 3: Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="description">Descrição</Label>
+                  <Input
+                    id="description"
+                    placeholder="Ex: Supermercado"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+
+                {/* Row 4: Category/Income Source + Date */}
+                <div className="grid grid-cols-2 gap-4">
+                  {formData.type === "expense" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Categoria</Label>
+                      <Select
+                        value={formData.categoryId}
+                        onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.icon || "📌"} {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {formData.type === "income" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="incomeSource">Fonte de Renda</Label>
+                      <Select
+                        value={formData.incomeSourceId}
+                        onValueChange={(value) => setFormData({ ...formData, incomeSourceId: value })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {incomeSources.map((source) => (
+                            <SelectItem key={source.id} value={source.id}>
+                              {source.type === "salary" ? "💼" : source.type === "benefit" ? "🎁" : source.type === "freelance" ? "💻" : source.type === "rental" ? "🏠" : source.type === "investment" ? "📈" : "📦"} {source.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Data</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             {/* Installment option (only for credit card expenses when creating) */}
@@ -914,49 +1068,17 @@ export default function TransactionsPage() {
                 </div>
               );
             })()}
-
-            {formData.type === "income" && (
-              <div className="space-y-2">
-                <Label htmlFor="incomeSource">Fonte de Renda</Label>
-                <Select
-                  value={formData.incomeSourceId}
-                  onValueChange={(value) => setFormData({ ...formData, incomeSourceId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma fonte de renda" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {incomeSources.map((source) => (
-                      <SelectItem key={source.id} value={source.id}>
-                        {source.type === "salary" ? "💼" : source.type === "benefit" ? "🎁" : source.type === "freelance" ? "💻" : source.type === "rental" ? "🏠" : source.type === "investment" ? "📈" : "📦"} {source.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="date">Data</Label>
-              <Input
-                id="date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              />
-            </div>
           </div>
 
-          <DialogFooter className="flex justify-end gap-2">
+          <DialogFooter className="flex flex-row justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => setIsFormOpen(false)}
               disabled={isSubmitting}
-              className="w-1/4"
             >
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting} className="w-1/4">
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editingTransaction ? "Salvar" : "Criar"}
             </Button>
@@ -971,36 +1093,34 @@ export default function TransactionsPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir transação?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deletingTransaction?.recurringBillId || deletingTransaction?.incomeSourceId
+                ? "Desfazer confirmação?"
+                : "Excluir transação?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.
+              {deletingTransaction?.recurringBillId || deletingTransaction?.incomeSourceId
+                ? "A transação voltará para a lista de pendentes."
+                : "Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={cn(
+                deletingTransaction?.recurringBillId || deletingTransaction?.incomeSourceId
+                  ? "bg-amber-600 text-white hover:bg-amber-700"
+                  : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              )}
             >
-              Excluir
+              {deletingTransaction?.recurringBillId || deletingTransaction?.incomeSourceId
+                ? "Desfazer"
+                : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Unified Expense Form (Despesa única ou recorrente) */}
-      <UnifiedExpenseForm
-        isOpen={isExpenseFormOpen}
-        onClose={() => setIsExpenseFormOpen(false)}
-        onSuccess={() => {
-          fetchData();
-          setScheduledRefreshKey((k) => k + 1);
-        }}
-        budgetId={budgets[0]?.id || ""}
-        accounts={accounts}
-        categories={categories}
-        defaultIsRecurring={false}
-      />
     </div>
   );
 }

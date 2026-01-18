@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { budgetMembers, incomeSources, transactions, goals, goalContributions, recurringBills, categories } from "@/db/schema";
+import { budgetMembers, incomeSources, transactions, goals, goalContributions, recurringBills, categories, monthlyBudgetStatus, monthlyAllocations } from "@/db/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -32,11 +32,14 @@ interface ScheduledTransaction {
   recurringBillId?: string;
 }
 
-// GET - Get scheduled/projected transactions for a month
+// GET - Get scheduled/projected transactions for a period
 export const GET = withAuthRequired(async (req, context) => {
   const { session } = context;
   const { searchParams } = new URL(req.url);
   const budgetId = searchParams.get("budgetId");
+  const startDateParam = searchParams.get("startDate");
+  const endDateParam = searchParams.get("endDate");
+  // Legacy params for backwards compatibility
   const year = parseInt(searchParams.get("year") || new Date().getFullYear().toString());
   const month = parseInt(searchParams.get("month") || (new Date().getMonth() + 1).toString());
 
@@ -49,13 +52,79 @@ export const GET = withAuthRequired(async (req, context) => {
     return NextResponse.json({ error: "Budget not found or access denied" }, { status: 404 });
   }
 
-  // Calculate date range for this month
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0, 23, 59, 59);
+  // Calculate date range - prefer startDate/endDate params, fallback to year/month
+  let startDate: Date, endDate: Date;
+  if (startDateParam && endDateParam) {
+    startDate = new Date(startDateParam);
+    endDate = new Date(endDateParam);
+    // Ensure endDate includes the full day
+    endDate.setHours(23, 59, 59, 999);
+  } else {
+    // Legacy: calculate from year/month
+    startDate = new Date(year, month - 1, 1);
+    endDate = new Date(year, month, 0, 23, 59, 59);
+  }
+
+  // Determine if this is a past period (for historical filtering)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isPastPeriod = endDate < today;
+
+  // Extract year/month from the date range for generating scheduled items
+  const filterYear = startDate.getFullYear();
+  const filterMonth = startDate.getMonth() + 1;
+  // For date calculations, we need the last day of the month
+  const lastDayOfMonth = new Date(filterYear, filterMonth, 0).getDate();
+
+  // Get month status
+  const [monthStatusRecord] = await db
+    .select()
+    .from(monthlyBudgetStatus)
+    .where(
+      and(
+        eq(monthlyBudgetStatus.budgetId, budgetId),
+        eq(monthlyBudgetStatus.year, filterYear),
+        eq(monthlyBudgetStatus.month, filterMonth)
+      )
+    );
+
+  const monthStatus = monthStatusRecord?.status || "planning";
+
+  // If month is not "active", return empty scheduled transactions
+  // The widget will show a banner to start the month
+  if (monthStatus !== "active") {
+    // Check if there are any allocations for this month
+    const allocations = await db
+      .select({ id: monthlyAllocations.id })
+      .from(monthlyAllocations)
+      .where(
+        and(
+          eq(monthlyAllocations.budgetId, budgetId),
+          eq(monthlyAllocations.year, filterYear),
+          eq(monthlyAllocations.month, filterMonth)
+        )
+      )
+      .limit(1);
+
+    return NextResponse.json({
+      year: filterYear,
+      month: filterMonth,
+      monthStatus,
+      hasAllocations: allocations.length > 0,
+      scheduledTransactions: [],
+      totals: {
+        expenses: 0,
+        income: 0,
+        paidExpenses: 0,
+        paidIncome: 0,
+      },
+    });
+  }
 
   // Fetch all data in parallel
   const [activeBills, incomeSourcesWithDay, existingTransactions, activeGoals, existingGoalContributions] = await Promise.all([
     // Active recurring bills with category info
+    // For past periods, only include bills that existed at that time (createdAt <= endDate)
     db
       .select({
         bill: recurringBills,
@@ -70,18 +139,21 @@ export const GET = withAuthRequired(async (req, context) => {
       .where(
         and(
           eq(recurringBills.budgetId, budgetId),
-          eq(recurringBills.isActive, true)
+          eq(recurringBills.isActive, true),
+          ...(isPastPeriod ? [lte(recurringBills.createdAt, endDate)] : [])
         )
       ),
 
     // Income sources with dayOfMonth
+    // For past periods, only include sources that existed at that time (createdAt <= endDate)
     db
       .select()
       .from(incomeSources)
       .where(
         and(
           eq(incomeSources.budgetId, budgetId),
-          eq(incomeSources.isActive, true)
+          eq(incomeSources.isActive, true),
+          ...(isPastPeriod ? [lte(incomeSources.createdAt, endDate)] : [])
         )
       ),
 
@@ -105,6 +177,7 @@ export const GET = withAuthRequired(async (req, context) => {
       ),
 
     // Get active goals with monthly targets
+    // For past periods, only include goals that existed at that time (createdAt <= endDate)
     db
       .select()
       .from(goals)
@@ -112,7 +185,8 @@ export const GET = withAuthRequired(async (req, context) => {
         and(
           eq(goals.budgetId, budgetId),
           eq(goals.isArchived, false),
-          eq(goals.isCompleted, false)
+          eq(goals.isCompleted, false),
+          ...(isPastPeriod ? [lte(goals.createdAt, endDate)] : [])
         )
       ),
 
@@ -155,16 +229,16 @@ export const GET = withAuthRequired(async (req, context) => {
   // Add scheduled expenses from recurring bills
   for (const { bill, category } of activeBills) {
     // Check frequency - skip yearly bills that don't match this month
-    if (bill.frequency === "yearly" && bill.dueMonth !== month) continue;
+    if (bill.frequency === "yearly" && bill.dueMonth !== filterMonth) continue;
 
     // Weekly bills - for now, just show one per month (TODO: implement weekly properly)
     if (bill.amount <= 0) continue;
 
-    const dueDay = bill.dueDay ? Math.min(bill.dueDay, endDate.getDate()) : 1;
-    const dueDate = new Date(year, month - 1, dueDay);
+    const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
+    const dueDate = new Date(filterYear, filterMonth - 1, dueDay);
 
     scheduledTransactions.push({
-      id: `bill-${bill.id}-${year}-${month}`,
+      id: `bill-${bill.id}-${filterYear}-${filterMonth}`,
       type: "expense",
       name: bill.name,
       icon: category?.icon || "💰",
@@ -184,10 +258,10 @@ export const GET = withAuthRequired(async (req, context) => {
   // Add scheduled income from income sources
   for (const source of incomeSourcesWithDay) {
     if (source.dayOfMonth && source.amount > 0) {
-      const dueDate = new Date(year, month - 1, Math.min(source.dayOfMonth, endDate.getDate()));
+      const dueDate = new Date(filterYear, filterMonth - 1, Math.min(source.dayOfMonth, lastDayOfMonth));
 
       scheduledTransactions.push({
-        id: `income-${source.id}-${year}-${month}`,
+        id: `income-${source.id}-${filterYear}-${filterMonth}`,
         type: "income",
         name: source.name,
         icon: source.type === "salary" ? "💼" : source.type === "benefit" ? "🎁" : "💰",
@@ -221,10 +295,10 @@ export const GET = withAuthRequired(async (req, context) => {
 
       if (monthlyTarget > 0) {
         // Use the 1st day of the month as default due day for goals
-        const dueDate = new Date(year, month - 1, 1);
+        const dueDate = new Date(filterYear, filterMonth - 1, 1);
 
         scheduledTransactions.push({
-          id: `goal-${goal.id}-${year}-${month}`,
+          id: `goal-${goal.id}-${filterYear}-${filterMonth}`,
           type: "expense",
           name: `Meta: ${goal.name}`,
           icon: goal.icon || "🎯",
@@ -240,15 +314,21 @@ export const GET = withAuthRequired(async (req, context) => {
     }
   }
 
+  // Filter to only include items whose dueDate is within the requested range
+  const filteredTransactions = scheduledTransactions.filter((item) => {
+    const dueDate = new Date(item.dueDate);
+    return dueDate >= startDate && dueDate <= endDate;
+  });
+
   // Sort by due day
-  scheduledTransactions.sort((a, b) => a.dueDay - b.dueDay);
+  filteredTransactions.sort((a, b) => a.dueDay - b.dueDay);
 
   // Calculate totals
   const totals = {
-    expenses: scheduledTransactions
+    expenses: filteredTransactions
       .filter((t) => t.type === "expense")
       .reduce((sum, t) => sum + t.amount, 0),
-    income: scheduledTransactions
+    income: filteredTransactions
       .filter((t) => t.type === "income")
       .reduce((sum, t) => sum + t.amount, 0),
     paidExpenses: scheduledTransactions
@@ -260,9 +340,10 @@ export const GET = withAuthRequired(async (req, context) => {
   };
 
   return NextResponse.json({
-    year,
-    month,
-    scheduledTransactions,
+    year: filterYear,
+    month: filterMonth,
+    monthStatus,
+    scheduledTransactions: filteredTransactions,
     totals,
   });
 });
