@@ -501,6 +501,8 @@ export default function TransactionsPage() {
               toast.error(error instanceof Error ? error.message : "Erro ao confirmar");
             }
           }}
+          onEditConfirmed={(transaction) => openEditForm(transaction as Transaction)}
+          onDeleteConfirmed={(transaction) => setDeletingTransaction(transaction as Transaction)}
         />
       )}
 

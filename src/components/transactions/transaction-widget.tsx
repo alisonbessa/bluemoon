@@ -11,6 +11,7 @@ import {
   ChevronUp,
   Pencil,
   ArrowLeftRight,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -59,6 +60,8 @@ interface TransactionWidgetProps {
   typeFilter?: string;
   onConfirm?: (transaction: ScheduledTransaction) => void;
   onEdit?: (transaction: ScheduledTransaction) => void;
+  onEditConfirmed?: (transaction: ConfirmedTransaction) => void;
+  onDeleteConfirmed?: (transaction: ConfirmedTransaction) => void;
 }
 
 export function TransactionWidget({
@@ -71,6 +74,8 @@ export function TransactionWidget({
   typeFilter = "all",
   onConfirm,
   onEdit,
+  onEditConfirmed,
+  onDeleteConfirmed,
 }: TransactionWidgetProps) {
   const [scheduled, setScheduled] = useState<ScheduledTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -298,6 +303,31 @@ export function TransactionWidget({
                       {transaction.type === "expense" && "-"}
                       {transaction.type === "income" && "+"}
                       {formatCurrencyCompact(Math.abs(transaction.amount))}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      {onEditConfirmed && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => onEditConfirmed(transaction)}
+                          title="Editar transação"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {onDeleteConfirmed && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => onDeleteConfirmed(transaction)}
+                          title="Excluir transação"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
