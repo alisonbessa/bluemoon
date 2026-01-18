@@ -28,12 +28,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  COMPACT_TABLE_STYLES,
-  GroupToggleRow,
-  HoverActions,
-  useExpandedGroups,
-} from "@/components/ui/compact-table";
 import { Label } from "@/components/ui/label";
 import {
   Plus,
@@ -42,22 +36,19 @@ import {
   Receipt,
   TrendingUp,
   TrendingDown,
-  ArrowLeftRight,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { MonthSelector } from "@/components/ui/month-selector";
-import { format, isSameMonth } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
-  formatCurrency,
   formatCurrencyCompact,
   formatCurrencyFromDigits,
   parseCurrency,
   parseLocalDate,
 } from "@/lib/formatters";
-import { ScheduledTransactions } from "@/components/transactions";
+import { TransactionWidget } from "@/components/transactions/transaction-widget";
 
 interface Category {
   id: string;
@@ -101,21 +92,6 @@ interface Budget {
   name: string;
 }
 
-const GRID_COLS = "24px 1fr 120px 120px 100px";
-
-// Group transactions by date
-function groupTransactionsByDate(transactions: Transaction[], parseDateFn: typeof parseLocalDate): Map<string, Transaction[]> {
-  const grouped = new Map<string, Transaction[]>();
-
-  for (const transaction of transactions) {
-    const dateKey = format(parseDateFn(transaction.date), "yyyy-MM-dd");
-    const existing = grouped.get(dateKey) || [];
-    grouped.set(dateKey, [...existing, transaction]);
-  }
-
-  return grouped;
-}
-
 export default function TransactionsPage() {
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -126,10 +102,9 @@ export default function TransactionsPage() {
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [scheduledRefreshKey, setScheduledRefreshKey] = useState(0);
+  const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const { isExpanded, toggleGroup, setExpandedGroups } = useExpandedGroups([]);
 
   const handleMonthChange = (year: number, month: number) => {
     setCurrentYear(year);
@@ -173,10 +148,6 @@ export default function TransactionsPage() {
       if (transactionsRes.ok) {
         const data = await transactionsRes.json();
         setTransactions(data.transactions || []);
-        // Expand current date by default
-        const now = new Date();
-        const currentDateKey = format(now, "yyyy-MM-dd");
-        setExpandedGroups([currentDateKey]);
       }
 
       if (categoriesRes.ok) {
@@ -340,52 +311,17 @@ export default function TransactionsPage() {
     }
   };
 
-  // Filter out pending transactions - they only appear in the scheduled widget
-  const filteredTransactions = transactions.filter((t) => {
-    const isNotPending = t.status !== "pending";
-    const matchesSearch = !searchTerm ||
-      (t.description?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.category?.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.account?.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesType = typeFilter === "all" || t.type === typeFilter;
-    return isNotPending && matchesSearch && matchesType;
-  });
+  // Filter out pending transactions - they are shown in the scheduled section
+  const confirmedTransactions = transactions.filter((t) => t.status !== "pending");
 
-  const groupedTransactions = groupTransactionsByDate(filteredTransactions, parseLocalDate);
-  const sortedDates = Array.from(groupedTransactions.keys()).sort((a, b) =>
-    parseLocalDate(b).getTime() - parseLocalDate(a).getTime()
-  );
-
-  // Calculate totals for the selected month (transactions are already filtered by month from API)
-  // Confirmed = cleared or reconciled, Planned = all including pending
-  const confirmedIncome = transactions
-    .filter((t) => t.type === "income" && t.status !== "pending")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const plannedIncome = transactions
+  // Calculate totals for the summary cards
+  const confirmedIncome = confirmedTransactions
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const confirmedExpenses = transactions
-    .filter((t) => t.type === "expense" && t.status !== "pending")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const plannedExpenses = transactions
+  const confirmedExpenses = confirmedTransactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case "income":
-        return <TrendingUp className="h-3.5 w-3.5 text-green-500" />;
-      case "expense":
-        return <TrendingDown className="h-3.5 w-3.5 text-red-500" />;
-      case "transfer":
-        return <ArrowLeftRight className="h-3.5 w-3.5 text-blue-500" />;
-      default:
-        return null;
-    }
-  };
 
   if (isLoading) {
     return (
@@ -428,11 +364,6 @@ export default function TransactionsPage() {
           </div>
           <div className="mt-1 text-base sm:text-xl font-bold text-green-600">
             {formatCurrencyCompact(confirmedIncome)}
-            {plannedIncome > confirmedIncome && (
-              <span className="text-xs sm:text-sm font-normal text-muted-foreground ml-1">
-                / {formatCurrencyCompact(plannedIncome)}
-              </span>
-            )}
           </div>
         </div>
 
@@ -443,11 +374,6 @@ export default function TransactionsPage() {
           </div>
           <div className="mt-1 text-base sm:text-xl font-bold text-red-600">
             {formatCurrencyCompact(confirmedExpenses)}
-            {plannedExpenses > confirmedExpenses && (
-              <span className="text-xs sm:text-sm font-normal text-muted-foreground ml-1">
-                / {formatCurrencyCompact(plannedExpenses)}
-              </span>
-            )}
           </div>
         </div>
 
@@ -489,13 +415,16 @@ export default function TransactionsPage() {
         </Select>
       </div>
 
-      {/* Scheduled Transactions */}
+      {/* Transaction Widget - Unified view of pending and confirmed transactions */}
       {budgets.length > 0 && (
-        <ScheduledTransactions
+        <TransactionWidget
           budgetId={budgets[0].id}
           year={currentYear}
           month={currentMonth}
-          refreshKey={scheduledRefreshKey}
+          refreshKey={widgetRefreshKey}
+          confirmedTransactions={confirmedTransactions}
+          searchTerm={searchTerm}
+          typeFilter={typeFilter}
           onEdit={(scheduled) => {
             // Pre-fill the form with scheduled transaction data for editing before confirming
             setFormData({
@@ -545,182 +474,13 @@ export default function TransactionsPage() {
               }
 
               toast.success("Transação confirmada!");
-              setScheduledRefreshKey((k) => k + 1);
+              setWidgetRefreshKey((k) => k + 1);
               fetchData();
             } catch (error) {
               toast.error(error instanceof Error ? error.message : "Erro ao confirmar");
             }
           }}
         />
-      )}
-
-      {/* Transactions List */}
-      {transactions.length > 0 ? (
-        <div className="rounded-lg border bg-card">
-          {/* Desktop Table Header - Hidden on mobile */}
-          <div
-            className={cn(COMPACT_TABLE_STYLES.header, "hidden md:grid")}
-            style={{ gridTemplateColumns: GRID_COLS }}
-          >
-            <div></div>
-            <div>Descrição</div>
-            <div>Categoria</div>
-            <div>Conta</div>
-            <div className="text-right">Valor</div>
-          </div>
-
-          {/* Grouped by Date */}
-          {sortedDates.map((dateKey) => {
-            const dayTransactions = groupedTransactions.get(dateKey) || [];
-            const expanded = isExpanded(dateKey);
-            const dayTotal = dayTransactions.reduce((sum, t) => {
-              if (t.type === "income") return sum + t.amount;
-              if (t.type === "expense") return sum - t.amount;
-              return sum;
-            }, 0);
-
-            return (
-              <div key={dateKey}>
-                {/* Date Group Header */}
-                <GroupToggleRow
-                  isExpanded={expanded}
-                  onToggle={() => toggleGroup(dateKey)}
-                  icon="📅"
-                  label={format(parseLocalDate(dateKey), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                  count={dayTransactions.length}
-                  gridCols={GRID_COLS}
-                  emptyColsCount={2}
-                  summary={
-                    <>
-                      {dayTotal >= 0 ? "+" : ""}
-                      {formatCurrencyCompact(dayTotal)}
-                    </>
-                  }
-                  summaryClassName={dayTotal >= 0 ? "text-green-600" : "text-red-600"}
-                />
-
-                {/* Transaction Rows - Desktop Table */}
-                {expanded && dayTransactions.map((transaction) => (
-                  <div key={transaction.id}>
-                    {/* Desktop Row */}
-                    <div
-                      className={cn(COMPACT_TABLE_STYLES.itemRow, "hidden md:grid")}
-                      style={{ gridTemplateColumns: GRID_COLS }}
-                    >
-                      <div className="flex items-center justify-center">
-                        {getTypeIcon(transaction.type)}
-                      </div>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="truncate font-medium">
-                          {transaction.description || "Sem descrição"}
-                        </span>
-                        {transaction.isInstallment && transaction.installmentNumber && transaction.totalInstallments && (
-                          <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                            {transaction.installmentNumber}/{transaction.totalInstallments}
-                          </span>
-                        )}
-                        <HoverActions
-                          onEdit={() => openEditForm(transaction)}
-                          onDelete={() => setDeletingTransaction(transaction)}
-                          editTitle="Editar transação"
-                          deleteTitle="Excluir transação"
-                        />
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground truncate">
-                        {transaction.category ? (
-                          <>
-                            <span>{transaction.category.icon || "📌"}</span>
-                            <span className="truncate">{transaction.category.name}</span>
-                          </>
-                        ) : (
-                          <span className="text-xs">Sem categoria</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground truncate">
-                        {transaction.account ? (
-                          <>
-                            <span>{transaction.account.icon || "🏦"}</span>
-                            <span className="truncate">{transaction.account.name}</span>
-                          </>
-                        ) : (
-                          <span className="text-xs">-</span>
-                        )}
-                      </div>
-                      <div className={cn(
-                        "text-right font-medium tabular-nums",
-                        transaction.type === "income" ? "text-green-600" :
-                        transaction.type === "expense" ? "text-red-600" : "text-blue-600"
-                      )}>
-                        {transaction.type === "expense" && "-"}
-                        {transaction.type === "income" && "+"}
-                        {formatCurrencyCompact(Math.abs(transaction.amount))}
-                      </div>
-                    </div>
-
-                    {/* Mobile Card */}
-                    <div
-                      className="md:hidden flex items-center justify-between p-3 border-t cursor-pointer hover:bg-muted/50"
-                      onClick={() => openEditForm(transaction)}
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className="flex-shrink-0">
-                          {getTypeIcon(transaction.type)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium truncate">
-                              {transaction.description || "Sem descrição"}
-                            </span>
-                            {transaction.isInstallment && transaction.installmentNumber && transaction.totalInstallments && (
-                              <span className="text-xs text-muted-foreground bg-muted px-1 py-0.5 rounded flex-shrink-0">
-                                {transaction.installmentNumber}/{transaction.totalInstallments}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                            {transaction.category && (
-                              <span className="flex items-center gap-1">
-                                {transaction.category.icon || "📌"} {transaction.category.name}
-                              </span>
-                            )}
-                            {transaction.account && (
-                              <span className="flex items-center gap-1">
-                                {transaction.account.icon || "🏦"} {transaction.account.name}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className={cn(
-                        "font-medium tabular-nums text-right flex-shrink-0 ml-2",
-                        transaction.type === "income" ? "text-green-600" :
-                        transaction.type === "expense" ? "text-red-600" : "text-blue-600"
-                      )}>
-                        {transaction.type === "expense" && "-"}
-                        {transaction.type === "income" && "+"}
-                        {formatCurrencyCompact(Math.abs(transaction.amount))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="rounded-lg border border-dashed bg-card p-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <Receipt className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <h3 className="font-semibold">Nenhuma transação ainda</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Comece registrando sua primeira transação para acompanhar suas finanças
-          </p>
-          <Button className="mt-4" onClick={openCreateForm}>
-            <Plus className="mr-2 h-4 w-4" />
-            Adicionar Transação
-          </Button>
-        </div>
       )}
 
       {/* Create/Edit Transaction Dialog */}
