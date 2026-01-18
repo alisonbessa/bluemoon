@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrencyCompact, parseLocalDate } from "@/lib/formatters";
 import {
   Calendar,
+  Check,
   CheckCircle2,
   Clock,
   ChevronDown,
@@ -237,11 +238,12 @@ export function TransactionWidget({
                         {onConfirm && (
                           <Button
                             variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs"
+                            size="icon"
+                            className="h-7 w-7 text-green-600 hover:text-green-700"
                             onClick={() => onConfirm(item)}
+                            title="Confirmar transação"
                           >
-                            Confirmar
+                            <Check className="h-4 w-4" />
                           </Button>
                         )}
                       </div>
