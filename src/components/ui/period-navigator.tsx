@@ -61,6 +61,7 @@ interface PeriodNavigatorProps {
   customRange?: DateRange | null;
   onClearCustomRange?: () => void;
   showTodayButton?: boolean;
+  disableFuture?: boolean;
   className?: string;
 }
 
@@ -71,6 +72,7 @@ export function PeriodNavigator({
   customRange,
   onClearCustomRange,
   showTodayButton = true,
+  disableFuture = false,
   className,
 }: PeriodNavigatorProps) {
   const today = new Date();
@@ -253,6 +255,7 @@ export function PeriodNavigator({
             size="icon"
             className="h-8 w-8"
             onClick={handleNext}
+            disabled={disableFuture && isCurrentPeriod}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>

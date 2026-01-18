@@ -39,18 +39,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  calculateDateRange,
-  type PeriodValue,
-  type DateRange,
-} from "@/components/ui/period-navigator";
-import { type PeriodType } from "@/components/ui/period-selector";
+import { type PeriodValue } from "@/components/ui/period-navigator";
 import { FilterChips } from "@/components/ui/filter-chips";
 import { format, getWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -126,11 +115,9 @@ export default function TransactionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
-  // New filter states
-  const [periodType, setPeriodType] = useState<PeriodType>("month");
+  // Filter states
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [accountFilter, setAccountFilter] = useState<string>("all");
-  const [customDateRange, setCustomDateRange] = useState<DateRange | null>(null);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   const handlePeriodChange = (value: PeriodValue) => {
@@ -142,20 +129,10 @@ export default function TransactionsPage() {
   const currentMonth = periodValue.month;
 
   const clearAllFilters = () => {
-    setPeriodType("month");
     setTypeFilter("all");
     setCategoryFilter("all");
     setAccountFilter("all");
-    setCustomDateRange(null);
     setSearchTerm("");
-  };
-
-  // Handle period type change - clears custom range when selecting fixed period
-  const handlePeriodTypeChange = (type: PeriodType) => {
-    if (customDateRange) {
-      setCustomDateRange(null);
-    }
-    setPeriodType(type);
   };
 
   // Build filter chips for active filters
@@ -185,11 +162,6 @@ export default function TransactionsPage() {
       }
     }
 
-    if (customDateRange) {
-      const label = `${format(customDateRange.from, "dd/MMM", { locale: ptBR })} - ${format(customDateRange.to, "dd/MMM", { locale: ptBR })}`;
-      chips.push({ key: "dateRange", label, value: "custom" });
-    }
-
     if (searchTerm) {
       chips.push({ key: "search", label: `"${searchTerm}"`, value: searchTerm });
     }
@@ -207,9 +179,6 @@ export default function TransactionsPage() {
         break;
       case "account":
         setAccountFilter("all");
-        break;
-      case "dateRange":
-        setCustomDateRange(null);
         break;
       case "search":
         setSearchTerm("");
@@ -240,12 +209,9 @@ export default function TransactionsPage() {
   });
 
   const fetchData = useCallback(async () => {
-    // Calculate start and end dates based on period type or custom range
-    const { startDate, endDate } = calculateDateRange(
-      periodType,
-      periodValue,
-      customDateRange
-    );
+    // Calculate monthly date range
+    const startDate = new Date(periodValue.year, periodValue.month - 1, 1);
+    const endDate = new Date(periodValue.year, periodValue.month, 0, 23, 59, 59);
 
     try {
       const [transactionsRes, categoriesRes, accountsRes, budgetsRes, incomeSourcesRes] = await Promise.all([
@@ -286,7 +252,7 @@ export default function TransactionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [periodValue, periodType, customDateRange]);
+  }, [periodValue]);
 
   useEffect(() => {
     fetchData();
@@ -420,6 +386,33 @@ export default function TransactionsPage() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao excluir");
     }
+  };
+
+  const handleStartMonth = async () => {
+    if (budgets.length === 0) {
+      toast.error("Nenhum orçamento encontrado");
+      return;
+    }
+
+    const response = await fetch("/api/app/budget/start-month", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        budgetId: budgets[0].id,
+        year: periodValue.year,
+        month: periodValue.month,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Erro ao iniciar o mês");
+    }
+
+    toast.success(`Mês iniciado! ${data.createdTransactions} transações criadas.`);
+    setWidgetRefreshKey((k) => k + 1);
+    fetchData();
   };
 
   // Filter out pending transactions - they are shown in the scheduled section
@@ -590,16 +583,12 @@ export default function TransactionsPage() {
       <TransactionFiltersSheet
         open={isFilterSheetOpen}
         onOpenChange={setIsFilterSheetOpen}
-        periodType={periodType}
-        onPeriodTypeChange={handlePeriodTypeChange}
         typeFilter={typeFilter}
         onTypeFilterChange={setTypeFilter}
         categoryFilter={categoryFilter}
         onCategoryFilterChange={setCategoryFilter}
         accountFilter={accountFilter}
         onAccountFilterChange={setAccountFilter}
-        customDateRange={customDateRange}
-        onCustomDateRangeChange={setCustomDateRange}
         categories={categories}
         accounts={accounts}
         resultCount={confirmedTransactions.length}
@@ -616,12 +605,9 @@ export default function TransactionsPage() {
           typeFilter={typeFilter}
           categoryFilter={categoryFilter}
           accountFilter={accountFilter}
-          periodType={periodType}
-          onPeriodTypeChange={handlePeriodTypeChange}
           periodValue={periodValue}
           onPeriodChange={handlePeriodChange}
-          customDateRange={customDateRange}
-          onCustomDateRangeChange={setCustomDateRange}
+          onStartMonth={handleStartMonth}
           onEdit={(scheduled) => {
             // Pre-fill the form with scheduled transaction data for editing before confirming
             setFormData({

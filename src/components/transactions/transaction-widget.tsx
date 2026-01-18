@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { formatCurrencyCompact, parseLocalDate } from "@/lib/formatters";
 import {
@@ -10,18 +11,18 @@ import {
   Pencil,
   ArrowLeftRight,
   Trash2,
+  AlertCircle,
+  Loader2,
+  Lock,
+  Rocket,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   PeriodNavigator,
-  calculateDateRange,
   type PeriodValue,
-  type DateRange,
 } from "@/components/ui/period-navigator";
-import { PeriodSelector, type PeriodType } from "@/components/ui/period-selector";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 interface ScheduledTransaction {
   id: string;
@@ -64,17 +65,15 @@ interface TransactionWidgetProps {
   typeFilter?: string;
   categoryFilter?: string;
   accountFilter?: string;
-  // Period props
-  periodType: PeriodType;
-  onPeriodTypeChange: (type: PeriodType) => void;
+  // Period props (monthly only)
   periodValue: PeriodValue;
   onPeriodChange: (value: PeriodValue) => void;
-  customDateRange?: DateRange | null;
-  onCustomDateRangeChange?: (range: DateRange | null) => void;
   onConfirm?: (transaction: ScheduledTransaction) => void;
   onEdit?: (transaction: ScheduledTransaction) => void;
   onEditConfirmed?: (transaction: ConfirmedTransaction) => void;
   onDeleteConfirmed?: (transaction: ConfirmedTransaction) => void;
+  // Start month action
+  onStartMonth?: () => Promise<void>;
 }
 
 export function TransactionWidget({
@@ -85,25 +84,39 @@ export function TransactionWidget({
   typeFilter = "all",
   categoryFilter = "all",
   accountFilter = "all",
-  periodType,
-  onPeriodTypeChange,
   periodValue,
   onPeriodChange,
-  customDateRange,
-  onCustomDateRangeChange,
   onConfirm,
   onEdit,
   onEditConfirmed,
   onDeleteConfirmed,
+  onStartMonth,
 }: TransactionWidgetProps) {
   const [scheduled, setScheduled] = useState<ScheduledTransaction[]>([]);
+  const [monthStatus, setMonthStatus] = useState<string>("active");
   const [isLoading, setIsLoading] = useState(true);
+  const [isStartingMonth, setIsStartingMonth] = useState(false);
+
+  const handleStartMonth = async () => {
+    if (!onStartMonth) return;
+    setIsStartingMonth(true);
+    try {
+      await onStartMonth();
+      // After starting, refetch scheduled transactions
+      await fetchScheduled();
+    } finally {
+      setIsStartingMonth(false);
+    }
+  };
 
   const fetchScheduled = useCallback(async () => {
     if (!budgetId) return;
 
     try {
-      const { startDate, endDate } = calculateDateRange(periodType, periodValue, customDateRange);
+      // Calculate monthly date range
+      const startDate = new Date(periodValue.year, periodValue.month - 1, 1);
+      const endDate = new Date(periodValue.year, periodValue.month, 0, 23, 59, 59);
+
       const response = await fetch(
         `/api/app/transactions/scheduled?budgetId=${budgetId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
       );
@@ -111,13 +124,14 @@ export function TransactionWidget({
       if (response.ok) {
         const data = await response.json();
         setScheduled(data.scheduledTransactions || []);
+        setMonthStatus(data.monthStatus || "planning");
       }
     } catch (error) {
       console.error("Error fetching scheduled transactions:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [budgetId, periodType, periodValue, customDateRange]);
+  }, [budgetId, periodValue]);
 
   useEffect(() => {
     fetchScheduled();
@@ -159,34 +173,83 @@ export function TransactionWidget({
 
   return (
     <div className="rounded-lg border bg-card">
-      {/* Header with Period Selector (left) and Period Navigator (right) */}
+      {/* Header with Month Navigator */}
       <div className="flex items-center justify-between p-3 border-b">
-        <div className="flex items-center gap-2">
-          <PeriodSelector
-            value={customDateRange ? "custom" : periodType}
-            onChange={onPeriodTypeChange}
-            hasCustomRange={!!customDateRange}
-          />
-          <DateRangePicker
-            value={customDateRange ?? null}
-            onChange={onCustomDateRangeChange ?? (() => {})}
-          />
-        </div>
         <div className="flex items-center gap-2">
           {overdueCount > 0 && (
             <span className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full">
               {overdueCount} atrasada{overdueCount > 1 ? "s" : ""}
             </span>
           )}
-          <PeriodNavigator
-            type={periodType}
-            value={periodValue}
-            onChange={onPeriodChange}
-            customRange={customDateRange}
-            onClearCustomRange={onCustomDateRangeChange ? () => onCustomDateRangeChange(null) : undefined}
-          />
         </div>
+        <PeriodNavigator
+          type="month"
+          value={periodValue}
+          onChange={onPeriodChange}
+        />
       </div>
+
+      {/* Month Status Banner */}
+      {monthStatus !== "active" && (
+        <div className={cn(
+          "flex items-center justify-between px-3 py-2 border-b",
+          monthStatus === "closed"
+            ? "bg-muted/50"
+            : "bg-amber-50 dark:bg-amber-950/20"
+        )}>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              {monthStatus === "closed" ? (
+                <Lock className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              )}
+              <span className={cn(
+                "text-sm",
+                monthStatus === "closed"
+                  ? "text-muted-foreground"
+                  : "text-amber-700 dark:text-amber-400"
+              )}>
+                {monthStatus === "closed"
+                  ? "Mês fechado"
+                  : confirmedTransactions.length > 0
+                    ? "Suas despesas recorrentes não estão visíveis"
+                    : "Inicie o mês para ver suas despesas recorrentes"
+                }
+              </span>
+            </div>
+            {monthStatus !== "closed" && confirmedTransactions.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-0.5 ml-6">
+                {confirmedTransactions.length} transaç{confirmedTransactions.length === 1 ? "ão confirmada" : "ões confirmadas"}
+              </p>
+            )}
+          </div>
+          {monthStatus !== "closed" && (
+            confirmedTransactions.length > 0 && onStartMonth ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleStartMonth}
+                disabled={isStartingMonth}
+                className="gap-1.5 shrink-0"
+              >
+                {isStartingMonth ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Rocket className="h-3.5 w-3.5" />
+                )}
+                Iniciar Mês
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" asChild className="shrink-0">
+                <Link href={`/app/budget?year=${periodValue.year}&month=${periodValue.month}`}>
+                  Ir para Planejamento
+                </Link>
+              </Button>
+            )
+          )}
+        </div>
+      )}
 
       <div>
           {/* Pending Section */}

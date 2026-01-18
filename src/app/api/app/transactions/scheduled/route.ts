@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { budgetMembers, incomeSources, transactions, goals, goalContributions, recurringBills, categories } from "@/db/schema";
+import { budgetMembers, incomeSources, transactions, goals, goalContributions, recurringBills, categories, monthlyBudgetStatus } from "@/db/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -65,15 +65,52 @@ export const GET = withAuthRequired(async (req, context) => {
     endDate = new Date(year, month, 0, 23, 59, 59);
   }
 
+  // Determine if this is a past period (for historical filtering)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const isPastPeriod = endDate < today;
+
   // Extract year/month from the date range for generating scheduled items
   const filterYear = startDate.getFullYear();
   const filterMonth = startDate.getMonth() + 1;
   // For date calculations, we need the last day of the month
   const lastDayOfMonth = new Date(filterYear, filterMonth, 0).getDate();
 
+  // Get month status
+  const [monthStatusRecord] = await db
+    .select()
+    .from(monthlyBudgetStatus)
+    .where(
+      and(
+        eq(monthlyBudgetStatus.budgetId, budgetId),
+        eq(monthlyBudgetStatus.year, filterYear),
+        eq(monthlyBudgetStatus.month, filterMonth)
+      )
+    );
+
+  const monthStatus = monthStatusRecord?.status || "planning";
+
+  // If month is not "active", return empty scheduled transactions
+  // The widget will show a banner to start the month
+  if (monthStatus !== "active") {
+    return NextResponse.json({
+      year: filterYear,
+      month: filterMonth,
+      monthStatus,
+      scheduledTransactions: [],
+      totals: {
+        expenses: 0,
+        income: 0,
+        paidExpenses: 0,
+        paidIncome: 0,
+      },
+    });
+  }
+
   // Fetch all data in parallel
   const [activeBills, incomeSourcesWithDay, existingTransactions, activeGoals, existingGoalContributions] = await Promise.all([
     // Active recurring bills with category info
+    // For past periods, only include bills that existed at that time (createdAt <= endDate)
     db
       .select({
         bill: recurringBills,
@@ -88,18 +125,21 @@ export const GET = withAuthRequired(async (req, context) => {
       .where(
         and(
           eq(recurringBills.budgetId, budgetId),
-          eq(recurringBills.isActive, true)
+          eq(recurringBills.isActive, true),
+          ...(isPastPeriod ? [lte(recurringBills.createdAt, endDate)] : [])
         )
       ),
 
     // Income sources with dayOfMonth
+    // For past periods, only include sources that existed at that time (createdAt <= endDate)
     db
       .select()
       .from(incomeSources)
       .where(
         and(
           eq(incomeSources.budgetId, budgetId),
-          eq(incomeSources.isActive, true)
+          eq(incomeSources.isActive, true),
+          ...(isPastPeriod ? [lte(incomeSources.createdAt, endDate)] : [])
         )
       ),
 
@@ -123,6 +163,7 @@ export const GET = withAuthRequired(async (req, context) => {
       ),
 
     // Get active goals with monthly targets
+    // For past periods, only include goals that existed at that time (createdAt <= endDate)
     db
       .select()
       .from(goals)
@@ -130,7 +171,8 @@ export const GET = withAuthRequired(async (req, context) => {
         and(
           eq(goals.budgetId, budgetId),
           eq(goals.isArchived, false),
-          eq(goals.isCompleted, false)
+          eq(goals.isCompleted, false),
+          ...(isPastPeriod ? [lte(goals.createdAt, endDate)] : [])
         )
       ),
 
@@ -286,6 +328,7 @@ export const GET = withAuthRequired(async (req, context) => {
   return NextResponse.json({
     year: filterYear,
     month: filterMonth,
+    monthStatus,
     scheduledTransactions: filteredTransactions,
     totals,
   });
