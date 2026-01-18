@@ -81,6 +81,8 @@ interface Transaction {
   amount: number;
   type: "income" | "expense" | "transfer";
   categoryId?: string | null;
+  incomeSourceId?: string | null;
+  recurringBillId?: string | null;
   accountId: string;
   status: string;
   isInstallment?: boolean;
@@ -88,6 +90,7 @@ interface Transaction {
   totalInstallments?: number | null;
   account?: Account | null;
   category?: Category | null;
+  incomeSource?: IncomeSource | null;
 }
 
 interface Budget {
@@ -325,6 +328,7 @@ export default function TransactionsPage() {
         incomeSourceId: formData.type === "income" ? (formData.incomeSourceId || undefined) : undefined,
         toAccountId: formData.type === "transfer" ? (formData.toAccountId || undefined) : undefined,
         date: new Date(formData.date).toISOString(),
+        status: "cleared", // Transações manuais já são efetivadas
         // Installment fields (only for new credit card expenses)
         ...(canBeInstallment && formData.isInstallment ? {
           isInstallment: true,
@@ -371,17 +375,20 @@ export default function TransactionsPage() {
   const handleDelete = async () => {
     if (!deletingTransaction) return;
 
+    const isFromPlanning = deletingTransaction.recurringBillId || deletingTransaction.incomeSourceId;
+
     try {
       const response = await fetch(`/api/app/transactions/${deletingTransaction.id}`, {
         method: "DELETE",
       });
 
       if (!response.ok) {
-        throw new Error("Erro ao excluir transação");
+        throw new Error(isFromPlanning ? "Erro ao desfazer confirmação" : "Erro ao excluir transação");
       }
 
-      toast.success("Transação excluída!");
+      toast.success(isFromPlanning ? "Confirmação desfeita!" : "Transação excluída!");
       setDeletingTransaction(null);
+      setWidgetRefreshKey((k) => k + 1);
       fetchData();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao excluir");
@@ -447,7 +454,15 @@ export default function TransactionsPage() {
     if (!response.ok) {
       // Handle specific error for empty previous month
       if (data.error?.includes("No allocations") || data.error?.includes("No categories")) {
-        toast.error("O mês anterior não tem planejamento. Configure manualmente.");
+        toast.error("Nenhum planejamento encontrado para copiar", {
+          description: "Configure o orçamento na página de planejamento",
+          action: {
+            label: "Ir para Planejamento",
+            onClick: () => {
+              window.location.href = `/app/budget?year=${periodValue.year}&month=${periodValue.month}`;
+            },
+          },
+        });
       } else {
         toast.error(data.error || "Erro ao copiar planejamento");
       }
@@ -1077,18 +1092,30 @@ export default function TransactionsPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir transação?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deletingTransaction?.recurringBillId || deletingTransaction?.incomeSourceId
+                ? "Desfazer confirmação?"
+                : "Excluir transação?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.
+              {deletingTransaction?.recurringBillId || deletingTransaction?.incomeSourceId
+                ? "A transação voltará para a lista de pendentes."
+                : "Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className={cn(
+                deletingTransaction?.recurringBillId || deletingTransaction?.incomeSourceId
+                  ? "bg-amber-600 text-white hover:bg-amber-700"
+                  : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              )}
             >
-              Excluir
+              {deletingTransaction?.recurringBillId || deletingTransaction?.incomeSourceId
+                ? "Desfazer"
+                : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

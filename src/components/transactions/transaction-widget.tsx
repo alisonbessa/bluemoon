@@ -11,6 +11,7 @@ import {
   Pencil,
   ArrowLeftRight,
   Trash2,
+  Undo2,
   AlertCircle,
   Loader2,
   Lock,
@@ -24,6 +25,11 @@ import {
   PeriodNavigator,
   type PeriodValue,
 } from "@/components/ui/period-navigator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ScheduledTransaction {
   id: string;
@@ -49,6 +55,8 @@ interface ConfirmedTransaction {
   amount: number;
   type: "income" | "expense" | "transfer";
   categoryId?: string | null;
+  incomeSourceId?: string | null;
+  recurringBillId?: string | null;
   accountId: string;
   status: string;
   isInstallment?: boolean;
@@ -56,6 +64,7 @@ interface ConfirmedTransaction {
   totalInstallments?: number | null;
   account?: { id: string; name: string; icon?: string | null } | null;
   category?: { id: string; name: string; icon?: string | null } | null;
+  incomeSource?: { id: string; name: string; type: string } | null;
 }
 
 interface TransactionWidgetProps {
@@ -158,6 +167,7 @@ export function TransactionWidget({
     const matchesSearch = !searchTerm ||
       (t.description?.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (t.category?.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (t.incomeSource?.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (t.account?.name.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesType = typeFilter === "all" || t.type === typeFilter;
     const matchesCategory = categoryFilter === "all" || t.categoryId === categoryFilter;
@@ -177,9 +187,6 @@ export function TransactionWidget({
 
   // Pending items
   const unpaidScheduled = scheduled.filter((s) => !s.isPaid);
-  const overdueCount = unpaidScheduled.filter(
-    (s) => isCurrentMonth && s.type === "expense" && s.dueDay < currentDay
-  ).length;
 
   const hasContent = scheduled.length > 0 || confirmedTransactions.length > 0;
 
@@ -190,14 +197,7 @@ export function TransactionWidget({
   return (
     <div className="rounded-lg border bg-card">
       {/* Header with Month Navigator */}
-      <div className="flex items-center justify-between p-3 border-b">
-        <div className="flex items-center gap-2">
-          {overdueCount > 0 && (
-            <span className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full">
-              {overdueCount} atrasada{overdueCount > 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
+      <div className="flex items-center justify-end p-3 border-b">
         <PeriodNavigator
           type="month"
           value={periodValue}
@@ -229,7 +229,7 @@ export function TransactionWidget({
                 {monthStatus === "closed"
                   ? "Mês fechado"
                   : !hasAllocations
-                    ? "Planejamento vazio"
+                    ? "Configure o planejamento para ver despesas recorrentes"
                     : confirmedTransactions.length > 0
                       ? "Suas despesas recorrentes não estão visíveis"
                       : "Inicie o mês para ver suas despesas recorrentes"
@@ -244,22 +244,6 @@ export function TransactionWidget({
           </div>
           {monthStatus !== "closed" && (
             <div className="flex items-center gap-2 shrink-0">
-              {!hasAllocations && onCopyPreviousMonth && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyPreviousMonth}
-                  disabled={isCopyingMonth}
-                  className="gap-1.5"
-                >
-                  {isCopyingMonth ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <Copy className="h-3.5 w-3.5" />
-                  )}
-                  Copiar mês anterior
-                </Button>
-              )}
               {hasAllocations && onStartMonth ? (
                 <Button
                   variant="outline"
@@ -276,11 +260,29 @@ export function TransactionWidget({
                   Iniciar Mês
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/app/budget?year=${periodValue.year}&month=${periodValue.month}`}>
-                    Ir para Planejamento
-                  </Link>
-                </Button>
+                <>
+                  {onCopyPreviousMonth && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCopyPreviousMonth}
+                      disabled={isCopyingMonth}
+                      className="gap-1.5"
+                    >
+                      {isCopyingMonth ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                      Copiar anterior
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/app/budget?year=${periodValue.year}&month=${periodValue.month}`}>
+                      Ir para Planejamento
+                    </Link>
+                  </Button>
+                </>
               )}
             </div>
           )}
@@ -342,26 +344,34 @@ export function TransactionWidget({
 
                       <div className="flex items-center gap-1">
                         {onEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => onEdit(item)}
-                            title="Editar antes de confirmar"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={() => onEdit(item)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Editar antes de confirmar</TooltipContent>
+                          </Tooltip>
                         )}
                         {onConfirm && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-green-600 hover:text-green-700"
-                            onClick={() => onConfirm(item)}
-                            title="Confirmar transação"
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-green-600 hover:text-green-700"
+                                onClick={() => onConfirm(item)}
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Confirmar transação</TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                     </div>
@@ -406,7 +416,11 @@ export function TransactionWidget({
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{format(parseLocalDate(transaction.date), "dd/MMM", { locale: ptBR })}</span>
-                        {transaction.category && (
+                        {transaction.type === "income" && transaction.incomeSource ? (
+                          <span className="flex items-center gap-1">
+                            {transaction.incomeSource.type === "salary" ? "💼" : transaction.incomeSource.type === "benefit" ? "🎁" : transaction.incomeSource.type === "freelance" ? "💻" : transaction.incomeSource.type === "rental" ? "🏠" : transaction.incomeSource.type === "investment" ? "📈" : "📦"} {transaction.incomeSource.name}
+                          </span>
+                        ) : transaction.category && (
                           <span className="flex items-center gap-1">
                             {transaction.category.icon || "📌"} {transaction.category.name}
                           </span>
@@ -426,26 +440,45 @@ export function TransactionWidget({
 
                     <div className="flex items-center gap-1">
                       {onEditConfirmed && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => onEditConfirmed(transaction)}
-                          title="Editar transação"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => onEditConfirmed(transaction)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar transação</TooltipContent>
+                        </Tooltip>
                       )}
                       {onDeleteConfirmed && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => onDeleteConfirmed(transaction)}
-                          title="Excluir transação"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={cn(
+                                "h-7 w-7",
+                                transaction.recurringBillId || transaction.incomeSourceId
+                                  ? "text-amber-600 hover:text-amber-700"
+                                  : "text-destructive hover:text-destructive"
+                              )}
+                              onClick={() => onDeleteConfirmed(transaction)}
+                            >
+                              {transaction.recurringBillId || transaction.incomeSourceId
+                                ? <Undo2 className="h-3.5 w-3.5" />
+                                : <Trash2 className="h-3.5 w-3.5" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {transaction.recurringBillId || transaction.incomeSourceId
+                              ? "Desfazer confirmação"
+                              : "Excluir transação"}
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                     </div>
                   </div>
