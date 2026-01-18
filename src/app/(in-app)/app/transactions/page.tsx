@@ -36,10 +36,24 @@ import {
   Receipt,
   TrendingUp,
   TrendingDown,
+  SlidersHorizontal,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { MonthSelector } from "@/components/ui/month-selector";
-import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  calculateDateRange,
+  type PeriodType,
+  type DateRange,
+  type PeriodValue,
+} from "@/components/ui/period-navigator";
+import { format, getWeek } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -48,7 +62,7 @@ import {
   parseCurrency,
   parseLocalDate,
 } from "@/lib/formatters";
-import { TransactionWidget } from "@/components/transactions/transaction-widget";
+import { TransactionWidget, TransactionFiltersSheet } from "@/components/transactions";
 
 interface Category {
   id: string;
@@ -94,8 +108,14 @@ interface Budget {
 
 export default function TransactionsPage() {
   const today = new Date();
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
+
+  // Use a single state object for period to avoid race conditions
+  const [periodValue, setPeriodValue] = useState<PeriodValue>({
+    year: today.getFullYear(),
+    month: today.getMonth() + 1,
+    week: getWeek(today, { weekStartsOn: 1, firstWeekContainsDate: 4 }),
+  });
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -106,9 +126,29 @@ export default function TransactionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
-  const handleMonthChange = (year: number, month: number) => {
-    setCurrentYear(year);
-    setCurrentMonth(month);
+  // New filter states
+  const [periodType, setPeriodType] = useState<PeriodType>("month");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [accountFilter, setAccountFilter] = useState<string>("all");
+  const [customDateRange, setCustomDateRange] = useState<DateRange | null>(null);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+
+  const handlePeriodChange = (value: PeriodValue) => {
+    console.log("[TransactionsPage] handlePeriodChange:", { current: periodValue, new: value });
+    setPeriodValue(value);
+  };
+
+  // Derived values for backwards compatibility
+  const currentYear = periodValue.year;
+  const currentMonth = periodValue.month;
+
+  const clearAllFilters = () => {
+    setPeriodType("month");
+    setTypeFilter("all");
+    setCategoryFilter("all");
+    setAccountFilter("all");
+    setCustomDateRange(null);
+    setSearchTerm("");
   };
 
   // Form states
@@ -132,9 +172,12 @@ export default function TransactionsPage() {
   });
 
   const fetchData = useCallback(async () => {
-    // Calculate start and end dates for the current month
-    const startDate = new Date(currentYear, currentMonth - 1, 1);
-    const endDate = new Date(currentYear, currentMonth, 0);
+    // Calculate start and end dates based on period type or custom range
+    const { startDate, endDate } = calculateDateRange(
+      periodType,
+      periodValue,
+      customDateRange
+    );
 
     try {
       const [transactionsRes, categoriesRes, accountsRes, budgetsRes, incomeSourcesRes] = await Promise.all([
@@ -175,7 +218,7 @@ export default function TransactionsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentYear, currentMonth]);
+  }, [periodValue, periodType, customDateRange]);
 
   useEffect(() => {
     fetchData();
@@ -341,18 +384,10 @@ export default function TransactionsPage() {
             Gerencie todas as suas movimentações financeiras
           </p>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          {/* Month Navigation */}
-          <MonthSelector
-            year={currentYear}
-            month={currentMonth}
-            onChange={handleMonthChange}
-          />
-          <Button onClick={openCreateForm} size="sm">
-            <Plus className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Nova Transação</span>
-          </Button>
-        </div>
+        <Button onClick={openCreateForm} size="sm">
+          <Plus className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Nova Transação</span>
+        </Button>
       </div>
 
       {/* Summary */}
@@ -391,9 +426,9 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
+      {/* Filters - Desktop */}
+      <div className="hidden sm:flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Buscar transações..."
@@ -402,8 +437,18 @@ export default function TransactionsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        <Select value={periodType} onValueChange={(v) => setPeriodType(v as PeriodType)}>
+          <SelectTrigger className="w-[120px] h-9">
+            <SelectValue placeholder="Período" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="week">Semana</SelectItem>
+            <SelectItem value="month">Mês</SelectItem>
+            <SelectItem value="year">Ano</SelectItem>
+          </SelectContent>
+        </Select>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-[160px] h-9">
+          <SelectTrigger className="w-[140px] h-9">
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
@@ -413,18 +458,117 @@ export default function TransactionsPage() {
             <SelectItem value="transfer">Transferências</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-[160px] h-9">
+            <SelectValue placeholder="Categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas categorias</SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat.id} value={cat.id}>
+                {cat.icon && <span className="mr-2">{cat.icon}</span>}
+                {cat.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={accountFilter} onValueChange={setAccountFilter}>
+          <SelectTrigger className="w-[140px] h-9">
+            <SelectValue placeholder="Conta" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas contas</SelectItem>
+            {accounts.map((acc) => (
+              <SelectItem key={acc.id} value={acc.id}>
+                {acc.icon && <span className="mr-2">{acc.icon}</span>}
+                {acc.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon" className="h-9 w-9">
+              <CalendarIcon className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="range"
+              selected={customDateRange ? { from: customDateRange.from, to: customDateRange.to } : undefined}
+              onSelect={(range) => {
+                if (range?.from && range?.to) {
+                  setCustomDateRange({ from: range.from, to: range.to });
+                } else if (range?.from) {
+                  setCustomDateRange({ from: range.from, to: range.from });
+                }
+              }}
+              numberOfMonths={1}
+              locale={ptBR}
+            />
+          </PopoverContent>
+        </Popover>
       </div>
+
+      {/* Filters - Mobile */}
+      <div className="flex sm:hidden flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar..."
+              className="pl-10 h-9"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9"
+            onClick={() => setIsFilterSheetOpen(true)}
+          >
+            <SlidersHorizontal className="h-4 w-4 mr-2" />
+            Filtros
+          </Button>
+        </div>
+      </div>
+
+      {/* Filter Sheet for Mobile */}
+      <TransactionFiltersSheet
+        open={isFilterSheetOpen}
+        onOpenChange={setIsFilterSheetOpen}
+        periodType={periodType}
+        onPeriodTypeChange={setPeriodType}
+        typeFilter={typeFilter}
+        onTypeFilterChange={setTypeFilter}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={setCategoryFilter}
+        accountFilter={accountFilter}
+        onAccountFilterChange={setAccountFilter}
+        customDateRange={customDateRange}
+        onCustomDateRangeChange={setCustomDateRange}
+        categories={categories}
+        accounts={accounts}
+        onApply={() => setIsFilterSheetOpen(false)}
+        onClear={clearAllFilters}
+      />
 
       {/* Transaction Widget - Unified view of pending and confirmed transactions */}
       {budgets.length > 0 && (
         <TransactionWidget
           budgetId={budgets[0].id}
-          year={currentYear}
-          month={currentMonth}
           refreshKey={widgetRefreshKey}
           confirmedTransactions={confirmedTransactions}
           searchTerm={searchTerm}
           typeFilter={typeFilter}
+          categoryFilter={categoryFilter}
+          accountFilter={accountFilter}
+          periodType={periodType}
+          periodValue={periodValue}
+          onPeriodChange={handlePeriodChange}
+          customDateRange={customDateRange}
+          onClearCustomRange={() => setCustomDateRange(null)}
           onEdit={(scheduled) => {
             // Pre-fill the form with scheduled transaction data for editing before confirming
             setFormData({

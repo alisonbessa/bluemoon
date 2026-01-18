@@ -4,12 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { formatCurrencyCompact, parseLocalDate } from "@/lib/formatters";
 import {
-  Calendar,
   Check,
   CheckCircle2,
   Clock,
-  ChevronDown,
-  ChevronUp,
   Pencil,
   ArrowLeftRight,
   Trash2,
@@ -17,6 +14,13 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  PeriodNavigator,
+  calculateDateRange,
+  type PeriodType,
+  type PeriodValue,
+  type DateRange,
+} from "@/components/ui/period-navigator";
 
 interface ScheduledTransaction {
   id: string;
@@ -53,12 +57,18 @@ interface ConfirmedTransaction {
 
 interface TransactionWidgetProps {
   budgetId: string;
-  year: number;
-  month: number;
   refreshKey?: number;
   confirmedTransactions: ConfirmedTransaction[];
   searchTerm?: string;
   typeFilter?: string;
+  categoryFilter?: string;
+  accountFilter?: string;
+  // Period Navigator props
+  periodType: PeriodType;
+  periodValue: PeriodValue;
+  onPeriodChange: (value: PeriodValue) => void;
+  customDateRange?: DateRange | null;
+  onClearCustomRange?: () => void;
   onConfirm?: (transaction: ScheduledTransaction) => void;
   onEdit?: (transaction: ScheduledTransaction) => void;
   onEditConfirmed?: (transaction: ConfirmedTransaction) => void;
@@ -67,12 +77,17 @@ interface TransactionWidgetProps {
 
 export function TransactionWidget({
   budgetId,
-  year,
-  month,
   refreshKey,
   confirmedTransactions,
   searchTerm = "",
   typeFilter = "all",
+  categoryFilter = "all",
+  accountFilter = "all",
+  periodType,
+  periodValue,
+  onPeriodChange,
+  customDateRange,
+  onClearCustomRange,
   onConfirm,
   onEdit,
   onEditConfirmed,
@@ -80,14 +95,20 @@ export function TransactionWidget({
 }: TransactionWidgetProps) {
   const [scheduled, setScheduled] = useState<ScheduledTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isExpanded, setIsExpanded] = useState(true);
 
   const fetchScheduled = useCallback(async () => {
     if (!budgetId) return;
 
     try {
+      const { startDate, endDate } = calculateDateRange(periodType, periodValue, customDateRange);
+      console.log("[TransactionWidget] fetchScheduled:", {
+        periodType,
+        periodValue,
+        customDateRange,
+        calculatedRange: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
+      });
       const response = await fetch(
-        `/api/app/transactions/scheduled?budgetId=${budgetId}&year=${year}&month=${month}`
+        `/api/app/transactions/scheduled?budgetId=${budgetId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
       );
 
       if (response.ok) {
@@ -99,7 +120,7 @@ export function TransactionWidget({
     } finally {
       setIsLoading(false);
     }
-  }, [budgetId, year, month]);
+  }, [budgetId, periodType, periodValue, customDateRange]);
 
   useEffect(() => {
     fetchScheduled();
@@ -112,7 +133,9 @@ export function TransactionWidget({
       (t.category?.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (t.account?.name.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesType = typeFilter === "all" || t.type === typeFilter;
-    return matchesSearch && matchesType;
+    const matchesCategory = categoryFilter === "all" || t.categoryId === categoryFilter;
+    const matchesAccount = accountFilter === "all" || t.accountId === accountFilter;
+    return matchesSearch && matchesType && matchesCategory && matchesAccount;
   });
 
   // Sort by date descending
@@ -123,7 +146,7 @@ export function TransactionWidget({
   // Date calculations for overdue items
   const today = new Date();
   const currentDay = today.getDate();
-  const isCurrentMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
+  const isCurrentMonth = today.getFullYear() === periodValue.year && today.getMonth() + 1 === periodValue.month;
 
   // Pending items
   const unpaidScheduled = scheduled.filter((s) => !s.isPaid);
@@ -139,38 +162,23 @@ export function TransactionWidget({
 
   return (
     <div className="rounded-lg border bg-card">
-      {/* Header */}
-      <button
-        className="flex items-center justify-between w-full p-3 hover:bg-muted/50 transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-primary" />
-          <span className="font-semibold">Transações do Mês</span>
-          {overdueCount > 0 && (
-            <span className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full">
-              {overdueCount} atrasada{overdueCount > 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-4 text-sm">
-            {unpaidScheduled.length > 0 && (
-              <span className="text-muted-foreground">
-                {unpaidScheduled.length} pendente{unpaidScheduled.length !== 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          )}
-        </div>
-      </button>
+      {/* Header with Period Navigator */}
+      <div className="flex items-center justify-between p-3 border-b">
+        <PeriodNavigator
+          type={periodType}
+          value={periodValue}
+          onChange={onPeriodChange}
+          customRange={customDateRange}
+          onClearCustomRange={onClearCustomRange}
+        />
+        {overdueCount > 0 && (
+          <span className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full">
+            {overdueCount} atrasada{overdueCount > 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
 
-      {isExpanded && (
-        <div className="border-t">
+      <div>
           {/* Pending Section */}
           {unpaidScheduled.length > 0 && (
             <div>
@@ -337,14 +345,13 @@ export function TransactionWidget({
             </div>
           )}
 
-          {/* Empty State */}
-          {!hasContent && (
-            <div className="p-6 text-center text-muted-foreground">
-              <p className="text-sm">Nenhuma transação neste mês</p>
-            </div>
-          )}
-        </div>
-      )}
+        {/* Empty State */}
+        {!hasContent && (
+          <div className="p-6 text-center text-muted-foreground">
+            <p className="text-sm">Nenhuma transação neste período</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
