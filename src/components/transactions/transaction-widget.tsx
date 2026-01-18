@@ -17,10 +17,11 @@ import { ptBR } from "date-fns/locale";
 import {
   PeriodNavigator,
   calculateDateRange,
-  type PeriodType,
   type PeriodValue,
   type DateRange,
 } from "@/components/ui/period-navigator";
+import { PeriodSelector, type PeriodType } from "@/components/ui/period-selector";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 interface ScheduledTransaction {
   id: string;
@@ -63,12 +64,13 @@ interface TransactionWidgetProps {
   typeFilter?: string;
   categoryFilter?: string;
   accountFilter?: string;
-  // Period Navigator props
+  // Period props
   periodType: PeriodType;
+  onPeriodTypeChange: (type: PeriodType) => void;
   periodValue: PeriodValue;
   onPeriodChange: (value: PeriodValue) => void;
   customDateRange?: DateRange | null;
-  onClearCustomRange?: () => void;
+  onCustomDateRangeChange?: (range: DateRange | null) => void;
   onConfirm?: (transaction: ScheduledTransaction) => void;
   onEdit?: (transaction: ScheduledTransaction) => void;
   onEditConfirmed?: (transaction: ConfirmedTransaction) => void;
@@ -84,10 +86,11 @@ export function TransactionWidget({
   categoryFilter = "all",
   accountFilter = "all",
   periodType,
+  onPeriodTypeChange,
   periodValue,
   onPeriodChange,
   customDateRange,
-  onClearCustomRange,
+  onCustomDateRangeChange,
   onConfirm,
   onEdit,
   onEditConfirmed,
@@ -101,12 +104,6 @@ export function TransactionWidget({
 
     try {
       const { startDate, endDate } = calculateDateRange(periodType, periodValue, customDateRange);
-      console.log("[TransactionWidget] fetchScheduled:", {
-        periodType,
-        periodValue,
-        customDateRange,
-        calculatedRange: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
-      });
       const response = await fetch(
         `/api/app/transactions/scheduled?budgetId=${budgetId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
       );
@@ -162,20 +159,33 @@ export function TransactionWidget({
 
   return (
     <div className="rounded-lg border bg-card">
-      {/* Header with Period Navigator */}
+      {/* Header with Period Selector (left) and Period Navigator (right) */}
       <div className="flex items-center justify-between p-3 border-b">
-        <PeriodNavigator
-          type={periodType}
-          value={periodValue}
-          onChange={onPeriodChange}
-          customRange={customDateRange}
-          onClearCustomRange={onClearCustomRange}
-        />
-        {overdueCount > 0 && (
-          <span className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full">
-            {overdueCount} atrasada{overdueCount > 1 ? "s" : ""}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          <PeriodSelector
+            value={customDateRange ? "custom" : periodType}
+            onChange={onPeriodTypeChange}
+            hasCustomRange={!!customDateRange}
+          />
+          <DateRangePicker
+            value={customDateRange ?? null}
+            onChange={onCustomDateRangeChange ?? (() => {})}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          {overdueCount > 0 && (
+            <span className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full">
+              {overdueCount} atrasada{overdueCount > 1 ? "s" : ""}
+            </span>
+          )}
+          <PeriodNavigator
+            type={periodType}
+            value={periodValue}
+            onChange={onPeriodChange}
+            customRange={customDateRange}
+            onClearCustomRange={onCustomDateRangeChange ? () => onCustomDateRangeChange(null) : undefined}
+          />
+        </div>
       </div>
 
       <div>

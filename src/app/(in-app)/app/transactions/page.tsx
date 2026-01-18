@@ -37,7 +37,6 @@ import {
   TrendingUp,
   TrendingDown,
   SlidersHorizontal,
-  Calendar as CalendarIcon,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
@@ -48,10 +47,11 @@ import {
 } from "@/components/ui/popover";
 import {
   calculateDateRange,
-  type PeriodType,
-  type DateRange,
   type PeriodValue,
+  type DateRange,
 } from "@/components/ui/period-navigator";
+import { type PeriodType } from "@/components/ui/period-selector";
+import { FilterChips } from "@/components/ui/filter-chips";
 import { format, getWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -134,7 +134,6 @@ export default function TransactionsPage() {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   const handlePeriodChange = (value: PeriodValue) => {
-    console.log("[TransactionsPage] handlePeriodChange:", { current: periodValue, new: value });
     setPeriodValue(value);
   };
 
@@ -150,6 +149,75 @@ export default function TransactionsPage() {
     setCustomDateRange(null);
     setSearchTerm("");
   };
+
+  // Handle period type change - clears custom range when selecting fixed period
+  const handlePeriodTypeChange = (type: PeriodType) => {
+    if (customDateRange) {
+      setCustomDateRange(null);
+    }
+    setPeriodType(type);
+  };
+
+  // Build filter chips for active filters
+  const buildFilterChips = () => {
+    const chips: { key: string; label: string; value: string }[] = [];
+
+    if (typeFilter !== "all") {
+      const typeLabels: Record<string, string> = {
+        income: "Receitas",
+        expense: "Despesas",
+        transfer: "Transferências",
+      };
+      chips.push({ key: "type", label: typeLabels[typeFilter], value: typeFilter });
+    }
+
+    if (categoryFilter !== "all") {
+      const category = categories.find((c) => c.id === categoryFilter);
+      if (category) {
+        chips.push({ key: "category", label: category.name, value: categoryFilter });
+      }
+    }
+
+    if (accountFilter !== "all") {
+      const account = accounts.find((a) => a.id === accountFilter);
+      if (account) {
+        chips.push({ key: "account", label: account.name, value: accountFilter });
+      }
+    }
+
+    if (customDateRange) {
+      const label = `${format(customDateRange.from, "dd/MMM", { locale: ptBR })} - ${format(customDateRange.to, "dd/MMM", { locale: ptBR })}`;
+      chips.push({ key: "dateRange", label, value: "custom" });
+    }
+
+    if (searchTerm) {
+      chips.push({ key: "search", label: `"${searchTerm}"`, value: searchTerm });
+    }
+
+    return chips;
+  };
+
+  const handleRemoveFilter = (key: string) => {
+    switch (key) {
+      case "type":
+        setTypeFilter("all");
+        break;
+      case "category":
+        setCategoryFilter("all");
+        break;
+      case "account":
+        setAccountFilter("all");
+        break;
+      case "dateRange":
+        setCustomDateRange(null);
+        break;
+      case "search":
+        setSearchTerm("");
+        break;
+    }
+  };
+
+  const filterChips = buildFilterChips();
 
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -427,87 +495,65 @@ export default function TransactionsPage() {
       </div>
 
       {/* Filters - Desktop */}
-      <div className="hidden sm:flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar transações..."
-            className="pl-10 h-9"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <Select value={periodType} onValueChange={(v) => setPeriodType(v as PeriodType)}>
-          <SelectTrigger className="w-[120px] h-9">
-            <SelectValue placeholder="Período" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="week">Semana</SelectItem>
-            <SelectItem value="month">Mês</SelectItem>
-            <SelectItem value="year">Ano</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-[140px] h-9">
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="income">Receitas</SelectItem>
-            <SelectItem value="expense">Despesas</SelectItem>
-            <SelectItem value="transfer">Transferências</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-[160px] h-9">
-            <SelectValue placeholder="Categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas categorias</SelectItem>
-            {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {cat.icon && <span className="mr-2">{cat.icon}</span>}
-                {cat.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={accountFilter} onValueChange={setAccountFilter}>
-          <SelectTrigger className="w-[140px] h-9">
-            <SelectValue placeholder="Conta" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas contas</SelectItem>
-            {accounts.map((acc) => (
-              <SelectItem key={acc.id} value={acc.id}>
-                {acc.icon && <span className="mr-2">{acc.icon}</span>}
-                {acc.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" className="h-9 w-9">
-              <CalendarIcon className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="end">
-            <Calendar
-              mode="range"
-              selected={customDateRange ? { from: customDateRange.from, to: customDateRange.to } : undefined}
-              onSelect={(range) => {
-                if (range?.from && range?.to) {
-                  setCustomDateRange({ from: range.from, to: range.to });
-                } else if (range?.from) {
-                  setCustomDateRange({ from: range.from, to: range.from });
-                }
-              }}
-              numberOfMonths={1}
-              locale={ptBR}
+      <div className="hidden sm:flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar transações..."
+              className="pl-10 h-9"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </PopoverContent>
-        </Popover>
+          </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="income">Receitas</SelectItem>
+              <SelectItem value="expense">Despesas</SelectItem>
+              <SelectItem value="transfer">Transferências</SelectItem>
+            </SelectContent>
+          </Select>
+          {typeFilter !== "transfer" && (
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[160px] h-9">
+                <SelectValue placeholder="Categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas categorias</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.icon && <span className="mr-2">{cat.icon}</span>}
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <Select value={accountFilter} onValueChange={setAccountFilter}>
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="Conta" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas contas</SelectItem>
+              {accounts.map((acc) => (
+                <SelectItem key={acc.id} value={acc.id}>
+                  {acc.icon && <span className="mr-2">{acc.icon}</span>}
+                  {acc.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {/* Filter Chips */}
+        <FilterChips
+          chips={filterChips}
+          onRemove={handleRemoveFilter}
+          onClearAll={clearAllFilters}
+        />
       </div>
 
       {/* Filters - Mobile */}
@@ -532,6 +578,12 @@ export default function TransactionsPage() {
             Filtros
           </Button>
         </div>
+        {/* Filter Chips - Mobile */}
+        <FilterChips
+          chips={filterChips}
+          onRemove={handleRemoveFilter}
+          onClearAll={clearAllFilters}
+        />
       </div>
 
       {/* Filter Sheet for Mobile */}
@@ -539,7 +591,7 @@ export default function TransactionsPage() {
         open={isFilterSheetOpen}
         onOpenChange={setIsFilterSheetOpen}
         periodType={periodType}
-        onPeriodTypeChange={setPeriodType}
+        onPeriodTypeChange={handlePeriodTypeChange}
         typeFilter={typeFilter}
         onTypeFilterChange={setTypeFilter}
         categoryFilter={categoryFilter}
@@ -550,7 +602,7 @@ export default function TransactionsPage() {
         onCustomDateRangeChange={setCustomDateRange}
         categories={categories}
         accounts={accounts}
-        onApply={() => setIsFilterSheetOpen(false)}
+        resultCount={confirmedTransactions.length}
         onClear={clearAllFilters}
       />
 
@@ -565,10 +617,11 @@ export default function TransactionsPage() {
           categoryFilter={categoryFilter}
           accountFilter={accountFilter}
           periodType={periodType}
+          onPeriodTypeChange={handlePeriodTypeChange}
           periodValue={periodValue}
           onPeriodChange={handlePeriodChange}
           customDateRange={customDateRange}
-          onClearCustomRange={() => setCustomDateRange(null)}
+          onCustomDateRangeChange={setCustomDateRange}
           onEdit={(scheduled) => {
             // Pre-fill the form with scheduled transaction data for editing before confirming
             setFormData({

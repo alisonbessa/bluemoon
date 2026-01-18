@@ -2,12 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-} from "@/components/ui/sheet";
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import {
   Select,
   SelectContent,
@@ -15,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -26,7 +24,8 @@ import {
 import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import type { PeriodType, DateRange } from "@/components/ui/period-navigator";
+import { PeriodSelector, type PeriodType } from "@/components/ui/period-selector";
+import type { DateRange } from "@/components/ui/date-range-picker";
 
 interface Category {
   id: string;
@@ -43,7 +42,7 @@ interface Account {
 interface TransactionFiltersSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // Filters
+  // Filters - all apply immediately
   periodType: PeriodType;
   onPeriodTypeChange: (type: PeriodType) => void;
   typeFilter: string;
@@ -57,8 +56,9 @@ interface TransactionFiltersSheetProps {
   // Data
   categories: Category[];
   accounts: Account[];
-  // Actions
-  onApply: () => void;
+  // Result count for feedback
+  resultCount: number;
+  // Clear action
   onClear: () => void;
 }
 
@@ -77,164 +77,158 @@ export function TransactionFiltersSheet({
   onCustomDateRangeChange,
   categories,
   accounts,
-  onApply,
+  resultCount,
   onClear,
 }: TransactionFiltersSheetProps) {
   const handleDateRangeSelect = (range: { from?: Date; to?: Date } | undefined) => {
     if (range?.from && range?.to) {
       onCustomDateRangeChange({ from: range.from, to: range.to });
     } else if (range?.from) {
-      // Partial selection - waiting for end date
       onCustomDateRangeChange({ from: range.from, to: range.from });
     }
   };
 
+  const handlePeriodChange = (type: PeriodType) => {
+    // Clear custom range when selecting a fixed period
+    if (customDateRange) {
+      onCustomDateRangeChange(null);
+    }
+    onPeriodTypeChange(type);
+  };
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-md">
-        <SheetHeader className="border-b pb-4">
-          <div className="flex items-center justify-between">
-            <SheetTitle>Filtros</SheetTitle>
-            <Button variant="ghost" size="sm" onClick={onClear}>
-              Limpar
-            </Button>
-          </div>
-        </SheetHeader>
-
-        <div className="flex-1 overflow-y-auto py-4 space-y-6">
-          {/* Period Type */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Período</Label>
-            <RadioGroup
-              value={periodType}
-              onValueChange={(value) => onPeriodTypeChange(value as PeriodType)}
-              className="flex gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="week" id="period-week" />
-                <Label htmlFor="period-week" className="cursor-pointer">
-                  Semana
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="month" id="period-month" />
-                <Label htmlFor="period-month" className="cursor-pointer">
-                  Mês
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="year" id="period-year" />
-                <Label htmlFor="period-year" className="cursor-pointer">
-                  Ano
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          {/* Type Filter */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Tipo</Label>
-            <Select value={typeFilter} onValueChange={onTypeFilterChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="income">Receitas</SelectItem>
-                <SelectItem value="expense">Despesas</SelectItem>
-                <SelectItem value="transfer">Transferências</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Category Filter */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Categoria</Label>
-            <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.icon && <span className="mr-2">{category.icon}</span>}
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Account Filter */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Conta</Label>
-            <Select value={accountFilter} onValueChange={onAccountFilterChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Conta" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {accounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    {account.icon && <span className="mr-2">{account.icon}</span>}
-                    {account.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Custom Date Range */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Data personalizada</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {customDateRange ? (
-                    <span>
-                      {format(customDateRange.from, "dd/MMM", { locale: ptBR })} -{" "}
-                      {format(customDateRange.to, "dd/MMM", { locale: ptBR })}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">Selecionar intervalo</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="range"
-                  selected={
-                    customDateRange
-                      ? { from: customDateRange.from, to: customDateRange.to }
-                      : undefined
-                  }
-                  onSelect={handleDateRangeSelect}
-                  numberOfMonths={1}
-                  locale={ptBR}
-                />
-              </PopoverContent>
-            </Popover>
-            {customDateRange && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full text-muted-foreground"
-                onClick={() => onCustomDateRangeChange(null)}
-              >
-                Limpar data personalizada
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className="max-h-[85vh]">
+        <div className="mx-auto w-full max-w-md">
+          <DrawerHeader className="border-b">
+            <div className="flex items-center justify-between">
+              <DrawerTitle>Filtros</DrawerTitle>
+              <Button variant="ghost" size="sm" onClick={onClear}>
+                Limpar
               </Button>
+            </div>
+          </DrawerHeader>
+
+          <div className="overflow-y-auto p-4 space-y-6">
+            {/* Period Type */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Período</Label>
+              <PeriodSelector
+                value={customDateRange ? "custom" : periodType}
+                onChange={handlePeriodChange}
+                hasCustomRange={!!customDateRange}
+                className="w-full justify-center"
+              />
+            </div>
+
+            {/* Custom Date Range */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Ou selecione um intervalo</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {customDateRange ? (
+                      <span>
+                        {format(customDateRange.from, "dd/MMM", { locale: ptBR })} -{" "}
+                        {format(customDateRange.to, "dd/MMM", { locale: ptBR })}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Selecionar intervalo</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center">
+                  <Calendar
+                    mode="range"
+                    selected={
+                      customDateRange
+                        ? { from: customDateRange.from, to: customDateRange.to }
+                        : undefined
+                    }
+                    onSelect={handleDateRangeSelect}
+                    numberOfMonths={1}
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+              {customDateRange && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-muted-foreground"
+                  onClick={() => onCustomDateRangeChange(null)}
+                >
+                  Limpar período personalizado
+                </Button>
+              )}
+            </div>
+
+            {/* Type Filter */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Tipo</Label>
+              <Select value={typeFilter} onValueChange={onTypeFilterChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="income">Receitas</SelectItem>
+                  <SelectItem value="expense">Despesas</SelectItem>
+                  <SelectItem value="transfer">Transferências</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Category Filter - only show if not filtering transfers */}
+            {typeFilter !== "transfer" && (
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Categoria</Label>
+                <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.icon && <span className="mr-2">{category.icon}</span>}
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
+
+            {/* Account Filter */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Conta</Label>
+              <Select value={accountFilter} onValueChange={onAccountFilterChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.icon && <span className="mr-2">{account.icon}</span>}
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Result Counter */}
+          <div className="border-t p-4">
+            <p className="text-sm text-center text-muted-foreground">
+              Mostrando {resultCount} transaç{resultCount === 1 ? "ão" : "ões"}
+            </p>
           </div>
         </div>
-
-        <SheetFooter className="border-t pt-4">
-          <Button className="w-full" onClick={onApply}>
-            Aplicar Filtros
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+      </DrawerContent>
+    </Drawer>
   );
 }

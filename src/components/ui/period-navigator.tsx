@@ -23,9 +23,6 @@ function getDateFromWeek(year: number, week: number): Date {
   // Set to the desired week
   const weekDate = setWeek(jan4, week, { weekStartsOn: 1, firstWeekContainsDate: 4 });
   const result = startOfWeek(weekDate, { weekStartsOn: 1 });
-
-  console.log("[getDateFromWeek]", { year, week, jan4: jan4.toISOString(), weekDate: weekDate.toISOString(), result: result.toISOString() });
-
   return result;
 }
 
@@ -106,13 +103,6 @@ export function PeriodNavigator({
         const prevWeekDate = subWeeks(currentWeekStart, 1);
         const newWeek = getWeek(prevWeekDate, { weekStartsOn: 1, firstWeekContainsDate: 4 });
 
-        console.log("[PeriodNavigator] handlePrev week:", {
-          input: { year: value.year, week: currentWeekNum },
-          currentWeekStart: currentWeekStart.toISOString(),
-          prevWeekDate: prevWeekDate.toISOString(),
-          output: { year: getISOWeekYear(prevWeekDate), month: prevWeekDate.getMonth() + 1, week: newWeek },
-        });
-
         onChange({
           year: getISOWeekYear(prevWeekDate),
           month: prevWeekDate.getMonth() + 1,
@@ -145,13 +135,6 @@ export function PeriodNavigator({
         const currentWeekStart = getDateFromWeek(value.year, currentWeekNum);
         const nextWeekDate = addWeeks(currentWeekStart, 1);
         const newWeek = getWeek(nextWeekDate, { weekStartsOn: 1, firstWeekContainsDate: 4 });
-
-        console.log("[PeriodNavigator] handleNext week:", {
-          input: { year: value.year, week: currentWeekNum },
-          currentWeekStart: currentWeekStart.toISOString(),
-          nextWeekDate: nextWeekDate.toISOString(),
-          output: { year: getISOWeekYear(nextWeekDate), month: nextWeekDate.getMonth() + 1, week: newWeek },
-        });
 
         onChange({
           year: getISOWeekYear(nextWeekDate),
@@ -259,7 +242,7 @@ export function PeriodNavigator({
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="flex flex-col items-center min-w-[120px]">
+          <div className="flex flex-col items-center min-w-30">
             <span className="text-lg font-semibold">{formatPeriodLabel()}</span>
             {subLabel && (
               <span className="text-xs text-muted-foreground">{subLabel}</span>
