@@ -443,37 +443,58 @@ export default function TransactionsPage() {
             setIsFormOpen(true);
           }}
           onConfirm={async (scheduled) => {
-            // Directly create the transaction as cleared (confirmed)
             if (accounts.length === 0) {
               toast.error("Nenhuma conta encontrada");
               return;
             }
 
             try {
-              const payload = {
-                budgetId: budgets[0].id,
-                type: scheduled.type,
-                amount: scheduled.amount,
-                description: scheduled.name,
-                accountId: accounts[0].id,
-                categoryId: scheduled.categoryId || undefined,
-                incomeSourceId: scheduled.incomeSourceId || undefined,
-                recurringBillId: scheduled.recurringBillId || undefined,
-                date: new Date(scheduled.dueDate).toISOString(),
-                status: "cleared", // Confirmed = cleared status
-              };
+              // Goals use the contribute endpoint to update currentAmount
+              if (scheduled.sourceType === "goal" && scheduled.goalId) {
+                const response = await fetch(`/api/app/goals/${scheduled.goalId}/contribute`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    fromAccountId: accounts[0].id,
+                    amount: scheduled.amount,
+                    year: currentYear,
+                    month: currentMonth,
+                  }),
+                });
 
-              const response = await fetch("/api/app/transactions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-              });
+                if (!response.ok) {
+                  throw new Error("Erro ao contribuir para meta");
+                }
 
-              if (!response.ok) {
-                throw new Error("Erro ao criar transação");
+                toast.success("Contribuição para meta confirmada!");
+              } else {
+                // Regular transactions (recurring bills, income sources)
+                const payload = {
+                  budgetId: budgets[0].id,
+                  type: scheduled.type,
+                  amount: scheduled.amount,
+                  description: scheduled.name,
+                  accountId: accounts[0].id,
+                  categoryId: scheduled.categoryId || undefined,
+                  incomeSourceId: scheduled.incomeSourceId || undefined,
+                  recurringBillId: scheduled.recurringBillId || undefined,
+                  date: new Date(scheduled.dueDate).toISOString(),
+                  status: "cleared",
+                };
+
+                const response = await fetch("/api/app/transactions", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(payload),
+                });
+
+                if (!response.ok) {
+                  throw new Error("Erro ao criar transação");
+                }
+
+                toast.success("Transação confirmada!");
               }
 
-              toast.success("Transação confirmada!");
               setWidgetRefreshKey((k) => k + 1);
               fetchData();
             } catch (error) {
