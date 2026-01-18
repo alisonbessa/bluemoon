@@ -15,6 +15,7 @@ import {
   Loader2,
   Lock,
   Rocket,
+  Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -72,8 +73,9 @@ interface TransactionWidgetProps {
   onEdit?: (transaction: ScheduledTransaction) => void;
   onEditConfirmed?: (transaction: ConfirmedTransaction) => void;
   onDeleteConfirmed?: (transaction: ConfirmedTransaction) => void;
-  // Start month action
+  // Month actions
   onStartMonth?: () => Promise<void>;
+  onCopyPreviousMonth?: () => Promise<void>;
 }
 
 export function TransactionWidget({
@@ -91,21 +93,34 @@ export function TransactionWidget({
   onEditConfirmed,
   onDeleteConfirmed,
   onStartMonth,
+  onCopyPreviousMonth,
 }: TransactionWidgetProps) {
   const [scheduled, setScheduled] = useState<ScheduledTransaction[]>([]);
   const [monthStatus, setMonthStatus] = useState<string>("active");
+  const [hasAllocations, setHasAllocations] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isStartingMonth, setIsStartingMonth] = useState(false);
+  const [isCopyingMonth, setIsCopyingMonth] = useState(false);
 
   const handleStartMonth = async () => {
     if (!onStartMonth) return;
     setIsStartingMonth(true);
     try {
       await onStartMonth();
-      // After starting, refetch scheduled transactions
       await fetchScheduled();
     } finally {
       setIsStartingMonth(false);
+    }
+  };
+
+  const handleCopyPreviousMonth = async () => {
+    if (!onCopyPreviousMonth) return;
+    setIsCopyingMonth(true);
+    try {
+      await onCopyPreviousMonth();
+      await fetchScheduled();
+    } finally {
+      setIsCopyingMonth(false);
     }
   };
 
@@ -125,6 +140,7 @@ export function TransactionWidget({
         const data = await response.json();
         setScheduled(data.scheduledTransactions || []);
         setMonthStatus(data.monthStatus || "planning");
+        setHasAllocations(data.hasAllocations ?? true);
       }
     } catch (error) {
       console.error("Error fetching scheduled transactions:", error);
@@ -192,7 +208,7 @@ export function TransactionWidget({
       {/* Month Status Banner */}
       {monthStatus !== "active" && (
         <div className={cn(
-          "flex items-center justify-between px-3 py-2 border-b",
+          "flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 py-2 border-b",
           monthStatus === "closed"
             ? "bg-muted/50"
             : "bg-amber-50 dark:bg-amber-950/20"
@@ -202,7 +218,7 @@ export function TransactionWidget({
               {monthStatus === "closed" ? (
                 <Lock className="h-4 w-4 text-muted-foreground" />
               ) : (
-                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
               )}
               <span className={cn(
                 "text-sm",
@@ -212,9 +228,11 @@ export function TransactionWidget({
               )}>
                 {monthStatus === "closed"
                   ? "Mês fechado"
-                  : confirmedTransactions.length > 0
-                    ? "Suas despesas recorrentes não estão visíveis"
-                    : "Inicie o mês para ver suas despesas recorrentes"
+                  : !hasAllocations
+                    ? "Planejamento vazio"
+                    : confirmedTransactions.length > 0
+                      ? "Suas despesas recorrentes não estão visíveis"
+                      : "Inicie o mês para ver suas despesas recorrentes"
                 }
               </span>
             </div>
@@ -225,28 +243,46 @@ export function TransactionWidget({
             )}
           </div>
           {monthStatus !== "closed" && (
-            confirmedTransactions.length > 0 && onStartMonth ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleStartMonth}
-                disabled={isStartingMonth}
-                className="gap-1.5 shrink-0"
-              >
-                {isStartingMonth ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Rocket className="h-3.5 w-3.5" />
-                )}
-                Iniciar Mês
-              </Button>
-            ) : (
-              <Button variant="outline" size="sm" asChild className="shrink-0">
-                <Link href={`/app/budget?year=${periodValue.year}&month=${periodValue.month}`}>
-                  Ir para Planejamento
-                </Link>
-              </Button>
-            )
+            <div className="flex items-center gap-2 shrink-0">
+              {!hasAllocations && onCopyPreviousMonth && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyPreviousMonth}
+                  disabled={isCopyingMonth}
+                  className="gap-1.5"
+                >
+                  {isCopyingMonth ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                  Copiar mês anterior
+                </Button>
+              )}
+              {hasAllocations && onStartMonth ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleStartMonth}
+                  disabled={isStartingMonth}
+                  className="gap-1.5"
+                >
+                  {isStartingMonth ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Rocket className="h-3.5 w-3.5" />
+                  )}
+                  Iniciar Mês
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/app/budget?year=${periodValue.year}&month=${periodValue.month}`}>
+                    Ir para Planejamento
+                  </Link>
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}

@@ -1,6 +1,6 @@
 import withAuthRequired from "@/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { budgetMembers, incomeSources, transactions, goals, goalContributions, recurringBills, categories, monthlyBudgetStatus } from "@/db/schema";
+import { budgetMembers, incomeSources, transactions, goals, goalContributions, recurringBills, categories, monthlyBudgetStatus, monthlyAllocations } from "@/db/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -93,10 +93,24 @@ export const GET = withAuthRequired(async (req, context) => {
   // If month is not "active", return empty scheduled transactions
   // The widget will show a banner to start the month
   if (monthStatus !== "active") {
+    // Check if there are any allocations for this month
+    const allocations = await db
+      .select({ id: monthlyAllocations.id })
+      .from(monthlyAllocations)
+      .where(
+        and(
+          eq(monthlyAllocations.budgetId, budgetId),
+          eq(monthlyAllocations.year, filterYear),
+          eq(monthlyAllocations.month, filterMonth)
+        )
+      )
+      .limit(1);
+
     return NextResponse.json({
       year: filterYear,
       month: filterMonth,
       monthStatus,
+      hasAllocations: allocations.length > 0,
       scheduledTransactions: [],
       totals: {
         expenses: 0,

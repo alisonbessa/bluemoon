@@ -415,6 +415,49 @@ export default function TransactionsPage() {
     fetchData();
   };
 
+  const handleCopyPreviousMonth = async () => {
+    if (budgets.length === 0) {
+      toast.error("Nenhum orçamento encontrado");
+      return;
+    }
+
+    // Calculate previous month
+    let fromYear = periodValue.year;
+    let fromMonth = periodValue.month - 1;
+    if (fromMonth === 0) {
+      fromMonth = 12;
+      fromYear -= 1;
+    }
+
+    const response = await fetch("/api/app/allocations/copy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        budgetId: budgets[0].id,
+        fromYear,
+        fromMonth,
+        toYear: periodValue.year,
+        toMonth: periodValue.month,
+        mode: "all",
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      // Handle specific error for empty previous month
+      if (data.error?.includes("No allocations") || data.error?.includes("No categories")) {
+        toast.error("O mês anterior não tem planejamento. Configure manualmente.");
+      } else {
+        toast.error(data.error || "Erro ao copiar planejamento");
+      }
+      return;
+    }
+
+    toast.success(`Planejamento copiado! ${data.copiedCount} alocações criadas.`);
+    setWidgetRefreshKey((k) => k + 1);
+  };
+
   // Filter out pending transactions - they are shown in the scheduled section
   const confirmedTransactions = transactions.filter((t) => t.status !== "pending");
 
@@ -608,6 +651,7 @@ export default function TransactionsPage() {
           periodValue={periodValue}
           onPeriodChange={handlePeriodChange}
           onStartMonth={handleStartMonth}
+          onCopyPreviousMonth={handleCopyPreviousMonth}
           onEdit={(scheduled) => {
             // Pre-fill the form with scheduled transaction data for editing before confirming
             setFormData({
@@ -704,6 +748,7 @@ export default function TransactionsPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
+            {/* Row 1: Type */}
             <div className="space-y-2">
               <Label>Tipo</Label>
               <div className="grid grid-cols-3 gap-2">
@@ -726,109 +771,227 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="amount">Valor</Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  R$
-                </span>
-                <Input
-                  id="amount"
-                  className="pl-10"
-                  placeholder="0,00"
-                  value={formData.amount}
-                  onChange={(e) => {
-                    const formatted = formatCurrencyFromDigits(e.target.value);
-                    setFormData({ ...formData, amount: formatted });
-                  }}
-                  onFocus={(e) => {
-                    if (parseCurrency(formData.amount) === 0) {
-                      setFormData({ ...formData, amount: "" });
-                    }
-                    e.target.select();
-                  }}
-                  onBlur={() => {
-                    if (!formData.amount.trim()) {
-                      setFormData({ ...formData, amount: "0,00" });
-                    }
-                  }}
-                />
-              </div>
-            </div>
+            {/* Transfer layout: Amount+Date, Origin+Destination, Description */}
+            {formData.type === "transfer" ? (
+              <>
+                {/* Row 2: Amount + Date */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">Valor</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                        R$
+                      </span>
+                      <Input
+                        id="amount"
+                        className="pl-10"
+                        placeholder="0,00"
+                        value={formData.amount}
+                        onChange={(e) => {
+                          const formatted = formatCurrencyFromDigits(e.target.value);
+                          setFormData({ ...formData, amount: formatted });
+                        }}
+                        onFocus={(e) => {
+                          if (parseCurrency(formData.amount) === 0) {
+                            setFormData({ ...formData, amount: "" });
+                          }
+                          e.target.select();
+                        }}
+                        onBlur={() => {
+                          if (!formData.amount.trim()) {
+                            setFormData({ ...formData, amount: "0,00" });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
-              <Input
-                id="description"
-                placeholder="Ex: Supermercado"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Data</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    />
+                  </div>
+                </div>
 
-            <div className={formData.type === "transfer" ? "grid grid-cols-2 gap-4" : ""}>
-              <div className="space-y-2 w-full">
-                <Label htmlFor="account">{formData.type === "transfer" ? "Origem" : "Conta"}</Label>
-                <Select
-                  value={formData.accountId}
-                  onValueChange={(value) => setFormData({ ...formData, accountId: value })}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione uma conta" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.icon || "🏦"} {account.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.type === "transfer" && (
-                <div className="space-y-2 w-full">
-                  <Label htmlFor="toAccount">Destino</Label>
-                  <Select
-                    value={formData.toAccountId}
-                    onValueChange={(value) => setFormData({ ...formData, toAccountId: value })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a conta" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accounts
-                        .filter((account) => account.id !== formData.accountId)
-                        .map((account) => (
+                {/* Row 3: Origin + Destination */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="account">Origem</Label>
+                    <Select
+                      value={formData.accountId}
+                      onValueChange={(value) => setFormData({ ...formData, accountId: value })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             {account.icon || "🏦"} {account.name}
                           </SelectItem>
                         ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-            {formData.type === "expense" && (
-              <div className="space-y-2">
-                <Label htmlFor="category">Categoria</Label>
-                <Select
-                  value={formData.categoryId}
-                  onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.icon || "📌"} {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="toAccount">Destino</Label>
+                    <Select
+                      value={formData.toAccountId}
+                      onValueChange={(value) => setFormData({ ...formData, toAccountId: value })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts
+                          .filter((account) => account.id !== formData.accountId)
+                          .map((account) => (
+                            <SelectItem key={account.id} value={account.id}>
+                              {account.icon || "🏦"} {account.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Row 4: Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="description">Descrição</Label>
+                  <Input
+                    id="description"
+                    placeholder="Ex: Transferência entre contas"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Expense/Income layout: Amount+Account, Description, Category/Source+Date */}
+                {/* Row 2: Amount + Account */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">Valor</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                        R$
+                      </span>
+                      <Input
+                        id="amount"
+                        className="pl-10"
+                        placeholder="0,00"
+                        value={formData.amount}
+                        onChange={(e) => {
+                          const formatted = formatCurrencyFromDigits(e.target.value);
+                          setFormData({ ...formData, amount: formatted });
+                        }}
+                        onFocus={(e) => {
+                          if (parseCurrency(formData.amount) === 0) {
+                            setFormData({ ...formData, amount: "" });
+                          }
+                          e.target.select();
+                        }}
+                        onBlur={() => {
+                          if (!formData.amount.trim()) {
+                            setFormData({ ...formData, amount: "0,00" });
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="account">Conta</Label>
+                    <Select
+                      value={formData.accountId}
+                      onValueChange={(value) => setFormData({ ...formData, accountId: value })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.icon || "🏦"} {account.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Row 3: Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="description">Descrição</Label>
+                  <Input
+                    id="description"
+                    placeholder="Ex: Supermercado"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+
+                {/* Row 4: Category/Income Source + Date */}
+                <div className="grid grid-cols-2 gap-4">
+                  {formData.type === "expense" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Categoria</Label>
+                      <Select
+                        value={formData.categoryId}
+                        onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.icon || "📌"} {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {formData.type === "income" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="incomeSource">Fonte de Renda</Label>
+                      <Select
+                        value={formData.incomeSourceId}
+                        onValueChange={(value) => setFormData({ ...formData, incomeSourceId: value })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {incomeSources.map((source) => (
+                            <SelectItem key={source.id} value={source.id}>
+                              {source.type === "salary" ? "💼" : source.type === "benefit" ? "🎁" : source.type === "freelance" ? "💻" : source.type === "rental" ? "🏠" : source.type === "investment" ? "📈" : "📦"} {source.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Data</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </>
             )}
 
             {/* Installment option (only for credit card expenses when creating) */}
@@ -889,49 +1052,17 @@ export default function TransactionsPage() {
                 </div>
               );
             })()}
-
-            {formData.type === "income" && (
-              <div className="space-y-2">
-                <Label htmlFor="incomeSource">Fonte de Renda</Label>
-                <Select
-                  value={formData.incomeSourceId}
-                  onValueChange={(value) => setFormData({ ...formData, incomeSourceId: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma fonte de renda" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {incomeSources.map((source) => (
-                      <SelectItem key={source.id} value={source.id}>
-                        {source.type === "salary" ? "💼" : source.type === "benefit" ? "🎁" : source.type === "freelance" ? "💻" : source.type === "rental" ? "🏠" : source.type === "investment" ? "📈" : "📦"} {source.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="date">Data</Label>
-              <Input
-                id="date"
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              />
-            </div>
           </div>
 
-          <DialogFooter className="flex justify-end gap-2">
+          <DialogFooter className="flex flex-row justify-end gap-2">
             <Button
               variant="outline"
               onClick={() => setIsFormOpen(false)}
               disabled={isSubmitting}
-              className="w-1/4"
             >
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting} className="w-1/4">
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editingTransaction ? "Salvar" : "Criar"}
             </Button>
