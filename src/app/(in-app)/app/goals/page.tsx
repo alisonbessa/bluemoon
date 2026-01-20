@@ -32,7 +32,7 @@ import {
 import { toast } from "sonner";
 import { formatCurrency } from "@/shared/lib/formatters";
 import confetti from "canvas-confetti";
-import { GoalFormModal } from "@/components/goals/goal-form-modal";
+import { GoalFormModal } from "@/features/goals";
 import { useGoals, useBudgets, useAccounts } from "@/shared/hooks";
 import type { Goal } from "@/types";
 import {

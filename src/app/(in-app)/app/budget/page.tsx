@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from '@/shared/ui/dialog';
 import { toast } from 'sonner';
-import { GoalFormModal } from '@/components/goals';
+import { GoalFormModal } from '@/features/goals';
 import { useTutorial } from '@/shared/tutorial/tutorial-provider';
 
 import {

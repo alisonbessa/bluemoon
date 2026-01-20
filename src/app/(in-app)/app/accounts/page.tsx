@@ -16,7 +16,7 @@ import {
   HoverActions,
   useExpandedGroups,
 } from "@/shared/ui/compact-table";
-import { AccountForm, type Account, type AccountFormData } from "@/components/accounts";
+import { AccountForm, type Account, type AccountFormData } from "@/features/accounts";
 import {
   Plus,
   Wallet,

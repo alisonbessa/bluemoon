@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { toast } from "sonner";
-import { CategoryWizard } from "@/components/categories/category-wizard";
+import { CategoryWizard } from "@/features/categories";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 import {
   PageHeader,
