@@ -1,6 +1,12 @@
 /**
- * Income Components Index
+ * Income Components
+ *
+ * @deprecated Import from '@/features/income' instead
+ * This file re-exports from the new FSD location for backwards compatibility
  */
 
-export { IncomeFormModal, type IncomeFormData } from './income-form-modal';
-export { IncomeList } from './income-list';
+export {
+  IncomeFormModal,
+  IncomeList,
+  type IncomeFormData,
+} from '@/features/income';
