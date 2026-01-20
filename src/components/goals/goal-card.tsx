@@ -7,9 +7,9 @@ import {
   TrendingUp,
   Plus,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { formatCurrency } from '@/lib/formatters';
+import { Button } from '@/shared/ui/button';
+import { Progress } from '@/shared/ui/progress';
+import { formatCurrency } from '@/shared/lib/formatters';
 import type { Goal } from '@/types';
 
 interface GoalCardProps {

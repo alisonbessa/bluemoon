@@ -1,10 +1,10 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus, recurringBills, financialAccounts } from "@/db/schema";
 import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { ensurePendingTransactionsForMonth } from "@/lib/budget/pending-transactions";
+import { ensurePendingTransactionsForMonth } from "@/shared/lib/budget/pending-transactions";
 
 const upsertAllocationSchema = z.object({
   budgetId: z.string().uuid(),

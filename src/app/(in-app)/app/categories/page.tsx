@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/shared/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,31 +20,31 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/shared/ui/alert-dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/shared/ui/select";
 import {
   COMPACT_TABLE_STYLES,
   GroupToggleRow,
   HoverActions,
   useExpandedGroups,
-} from "@/components/ui/compact-table";
-import { Label } from "@/components/ui/label";
+} from "@/shared/ui/compact-table";
+import { Label } from "@/shared/ui/label";
 import {
   Plus,
   Loader2,
   FolderOpen,
   Wand2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 import { toast } from "sonner";
 import { CategoryWizard } from "@/components/categories/category-wizard";
-import { useTutorial } from "@/components/tutorial/tutorial-provider";
+import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 
 interface Category {
   id: string;

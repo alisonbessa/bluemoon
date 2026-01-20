@@ -1,4 +1,4 @@
-import type { AccountType } from "@/db/schema/accounts";
+import type { AccountType } from "@/types/account";
 
 export interface AccountOwner {
   id: string;

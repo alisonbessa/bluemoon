@@ -1,7 +1,7 @@
-import { PlanProvider } from "@/lib/plans/getSubscribeUrl";
+import { PlanProvider } from "@/shared/lib/plans/getSubscribeUrl";
 import SuccessRedirector from "./SuccessRedirector";
 // Removed: DodoPayments - only Stripe is supported
-// import client from "@/lib/dodopayments/client";
+// import client from "@/shared/lib/dodopayments/client";
 import ErrorRedirector from "./ErrorRedirector";
 
 export default async function SubscribeSuccessPage({

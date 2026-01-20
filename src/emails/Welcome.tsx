@@ -4,7 +4,7 @@ import { Html } from "@react-email/html";
 import { Text } from "@react-email/text";
 import { Container } from "@react-email/container";
 import Layout from "./components/Layout";
-import { appConfig } from "@/lib/config";
+import { appConfig } from "@/shared/lib/config";
 
 interface WelcomeEmailProps {
   userName: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Card,
   CardContent,
@@ -8,12 +8,12 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+} from "@/shared/ui/card";
+import { Input } from "@/shared/ui/input";
 import { useState } from "react";
 import { BadgePlusIcon, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
-import { useCurrentPlan } from "@/hooks/use-current-user";
+import { useCurrentPlan } from "@/shared/hooks/use-current-user";
 
 export default function RedeemLTDPage() {
   const [couponCode, setCouponCode] = useState("");

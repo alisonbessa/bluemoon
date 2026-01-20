@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 import {
   LayoutDashboard,
   CreditCard,
@@ -14,15 +14,15 @@ import {
   Ticket,
   Bot,
 } from "lucide-react";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { appConfig } from "@/lib/config";
-import { Button } from "@/components/ui/button";
+import { ThemeSwitcher } from "@/shared/theme-switcher";
+import { appConfig } from "@/shared/lib/config";
+import { Button } from "@/shared/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/shared/ui/dropdown-menu";
 
 const navigation = [
   { name: "Dashboard", href: "/super-admin", icon: LayoutDashboard },

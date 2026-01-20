@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/shared/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Separator } from "@/shared/ui/separator";
+import { Badge } from "@/shared/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +17,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/shared/ui/alert-dialog";
 import {
   User,
   Palette,
@@ -30,12 +30,12 @@ import {
   RefreshCw,
   Loader2,
 } from "lucide-react";
-import { TelegramConnectionCard } from "@/components/telegram/TelegramConnectionCard";
-import { MembersManagement } from "@/components/settings/members-management";
-import { useTutorial } from "@/components/tutorial/tutorial-provider";
+import { TelegramConnectionCard } from "@/integrations/telegram/TelegramConnectionCard";
+import { MembersManagement } from "@/shared/settings/members-management";
+import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useUser } from "@/hooks/use-current-user";
+import { useUser } from "@/shared/hooks/use-current-user";
 import { useTheme } from "next-themes";
 import { signOut } from "next-auth/react";
 

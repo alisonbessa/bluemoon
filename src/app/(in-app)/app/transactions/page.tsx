@@ -1,402 +1,127 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Plus,
-  Search,
-  Loader2,
-  Receipt,
-  TrendingUp,
-  TrendingDown,
-  SlidersHorizontal,
-} from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { type PeriodValue } from "@/components/ui/period-navigator";
-import { FilterChips } from "@/components/ui/filter-chips";
-import { format, getWeek } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useState, useMemo, useCallback } from "react";
+import { Loader2, Plus } from "lucide-react";
+import { format } from "date-fns";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { parseLocalDate } from "@/shared/lib/formatters";
+import { PageHeader, ResponsiveButton } from "@/shared/molecules";
 import {
-  formatCurrencyCompact,
-  formatCurrencyFromDigits,
-  parseCurrency,
-  parseLocalDate,
-} from "@/lib/formatters";
-import { TransactionWidget, TransactionFiltersSheet } from "@/components/transactions";
-
-interface Category {
-  id: string;
-  name: string;
-  icon?: string | null;
-}
-
-interface Account {
-  id: string;
-  name: string;
-  type: string;
-  icon?: string | null;
-}
-
-interface IncomeSource {
-  id: string;
-  name: string;
-  type: string;
-  amount: number;
-  frequency: string;
-}
-
-interface Transaction {
-  id: string;
-  date: string;
-  description?: string | null;
-  amount: number;
-  type: "income" | "expense" | "transfer";
-  categoryId?: string | null;
-  incomeSourceId?: string | null;
-  recurringBillId?: string | null;
-  accountId: string;
-  status: string;
-  isInstallment?: boolean;
-  installmentNumber?: number | null;
-  totalInstallments?: number | null;
-  account?: Account | null;
-  category?: Category | null;
-  incomeSource?: IncomeSource | null;
-}
-
-interface Budget {
-  id: string;
-  name: string;
-}
+  TransactionSummary,
+  TransactionFiltersBar,
+  TransactionFiltersMobile,
+  TransactionFormModal,
+  TransactionDeleteDialog,
+  TransactionWidget,
+  TransactionFiltersSheet,
+  useTransactionData,
+  useTransactionFilters,
+  useTransactionForm,
+  type Transaction,
+} from "@/features/transactions";
 
 export default function TransactionsPage() {
-  const today = new Date();
+  // ============== DATA HOOK ==============
+  const {
+    transactions,
+    categories,
+    accounts,
+    incomeSources,
+    budgets,
+    isLoading,
+    periodValue,
+    handlePeriodChange,
+    fetchData,
+    widgetRefreshKey,
+    triggerWidgetRefresh,
+  } = useTransactionData();
 
-  // Use a single state object for period to avoid race conditions
-  const [periodValue, setPeriodValue] = useState<PeriodValue>({
-    year: today.getFullYear(),
-    month: today.getMonth() + 1,
-    week: getWeek(today, { weekStartsOn: 1, firstWeekContainsDate: 4 }),
-  });
+  // ============== FILTERS HOOK ==============
+  const {
+    searchTerm,
+    setSearchTerm,
+    typeFilter,
+    setTypeFilter,
+    categoryFilter,
+    setCategoryFilter,
+    accountFilter,
+    setAccountFilter,
+    isFilterSheetOpen,
+    setIsFilterSheetOpen,
+    filterChips,
+    clearAllFilters,
+    handleRemoveFilter,
+  } = useTransactionFilters({ categories, accounts });
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-
-  // Filter states
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [accountFilter, setAccountFilter] = useState<string>("all");
-  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
-
-  const handlePeriodChange = (value: PeriodValue) => {
-    setPeriodValue(value);
-  };
-
-  // Derived values for backwards compatibility
-  const currentYear = periodValue.year;
-  const currentMonth = periodValue.month;
-
-  const clearAllFilters = () => {
-    setTypeFilter("all");
-    setCategoryFilter("all");
-    setAccountFilter("all");
-    setSearchTerm("");
-  };
-
-  // Build filter chips for active filters
-  const buildFilterChips = () => {
-    const chips: { key: string; label: string; value: string }[] = [];
-
-    if (typeFilter !== "all") {
-      const typeLabels: Record<string, string> = {
-        income: "Receitas",
-        expense: "Despesas",
-        transfer: "Transferências",
-      };
-      chips.push({ key: "type", label: typeLabels[typeFilter], value: typeFilter });
-    }
-
-    if (categoryFilter !== "all") {
-      const category = categories.find((c) => c.id === categoryFilter);
-      if (category) {
-        chips.push({ key: "category", label: category.name, value: categoryFilter });
-      }
-    }
-
-    if (accountFilter !== "all") {
-      const account = accounts.find((a) => a.id === accountFilter);
-      if (account) {
-        chips.push({ key: "account", label: account.name, value: accountFilter });
-      }
-    }
-
-    if (searchTerm) {
-      chips.push({ key: "search", label: `"${searchTerm}"`, value: searchTerm });
-    }
-
-    return chips;
-  };
-
-  const handleRemoveFilter = (key: string) => {
-    switch (key) {
-      case "type":
-        setTypeFilter("all");
-        break;
-      case "category":
-        setCategoryFilter("all");
-        break;
-      case "account":
-        setAccountFilter("all");
-        break;
-      case "search":
-        setSearchTerm("");
-        break;
-    }
-  };
-
-  const filterChips = buildFilterChips();
-
-  // Form states
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Form data
-  const [formData, setFormData] = useState({
-    type: "expense" as "income" | "expense" | "transfer",
-    amount: "",
-    description: "",
-    accountId: "",
-    categoryId: "",
-    incomeSourceId: "",
-    toAccountId: "",
-    date: format(new Date(), "yyyy-MM-dd"),
-    isInstallment: false,
-    totalInstallments: 2,
-  });
-
-  const fetchData = useCallback(async () => {
-    // Calculate monthly date range
-    const startDate = new Date(periodValue.year, periodValue.month - 1, 1);
-    const endDate = new Date(periodValue.year, periodValue.month, 0, 23, 59, 59);
-
-    try {
-      const [transactionsRes, categoriesRes, accountsRes, budgetsRes, incomeSourcesRes] = await Promise.all([
-        fetch(`/api/app/transactions?limit=500&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`),
-        fetch("/api/app/categories"),
-        fetch("/api/app/accounts"),
-        fetch("/api/app/budgets"),
-        fetch("/api/app/income-sources"),
-      ]);
-
-      if (transactionsRes.ok) {
-        const data = await transactionsRes.json();
-        setTransactions(data.transactions || []);
-      }
-
-      if (categoriesRes.ok) {
-        const data = await categoriesRes.json();
-        setCategories(data.flatCategories || []);
-      }
-
-      if (accountsRes.ok) {
-        const data = await accountsRes.json();
-        setAccounts(data.accounts || []);
-      }
-
-      if (budgetsRes.ok) {
-        const data = await budgetsRes.json();
-        setBudgets(data.budgets || []);
-      }
-
-      if (incomeSourcesRes.ok) {
-        const data = await incomeSourcesRes.json();
-        setIncomeSources(data.incomeSources || []);
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("Erro ao carregar dados");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [periodValue]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const openCreateForm = () => {
-    setFormData({
-      type: "expense",
-      amount: "",
-      description: "",
-      accountId: accounts[0]?.id || "",
-      categoryId: "",
-      incomeSourceId: "",
-      toAccountId: "",
-      date: format(new Date(), "yyyy-MM-dd"),
-      isInstallment: false,
-      totalInstallments: 2,
-    });
-    setEditingTransaction(null);
-    setIsFormOpen(true);
-  };
-
-  const openEditForm = (transaction: Transaction) => {
-    setFormData({
-      type: transaction.type,
-      amount: formatCurrencyCompact(transaction.amount),
-      description: transaction.description || "",
-      accountId: transaction.accountId,
-      categoryId: transaction.categoryId || "",
-      incomeSourceId: (transaction as Transaction & { incomeSourceId?: string }).incomeSourceId || "",
-      toAccountId: (transaction as Transaction & { toAccountId?: string }).toAccountId || "",
-      date: format(parseLocalDate(transaction.date), "yyyy-MM-dd"),
-      isInstallment: false, // Editing doesn't allow changing installment
-      totalInstallments: 2,
-    });
-    setEditingTransaction(transaction);
-    setIsFormOpen(true);
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.amount || !formData.accountId) {
-      toast.error("Preencha todos os campos obrigatórios");
-      return;
-    }
-
-    if (formData.type === "transfer" && !formData.toAccountId) {
-      toast.error("Selecione a conta de destino para transferências");
-      return;
-    }
-
-    if (budgets.length === 0) {
-      toast.error("Nenhum orçamento encontrado");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // Check if this is an installment purchase
-      const selectedAccount = accounts.find(a => a.id === formData.accountId);
-      const isCreditCard = selectedAccount?.type === "credit_card";
-      const canBeInstallment = formData.type === "expense" && isCreditCard && !editingTransaction;
-
-      const payload = {
-        budgetId: budgets[0].id,
-        type: formData.type,
-        amount: parseCurrency(formData.amount),
-        description: formData.description || undefined,
-        accountId: formData.accountId,
-        categoryId: formData.type === "expense" ? (formData.categoryId || undefined) : undefined,
-        incomeSourceId: formData.type === "income" ? (formData.incomeSourceId || undefined) : undefined,
-        toAccountId: formData.type === "transfer" ? (formData.toAccountId || undefined) : undefined,
-        date: new Date(formData.date).toISOString(),
-        status: "cleared", // Manual transactions are confirmed by default
-        // Installment fields (only for new credit card expenses)
-        ...(canBeInstallment && formData.isInstallment ? {
-          isInstallment: true,
-          totalInstallments: formData.totalInstallments,
-        } : {}),
-      };
-
-      if (editingTransaction) {
-        const response = await fetch(`/api/app/transactions/${editingTransaction.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          throw new Error("Erro ao atualizar transação");
-        }
-
-        toast.success("Transação atualizada!");
-      } else {
-        const response = await fetch("/api/app/transactions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          throw new Error("Erro ao criar transação");
-        }
-
-        toast.success("Transação criada!");
-      }
-
-      setIsFormOpen(false);
-      setEditingTransaction(null);
+  // ============== FORM HOOK ==============
+  const {
+    isOpen: isFormOpen,
+    setIsOpen: setIsFormOpen,
+    editingTransaction,
+    formData,
+    setFormData,
+    isSubmitting,
+    openCreate,
+    openEdit,
+    handleSubmit,
+  } = useTransactionForm({
+    accounts,
+    budgets,
+    onSuccess: () => {
       fetchData();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao salvar");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      triggerWidgetRefresh();
+    },
+  });
 
-  const handleDelete = async () => {
+  // ============== DELETE STATE ==============
+  const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
+
+  // ============== DERIVED VALUES ==============
+  const confirmedTransactions = useMemo(
+    () => transactions.filter((t) => t.status !== "pending"),
+    [transactions]
+  );
+
+  const { confirmedIncome, confirmedExpenses } = useMemo(() => {
+    return {
+      confirmedIncome: confirmedTransactions
+        .filter((t) => t.type === "income")
+        .reduce((sum, t) => sum + t.amount, 0),
+      confirmedExpenses: confirmedTransactions
+        .filter((t) => t.type === "expense")
+        .reduce((sum, t) => sum + t.amount, 0),
+    };
+  }, [confirmedTransactions]);
+
+  // ============== HANDLERS ==============
+  const handleDelete = useCallback(async () => {
     if (!deletingTransaction) return;
 
-    const isFromPlanning = deletingTransaction.recurringBillId || deletingTransaction.incomeSourceId;
+    const isFromPlanning =
+      deletingTransaction.recurringBillId || deletingTransaction.incomeSourceId;
 
     try {
-      const response = await fetch(`/api/app/transactions/${deletingTransaction.id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/app/transactions/${deletingTransaction.id}`,
+        { method: "DELETE" }
+      );
 
       if (!response.ok) {
-        throw new Error(isFromPlanning ? "Erro ao desfazer confirmação" : "Erro ao excluir transação");
+        throw new Error(
+          isFromPlanning ? "Erro ao desfazer confirmação" : "Erro ao excluir transação"
+        );
       }
 
       toast.success(isFromPlanning ? "Confirmação desfeita!" : "Transação excluída!");
       setDeletingTransaction(null);
-      setWidgetRefreshKey((k) => k + 1);
+      triggerWidgetRefresh();
       fetchData();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao excluir");
     }
-  };
+  }, [deletingTransaction, fetchData, triggerWidgetRefresh]);
 
-  const handleStartMonth = async () => {
+  const handleStartMonth = useCallback(async () => {
     if (budgets.length === 0) {
       toast.error("Nenhum orçamento encontrado");
       return;
@@ -419,17 +144,16 @@ export default function TransactionsPage() {
     }
 
     toast.success(`Mês iniciado! ${data.createdTransactions} transações criadas.`);
-    setWidgetRefreshKey((k) => k + 1);
+    triggerWidgetRefresh();
     fetchData();
-  };
+  }, [budgets, periodValue, fetchData, triggerWidgetRefresh]);
 
-  const handleCopyPreviousMonth = async () => {
+  const handleCopyPreviousMonth = useCallback(async () => {
     if (budgets.length === 0) {
       toast.error("Nenhum orçamento encontrado");
       return;
     }
 
-    // Calculate previous month
     let fromYear = periodValue.year;
     let fromMonth = periodValue.month - 1;
     if (fromMonth === 0) {
@@ -453,7 +177,6 @@ export default function TransactionsPage() {
     const data = await response.json();
 
     if (!response.ok) {
-      // Handle specific error for empty previous month
       if (data.error?.includes("No allocations") || data.error?.includes("No categories")) {
         toast.error("Nenhum planejamento encontrado para copiar", {
           description: "Configure o orçamento na página de planejamento",
@@ -471,21 +194,110 @@ export default function TransactionsPage() {
     }
 
     toast.success(`Planejamento copiado! ${data.copiedCount} alocações criadas.`);
-    setWidgetRefreshKey((k) => k + 1);
-  };
+    triggerWidgetRefresh();
+  }, [budgets, periodValue, triggerWidgetRefresh]);
 
-  // Filter out pending transactions - they are shown in the scheduled section
-  const confirmedTransactions = transactions.filter((t) => t.status !== "pending");
+  const handleConfirmScheduled = useCallback(
+    async (scheduled: {
+      type: "income" | "expense";
+      amount: number;
+      name: string;
+      categoryId?: string;
+      incomeSourceId?: string;
+      recurringBillId?: string;
+      goalId?: string;
+      sourceType: string;
+      dueDate: string;
+    }) => {
+      if (accounts.length === 0) {
+        toast.error("Nenhuma conta encontrada");
+        return;
+      }
 
-  // Calculate totals for the summary cards
-  const confirmedIncome = confirmedTransactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
+      try {
+        if (scheduled.sourceType === "goal" && scheduled.goalId) {
+          const response = await fetch(
+            `/api/app/goals/${scheduled.goalId}/contribute`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                fromAccountId: accounts[0].id,
+                amount: scheduled.amount,
+                year: periodValue.year,
+                month: periodValue.month,
+              }),
+            }
+          );
 
-  const confirmedExpenses = confirmedTransactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
+          if (!response.ok) {
+            throw new Error("Erro ao contribuir para meta");
+          }
 
+          toast.success("Contribuição para meta confirmada!");
+        } else {
+          const payload = {
+            budgetId: budgets[0].id,
+            type: scheduled.type,
+            amount: scheduled.amount,
+            description: scheduled.name,
+            accountId: accounts[0].id,
+            categoryId: scheduled.categoryId || undefined,
+            incomeSourceId: scheduled.incomeSourceId || undefined,
+            recurringBillId: scheduled.recurringBillId || undefined,
+            date: new Date(scheduled.dueDate).toISOString(),
+            status: "cleared",
+          };
+
+          const response = await fetch("/api/app/transactions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            throw new Error("Erro ao criar transação");
+          }
+
+          toast.success("Transação confirmada!");
+        }
+
+        triggerWidgetRefresh();
+        fetchData();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Erro ao confirmar");
+      }
+    },
+    [accounts, budgets, periodValue, fetchData, triggerWidgetRefresh]
+  );
+
+  const handleEditScheduled = useCallback(
+    (scheduled: {
+      type: "income" | "expense";
+      amount: number;
+      name: string;
+      categoryId?: string;
+      incomeSourceId?: string;
+      dueDate: string;
+    }) => {
+      setFormData({
+        type: scheduled.type,
+        amount: (scheduled.amount / 100).toFixed(2).replace(".", ","),
+        description: scheduled.name,
+        accountId: accounts[0]?.id || "",
+        categoryId: scheduled.categoryId || "",
+        incomeSourceId: scheduled.incomeSourceId || "",
+        toAccountId: "",
+        date: format(parseLocalDate(scheduled.dueDate), "yyyy-MM-dd"),
+        isInstallment: false,
+        totalInstallments: 2,
+      });
+      setIsFormOpen(true);
+    },
+    [accounts, setFormData, setIsFormOpen]
+  );
+
+  // ============== LOADING STATE ==============
   if (isLoading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -494,149 +306,49 @@ export default function TransactionsPage() {
     );
   }
 
+  // ============== RENDER ==============
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Transações</h1>
-          <p className="text-sm text-muted-foreground">
-            Gerencie todas as suas movimentações financeiras
-          </p>
-        </div>
-        <Button onClick={openCreateForm} size="sm">
-          <Plus className="h-4 w-4 sm:mr-2" />
-          <span className="hidden sm:inline">Nova Transação</span>
-        </Button>
-      </div>
+      <PageHeader
+        title="Transações"
+        description="Gerencie todas as suas movimentações financeiras"
+        actions={
+          <ResponsiveButton icon={<Plus className="h-4 w-4" />} size="sm" onClick={openCreate}>
+            Nova Transação
+          </ResponsiveButton>
+        }
+      />
 
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        <div className="rounded-lg border bg-card p-2 sm:p-3">
-          <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
-            <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-            <span>Receitas</span>
-          </div>
-          <div className="mt-1 text-base sm:text-xl font-bold text-green-600">
-            {formatCurrencyCompact(confirmedIncome)}
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-card p-2 sm:p-3">
-          <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
-            <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />
-            <span>Despesas</span>
-          </div>
-          <div className="mt-1 text-base sm:text-xl font-bold text-red-600">
-            {formatCurrencyCompact(confirmedExpenses)}
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-card p-2 sm:p-3">
-          <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
-            <Receipt className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span>Saldo</span>
-          </div>
-          <div className={cn(
-            "mt-1 text-base sm:text-xl font-bold",
-            confirmedIncome - confirmedExpenses >= 0 ? "text-green-600" : "text-red-600"
-          )}>
-            {formatCurrencyCompact(confirmedIncome - confirmedExpenses)}
-          </div>
-        </div>
-      </div>
+      {/* Summary Cards */}
+      <TransactionSummary income={confirmedIncome} expenses={confirmedExpenses} />
 
       {/* Filters - Desktop */}
-      <div className="hidden sm:flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar transações..."
-              className="pl-10 h-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[140px] h-9">
-              <SelectValue placeholder="Tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="income">Receitas</SelectItem>
-              <SelectItem value="expense">Despesas</SelectItem>
-              <SelectItem value="transfer">Transferências</SelectItem>
-            </SelectContent>
-          </Select>
-          {typeFilter !== "transfer" && (
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-[160px] h-9">
-                <SelectValue placeholder="Categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas categorias</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.icon && <span className="mr-2">{cat.icon}</span>}
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <Select value={accountFilter} onValueChange={setAccountFilter}>
-            <SelectTrigger className="w-[140px] h-9">
-              <SelectValue placeholder="Conta" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas contas</SelectItem>
-              {accounts.map((acc) => (
-                <SelectItem key={acc.id} value={acc.id}>
-                  {acc.icon && <span className="mr-2">{acc.icon}</span>}
-                  {acc.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        {/* Filter Chips */}
-        <FilterChips
-          chips={filterChips}
-          onRemove={handleRemoveFilter}
-          onClearAll={clearAllFilters}
-        />
-      </div>
+      <TransactionFiltersBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        typeFilter={typeFilter}
+        onTypeFilterChange={setTypeFilter}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={setCategoryFilter}
+        accountFilter={accountFilter}
+        onAccountFilterChange={setAccountFilter}
+        categories={categories}
+        accounts={accounts}
+        filterChips={filterChips}
+        onRemoveFilter={handleRemoveFilter}
+        onClearAll={clearAllFilters}
+      />
 
       {/* Filters - Mobile */}
-      <div className="flex sm:hidden flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar..."
-              className="pl-10 h-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9"
-            onClick={() => setIsFilterSheetOpen(true)}
-          >
-            <SlidersHorizontal className="h-4 w-4 mr-2" />
-            Filtros
-          </Button>
-        </div>
-        {/* Filter Chips - Mobile */}
-        <FilterChips
-          chips={filterChips}
-          onRemove={handleRemoveFilter}
-          onClearAll={clearAllFilters}
-        />
-      </div>
+      <TransactionFiltersMobile
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onOpenFilters={() => setIsFilterSheetOpen(true)}
+        filterChips={filterChips}
+        onRemoveFilter={handleRemoveFilter}
+        onClearAll={clearAllFilters}
+      />
 
       {/* Filter Sheet for Mobile */}
       <TransactionFiltersSheet
@@ -654,7 +366,7 @@ export default function TransactionsPage() {
         onClear={clearAllFilters}
       />
 
-      {/* Transaction Widget - Unified view of pending and confirmed transactions */}
+      {/* Transaction Widget */}
       {budgets.length > 0 && (
         <TransactionWidget
           budgetId={budgets[0].id}
@@ -668,459 +380,33 @@ export default function TransactionsPage() {
           onPeriodChange={handlePeriodChange}
           onStartMonth={handleStartMonth}
           onCopyPreviousMonth={handleCopyPreviousMonth}
-          onEdit={(scheduled) => {
-            // Pre-fill the form with scheduled transaction data for editing before confirming
-            setFormData({
-              type: scheduled.type,
-              amount: (scheduled.amount / 100).toFixed(2).replace(".", ","),
-              description: scheduled.name,
-              accountId: accounts[0]?.id || "",
-              categoryId: scheduled.categoryId || "",
-              incomeSourceId: scheduled.incomeSourceId || "",
-              toAccountId: "",
-              date: format(parseLocalDate(scheduled.dueDate), "yyyy-MM-dd"),
-              isInstallment: false,
-              totalInstallments: 2,
-            });
-            setEditingTransaction(null);
-            setIsFormOpen(true);
-          }}
-          onConfirm={async (scheduled) => {
-            if (accounts.length === 0) {
-              toast.error("Nenhuma conta encontrada");
-              return;
-            }
-
-            try {
-              // Goals use the contribute endpoint to update currentAmount
-              if (scheduled.sourceType === "goal" && scheduled.goalId) {
-                const response = await fetch(`/api/app/goals/${scheduled.goalId}/contribute`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    fromAccountId: accounts[0].id,
-                    amount: scheduled.amount,
-                    year: currentYear,
-                    month: currentMonth,
-                  }),
-                });
-
-                if (!response.ok) {
-                  throw new Error("Erro ao contribuir para meta");
-                }
-
-                toast.success("Contribuição para meta confirmada!");
-              } else {
-                // Regular transactions (recurring bills, income sources)
-                const payload = {
-                  budgetId: budgets[0].id,
-                  type: scheduled.type,
-                  amount: scheduled.amount,
-                  description: scheduled.name,
-                  accountId: accounts[0].id,
-                  categoryId: scheduled.categoryId || undefined,
-                  incomeSourceId: scheduled.incomeSourceId || undefined,
-                  recurringBillId: scheduled.recurringBillId || undefined,
-                  date: new Date(scheduled.dueDate).toISOString(),
-                  status: "cleared",
-                };
-
-                const response = await fetch("/api/app/transactions", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(payload),
-                });
-
-                if (!response.ok) {
-                  throw new Error("Erro ao criar transação");
-                }
-
-                toast.success("Transação confirmada!");
-              }
-
-              setWidgetRefreshKey((k) => k + 1);
-              fetchData();
-            } catch (error) {
-              toast.error(error instanceof Error ? error.message : "Erro ao confirmar");
-            }
-          }}
-          onEditConfirmed={(transaction) => openEditForm(transaction as Transaction)}
+          onEdit={handleEditScheduled}
+          onConfirm={handleConfirmScheduled}
+          onEditConfirmed={(transaction) => openEdit(transaction as Transaction)}
           onDeleteConfirmed={(transaction) => setDeletingTransaction(transaction as Transaction)}
         />
       )}
 
-      {/* Create/Edit Transaction Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingTransaction ? "Editar Transação" : "Nova Transação"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingTransaction
-                ? "Atualize os dados da transação"
-                : "Registre uma nova movimentação financeira"}
-            </DialogDescription>
-          </DialogHeader>
+      {/* Transaction Form Modal */}
+      <TransactionFormModal
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        isEditing={!!editingTransaction}
+        formData={formData}
+        setFormData={setFormData}
+        categories={categories}
+        accounts={accounts}
+        incomeSources={incomeSources}
+        isSubmitting={isSubmitting}
+        onSubmit={handleSubmit}
+      />
 
-          <div className="space-y-4 py-4">
-            {/* Row 1: Type */}
-            <div className="space-y-2">
-              <Label>Tipo</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: "expense", label: "Despesa", color: "text-red-500" },
-                  { value: "income", label: "Receita", color: "text-green-500" },
-                  { value: "transfer", label: "Transferência", color: "text-blue-500" },
-                ].map((type) => (
-                  <Button
-                    key={type.value}
-                    type="button"
-                    variant={formData.type === type.value ? "default" : "outline"}
-                    size="sm"
-                    className="w-full"
-                    onClick={() => setFormData({ ...formData, type: type.value as "income" | "expense" | "transfer" })}
-                  >
-                    {type.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Transfer layout: Amount+Date, Origin+Destination, Description */}
-            {formData.type === "transfer" ? (
-              <>
-                {/* Row 2: Amount + Date */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="amount">Valor</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        R$
-                      </span>
-                      <Input
-                        id="amount"
-                        className="pl-10"
-                        placeholder="0,00"
-                        value={formData.amount}
-                        onChange={(e) => {
-                          const formatted = formatCurrencyFromDigits(e.target.value);
-                          setFormData({ ...formData, amount: formatted });
-                        }}
-                        onFocus={(e) => {
-                          if (parseCurrency(formData.amount) === 0) {
-                            setFormData({ ...formData, amount: "" });
-                          }
-                          e.target.select();
-                        }}
-                        onBlur={() => {
-                          if (!formData.amount.trim()) {
-                            setFormData({ ...formData, amount: "0,00" });
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Data</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                {/* Row 3: Origin + Destination */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="account">Origem</Label>
-                    <Select
-                      value={formData.accountId}
-                      onValueChange={(value) => setFormData({ ...formData, accountId: value })}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {accounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {account.icon || "🏦"} {account.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="toAccount">Destino</Label>
-                    <Select
-                      value={formData.toAccountId}
-                      onValueChange={(value) => setFormData({ ...formData, toAccountId: value })}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {accounts
-                          .filter((account) => account.id !== formData.accountId)
-                          .map((account) => (
-                            <SelectItem key={account.id} value={account.id}>
-                              {account.icon || "🏦"} {account.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Row 4: Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="description">Descrição</Label>
-                  <Input
-                    id="description"
-                    placeholder="Ex: Transferência entre contas"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Expense/Income layout: Amount+Account, Description, Category/Source+Date */}
-                {/* Row 2: Amount + Account */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="amount">Valor</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        R$
-                      </span>
-                      <Input
-                        id="amount"
-                        className="pl-10"
-                        placeholder="0,00"
-                        value={formData.amount}
-                        onChange={(e) => {
-                          const formatted = formatCurrencyFromDigits(e.target.value);
-                          setFormData({ ...formData, amount: formatted });
-                        }}
-                        onFocus={(e) => {
-                          if (parseCurrency(formData.amount) === 0) {
-                            setFormData({ ...formData, amount: "" });
-                          }
-                          e.target.select();
-                        }}
-                        onBlur={() => {
-                          if (!formData.amount.trim()) {
-                            setFormData({ ...formData, amount: "0,00" });
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="account">Conta</Label>
-                    <Select
-                      value={formData.accountId}
-                      onValueChange={(value) => setFormData({ ...formData, accountId: value })}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {accounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {account.icon || "🏦"} {account.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Row 3: Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="description">Descrição</Label>
-                  <Input
-                    id="description"
-                    placeholder="Ex: Supermercado"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
-
-                {/* Row 4: Category/Income Source + Date */}
-                <div className="grid grid-cols-2 gap-4">
-                  {formData.type === "expense" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Categoria</Label>
-                      <Select
-                        value={formData.categoryId}
-                        onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.icon || "📌"} {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {formData.type === "income" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="incomeSource">Fonte de Renda</Label>
-                      <Select
-                        value={formData.incomeSourceId}
-                        onValueChange={(value) => setFormData({ ...formData, incomeSourceId: value })}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {incomeSources.map((source) => (
-                            <SelectItem key={source.id} value={source.id}>
-                              {source.type === "salary" ? "💼" : source.type === "benefit" ? "🎁" : source.type === "freelance" ? "💻" : source.type === "rental" ? "🏠" : source.type === "investment" ? "📈" : "📦"} {source.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Data</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Installment option (only for credit card expenses when creating) */}
-            {(() => {
-              const selectedAccount = accounts.find(a => a.id === formData.accountId);
-              const isCreditCard = selectedAccount?.type === "credit_card";
-              const showInstallmentOption = formData.type === "expense" && isCreditCard && !editingTransaction;
-
-              if (!showInstallmentOption) return null;
-
-              return (
-                <div className="space-y-3 rounded-lg border p-3 bg-muted/30">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="installment" className="cursor-pointer">
-                      Parcelar compra
-                    </Label>
-                    <Switch
-                      id="installment"
-                      checked={formData.isInstallment}
-                      onCheckedChange={(checked) =>
-                        setFormData({
-                          ...formData,
-                          isInstallment: checked,
-                          totalInstallments: checked ? 2 : 2,
-                        })
-                      }
-                    />
-                  </div>
-                  {formData.isInstallment && (
-                    <div className="space-y-2">
-                      <Label htmlFor="totalInstallments">Número de parcelas</Label>
-                      <Select
-                        value={String(formData.totalInstallments)}
-                        onValueChange={(value) =>
-                          setFormData({
-                            ...formData,
-                            totalInstallments: parseInt(value),
-                          })
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 23 }, (_, i) => i + 2).map((num) => (
-                            <SelectItem key={num} value={String(num)}>
-                              {num}x {parseCurrency(formData.amount) > 0 && (
-                                <span className="text-muted-foreground ml-1">
-                                  (R$ {(parseCurrency(formData.amount) / num / 100).toFixed(2).replace(".", ",")}/mês)
-                                </span>
-                              )}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-
-          <DialogFooter className="flex flex-row justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsFormOpen(false)}
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editingTransaction ? "Salvar" : "Criar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation */}
-      <AlertDialog
-        open={!!deletingTransaction}
-        onOpenChange={(open) => !open && setDeletingTransaction(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {deletingTransaction?.recurringBillId || deletingTransaction?.incomeSourceId
-                ? "Desfazer confirmação?"
-                : "Excluir transação?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {deletingTransaction?.recurringBillId || deletingTransaction?.incomeSourceId
-                ? "A transação voltará para a lista de pendentes."
-                : "Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className={cn(
-                deletingTransaction?.recurringBillId || deletingTransaction?.incomeSourceId
-                  ? "bg-amber-600 text-white hover:bg-amber-700"
-                  : "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              )}
-            >
-              {deletingTransaction?.recurringBillId || deletingTransaction?.incomeSourceId
-                ? "Desfazer"
-                : "Excluir"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete Confirmation Dialog */}
+      <TransactionDeleteDialog
+        transaction={deletingTransaction}
+        onClose={() => setDeletingTransaction(null)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { Trophy } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency } from '@/shared/lib/formatters';
 import type { Goal } from '@/types';
 
 interface CompletedGoalsProps {

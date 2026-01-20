@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Card,
   CardContent,
@@ -8,17 +8,17 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+} from "@/shared/ui/card";
+import { Badge } from "@/shared/ui/badge";
 import { ArrowUpRight, HelpCircle, TicketCheck, History, CreditCard } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/shared/ui/skeleton";
 import Link from "next/link";
-import { useCurrentPlan, useUser, useCredits } from "@/hooks/use-current-user";
+import { useCurrentPlan, useUser, useCredits } from "@/shared/hooks/use-current-user";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { enableCredits, creditsConfig } from "@/lib/credits/config";
-import { type CreditType } from "@/lib/credits/credits";
+import { enableCredits, creditsConfig } from "@/shared/lib/credits/config";
+import { type CreditType } from "@/shared/lib/credits/credits";
 
 export default function BillingSettingsPage() {
   const { currentPlan, isLoading, error } = useCurrentPlan();

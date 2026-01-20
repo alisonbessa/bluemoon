@@ -1,17 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { CurrencyInput, formatCentsToCurrency, formatCentsToDisplay } from "@/components/ui/currency-input";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { CurrencyInput, formatCentsToCurrency, formatCentsToDisplay } from "@/shared/ui/currency-input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/shared/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +19,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/shared/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +29,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/shared/ui/alert-dialog";
 import {
   Loader2,
   Plus,
@@ -40,9 +40,9 @@ import {
   GroupToggleRow,
   HoverActions,
   useExpandedGroups,
-} from "@/components/ui/compact-table";
+} from "@/shared/ui/compact-table";
 import { toast } from "sonner";
-import { useTutorial } from "@/components/tutorial/tutorial-provider";
+import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 
 interface Budget {
   id: string;

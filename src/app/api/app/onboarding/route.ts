@@ -1,4 +1,4 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import {
   users,
@@ -12,7 +12,7 @@ import {
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { capitalizeWords } from "@/lib/utils";
+import { capitalizeWords } from "@/shared/lib/utils";
 
 const householdSchema = z.object({
   hasPartner: z.boolean(),

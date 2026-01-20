@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+} from "@/shared/ui/card";
+import { Skeleton } from "@/shared/ui/skeleton";
+import { Alert, AlertDescription } from "@/shared/ui/alert";
 import {
   PlusIcon,
   WalletIcon,
@@ -22,12 +22,12 @@ import {
   SettingsIcon,
   TargetIcon,
 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { MonthSelector } from "@/components/ui/month-selector";
+import { Progress } from "@/shared/ui/progress";
+import { MonthSelector } from "@/shared/ui/month-selector";
 import { DashboardCharts, CreditCardSpending, ScheduledTransactionsList } from "@/components/dashboard";
 import Link from "next/link";
-import { useUser } from "@/hooks/use-current-user";
-import { formatCurrency } from "@/lib/formatters";
+import { useUser } from "@/shared/hooks/use-current-user";
+import { formatCurrency } from "@/shared/lib/formatters";
 
 interface Commitment {
   id: string;

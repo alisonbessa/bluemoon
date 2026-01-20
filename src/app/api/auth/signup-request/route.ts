@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { signUpRequestSchema } from "@/lib/validations/auth.schema";
-import { encryptJson } from "@/lib/encryption/edge-jwt";
+import { signUpRequestSchema } from "@/shared/lib/validations/auth.schema";
+import { encryptJson } from "@/shared/lib/encryption/edge-jwt";
 import { render } from "@react-email/components";
 import SignUpEmail from "@/emails/SignUpEmail";
-import sendMail from "@/lib/email/sendMail";
-import { appConfig } from "@/lib/config";
+import sendMail from "@/shared/lib/email/sendMail";
+import { appConfig } from "@/shared/lib/config";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";

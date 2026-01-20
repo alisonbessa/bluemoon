@@ -4,8 +4,8 @@ import { auth, signIn } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
 import { plans, Quotas } from "@/db/schema/plans";
-import { PlanProvider } from "@/lib/plans/getSubscribeUrl";
-import stripe from "@/lib/stripe";
+import { PlanProvider } from "@/shared/lib/plans/getSubscribeUrl";
+import stripe from "@/shared/lib/stripe";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -13,9 +13,9 @@ import {
   creditBuyParams,
   getCreditsPrice,
   type CreditType,
-} from "@/lib/credits/credits";
+} from "@/shared/lib/credits/credits";
 // Removed: PayPal and DodoPayments - only Stripe is supported
-import { enableCredits } from "@/lib/credits/config";
+import { enableCredits } from "@/shared/lib/credits/config";
 
 async function CreditsBuyPage({
   searchParams,

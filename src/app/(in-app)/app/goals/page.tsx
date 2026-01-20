@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/shared/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,17 +19,17 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
-import { CurrencyInput } from "@/components/ui/currency-input";
+} from "@/shared/ui/alert-dialog";
+import { Label } from "@/shared/ui/label";
+import { Progress } from "@/shared/ui/progress";
+import { CurrencyInput } from "@/shared/ui/currency-input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/shared/ui/select";
 import {
   Plus,
   Loader2,
@@ -41,10 +41,10 @@ import {
   Archive,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency } from "@/shared/lib/formatters";
 import confetti from "canvas-confetti";
 import { GoalFormModal } from "@/components/goals/goal-form-modal";
-import { useGoals, useBudgets, useAccounts } from "@/hooks";
+import { useGoals, useBudgets, useAccounts } from "@/shared/hooks";
 import type { Goal } from "@/types";
 
 function formatDate(dateString: string): string {

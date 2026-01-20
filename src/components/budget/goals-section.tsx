@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { ChevronDown, Target, ArrowRight } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { Progress } from "@/shared/ui/progress";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 import { Goal, formatCurrency } from "./types";
 
 interface GoalsSectionProps {

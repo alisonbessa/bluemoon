@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import withSuperAdminAuthRequired from "@/lib/auth/withSuperAdminAuthRequired";
+import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
 import { plans } from "@/db/schema/plans";

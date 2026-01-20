@@ -1,23 +1,23 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+} from "@/shared/ui/card";
+import { Skeleton } from "@/shared/ui/skeleton";
 import {
   Calendar,
   CheckCircle2,
   Clock,
   ArrowRightIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { formatCurrencyCompact } from "@/lib/formatters";
+import { cn } from "@/shared/lib/utils";
+import { formatCurrencyCompact } from "@/shared/lib/formatters";
 import Link from "next/link";
 
 interface ScheduledTransaction {

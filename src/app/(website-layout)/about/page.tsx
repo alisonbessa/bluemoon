@@ -1,4 +1,4 @@
-import { appConfig } from "@/lib/config";
+import { appConfig } from "@/shared/lib/config";
 import { WebPageJsonLd } from "next-seo";
 import { Metadata } from "next";
 

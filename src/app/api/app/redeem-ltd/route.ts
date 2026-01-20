@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { coupons } from "@/db/schema/coupons";
 import { eq, and, isNull } from "drizzle-orm";
-import { updateLTDPlan } from "@/lib/users/updateLTDPlan";
+import { updateLTDPlan } from "@/shared/lib/users/updateLTDPlan";
 import { z } from "zod";
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 
 // Validation schema for the request body
 const redeemSchema = z.object({

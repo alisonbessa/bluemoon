@@ -4,8 +4,8 @@ import {
   COMPACT_TABLE_STYLES,
   GroupToggleRow,
   HoverActions,
-} from '@/components/ui/compact-table';
-import { formatCentsToDisplay } from '@/components/ui/currency-input';
+} from '@/shared/ui/compact-table';
+import { formatCentsToDisplay } from '@/shared/ui/currency-input';
 import {
   INCOME_TYPE_CONFIG_PLURAL,
   FREQUENCY_LABELS,

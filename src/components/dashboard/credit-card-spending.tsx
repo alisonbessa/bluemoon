@@ -7,18 +7,18 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
+} from "@/shared/ui/select";
+import { Progress } from "@/shared/ui/progress";
 import { CreditCardIcon } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency } from "@/lib/formatters";
+import { Skeleton } from "@/shared/ui/skeleton";
+import { formatCurrency } from "@/shared/lib/formatters";
 
 interface CreditCard {
   id: string;

@@ -1,8 +1,8 @@
 'use client';
 
 import { ChevronDown, Plus, Pencil, Trash2 } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
-import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/shared/lib/formatters';
+import { cn } from '@/shared/lib/utils';
 import type { IncomeData, IncomeSourceData, IncomeSource, IncomeMemberGroup } from '@/types/income';
 import { INCOME_TYPE_CONFIG, FREQUENCY_LABELS } from '@/types/income';
 

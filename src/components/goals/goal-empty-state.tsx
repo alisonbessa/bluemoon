@@ -1,7 +1,7 @@
 'use client';
 
 import { Target, Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/ui/button';
 
 interface GoalEmptyStateProps {
   onCreateNew: () => void;

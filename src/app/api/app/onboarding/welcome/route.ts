@@ -1,11 +1,11 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { users, budgets, budgetMembers, groups, categories, incomeSources, financialAccounts } from "@/db/schema";
 import { defaultGroups } from "@/db/schema/groups";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { capitalizeWords } from "@/lib/utils";
+import { capitalizeWords } from "@/shared/lib/utils";
 
 // Default categories to create for new budgets
 // These are the base categories - personal category is added dynamically with user's name

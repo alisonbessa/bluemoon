@@ -1,10 +1,10 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { budgets, budgetMembers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { capitalizeWords } from "@/lib/utils";
+import { capitalizeWords } from "@/shared/lib/utils";
 
 const updateBudgetSchema = z.object({
   name: z.string().min(1).max(100).optional(),

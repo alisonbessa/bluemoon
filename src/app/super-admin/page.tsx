@@ -1,7 +1,7 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { UnreadMessagesBell } from "@/components/UnreadMessagesBell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { UnreadMessagesBell } from "@/shared/UnreadMessagesBell";
 import useSWR from "swr";
 import {
   LineChart,

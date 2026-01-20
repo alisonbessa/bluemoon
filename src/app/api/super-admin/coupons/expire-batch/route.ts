@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import withSuperAdminAuthRequired from "@/lib/auth/withSuperAdminAuthRequired";
+import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
 import { db } from "@/db";
 import { coupons } from "@/db/schema/coupons";
 import { eq, and, inArray } from "drizzle-orm";
-import { updateLTDPlan } from "@/lib/users/updateLTDPlan";
+import { updateLTDPlan } from "@/shared/lib/users/updateLTDPlan";
 import { z } from "zod";
 
 // Validation schema for the request body

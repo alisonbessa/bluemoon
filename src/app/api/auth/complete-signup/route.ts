@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { setPasswordSchema } from "@/lib/validations/auth.schema";
-import { decryptJson } from "@/lib/encryption/edge-jwt";
-import { hashPassword } from "@/lib/auth/password";
+import { setPasswordSchema } from "@/shared/lib/validations/auth.schema";
+import { decryptJson } from "@/shared/lib/encryption/edge-jwt";
+import { hashPassword } from "@/shared/lib/auth/password";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
-import onUserCreate from "@/lib/users/onUserCreate";
+import onUserCreate from "@/shared/lib/users/onUserCreate";
 
 // Force Node.js runtime for argon2 support
 export const runtime = "nodejs";

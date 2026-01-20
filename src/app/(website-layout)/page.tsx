@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { WebsiteFAQs } from "@/components/website/faqs";
-import { CTA2 } from "@/components/website/cta-2";
-import Hero2 from "@/components/sections/hero-2";
-import CTA1 from "@/components/website/cta-1";
-import MonthlyAnnualPricing from "@/components/website/monthly-annual-pricing";
-import TextRevealByWord from "@/components/ui/text-reveal";
-import { StructuredData } from "@/components/seo/StructuredData";
-import { PainPoints } from "@/components/website/pain-points";
-import HowItWorks from "@/components/website/how-it-works";
-import { BudgetExample } from "@/components/website/budget-example";
-import { TelegramFeature } from "@/components/website/telegram-feature";
-import { ForCouples } from "@/components/website/for-couples";
-import { TestimonialsGrid } from "@/components/website/testimonials-grid";
+import { WebsiteFAQs } from "@/shared/website/faqs";
+import { CTA2 } from "@/shared/website/cta-2";
+import Hero2 from "@/shared/sections/hero-2";
+import CTA1 from "@/shared/website/cta-1";
+import MonthlyAnnualPricing from "@/shared/website/monthly-annual-pricing";
+import TextRevealByWord from "@/shared/ui/text-reveal";
+import { StructuredData } from "@/shared/seo/StructuredData";
+import { PainPoints } from "@/shared/website/pain-points";
+import HowItWorks from "@/shared/website/how-it-works";
+import { BudgetExample } from "@/shared/website/budget-example";
+import { TelegramFeature } from "@/shared/website/telegram-feature";
+import { ForCouples } from "@/shared/website/for-couples";
+import { TestimonialsGrid } from "@/shared/website/testimonials-grid";
 
 export const metadata: Metadata = {
   title: "HiveBudget - Controle Financeiro Colaborativo para Casais e Famílias",

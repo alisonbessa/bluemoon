@@ -1,5 +1,5 @@
-import { getLLMText } from "@/lib/docs/get-llm-text";
-import { source } from "@/lib/docs/source";
+import { getLLMText } from "@/shared/lib/docs/get-llm-text";
+import { source } from "@/shared/lib/docs/source";
 import { notFound } from "next/navigation";
 
 export const revalidate = false;

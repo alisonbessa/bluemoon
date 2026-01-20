@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { ChevronDown, Plus, Pencil, Trash2 } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from '@/shared/ui/checkbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,9 +12,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { formatCurrency } from '@/lib/formatters';
-import { cn } from '@/lib/utils';
+} from '@/shared/ui/alert-dialog';
+import { formatCurrency } from '@/shared/lib/formatters';
+import { cn } from '@/shared/lib/utils';
 import { toast } from 'sonner';
 import { RecurringBillItem } from './recurring-bill-item';
 import { UnifiedExpenseForm } from '@/components/expenses';

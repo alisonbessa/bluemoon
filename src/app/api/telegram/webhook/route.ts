@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { TelegramUpdate } from "@/lib/telegram/types";
-import { handleMessage, handleCallbackQuery } from "@/lib/telegram/handlers";
+import type { TelegramUpdate } from "@/shared/lib/telegram/types";
+import { handleMessage, handleCallbackQuery } from "@/shared/lib/telegram/handlers";
 
 // Verify the request is from Telegram (required for security)
 function verifyTelegramRequest(request: NextRequest): boolean {

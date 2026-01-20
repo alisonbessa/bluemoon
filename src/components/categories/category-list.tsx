@@ -1,12 +1,12 @@
 'use client';
 
 import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/ui/button';
 import {
   COMPACT_TABLE_STYLES,
   GroupToggleRow,
   HoverActions,
-} from '@/components/ui/compact-table';
+} from '@/shared/ui/compact-table';
 import type { Category, CategoryGroup } from '@/types';
 
 const GRID_COLS = '24px 1fr 120px';

@@ -7,13 +7,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
-import { MONTHS_PT as monthNamesFull } from '@/lib/date-utils';
-import { formatCurrencyFromDigits } from '@/lib/formatters';
+} from '@/shared/ui/dialog';
+import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
+import { Label } from '@/shared/ui/label';
+import { cn } from '@/shared/lib/utils';
+import { MONTHS_PT as monthNamesFull } from '@/shared/lib/date-utils';
+import { formatCurrencyFromDigits } from '@/shared/lib/formatters';
 import type { Category, CategoryBehavior } from '@/types/category';
 
 interface AllocationEditModalProps {

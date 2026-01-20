@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,12 +10,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
+} from "@/shared/ui/dialog";
+import { Progress } from "@/shared/ui/progress";
 import { Download, FileDown } from "lucide-react";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { fetcher } from "@/lib/swr/fetcher";
+import { RadioGroup, RadioGroupItem } from "@/shared/ui/radio-group";
+import { Label } from "@/shared/ui/label";
+import { fetcher } from "@/shared/lib/swr/fetcher";
 import Papa from "papaparse";
 
 type StatusFilter = "all" | "used" | "unused" | "expired";

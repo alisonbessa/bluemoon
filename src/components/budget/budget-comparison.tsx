@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Equal, BarChart3 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 import { GroupData, formatCurrency, GROUP_COLORS } from "./types";
 
 interface BudgetComparisonProps {

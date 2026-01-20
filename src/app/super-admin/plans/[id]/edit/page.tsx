@@ -1,12 +1,12 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { PlanForm } from "@/components/forms/plan-form";
-import { Button } from "@/components/ui/button";
+import { PlanForm } from "@/shared/forms/plan-form";
+import { Button } from "@/shared/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
-import type { PlanFormValues } from "@/lib/validations/plan.schema";
+import type { PlanFormValues } from "@/shared/lib/validations/plan.schema";
 
 export default function EditPlanPage() {
   const { id } = useParams();

@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { creditTransactions } from "@/db/schema/credits";
 import { and, eq, lte, isNotNull } from "drizzle-orm";
-import { enableCredits } from "@/lib/credits/config";
-import { addCreditTransaction } from "@/lib/credits/recalculate";
+import { enableCredits } from "@/shared/lib/credits/config";
+import { addCreditTransaction } from "@/shared/lib/credits/recalculate";
 import { endOfDay } from "date-fns";
-import cronAuthRequired from "@/lib/auth/cronAuthRequired";
+import cronAuthRequired from "@/shared/lib/auth/cronAuthRequired";
 
 const handleExpireCredits = async () => {
   try {

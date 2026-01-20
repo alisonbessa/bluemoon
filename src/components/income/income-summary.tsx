@@ -1,7 +1,7 @@
 'use client';
 
 import { Wallet } from 'lucide-react';
-import { formatCentsToCurrency } from '@/components/ui/currency-input';
+import { formatCentsToCurrency } from '@/shared/ui/currency-input';
 
 interface IncomeSummaryProps {
   totalMonthlyIncome: number;

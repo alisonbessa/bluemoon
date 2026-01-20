@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,13 +11,13 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@/shared/ui/alert-dialog";
 import {
   COMPACT_TABLE_STYLES,
   GroupToggleRow,
   HoverActions,
   useExpandedGroups,
-} from "@/components/ui/compact-table";
+} from "@/shared/ui/compact-table";
 import { AccountForm, type Account, type AccountFormData } from "@/components/accounts";
 import {
   Plus,
@@ -34,11 +34,11 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
-import { formatCurrency, formatCurrencyCompact } from "@/lib/formatters";
-import { useTutorial } from "@/components/tutorial/tutorial-provider";
-import { useAccounts, useBudgets, useMembers } from "@/hooks";
+} from "@/shared/ui/tooltip";
+import { cn } from "@/shared/lib/utils";
+import { formatCurrency, formatCurrencyCompact } from "@/shared/lib/formatters";
+import { useTutorial } from "@/shared/tutorial/tutorial-provider";
+import { useAccounts, useBudgets, useMembers } from "@/shared/hooks";
 
 const GRID_COLS = "24px 1fr 100px 100px 120px";
 

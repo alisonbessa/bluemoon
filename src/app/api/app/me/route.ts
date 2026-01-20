@@ -1,5 +1,5 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
-import { profileUpdateSchema } from "@/lib/validations/profile.schema";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { profileUpdateSchema } from "@/shared/lib/validations/profile.schema";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";

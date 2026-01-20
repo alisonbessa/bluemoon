@@ -1,10 +1,10 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
-import { MONTHS_SHORT_PT } from '@/lib/date-utils';
-import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/shared/lib/formatters';
+import { MONTHS_SHORT_PT } from '@/shared/lib/date-utils';
+import { cn } from '@/shared/lib/utils';
 
 interface BudgetHeaderProps {
   currentYear: number;

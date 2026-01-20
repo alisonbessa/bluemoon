@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import withSuperAdminAuthRequired from "@/lib/auth/withSuperAdminAuthRequired";
+import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
 import { db } from "@/db";
 import { plans } from "@/db/schema/plans";
 import { desc, sql, eq } from "drizzle-orm";
-import { planFormSchema } from "@/lib/validations/plan.schema";
+import { planFormSchema } from "@/shared/lib/validations/plan.schema";
 
 export const GET = withSuperAdminAuthRequired(async (req) => {
   try {

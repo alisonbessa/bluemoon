@@ -1,4 +1,4 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { transactions, budgetMembers, financialAccounts, categories, incomeSources } from "@/db/schema";
 import { eq, and, inArray, desc, gte, lte } from "drizzle-orm";

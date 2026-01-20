@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { telegramAILogs, categories } from "@/db/schema";
 import { eq, and, isNotNull } from "drizzle-orm";
-import withSuperAdminAuthRequired from "@/lib/auth/withSuperAdminAuthRequired";
+import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
 
 interface TrainingExample {
   input: string;

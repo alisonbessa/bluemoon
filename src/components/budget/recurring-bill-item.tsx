@@ -1,9 +1,9 @@
 'use client';
 
 import { Pencil, Trash2, Calendar, Wallet, Zap, TrendingUp } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
-import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
+import { formatCurrency } from '@/shared/lib/formatters';
+import { cn } from '@/shared/lib/utils';
+import { Badge } from '@/shared/ui/badge';
 
 interface RecurringBillSummary {
   id: string;

@@ -12,7 +12,7 @@ import {
 import type { AdapterAccountType } from "next-auth/adapters";
 import { plans } from "./plans";
 
-import { type CreditType } from "@/lib/credits/credits";
+import { type CreditType } from "@/shared/lib/credits/credits";
 
 type CreditRecord = {
   [K in CreditType]?: number;

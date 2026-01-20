@@ -1,6 +1,6 @@
 // Budget page types
 
-export { formatCurrency } from "@/lib/formatters";
+export { formatCurrency } from "@/shared/lib/formatters";
 
 export interface Category {
   id: string;

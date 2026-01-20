@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
+import { Checkbox } from "@/shared/ui/checkbox";
+import { Switch } from "@/shared/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -14,15 +14,15 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@/shared/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { CurrencyInput } from "@/components/ui/currency-input";
+} from "@/shared/ui/select";
+import { CurrencyInput } from "@/shared/ui/currency-input";
 import {
   ChevronDown,
   Loader2,
@@ -36,8 +36,8 @@ import {
   Target,
   ArrowRight,
 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { MonthSelector } from "@/components/ui/month-selector";
+import { Progress } from "@/shared/ui/progress";
+import { MonthSelector } from "@/shared/ui/month-selector";
 import Link from "next/link";
 import {
   AlertDialog,
@@ -48,12 +48,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
+} from "@/shared/ui/alert-dialog";
+import { cn } from "@/shared/lib/utils";
 import { toast } from "sonner";
-import { formatCurrency, formatCurrencyFromDigits } from "@/lib/formatters";
+import { formatCurrency, formatCurrencyFromDigits } from "@/shared/lib/formatters";
 import { GoalFormModal } from "@/components/goals";
-import { useTutorial } from "@/components/tutorial/tutorial-provider";
+import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 import { CategoryWithBills } from "@/components/budget/category-with-bills";
 
 interface Category {

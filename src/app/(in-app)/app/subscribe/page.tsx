@@ -8,8 +8,8 @@ import {
   PlanType,
   subscribeParams,
   SubscribeParams,
-} from "@/lib/plans/getSubscribeUrl";
-import stripe from "@/lib/stripe";
+} from "@/shared/lib/plans/getSubscribeUrl";
+import stripe from "@/shared/lib/stripe";
 import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import React from "react";

@@ -7,19 +7,19 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/shared/ui/select";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from "@/components/ui/chart";
+} from "@/shared/ui/chart";
 import {
   Bar,
   BarChart,
@@ -31,10 +31,10 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { formatCurrency as formatCurrencyBase } from "@/lib/formatters";
+import { Skeleton } from "@/shared/ui/skeleton";
+import { Switch } from "@/shared/ui/switch";
+import { Label } from "@/shared/ui/label";
+import { formatCurrency as formatCurrencyBase } from "@/shared/lib/formatters";
 
 // Chart-specific currency formatter (no decimals for cleaner display)
 const formatCurrency = (cents: number) => formatCurrencyBase(cents, { decimals: 0 });

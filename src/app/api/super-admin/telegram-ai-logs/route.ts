@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { telegramAILogs, users } from "@/db/schema";
 import { eq, desc, and, sql, gte, lte } from "drizzle-orm";
-import withSuperAdminAuthRequired from "@/lib/auth/withSuperAdminAuthRequired";
-import { getAIPerformanceStats } from "@/lib/telegram/ai-logger";
+import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { getAIPerformanceStats } from "@/shared/lib/telegram/ai-logger";
 
 // GET - List AI logs with filtering and stats
 export const GET = withSuperAdminAuthRequired(async (req: NextRequest) => {

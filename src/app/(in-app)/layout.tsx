@@ -1,17 +1,17 @@
 "use client";
 
-import { AppHeader } from "@/components/layout/app-header";
-import { AppSidebar } from "@/components/layout/app-sidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppHeader } from "@/shared/layout/app-header";
+import { AppSidebar } from "@/shared/layout/app-sidebar";
+import { SidebarProvider } from "@/shared/ui/sidebar";
 import {
   TutorialProvider,
   TutorialOverlay,
   CelebrationModal,
   useTutorial,
-} from "@/components/tutorial";
+} from "@/shared/tutorial";
 import React, { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useUser } from "@/hooks/use-current-user";
+import { useUser } from "@/shared/hooks/use-current-user";
 
 const BUDGET_INITIALIZED_KEY = "hivebudget_budget_initialized";
 

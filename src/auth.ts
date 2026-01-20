@@ -10,12 +10,12 @@ import {
   users,
   verificationTokens,
 } from "./db/schema/user";
-import onUserCreate from "./lib/users/onUserCreate";
+import onUserCreate from "./shared/lib/users/onUserCreate";
 import { render } from "@react-email/components";
 import MagicLinkEmail from "./emails/MagicLinkEmail";
-import sendMail from "./lib/email/sendMail";
-import { appConfig } from "./lib/config";
-import { decryptJson } from "./lib/encryption/edge-jwt";
+import sendMail from "./shared/lib/email/sendMail";
+import { appConfig } from "./shared/lib/config";
+import { decryptJson } from "./shared/lib/encryption/edge-jwt";
 import { eq } from "drizzle-orm";
 
 // Overrides default session type
@@ -175,7 +175,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   return null;
                 }
 
-                const { verifyPassword } = await import("./lib/auth/password");
+                const { verifyPassword } = await import("./shared/lib/auth/password");
                 // Verify password
                 const passwordCorrect = await verifyPassword(
                   credentials.password as string,

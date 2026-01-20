@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/shared/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,23 +18,23 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@/shared/ui/alert-dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { formatCurrency, formatCurrencyFromDigits } from '@/lib/formatters';
-import { MONTHS_PT as monthNamesFull } from '@/lib/date-utils';
+} from '@/shared/ui/select';
+import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
+import { Label } from '@/shared/ui/label';
+import { Switch } from '@/shared/ui/switch';
+import { formatCurrency, formatCurrencyFromDigits } from '@/shared/lib/formatters';
+import { MONTHS_PT as monthNamesFull } from '@/shared/lib/date-utils';
 import type { IncomeSource, IncomeSourceData, IncomeSourceFormData, MemberSummary } from '@/types';
 import { INCOME_TYPE_CONFIG, FREQUENCY_LABELS } from '@/types/income';
-import { CurrencyInput } from '@/components/ui/currency-input';
+import { CurrencyInput } from '@/shared/ui/currency-input';
 
 // ==================== Edit Income Allocation Modal ====================
 

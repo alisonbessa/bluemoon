@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { appConfig } from "@/lib/config";
-import { AuthForm } from "@/components/auth/auth-form";
+import { appConfig } from "@/shared/lib/config";
+import { AuthForm } from "@/shared/auth/auth-form";
 import { auth, signOut } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";

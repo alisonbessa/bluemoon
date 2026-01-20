@@ -1,11 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/shared/ui/button';
+import { Checkbox } from '@/shared/ui/checkbox';
 import { ChevronDown, Plus, Pencil, Trash2, PiggyBank } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
-import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/shared/lib/formatters';
+import { cn } from '@/shared/lib/utils';
 import type { GroupData, CategoryAllocation, Category, FilterType } from '@/types/category';
 import { GROUP_DEFAULT_BEHAVIORS } from '@/types/category';
 

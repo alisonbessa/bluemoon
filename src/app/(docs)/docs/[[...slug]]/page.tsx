@@ -1,4 +1,4 @@
-import { getPageImage, source } from "@/lib/docs/source";
+import { getPageImage, source } from "@/shared/lib/docs/source";
 import {
   DocsBody,
   DocsDescription,
@@ -9,7 +9,7 @@ import { notFound } from "next/navigation";
 import { getMDXComponents } from "@/mdx-components";
 import type { Metadata } from "next";
 import { createRelativeLink } from "fumadocs-ui/mdx";
-import { LLMCopyButton, ViewOptions } from "@/components/page-actions";
+import { LLMCopyButton, ViewOptions } from "@/shared/page-actions";
 
 export default async function Page(props: {
   params: Promise<{ slug: string[] }>;

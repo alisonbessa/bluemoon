@@ -1,12 +1,12 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/shared/ui/card";
+import { Button } from "@/shared/ui/button";
+import { Badge } from "@/shared/ui/badge";
 import { Pencil, Trash2, CreditCard, Landmark, Wallet, PiggyBank, TrendingUp, UtensilsCrossed } from "lucide-react";
-import type { AccountType } from "@/db/schema/accounts";
-import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/formatters";
+import type { AccountType } from "@/types/account";
+import { cn } from "@/shared/lib/utils";
+import { formatCurrency } from "@/shared/lib/formatters";
 import type { Account } from "./types";
 
 interface AccountCardProps {

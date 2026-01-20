@@ -1,11 +1,11 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { financialAccounts, budgetMembers } from "@/db/schema";
 import { eq, and, inArray, or, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { accountTypeEnum } from "@/db/schema/accounts";
-import { capitalizeWords } from "@/lib/utils";
+import { capitalizeWords } from "@/shared/lib/utils";
 
 // Max value in cents (R$ 10,000,000,000.00 = R$ 10 billion)
 const MAX_CENTS = 1_000_000_000_000;

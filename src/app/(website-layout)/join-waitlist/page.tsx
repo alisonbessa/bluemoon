@@ -1,9 +1,9 @@
 import { Metadata } from "next";
 import WaitlistForm from "./waitlist-form";
 import { WebPageJsonLd } from "next-seo";
-import { appConfig } from "@/lib/config";
-import { cn } from "@/lib/utils";
-import { AnimatedGridPattern } from "@/components/magicui/animated-grid-pattern";
+import { appConfig } from "@/shared/lib/config";
+import { cn } from "@/shared/lib/utils";
+import { AnimatedGridPattern } from "@/shared/magicui/animated-grid-pattern";
 
 export const metadata: Metadata = {
   title: "Join Waitlist",

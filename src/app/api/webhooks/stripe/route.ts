@@ -1,18 +1,18 @@
 import Stripe from "stripe";
-import stripe from "@/lib/stripe";
+import stripe from "@/shared/lib/stripe";
 import { NextRequest, NextResponse } from "next/server";
-import APIError from "@/lib/api/errors";
-import getOrCreateUser from "@/lib/users/getOrCreateUser";
+import APIError from "@/shared/lib/api/errors";
+import getOrCreateUser from "@/shared/lib/users/getOrCreateUser";
 import { users } from "@/db/schema/user";
 import { plans } from "@/db/schema/plans";
 import { db } from "@/db";
 import { eq, or } from "drizzle-orm";
-import updatePlan from "@/lib/plans/updatePlan";
-import downgradeToDefaultPlan from "@/lib/plans/downgradeToDefaultPlan";
-import { addCredits } from "@/lib/credits/recalculate";
-import { type CreditType } from "@/lib/credits/credits";
-import { creditTypeSchema } from "@/lib/credits/config";
-import { allocatePlanCredits } from "@/lib/credits/allocatePlanCredits";
+import updatePlan from "@/shared/lib/plans/updatePlan";
+import downgradeToDefaultPlan from "@/shared/lib/plans/downgradeToDefaultPlan";
+import { addCredits } from "@/shared/lib/credits/recalculate";
+import { type CreditType } from "@/shared/lib/credits/credits";
+import { creditTypeSchema } from "@/shared/lib/credits/config";
+import { allocatePlanCredits } from "@/shared/lib/credits/allocatePlanCredits";
 
 class StripeWebhookHandler {
   private data: Stripe.Event.Data;

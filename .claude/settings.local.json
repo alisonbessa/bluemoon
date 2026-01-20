@@ -38,7 +38,10 @@
       "Bash(pnpm next dev:*)",
       "Bash(lsof:*)",
       "Bash(xargs kill:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(for file in /home/ahbessa/Projects/bluemoon/src/features/transactions/ui/*.tsx)",
+      "Bash(do sed -i \"s|from [\"\"'']./types[\"\"'']|from ''../types''|g\" \"$file\")",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
