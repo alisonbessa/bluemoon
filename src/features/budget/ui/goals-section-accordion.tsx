@@ -4,10 +4,24 @@ import { ChevronDown, Target, Plus } from 'lucide-react';
 import { Progress } from '@/shared/ui/progress';
 import Link from 'next/link';
 import { cn } from '@/shared/lib/utils';
-import { formatCurrency, type Goal } from '../types';
+import { formatCurrency } from '../types';
+
+// Local type that matches what the budget page provides
+interface GoalLocal {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  targetAmount: number;
+  currentAmount: number;
+  progress: number;
+  monthlyTarget: number;
+  monthsRemaining: number;
+  isCompleted: boolean;
+}
 
 interface GoalsSectionAccordionProps {
-  goals: Goal[];
+  goals: GoalLocal[];
   isExpanded: boolean;
   onToggle: () => void;
   onAddGoal: () => void;

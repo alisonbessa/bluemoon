@@ -2,25 +2,56 @@
 
 import { ChevronDown, Plus, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
-import {
-  formatCurrency,
-  INCOME_TYPE_CONFIG,
-  FREQUENCY_LABELS,
-  type IncomeData,
-  type IncomeSourceData,
-  type IncomeSource,
-  type IncomeMemberGroup,
-} from '../types';
+import { formatCurrency, INCOME_TYPE_CONFIG, FREQUENCY_LABELS } from '../types';
+
+// Local types that match what the budget page provides
+// These are more permissive to allow compatibility with the page's local types
+interface MemberLocal {
+  id: string;
+  name: string;
+  color: string | null;
+}
+
+interface IncomeSourceLocal {
+  id: string;
+  name: string;
+  type: 'salary' | 'benefit' | 'freelance' | 'rental' | 'investment' | 'other';
+  amount: number;
+  frequency: 'monthly' | 'biweekly' | 'weekly';
+  dayOfMonth?: number | null;
+  memberId: string | null;
+  member?: { id: string; name: string; color?: string | null } | null;
+  account?: { id: string; name: string; icon?: string | null } | null;
+  isAutoConfirm?: boolean;
+}
+
+interface IncomeSourceDataLocal {
+  incomeSource: IncomeSourceLocal;
+  planned: number;
+  defaultAmount: number;
+  received: number;
+}
+
+interface IncomeMemberGroupLocal {
+  member: MemberLocal | null;
+  sources: IncomeSourceDataLocal[];
+  totals: { planned: number; received: number };
+}
+
+interface IncomeDataLocal {
+  byMember: IncomeMemberGroupLocal[];
+  totals: { planned: number; received: number };
+}
 
 interface IncomeSectionAccordionProps {
-  incomeData: IncomeData;
+  incomeData: IncomeDataLocal;
   isExpanded: boolean;
   onToggle: () => void;
   expandedMembers: string[];
   onToggleMember: (memberId: string) => void;
-  onEditIncome: (item: IncomeSourceData) => void;
-  onEditIncomeSource: (source: IncomeSource) => void;
-  onDeleteIncomeSource: (source: IncomeSource) => void;
+  onEditIncome: (item: IncomeSourceDataLocal) => void;
+  onEditIncomeSource: (source: IncomeSourceLocal) => void;
+  onDeleteIncomeSource: (source: IncomeSourceLocal) => void;
   onAddIncomeSource: (preselectedMemberId?: string) => void;
 }
 
@@ -149,12 +180,12 @@ export function IncomeSectionAccordion({
 }
 
 interface IncomeMemberSectionProps {
-  memberGroup: IncomeMemberGroup;
+  memberGroup: IncomeMemberGroupLocal;
   isExpanded: boolean;
   onToggle: () => void;
-  onEditIncome: (item: IncomeSourceData) => void;
-  onEditSource: (source: IncomeSource) => void;
-  onDeleteSource: (source: IncomeSource) => void;
+  onEditIncome: (item: IncomeSourceDataLocal) => void;
+  onEditSource: (source: IncomeSourceLocal) => void;
+  onDeleteSource: (source: IncomeSourceLocal) => void;
   onAddSource: () => void;
 }
 
@@ -245,7 +276,7 @@ function IncomeMemberSection({
 }
 
 interface IncomeSourceRowProps {
-  item: IncomeSourceData;
+  item: IncomeSourceDataLocal;
   indent: boolean;
   onEditIncome: () => void;
   onEditSource: () => void;

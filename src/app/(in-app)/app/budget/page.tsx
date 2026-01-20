@@ -55,6 +55,11 @@ import { formatCurrency, formatCurrencyFromDigits } from "@/shared/lib/formatter
 import { GoalFormModal } from "@/components/goals";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 import { CategoryWithBills } from "@/components/budget/category-with-bills";
+import {
+  IncomeSectionAccordion,
+  ExpensesSectionAccordion,
+  GoalsSectionAccordion,
+} from "@/features/budget/ui";
 
 interface Category {
   id: string;
@@ -1016,467 +1021,63 @@ export default function BudgetPage() {
       {/* Content */}
       <div className="flex-1 overflow-auto">
         {/* Income Section */}
-        {incomeData && incomeData.byMember.length > 0 && (
-          <div className="border-b-4 border-green-200 dark:border-green-900">
-            {/* Income Section Header - Clickable Toggle */}
-            <div
-              className="group px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-green-200/50 dark:hover:bg-green-950/70 transition-colors"
-              onClick={toggleIncomeSection}
-            >
-              <div className="flex items-center gap-2">
-                <ChevronDown className={cn("h-4 w-4 text-green-700 dark:text-green-300 transition-transform", !isIncomeExpanded && "-rotate-90")} />
-                <span className="text-lg">💰</span>
-                <span className="font-bold text-sm text-green-800 dark:text-green-200">RECEITAS</span>
-                <button
-                  className="ml-1 p-0.5 rounded hover:bg-green-200 dark:hover:bg-green-800 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openCreateIncomeSourceForm();
-                  }}
-                  title="Adicionar fonte de renda"
-                >
-                  <Plus className="h-3.5 w-3.5 text-green-700 dark:text-green-300" />
-                </button>
-              </div>
-              <div className="flex items-center gap-4 text-sm font-bold text-green-800 dark:text-green-200">
-                <span className="text-xs text-muted-foreground font-normal">Planejado:</span>
-                <span>{formatCurrency(incomeData.totals.planned)}</span>
-                <span className="text-xs text-muted-foreground font-normal">Recebido:</span>
-                <span className="text-green-600 dark:text-green-400">{formatCurrency(incomeData.totals.received)}</span>
-                <span className="text-xs text-muted-foreground font-normal">
-                  {incomeData.totals.received < incomeData.totals.planned ? "A Receber:" : "Extra:"}
-                </span>
-                <span className={incomeData.totals.received < incomeData.totals.planned ? "text-red-600" : "text-green-600"}>
-                  {formatCurrency(Math.abs(incomeData.totals.planned - incomeData.totals.received))}
-                </span>
-              </div>
-            </div>
-
-            {isIncomeExpanded && (
-              <div className="overflow-x-auto">
-                <div className="min-w-[550px]">
-                {/* Income Table Header */}
-                <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
-                  <div />
-                  <div>Fonte</div>
-                  <div className="text-right">Planejado</div>
-                  <div className="text-right">Recebido</div>
-                  <div className="text-right">A Receber</div>
-                </div>
-
-                {/* If only one member (or no member), show sources directly */}
-                {incomeData.byMember.length === 1 ? (
-              incomeData.byMember[0].sources.map((item) => {
-                const isEdited = item.planned !== item.defaultAmount;
-                const available = item.planned - item.received;
-                return (
-                  <div
-                    key={item.incomeSource.id}
-                    className="group/row grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm cursor-pointer"
-                    onClick={() => openEditIncomeModal(item)}
-                  >
-                    <div />
-                    <div className="flex items-center gap-1.5 pl-5">
-                      <span>{incomeTypeConfig[item.incomeSource.type]?.icon || "💵"}</span>
-                      <span>{item.incomeSource.name}</span>
-                      <span className="text-[10px] text-muted-foreground bg-muted px-1 rounded">
-                        {frequencyLabels[item.incomeSource.frequency] || "Mensal"}
-                      </span>
-                      {isEdited && (
-                        <span className="text-[10px] text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1 rounded">
-                          editado
-                        </span>
-                      )}
-                      <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditIncomeSourceForm(item.incomeSource as IncomeSource);
-                          }}
-                          className="p-1 rounded hover:bg-green-200 dark:hover:bg-green-800"
-                          title="Editar fonte de renda"
-                        >
-                          <Pencil className="h-3 w-3 text-muted-foreground" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletingIncomeSource(item.incomeSource as IncomeSource);
-                          }}
-                          className="p-1 rounded hover:bg-destructive/10"
-                          title="Excluir fonte de renda"
-                        >
-                          <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="text-right text-xs tabular-nums">{formatCurrency(item.planned)}</div>
-                    <div className="text-right text-xs tabular-nums text-green-600 dark:text-green-400">{formatCurrency(item.received)}</div>
-                    <div className={cn("text-right text-xs tabular-nums", item.received < item.planned ? "text-red-600" : "text-green-600")}>
-                      {formatCurrency(Math.abs(available))}
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              /* Multiple members - show with collapsible sections */
-              incomeData.byMember.map((memberGroup) => {
-                const memberId = memberGroup.member?.id || "no-member";
-                const isExpanded = expandedIncomeMembers.includes(memberId);
-                const memberAvailable = memberGroup.totals.planned - memberGroup.totals.received;
-
-                return (
-                  <div key={memberId}>
-                    {/* Member Row */}
-                    <div
-                      className="group grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center bg-green-50/50 dark:bg-green-950/20 border-b cursor-pointer hover:bg-green-100/50 dark:hover:bg-green-950/40 text-sm"
-                      onClick={() => toggleIncomeMember(memberId)}
-                    >
-                      <div />
-                      <div className="flex items-center gap-1.5">
-                        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", !isExpanded && "-rotate-90")} />
-                        {memberGroup.member && (
-                          <span
-                            className="h-3 w-3 rounded-full"
-                            style={{ backgroundColor: memberGroup.member.color || "#6366f1" }}
-                          />
-                        )}
-                        <span className="font-semibold">{memberGroup.member?.name || "Sem responsável"}</span>
-                        <span className="text-xs text-muted-foreground">({memberGroup.sources.length})</span>
-                        <button
-                          className="ml-1 p-0.5 rounded hover:bg-green-200 dark:hover:bg-green-800 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openCreateIncomeSourceForm(memberGroup.member?.id);
-                          }}
-                          title={`Adicionar fonte de renda para ${memberGroup.member?.name || "sem responsável"}`}
-                        >
-                          <Plus className="h-3.5 w-3.5 text-green-700 dark:text-green-300" />
-                        </button>
-                      </div>
-                      <div className="text-right text-xs tabular-nums font-bold">{formatCurrency(memberGroup.totals.planned)}</div>
-                      <div className="text-right text-xs tabular-nums font-bold text-green-600 dark:text-green-400">{formatCurrency(memberGroup.totals.received)}</div>
-                      <div className={cn("text-right text-xs tabular-nums font-bold", memberGroup.totals.received < memberGroup.totals.planned ? "text-red-600" : "text-green-600")}>
-                        {formatCurrency(Math.abs(memberAvailable))}
-                      </div>
-                    </div>
-
-                    {/* Income Sources for this member */}
-                    {isExpanded && memberGroup.sources.map((item) => {
-                      const isEdited = item.planned !== item.defaultAmount;
-                      const available = item.planned - item.received;
-                      return (
-                        <div
-                          key={item.incomeSource.id}
-                          className="group/row grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm cursor-pointer"
-                          onClick={() => openEditIncomeModal(item)}
-                        >
-                          <div />
-                          <div className="flex items-center gap-1.5 pl-10">
-                            <span>{incomeTypeConfig[item.incomeSource.type]?.icon || "💵"}</span>
-                            <span>{item.incomeSource.name}</span>
-                            <span className="text-[10px] text-muted-foreground bg-muted px-1 rounded">
-                              {frequencyLabels[item.incomeSource.frequency] || "Mensal"}
-                            </span>
-                            {isEdited && (
-                              <span className="text-[10px] text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1 rounded">
-                                editado
-                              </span>
-                            )}
-                            <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openEditIncomeSourceForm(item.incomeSource as IncomeSource);
-                                }}
-                                className="p-1 rounded hover:bg-green-200 dark:hover:bg-green-800"
-                                title="Editar fonte de renda"
-                              >
-                                <Pencil className="h-3 w-3 text-muted-foreground" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeletingIncomeSource(item.incomeSource as IncomeSource);
-                                }}
-                                className="p-1 rounded hover:bg-destructive/10"
-                                title="Excluir fonte de renda"
-                              >
-                                <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                              </button>
-                            </div>
-                          </div>
-                          <div className="text-right text-xs tabular-nums">{formatCurrency(item.planned)}</div>
-                          <div className="text-right text-xs tabular-nums text-green-600 dark:text-green-400">{formatCurrency(item.received)}</div>
-                          <div className={cn("text-right text-xs tabular-nums", item.received < item.planned ? "text-red-600" : "text-green-600")}>
-                            {formatCurrency(Math.abs(available))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })
-            )}
-                </div>
-              </div>
-            )}
-          </div>
+        {incomeData && (
+          <IncomeSectionAccordion
+            incomeData={incomeData}
+            isExpanded={isIncomeExpanded}
+            onToggle={toggleIncomeSection}
+            expandedMembers={expandedIncomeMembers}
+            onToggleMember={toggleIncomeMember}
+            onEditIncome={openEditIncomeModal}
+            onEditIncomeSource={openEditIncomeSourceForm}
+            onDeleteIncomeSource={setDeletingIncomeSource}
+            onAddIncomeSource={openCreateIncomeSourceForm}
+          />
         )}
 
         {/* Expenses Section */}
-        {groupsData.length > 0 && (
-          <>
-            {/* Expenses Section Header - Clickable Toggle */}
-            <div
-              className="px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-red-200/50 dark:hover:bg-red-950/70 transition-colors"
-              onClick={toggleExpensesSection}
-            >
-              <div className="flex items-center gap-2">
-                <ChevronDown className={cn("h-4 w-4 text-red-700 dark:text-red-300 transition-transform", !isExpensesExpanded && "-rotate-90")} />
-                <span className="text-lg">💸</span>
-                <span className="font-bold text-sm text-red-800 dark:text-red-200">DESPESAS</span>
-              </div>
-              <div className="flex items-center gap-4 text-sm font-bold text-red-800 dark:text-red-200">
-                <span className="text-xs text-muted-foreground font-normal">Alocado:</span>
-                <span>{formatCurrency(totals.allocated)}</span>
-                <span className="text-xs text-muted-foreground font-normal">Gasto:</span>
-                <span className="text-red-600 dark:text-red-400">{formatCurrency(totals.spent)}</span>
-                <span className="text-xs text-muted-foreground font-normal">Disponível:</span>
-                <span className={totals.allocated - totals.spent >= 0 ? "" : "text-red-600"}>{formatCurrency(totals.allocated - totals.spent)}</span>
-              </div>
-            </div>
-
-            {isExpensesExpanded && (
-              <div className="overflow-x-auto">
-                <div className="min-w-[550px]">
-                {/* Expenses Table Header */}
-                <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
-                  <div />
-                  <div>Categoria</div>
-                  <div className="text-right">Alocado</div>
-                  <div className="text-right">Gasto</div>
-                  <div className="text-right">Disponível</div>
-                </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {groupsData.length > 0 && isExpensesExpanded ? (
-          <div className="overflow-x-auto">
-            <div className="min-w-[550px]">
-          {groupsData.map(({ group, categories, totals: groupTotals }) => {
-            const isExpanded = expandedGroups.includes(group.id);
-            const filteredCategories = filterCategories(categories);
-            const categoryIds = categories.map((c) => c.category.id);
-            const allSelected = categoryIds.length > 0 && categoryIds.every((id) => selectedCategories.includes(id));
-            const someSelected = categoryIds.some((id) => selectedCategories.includes(id));
-
-            if (activeFilter !== "all" && filteredCategories.length === 0) return null;
-
-            return (
-              <div key={group.id}>
-                {/* Group Row */}
-                <div
-                  className="group grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center bg-muted/40 border-b cursor-pointer hover:bg-muted/60 text-sm"
-                  onClick={() => toggleGroup(group.id)}
-                >
-                  <Checkbox
-                    checked={allSelected}
-                    className={cn("h-3.5 w-3.5", someSelected && !allSelected && "opacity-50")}
-                    onCheckedChange={() => toggleGroupSelection(group.id)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <div className="flex items-center gap-1.5">
-                    <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", !isExpanded && "-rotate-90")} />
-                    <span>{group.icon}</span>
-                    <span className="font-bold">{group.name}</span>
-                    <button
-                      className="ml-1 p-0.5 rounded hover:bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setNewCategoryGroupId(group.id);
-                        setNewCategoryName("");
-                        setNewCategoryIcon("");
-                        setNewCategoryIconMode("recent");
-                        // Pre-select behavior based on group
-                        const defaultBehavior = GROUP_DEFAULT_BEHAVIORS[group.code] || "refill_up";
-                        setNewCategoryBehavior(defaultBehavior);
-                      }}
-                      title="Adicionar categoria"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <div className="text-right text-xs tabular-nums font-bold">{formatCurrency(groupTotals.allocated)}</div>
-                  <div className="text-right text-xs tabular-nums font-bold">{formatCurrency(groupTotals.spent)}</div>
-                  <div className={cn(
-                    "text-right text-xs tabular-nums font-bold",
-                    groupTotals.available >= 0 ? "text-green-600" : "text-red-600"
-                  )}>
-                    {formatCurrency(groupTotals.available)}
-                  </div>
-                </div>
-
-                {/* Categories */}
-                {isExpanded && filteredCategories.map((item) => {
-                  const isSelected = selectedCategories.includes(item.category.id);
-                  const isOtherMember = item.isOtherMemberCategory;
-
-                  // For other member categories, show simple read-only row
-                  if (isOtherMember) {
-                    return (
-                      <div
-                        key={item.category.id}
-                        className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b text-sm opacity-75 cursor-default"
-                        data-tutorial="category-row"
-                      >
-                        <div className="h-3.5 w-3.5" />
-                        <div className="flex items-center gap-1.5 pl-5">
-                          <span>{item.category.icon || "📌"}</span>
-                          <span>{item.category.name}</span>
-                        </div>
-                        <div className="text-right text-xs tabular-nums">{formatCurrency(item.allocated)}</div>
-                        <div className="text-right text-xs tabular-nums">{formatCurrency(item.spent)}</div>
-                        <div className={cn(
-                          "text-right text-xs tabular-nums font-medium px-1",
-                          item.available > 0 ? "text-green-600" :
-                          item.available < 0 ? "text-red-600 bg-red-100 dark:bg-red-900/30 rounded" : ""
-                        )}>
-                          {formatCurrency(item.available)}
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // For own categories, use CategoryWithBills component
-                  return (
-                    <CategoryWithBills
-                      key={item.category.id}
-                      item={item}
-                      budgetId={budgets[0]?.id || ""}
-                      accounts={accounts}
-                      isSelected={isSelected}
-                      onToggleSelection={() => toggleCategorySelection(item.category.id)}
-                      onEditAllocation={openEditModal}
-                      onEditCategory={openEditCategoryModal}
-                      onDeleteCategory={setDeletingCategory}
-                      onBillsChange={fetchData}
-                    />
-                  );
-                })}
-              </div>
-            );
-          })}
-            </div>
-          </div>
-        ) : groupsData.length === 0 ? (
+        {groupsData.length > 0 ? (
+          <ExpensesSectionAccordion
+            groupsData={groupsData}
+            totals={totals}
+            budgetId={budgets[0]?.id || ""}
+            accounts={accounts}
+            isExpanded={isExpensesExpanded}
+            onToggle={toggleExpensesSection}
+            expandedGroups={expandedGroups}
+            onToggleGroup={toggleGroup}
+            activeFilter={activeFilter}
+            selectedCategories={selectedCategories}
+            onToggleCategorySelection={toggleCategorySelection}
+            onToggleGroupSelection={toggleGroupSelection}
+            onEditAllocation={openEditModal}
+            onEditCategory={openEditCategoryModal}
+            onDeleteCategory={setDeletingCategory}
+            onAddCategory={(groupId, groupCode) => {
+              setNewCategoryGroupId(groupId);
+              setNewCategoryName("");
+              setNewCategoryIcon("");
+              setNewCategoryIconMode("recent");
+              const defaultBehavior = GROUP_DEFAULT_BEHAVIORS[groupCode] || "refill_up";
+              setNewCategoryBehavior(defaultBehavior);
+            }}
+            onBillsChange={fetchData}
+          />
+        ) : (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <PiggyBank className="h-12 w-12 text-muted-foreground" />
             <h3 className="font-semibold">Nenhuma categoria configurada</h3>
             <Button onClick={() => router.push("/app/categories/setup")}>Configurar Categorias</Button>
           </div>
-        ) : null}
+        )}
 
         {/* Goals Section */}
-        <div className="border-b" data-tutorial="goals-group">
-          {/* Goals Section Header - Clickable Toggle */}
-          <div
-            className="group px-4 py-2 bg-violet-100 dark:bg-violet-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-violet-200/50 dark:hover:bg-violet-950/70 transition-colors"
-            onClick={toggleGoalsSection}
-          >
-            <div className="flex items-center gap-2">
-              <ChevronDown className={cn("h-4 w-4 text-violet-700 dark:text-violet-300 transition-transform", !isGoalsExpanded && "-rotate-90")} />
-              <Target className="h-4 w-4 text-violet-700 dark:text-violet-300" />
-              <span className="font-bold text-sm text-violet-800 dark:text-violet-200">METAS</span>
-              <button
-                className="ml-1 p-0.5 rounded hover:bg-violet-200 dark:hover:bg-violet-800 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsGoalFormOpen(true);
-                }}
-                title="Adicionar meta"
-              >
-                <Plus className="h-3.5 w-3.5 text-violet-700 dark:text-violet-300" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              {goals.length > 0 && (
-                <>
-                  <span className="text-xs text-muted-foreground font-normal">Mensal sugerido:</span>
-                  <span className="font-bold text-violet-800 dark:text-violet-200">
-                    {formatCurrency(goals.reduce((sum, g) => sum + g.monthlyTarget, 0))}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-
-          {isGoalsExpanded && goals.length > 0 && (
-            <div className="overflow-x-auto">
-              <div className="min-w-[550px]">
-              {/* Goals Table Header */}
-              <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
-                <div />
-                <div>Meta</div>
-                <div className="text-right">Progresso</div>
-                <div className="text-right">Mensal</div>
-                <div className="text-right">Restante</div>
-              </div>
-
-              {/* Goals Rows */}
-              {goals.map((goal) => (
-                <Link
-                  key={goal.id}
-                  href="/app/goals"
-                  className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-2 items-center border-b hover:bg-muted/20 text-sm cursor-pointer"
-                >
-                  <div className="flex items-center justify-center">
-                    <span className="text-base">{goal.icon}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{goal.name}</span>
-                    <div className="flex-1 max-w-[120px]">
-                      <Progress
-                        value={goal.progress}
-                        className="h-1.5"
-                        style={{ "--progress-background": goal.color } as React.CSSProperties}
-                      />
-                    </div>
-                  </div>
-                  <div className="text-right text-xs tabular-nums text-violet-600 dark:text-violet-400">
-                    {goal.progress}%
-                  </div>
-                  <div className="text-right text-xs tabular-nums font-medium">
-                    {formatCurrency(goal.monthlyTarget)}
-                  </div>
-                  <div className="text-right text-xs tabular-nums text-muted-foreground">
-                    {goal.monthsRemaining > 0
-                      ? `${goal.monthsRemaining} ${goal.monthsRemaining === 1 ? "mês" : "meses"}`
-                      : "Vencida"}
-                  </div>
-                </Link>
-              ))}
-              </div>
-            </div>
-          )}
-
-          {/* Empty state for goals */}
-          {isGoalsExpanded && goals.length === 0 && (
-            <div className="p-6 text-center text-muted-foreground">
-              <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">Nenhuma meta criada ainda</p>
-              <button
-                onClick={() => setIsGoalFormOpen(true)}
-                className="mt-2 text-sm text-violet-600 dark:text-violet-400 hover:underline"
-              >
-                Criar sua primeira meta
-              </button>
-            </div>
-          )}
-        </div>
+        <GoalsSectionAccordion
+          goals={goals}
+          isExpanded={isGoalsExpanded}
+          onToggle={toggleGoalsSection}
+          onAddGoal={() => setIsGoalFormOpen(true)}
+        />
 
       </div>
 

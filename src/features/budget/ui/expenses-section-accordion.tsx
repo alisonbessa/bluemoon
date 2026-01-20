@@ -4,16 +4,12 @@ import { ChevronDown, Plus } from 'lucide-react';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { cn } from '@/shared/lib/utils';
 import { CategoryWithBills } from '@/components/budget/category-with-bills';
-import {
-  formatCurrency,
-  type GroupData,
-  type CategoryAllocation,
-  type FilterType,
-} from '../types';
-import type { Account } from '@/types/account';
+import { formatCurrency } from '../types';
 
-// Simplified category type that matches CategoryWithBills expectations
-interface CategorySimple {
+// Local types that match what the budget page provides
+type FilterType = 'all' | 'underfunded' | 'overfunded' | 'money_available';
+
+interface CategoryLocal {
   id: string;
   name: string;
   icon?: string | null;
@@ -21,11 +17,58 @@ interface CategorySimple {
   plannedAmount: number;
 }
 
+interface RecurringBillSummaryLocal {
+  id: string;
+  name: string;
+  amount: number;
+  frequency: string;
+  dueDay: number | null;
+  dueMonth: number | null;
+  isAutoDebit?: boolean;
+  isVariable?: boolean;
+  account: { id: string; name: string; icon: string | null } | null;
+}
+
+interface CategoryAllocationLocal {
+  category: CategoryLocal;
+  allocated: number;
+  carriedOver: number;
+  spent: number;
+  available: number;
+  isOtherMemberCategory?: boolean;
+  recurringBills?: RecurringBillSummaryLocal[];
+}
+
+interface GroupLocal {
+  id: string;
+  code: string;
+  name: string;
+  icon?: string | null;
+  displayOrder: number;
+}
+
+interface GroupDataLocal {
+  group: GroupLocal;
+  categories: CategoryAllocationLocal[];
+  totals: {
+    allocated: number;
+    spent: number;
+    available: number;
+  };
+}
+
+interface AccountLocal {
+  id: string;
+  name: string;
+  type: string;
+  icon?: string | null;
+}
+
 interface ExpensesSectionAccordionProps {
-  groupsData: GroupData[];
+  groupsData: GroupDataLocal[];
   totals: { allocated: number; spent: number; available: number };
   budgetId: string;
-  accounts: Account[];
+  accounts: AccountLocal[];
   isExpanded: boolean;
   onToggle: () => void;
   expandedGroups: string[];
@@ -34,9 +77,9 @@ interface ExpensesSectionAccordionProps {
   selectedCategories: string[];
   onToggleCategorySelection: (categoryId: string) => void;
   onToggleGroupSelection: (groupId: string) => void;
-  onEditAllocation: (category: CategorySimple, allocated: number) => void;
-  onEditCategory: (category: CategorySimple) => void;
-  onDeleteCategory: (category: CategorySimple) => void;
+  onEditAllocation: (category: CategoryLocal, allocated: number) => void;
+  onEditCategory: (category: CategoryLocal) => void;
+  onDeleteCategory: (category: CategoryLocal) => void;
   onAddCategory: (groupId: string, groupCode: string) => void;
   onBillsChange: () => void;
 }
@@ -60,7 +103,7 @@ export function ExpensesSectionAccordion({
   onAddCategory,
   onBillsChange,
 }: ExpensesSectionAccordionProps) {
-  const filterCategories = (categories: CategoryAllocation[]): CategoryAllocation[] => {
+  const filterCategories = (categories: CategoryAllocationLocal[]): CategoryAllocationLocal[] => {
     switch (activeFilter) {
       case 'underfunded':
         return categories.filter(
