@@ -3,15 +3,13 @@
 import { useState } from "react";
 import { Button } from "@/shared/ui/button";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/shared/ui/alert-dialog";
+  PageHeader,
+  EmptyState,
+  DeleteConfirmDialog,
+  LoadingState,
+  SummaryCard,
+  ResponsiveButton,
+} from "@/shared/molecules";
 import {
   COMPACT_TABLE_STYLES,
   GroupToggleRow,
@@ -21,20 +19,13 @@ import {
 import { AccountForm, type Account, type AccountFormData } from "@/components/accounts";
 import {
   Plus,
-  Loader2,
   Wallet,
   CreditCard,
   PiggyBank,
   Eye,
   EyeOff,
-  HelpCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/shared/ui/tooltip";
 import { cn } from "@/shared/lib/utils";
 import { formatCurrency, formatCurrencyCompact } from "@/shared/lib/formatters";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
@@ -167,104 +158,69 @@ export default function AccountsPage() {
   );
 
   if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingState fullHeight />;
   }
 
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Contas</h1>
-          <p className="text-sm text-muted-foreground">
-            Gerencie suas contas bancárias, cartões e investimentos
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          {accountsByType.investment.length > 0 && (
-            <button
-              onClick={() => setIncludeInvestments(!includeInvestments)}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              title={
-                includeInvestments
-                  ? "Ocultar investimentos do patrimônio"
-                  : "Incluir investimentos no patrimônio"
-              }
+      <PageHeader
+        title="Contas"
+        description="Gerencie suas contas bancárias, cartões e investimentos"
+        actions={
+          <div className="flex items-center gap-4">
+            {accountsByType.investment.length > 0 && (
+              <button
+                onClick={() => setIncludeInvestments(!includeInvestments)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                title={
+                  includeInvestments
+                    ? "Ocultar investimentos do patrimônio"
+                    : "Incluir investimentos no patrimônio"
+                }
+              >
+                {includeInvestments ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">Investimentos</span>
+              </button>
+            )}
+            <ResponsiveButton
+              onClick={() => setIsFormOpen(true)}
+              size="sm"
+              icon={<Plus />}
+              data-tutorial="add-account-button"
             >
-              {includeInvestments ? (
-                <Eye className="h-4 w-4" />
-              ) : (
-                <EyeOff className="h-4 w-4" />
-              )}
-              <span className="hidden sm:inline">Investimentos</span>
-            </button>
-          )}
-          <Button onClick={() => setIsFormOpen(true)} size="sm" data-tutorial="add-account-button">
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Conta
-          </Button>
-        </div>
-      </div>
+              Nova Conta
+            </ResponsiveButton>
+          </div>
+        }
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-lg border bg-card p-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Wallet className="h-4 w-4" />
-            <span>Patrimônio Líquido</span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <HelpCircle className="h-3.5 w-3.5 cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                Soma de todas as suas contas menos as dívidas (faturas de cartão de crédito)
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          <div className="mt-1 text-xl font-bold">
-            {formatCurrency(totalBalance - totalDebt)}
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-card p-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <PiggyBank className="h-4 w-4 text-green-500" />
-            <span>Saldo em Contas</span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <HelpCircle className="h-3.5 w-3.5 cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                Soma de contas correntes, poupança{includeInvestments ? ", investimentos" : ""} e benefícios. Não inclui cartões de crédito.
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          <div className="mt-1 text-xl font-bold text-green-600">
-            {formatCurrency(totalBalance)}
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-card p-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CreditCard className="h-4 w-4 text-red-500" />
-            <span>Fatura dos Cartões</span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <HelpCircle className="h-3.5 w-3.5 cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                Soma das faturas de todos os cartões de crédito
-              </TooltipContent>
-            </Tooltip>
-          </div>
-          <div className="mt-1 text-xl font-bold text-red-600">
-            {formatCurrency(totalDebt)}
-          </div>
-        </div>
+        <SummaryCard
+          icon={<Wallet className="h-4 w-4" />}
+          label="Patrimônio Líquido"
+          value={formatCurrency(totalBalance - totalDebt)}
+          tooltip="Soma de todas as suas contas menos as dívidas (faturas de cartão de crédito)"
+        />
+        <SummaryCard
+          icon={<PiggyBank className="h-4 w-4 text-green-500" />}
+          label="Saldo em Contas"
+          value={formatCurrency(totalBalance)}
+          valueColor="positive"
+          tooltip={`Soma de contas correntes, poupança${includeInvestments ? ", investimentos" : ""} e benefícios. Não inclui cartões de crédito.`}
+        />
+        <SummaryCard
+          icon={<CreditCard className="h-4 w-4 text-red-500" />}
+          label="Fatura dos Cartões"
+          value={formatCurrency(totalDebt)}
+          valueColor="negative"
+          tooltip="Soma das faturas de todos os cartões de crédito"
+        />
       </div>
 
       {/* Compact Accounts Table */}
@@ -456,19 +412,16 @@ export default function AccountsPage() {
           })}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed bg-card p-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <Wallet className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <h3 className="font-semibold">Nenhuma conta cadastrada</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Adicione suas contas bancárias e cartões para começar
-          </p>
-          <Button className="mt-4" onClick={() => setIsFormOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Adicionar Conta
-          </Button>
-        </div>
+        <EmptyState
+          icon={<Wallet className="h-6 w-6 text-muted-foreground" />}
+          title="Nenhuma conta cadastrada"
+          description="Adicione suas contas bancárias e cartões para começar"
+          action={{
+            label: "Adicionar Conta",
+            onClick: () => setIsFormOpen(true),
+            icon: <Plus className="mr-2 h-4 w-4" />,
+          }}
+        />
       )}
 
       {/* Forms and Dialogs */}
@@ -505,29 +458,13 @@ export default function AccountsPage() {
         />
       )}
 
-      <AlertDialog
+      <DeleteConfirmDialog
         open={!!deletingAccount}
         onOpenChange={(open) => !open && setDeletingAccount(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir conta?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir a conta &quot;{deletingAccount?.name}&quot;?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteAccount}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirm={handleDeleteAccount}
+        title="Excluir conta?"
+        description={`Tem certeza que deseja excluir a conta "${deletingAccount?.name}"? Esta ação não pode ser desfeita.`}
+      />
     </div>
   );
 }

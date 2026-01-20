@@ -21,20 +21,18 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/shared/ui/alert-dialog";
-import {
   Loader2,
   Plus,
   Wallet,
 } from "lucide-react";
+import {
+  PageHeader,
+  EmptyState,
+  DeleteConfirmDialog,
+  LoadingState,
+  SummaryCard,
+  ResponsiveButton,
+} from "@/shared/molecules";
 import {
   COMPACT_TABLE_STYLES,
   GroupToggleRow,
@@ -329,48 +327,40 @@ export default function IncomePage() {
   );
 
   if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingState fullHeight />;
   }
 
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Rendas</h1>
-          <p className="text-sm text-muted-foreground">
-            Gerencie suas fontes de renda
-          </p>
-        </div>
-        <Button onClick={() => openCreateForm()} size="sm" data-tutorial="add-income-button">
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Renda
-        </Button>
-      </div>
+      <PageHeader
+        title="Rendas"
+        description="Gerencie suas fontes de renda"
+        actions={
+          <ResponsiveButton
+            onClick={() => openCreateForm()}
+            size="sm"
+            icon={<Plus />}
+            data-tutorial="add-income-button"
+          >
+            Nova Renda
+          </ResponsiveButton>
+        }
+      />
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4" data-tutorial="income-summary">
-        <div className="rounded-lg border bg-card p-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Wallet className="h-4 w-4 text-green-500" />
-            <span>Renda Mensal Total</span>
-          </div>
-          <div className="mt-1 text-xl font-bold text-green-600">
-            {formatCentsToCurrency(totalMonthlyIncome)}
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-card p-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="text-lg">💰</span>
-            <span>Fontes de Renda</span>
-          </div>
-          <div className="mt-1 text-xl font-bold">{incomeSources.length}</div>
-        </div>
+        <SummaryCard
+          icon={<Wallet className="h-4 w-4 text-green-500" />}
+          label="Renda Mensal Total"
+          value={formatCentsToCurrency(totalMonthlyIncome)}
+          valueColor="positive"
+        />
+        <SummaryCard
+          icon={<span className="text-lg">💰</span>}
+          label="Fontes de Renda"
+          value={incomeSources.length.toString()}
+        />
       </div>
 
       {/* Compact Income Table */}
@@ -465,19 +455,16 @@ export default function IncomePage() {
           })}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed bg-card p-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <Wallet className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <h3 className="font-semibold">Nenhuma renda configurada</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Adicione suas fontes de renda para começar a planejar seu orçamento
-          </p>
-          <Button className="mt-4" onClick={() => openCreateForm()}>
-            <Plus className="mr-2 h-4 w-4" />
-            Adicionar Renda
-          </Button>
-        </div>
+        <EmptyState
+          icon={<Wallet className="h-6 w-6 text-muted-foreground" />}
+          title="Nenhuma renda configurada"
+          description="Adicione suas fontes de renda para começar a planejar seu orçamento"
+          action={{
+            label: "Adicionar Renda",
+            onClick: () => openCreateForm(),
+            icon: <Plus className="mr-2 h-4 w-4" />,
+          }}
+        />
       )}
 
       {/* Create/Edit Dialog */}
@@ -691,29 +678,13 @@ export default function IncomePage() {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog
+      <DeleteConfirmDialog
         open={!!deletingSource}
         onOpenChange={(open) => !open && setDeletingSource(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir fonte de renda?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir &quot;{deletingSource?.name}&quot;?
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirm={handleDelete}
+        title="Excluir fonte de renda?"
+        description={`Tem certeza que deseja excluir "${deletingSource?.name}"? Esta ação não pode ser desfeita.`}
+      />
     </div>
   );
 }

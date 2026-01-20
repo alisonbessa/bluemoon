@@ -1,10 +1,15 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { goals, goalContributions, budgetMembers } from "@/db/schema";
+import { goals } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { capitalizeWords } from "@/shared/lib/utils";
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  forbiddenError,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 const createGoalSchema = z.object({
   budgetId: z.string().uuid(),
@@ -16,15 +21,6 @@ const createGoalSchema = z.object({
   initialAmount: z.number().int().min(0).optional(),
   targetDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
 });
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
 
 // Helper to calculate goal metrics
 function calculateGoalMetrics(goal: typeof goals.$inferSelect) {
@@ -64,7 +60,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ goals: [] });
+    return successResponse({ goals: [] });
   }
 
   const conditions = [inArray(goals.budgetId, budgetIds)];
@@ -89,7 +85,7 @@ export const GET = withAuthRequired(async (req, context) => {
     ...calculateGoalMetrics(goal),
   }));
 
-  return NextResponse.json({ goals: goalsWithMetrics });
+  return successResponse({ goals: goalsWithMetrics });
 });
 
 // POST - Create a new goal
@@ -99,10 +95,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = createGoalSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { budgetId, targetDate, initialAmount, accountId, ...goalData } = validation.data;
@@ -110,10 +103,7 @@ export const POST = withAuthRequired(async (req, context) => {
   // Check user has access to budget
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json(
-      { error: "Budget not found or access denied" },
-      { status: 404 }
-    );
+    return forbiddenError("Budget not found or access denied");
   }
 
   // Get display order
@@ -135,13 +125,13 @@ export const POST = withAuthRequired(async (req, context) => {
     })
     .returning();
 
-  return NextResponse.json(
+  return successResponse(
     {
       goal: {
         ...newGoal,
         ...calculateGoalMetrics(newGoal),
       },
     },
-    { status: 201 }
+    201
   );
 });

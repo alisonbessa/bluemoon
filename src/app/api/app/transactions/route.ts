@@ -1,38 +1,10 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { transactions, budgetMembers, financialAccounts, categories, incomeSources } from "@/db/schema";
+import { transactions, financialAccounts, categories, incomeSources } from "@/db/schema";
 import { eq, and, inArray, desc, gte, lte } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { z } from "zod";
-import { financialTransactionTypeEnum, financialTransactionStatusEnum } from "@/db/schema/transactions";
-
-const createTransactionSchema = z.object({
-  budgetId: z.string().uuid(),
-  accountId: z.string().uuid(),
-  categoryId: z.string().uuid().optional(), // For expense transactions
-  incomeSourceId: z.string().uuid().optional(), // For income transactions
-  memberId: z.string().uuid().optional(),
-  toAccountId: z.string().uuid().optional(), // For transfers
-  recurringBillId: z.string().uuid().optional(), // Link to recurring bill
-  type: financialTransactionTypeEnum,
-  status: financialTransactionStatusEnum.optional(), // Allow setting status (default: pending)
-  amount: z.number().int(), // In cents
-  description: z.string().optional(),
-  notes: z.string().optional(),
-  date: z.string().datetime().or(z.date()),
-  // Installment fields
-  isInstallment: z.boolean().optional(),
-  totalInstallments: z.number().int().min(2).max(72).optional(),
-});
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import { createTransactionSchema } from "@/shared/lib/validations/transaction.schema";
 
 // GET - Get transactions for user's budgets
 export const GET = withAuthRequired(async (req, context) => {

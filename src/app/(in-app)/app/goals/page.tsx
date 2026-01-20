@@ -10,16 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/shared/ui/alert-dialog";
 import { Label } from "@/shared/ui/label";
 import { Progress } from "@/shared/ui/progress";
 import { CurrencyInput } from "@/shared/ui/currency-input";
@@ -32,7 +22,6 @@ import {
 } from "@/shared/ui/select";
 import {
   Plus,
-  Loader2,
   Target,
   Pencil,
   Calendar,
@@ -46,6 +35,13 @@ import confetti from "canvas-confetti";
 import { GoalFormModal } from "@/components/goals/goal-form-modal";
 import { useGoals, useBudgets, useAccounts } from "@/shared/hooks";
 import type { Goal } from "@/types";
+import {
+  PageHeader,
+  EmptyState,
+  DeleteConfirmDialog,
+  LoadingState,
+  ResponsiveButton,
+} from "@/shared/molecules";
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -172,31 +168,26 @@ export default function GoalsPage() {
   const completedGoals = goals.filter((g) => g.isCompleted && !g.isArchived);
 
   if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingState fullHeight />;
   }
 
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Target className="h-6 w-6" />
-            Metas
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Defina objetivos financeiros e acompanhe seu progresso
-          </p>
-        </div>
-        <Button onClick={openCreateForm} size="sm" data-tutorial="add-goal-button">
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Meta
-        </Button>
-      </div>
+      <PageHeader
+        title="Metas"
+        description="Defina objetivos financeiros e acompanhe seu progresso"
+        actions={
+          <ResponsiveButton
+            onClick={openCreateForm}
+            size="sm"
+            icon={<Plus />}
+            data-tutorial="add-goal-button"
+          >
+            Nova Meta
+          </ResponsiveButton>
+        }
+      />
 
       {/* Active Goals */}
       {activeGoals.length > 0 ? (
@@ -295,19 +286,16 @@ export default function GoalsPage() {
           ))}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed bg-card p-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <Target className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <h3 className="font-semibold">Nenhuma meta ativa</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Crie metas financeiras e acompanhe seu progresso
-          </p>
-          <Button className="mt-4" onClick={openCreateForm}>
-            <Plus className="mr-2 h-4 w-4" />
-            Criar Primeira Meta
-          </Button>
-        </div>
+        <EmptyState
+          icon={<Target className="h-6 w-6 text-muted-foreground" />}
+          title="Nenhuma meta ativa"
+          description="Crie metas financeiras e acompanhe seu progresso"
+          action={{
+            label: "Criar Primeira Meta",
+            onClick: openCreateForm,
+            icon: <Plus className="mr-2 h-4 w-4" />,
+          }}
+        />
       )}
 
       {/* Completed Goals */}
@@ -437,26 +425,14 @@ export default function GoalsPage() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingGoal} onOpenChange={(open) => !open && setDeletingGoal(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Arquivar meta?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja arquivar a meta &quot;{deletingGoal?.name}&quot;? A meta será
-              removida da sua lista, mas você pode restaurá-la depois.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Arquivar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmDialog
+        open={!!deletingGoal}
+        onOpenChange={(open) => !open && setDeletingGoal(null)}
+        onConfirm={handleDelete}
+        title="Arquivar meta?"
+        description={`Tem certeza que deseja arquivar a meta "${deletingGoal?.name}"? A meta será removida da sua lista, mas você pode restaurá-la depois.`}
+        confirmLabel="Arquivar"
+      />
     </div>
   );
 }

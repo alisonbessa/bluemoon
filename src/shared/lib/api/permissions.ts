@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { budgetMembers } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export type MemberType = "owner" | "partner" | "child" | "pet";
 
@@ -88,4 +88,21 @@ export async function authorizeBudgetAccess(
   }
 
   return { authorized: true };
+}
+
+/**
+ * Get user's member ID in a specific budget
+ */
+export async function getUserMemberIdInBudget(
+  userId: string,
+  budgetId: string
+): Promise<string | null> {
+  const membership = await db
+    .select({ memberId: budgetMembers.id })
+    .from(budgetMembers)
+    .where(
+      and(eq(budgetMembers.userId, userId), eq(budgetMembers.budgetId, budgetId))
+    )
+    .limit(1);
+  return membership[0]?.memberId || null;
 }

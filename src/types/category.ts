@@ -4,6 +4,15 @@
 
 export type CategoryBehavior = 'set_aside' | 'refill_up';
 
+/**
+ * Simplified category for selects and lists (minimal fields)
+ */
+export interface CategorySimple {
+  id: string;
+  name: string;
+  icon?: string | null;
+}
+
 export interface Category {
   id: string;
   name: string;

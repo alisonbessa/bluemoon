@@ -1,37 +1,22 @@
 // =============================================================================
 // Tipos de Domínio - Transactions Module
-// Tipos de domínio completos são importados de @/types
-// Aqui definimos apenas tipos específicos de UI/componentes
+// Re-exports from @/types with module-specific extensions
 // =============================================================================
 
-import type { AccountType } from "@/types/account";
+import type { AccountSimple } from "@/types/account";
+import type { CategorySimple } from "@/types/category";
+import type { IncomeSourceSimple } from "@/types/income";
 
 /**
- * Tipos simplificados para uso em UI (selects, listas, etc.)
- * Usamos interfaces mínimas para evitar dependência de campos não necessários.
+ * Re-export simplified types for backward compatibility
  */
+export type Category = CategorySimple;
+export type Account = AccountSimple;
+export type IncomeSource = IncomeSourceSimple;
 
-export interface Category {
-  id: string;
-  name: string;
-  icon?: string | null;
-}
-
-export interface Account {
-  id: string;
-  name: string;
-  type: AccountType | string; // Aceita tanto o tipo preciso quanto string para compatibilidade
-  icon?: string | null;
-}
-
-export interface IncomeSource {
-  id: string;
-  name: string;
-  type: string;
-  amount: number;
-  frequency: string;
-}
-
+/**
+ * Transaction-specific types
+ */
 export interface Transaction {
   id: string;
   date: string;

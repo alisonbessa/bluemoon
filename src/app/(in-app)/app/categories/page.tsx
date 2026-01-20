@@ -12,16 +12,6 @@ import {
   DialogTitle,
 } from "@/shared/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/shared/ui/alert-dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -37,14 +27,21 @@ import {
 import { Label } from "@/shared/ui/label";
 import {
   Plus,
-  Loader2,
   FolderOpen,
   Wand2,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { toast } from "sonner";
 import { CategoryWizard } from "@/components/categories/category-wizard";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
+import {
+  PageHeader,
+  EmptyState,
+  DeleteConfirmDialog,
+  LoadingState,
+  SummaryCard,
+} from "@/shared/molecules";
 
 interface Category {
   id: string;
@@ -251,50 +248,39 @@ export default function CategoriesPage() {
   const totalCategories = groups.reduce((sum, g) => sum + g.categories.length, 0);
 
   if (isLoading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingState fullHeight />;
   }
 
   return (
     <div className="flex flex-col gap-4 p-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Categorias</h1>
-          <p className="text-sm text-muted-foreground">
-            Organize suas despesas e receitas em categorias
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsWizardOpen(true)}
-        >
-          <Wand2 className="mr-2 h-4 w-4" />
-          Assistente
-        </Button>
-      </div>
+      <PageHeader
+        title="Categorias"
+        description="Organize suas despesas e receitas em categorias"
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsWizardOpen(true)}
+          >
+            <Wand2 className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Assistente</span>
+          </Button>
+        }
+      />
 
       {/* Summary */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-lg border bg-card p-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <FolderOpen className="h-4 w-4" />
-            <span>Grupos</span>
-          </div>
-          <div className="mt-1 text-xl font-bold">{groups.length}</div>
-        </div>
-
-        <div className="rounded-lg border bg-card p-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="text-lg">📌</span>
-            <span>Categorias</span>
-          </div>
-          <div className="mt-1 text-xl font-bold">{totalCategories}</div>
-        </div>
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+        <SummaryCard
+          icon={<FolderOpen className="h-full w-full" />}
+          label="Grupos"
+          value={String(groups.length)}
+        />
+        <SummaryCard
+          icon={<span className="text-lg">📌</span>}
+          label="Categorias"
+          value={String(totalCategories)}
+        />
       </div>
 
       {/* Compact Categories Table */}
@@ -400,22 +386,16 @@ export default function CategoriesPage() {
           })}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed bg-card p-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-            <FolderOpen className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <h3 className="font-semibold">Nenhuma categoria configurada</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Complete o onboarding para criar categorias automaticamente ou
-            adicione manualmente
-          </p>
-          <div className="flex justify-center gap-2 mt-4">
-            <Button onClick={() => setIsWizardOpen(true)}>
-              <Wand2 className="mr-2 h-4 w-4" />
-              Configurar Categorias
-            </Button>
-          </div>
-        </div>
+        <EmptyState
+          icon={<FolderOpen className="h-6 w-6 text-muted-foreground" />}
+          title="Nenhuma categoria configurada"
+          description="Complete o onboarding para criar categorias automaticamente ou adicione manualmente"
+          action={{
+            label: "Configurar Categorias",
+            onClick: () => setIsWizardOpen(true),
+            icon: <Wand2 className="mr-2 h-4 w-4" />,
+          }}
+        />
       )}
 
       {/* Create/Edit Category Dialog */}
@@ -572,29 +552,14 @@ export default function CategoriesPage() {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog
+      <DeleteConfirmDialog
         open={!!deletingCategory}
         onOpenChange={(open) => !open && setDeletingCategory(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir categoria?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir a categoria &quot;
-              {deletingCategory?.name}&quot;? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirm={handleDelete}
+        title="Excluir categoria?"
+        description={`Tem certeza que deseja excluir a categoria "${deletingCategory?.name}"? Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir"
+      />
 
       {/* Category Wizard */}
       <CategoryWizard

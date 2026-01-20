@@ -2,10 +2,15 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { incomeSources, budgetMembers, financialAccounts } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { incomeTypeEnum, incomeFrequencyEnum } from "@/db/schema/income-sources";
 import { capitalizeWords } from "@/shared/lib/utils";
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  forbiddenError,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 const createIncomeSourceSchema = z.object({
   budgetId: z.string().uuid(),
@@ -19,15 +24,6 @@ const createIncomeSourceSchema = z.object({
   isAutoConfirm: z.boolean().optional().default(false),
 });
 
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
-
 // GET - Get income sources for user's budgets
 export const GET = withAuthRequired(async (req, context) => {
   const { session } = context;
@@ -36,7 +32,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ incomeSources: [] });
+    return successResponse({ incomeSources: [] });
   }
 
   const sources = await db
@@ -64,8 +60,8 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const formattedSources = sources.map((s) => ({
     ...s.incomeSource,
-    member: s.member ? { id: s.member.id, name: s.member.name } : null,
-    account: s.account ? { id: s.account.id, name: s.account.name } : null,
+    member: s.member ? { id: s.member.id, name: s.member.name, color: s.member.color } : null,
+    account: s.account ? { id: s.account.id, name: s.account.name, icon: s.account.icon } : null,
   }));
 
   // Calculate total monthly income
@@ -79,7 +75,7 @@ export const GET = withAuthRequired(async (req, context) => {
     return acc + monthlyAmount;
   }, 0);
 
-  return NextResponse.json({
+  return successResponse({
     incomeSources: formattedSources,
     totalMonthlyIncome,
   });
@@ -92,10 +88,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = createIncomeSourceSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { budgetId, ...incomeData } = validation.data;
@@ -103,10 +96,7 @@ export const POST = withAuthRequired(async (req, context) => {
   // Check user has access to budget
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json(
-      { error: "Budget not found or access denied" },
-      { status: 404 }
-    );
+    return forbiddenError("Budget not found or access denied");
   }
 
   // Get display order
@@ -125,5 +115,5 @@ export const POST = withAuthRequired(async (req, context) => {
     })
     .returning();
 
-  return NextResponse.json({ incomeSource: newSource }, { status: 201 });
+  return successResponse({ incomeSource: newSource }, 201);
 });

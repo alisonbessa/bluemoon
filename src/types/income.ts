@@ -8,6 +8,17 @@ import type { Account } from './account';
 export type IncomeType = 'salary' | 'benefit' | 'freelance' | 'rental' | 'investment' | 'other';
 export type IncomeFrequency = 'monthly' | 'biweekly' | 'weekly';
 
+/**
+ * Simplified income source for selects and lists (minimal fields)
+ */
+export interface IncomeSourceSimple {
+  id: string;
+  name: string;
+  type: string;
+  amount: number;
+  frequency: string;
+}
+
 export interface IncomeSource {
   id: string;
   name: string;
