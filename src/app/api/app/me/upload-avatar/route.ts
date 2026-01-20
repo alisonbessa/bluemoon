@@ -1,6 +1,9 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
-import { NextResponse } from "next/server";
+import {
+  successResponse,
+  internalError,
+} from "@/shared/lib/api/responses";
 
 export const POST = withAuthRequired(async (req, context) => {
   try {
@@ -44,15 +47,11 @@ export const POST = withAuthRequired(async (req, context) => {
       },
     });
 
-    return NextResponse.json(jsonResponse);
+    return successResponse(jsonResponse);
   } catch (error) {
     console.error("Error handling avatar upload:", error);
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to create upload URL",
-      },
-      { status: 500 }
+    return internalError(
+      error instanceof Error ? error.message : "Failed to create upload URL"
     );
   }
 });

@@ -2,9 +2,15 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { invites, budgetMembers, groups, categories } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { capitalizeWords } from "@/shared/lib/utils";
+import {
+  validationError,
+  notFoundError,
+  forbiddenError,
+  errorResponse,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 const acceptInviteSchema = z.object({
   token: z.string().uuid(),
@@ -17,10 +23,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = acceptInviteSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { token } = validation.data;
@@ -32,10 +35,7 @@ export const POST = withAuthRequired(async (req, context) => {
     .where(and(eq(invites.token, token), eq(invites.status, "pending")));
 
   if (!invite) {
-    return NextResponse.json(
-      { error: "Invalid or expired invite" },
-      { status: 404 }
-    );
+    return notFoundError("Invite");
   }
 
   // Check if expired
@@ -45,7 +45,7 @@ export const POST = withAuthRequired(async (req, context) => {
       .set({ status: "expired", updatedAt: new Date() })
       .where(eq(invites.id, invite.id));
 
-    return NextResponse.json({ error: "Invite has expired" }, { status: 400 });
+    return errorResponse("Invite has expired", 400);
   }
 
   // Get user data
@@ -53,13 +53,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   // If invite has a specific email, check if user's email matches
   if (invite.email && user?.email?.toLowerCase() !== invite.email.toLowerCase()) {
-    return NextResponse.json(
-      {
-        error: "This invite was sent to a different email address",
-        inviteEmail: invite.email,
-      },
-      { status: 403 }
-    );
+    return forbiddenError("This invite was sent to a different email address");
   }
 
   // Check if user is already a member of this budget
@@ -75,10 +69,7 @@ export const POST = withAuthRequired(async (req, context) => {
     .limit(1);
 
   if (existingMembership.length > 0) {
-    return NextResponse.json(
-      { error: "You are already a member of this budget" },
-      { status: 400 }
-    );
+    return errorResponse("You are already a member of this budget", 400);
   }
 
   // Create partner membership
@@ -122,7 +113,7 @@ export const POST = withAuthRequired(async (req, context) => {
     })
     .where(eq(invites.id, invite.id));
 
-  return NextResponse.json({
+  return successResponse({
     success: true,
     budgetId: invite.budgetId,
     member: newMember,

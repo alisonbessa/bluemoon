@@ -3,9 +3,13 @@ import { db } from "@/db";
 import { users, budgets, budgetMembers, groups, categories, incomeSources, financialAccounts } from "@/db/schema";
 import { defaultGroups } from "@/db/schema/groups";
 import { eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { capitalizeWords } from "@/shared/lib/utils";
+import {
+  validationError,
+  internalError,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 // Default categories to create for new budgets
 // These are the base categories - personal category is added dynamically with user's name
@@ -85,7 +89,7 @@ export const POST = withAuthRequired(async (request, context) => {
         .set({ displayName: formattedName })
         .where(eq(users.id, userId));
 
-      return NextResponse.json({ success: true, budgetId: existingMembership[0].budgetId });
+      return successResponse({ success: true, budgetId: existingMembership[0].budgetId });
     }
 
     // Create budget and members in a transaction
@@ -244,20 +248,14 @@ export const POST = withAuthRequired(async (request, context) => {
       return { budgetId: newBudget.id };
     });
 
-    return NextResponse.json({ success: true, budgetId: result.budgetId });
+    return successResponse({ success: true, budgetId: result.budgetId });
   } catch (error) {
     console.error("Error in welcome endpoint:", error);
 
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Dados inválidos", details: error.errors },
-        { status: 400 }
-      );
+      return validationError(error);
     }
 
-    return NextResponse.json(
-      { error: "Erro ao processar boas-vindas" },
-      { status: 500 }
-    );
+    return internalError("Erro ao processar boas-vindas");
   }
 });

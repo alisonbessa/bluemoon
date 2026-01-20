@@ -1,10 +1,15 @@
-import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { coupons } from "@/db/schema/coupons";
 import { eq, and, isNull } from "drizzle-orm";
 import { updateLTDPlan } from "@/shared/lib/users/updateLTDPlan";
 import { z } from "zod";
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import {
+  validationError,
+  errorResponse,
+  successResponse,
+  internalError,
+} from "@/shared/lib/api/responses";
 
 // Validation schema for the request body
 const redeemSchema = z.object({
@@ -18,13 +23,7 @@ export const POST = withAuthRequired(async (req, context) => {
     const parsedBody = redeemSchema.safeParse(body);
 
     if (!parsedBody.success) {
-      return NextResponse.json(
-        {
-          error: "Invalid request",
-          details: parsedBody.error.format(),
-        },
-        { status: 400 }
-      );
+      return validationError(parsedBody.error);
     }
 
     const { code } = parsedBody.data;
@@ -46,14 +45,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
     // If coupon not found or is invalid
     if (!coupon) {
-      return NextResponse.json(
-        {
-          error: "Invalid coupon",
-          message:
-            "The coupon code is invalid, expired, or has already been used.",
-        },
-        { status: 400 }
-      );
+      return errorResponse("The coupon code is invalid, expired, or has already been used.", 400);
     }
 
     // Mark the coupon as used by this user
@@ -68,7 +60,7 @@ export const POST = withAuthRequired(async (req, context) => {
     // Update the user's plan based on redeemed coupons
     const result = await updateLTDPlan(currentUser.id);
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       message: "Coupon redeemed successfully",
       user: result.user,
@@ -77,9 +69,6 @@ export const POST = withAuthRequired(async (req, context) => {
     });
   } catch (error) {
     console.error("Error redeeming coupon:", error);
-    return NextResponse.json(
-      { error: "Failed to redeem coupon" },
-      { status: 500 }
-    );
+    return internalError("Failed to redeem coupon");
   }
 });

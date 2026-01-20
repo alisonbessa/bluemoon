@@ -2,7 +2,11 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { invites, budgetMembers } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
+import {
+  notFoundError,
+  errorResponse,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 // Helper to get user's budget IDs where they are owner
 async function getOwnerBudgetIds(userId: string) {
@@ -23,7 +27,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const ownerBudgetIds = await getOwnerBudgetIds(session.user.id);
   if (ownerBudgetIds.length === 0) {
-    return NextResponse.json({ error: "Invite not found" }, { status: 404 });
+    return notFoundError("Invite");
   }
 
   const [invite] = await db
@@ -34,10 +38,10 @@ export const GET = withAuthRequired(async (req, context) => {
     );
 
   if (!invite) {
-    return NextResponse.json({ error: "Invite not found" }, { status: 404 });
+    return notFoundError("Invite");
   }
 
-  return NextResponse.json({ invite });
+  return successResponse({ invite });
 });
 
 // DELETE - Cancel/revoke an invite
@@ -48,7 +52,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
   const ownerBudgetIds = await getOwnerBudgetIds(session.user.id);
   if (ownerBudgetIds.length === 0) {
-    return NextResponse.json({ error: "Invite not found" }, { status: 404 });
+    return notFoundError("Invite");
   }
 
   const [existingInvite] = await db
@@ -59,14 +63,11 @@ export const DELETE = withAuthRequired(async (req, context) => {
     );
 
   if (!existingInvite) {
-    return NextResponse.json({ error: "Invite not found" }, { status: 404 });
+    return notFoundError("Invite");
   }
 
   if (existingInvite.status !== "pending") {
-    return NextResponse.json(
-      { error: "Can only cancel pending invites" },
-      { status: 400 }
-    );
+    return errorResponse("Can only cancel pending invites", 400);
   }
 
   // Update status to cancelled
@@ -78,7 +79,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
     })
     .where(eq(invites.id, inviteId));
 
-  return NextResponse.json({ success: true });
+  return successResponse({ success: true });
 });
 
 // POST - Resend invite
@@ -89,7 +90,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const ownerBudgetIds = await getOwnerBudgetIds(session.user.id);
   if (ownerBudgetIds.length === 0) {
-    return NextResponse.json({ error: "Invite not found" }, { status: 404 });
+    return notFoundError("Invite");
   }
 
   const [existingInvite] = await db
@@ -100,14 +101,11 @@ export const POST = withAuthRequired(async (req, context) => {
     );
 
   if (!existingInvite) {
-    return NextResponse.json({ error: "Invite not found" }, { status: 404 });
+    return notFoundError("Invite");
   }
 
   if (existingInvite.status !== "pending") {
-    return NextResponse.json(
-      { error: "Can only resend pending invites" },
-      { status: 400 }
-    );
+    return errorResponse("Can only resend pending invites", 400);
   }
 
   // Generate new token and extend expiration
@@ -127,7 +125,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   // TODO: Resend invite email via Inngest/Resend
 
-  return NextResponse.json({
+  return successResponse({
     invite: updatedInvite,
     inviteLink: `${process.env.NEXT_PUBLIC_APP_URL}/invite/${newToken}`,
   });
