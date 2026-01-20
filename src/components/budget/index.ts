@@ -1,11 +1,9 @@
 /**
  * Budget Components
  *
- * These components are extracted from the main budget page to improve maintainability.
+ * @deprecated Import from '@/features/budget' instead
+ * This file re-exports from the new FSD location for backwards compatibility
  */
 
-export * from "./types";
-export { GoalsSection } from "./goals-section";
-export { BudgetComparison } from "./budget-comparison";
-export { MonthPlanningBanner } from "./month-planning-banner";
-
+export * from './types';
+export { GoalsSection, BudgetComparison, MonthPlanningBanner } from '@/features/budget';
