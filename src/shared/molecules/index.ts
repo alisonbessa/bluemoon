@@ -5,3 +5,7 @@ export { DeleteConfirmDialog } from "./delete-confirm-dialog";
 export { ResponsiveButton } from "./responsive-button";
 export { FormModalWrapper } from "./form-modal-wrapper";
 export { LoadingState } from "./loading-state";
+export { BehaviorSelector, BEHAVIOR_CONFIG } from "./behavior-selector";
+export type { BehaviorType } from "./behavior-selector";
+export { FrequencySelector, FREQUENCY_LABELS } from "./frequency-selector";
+export type { IncomeFrequency } from "./frequency-selector";
