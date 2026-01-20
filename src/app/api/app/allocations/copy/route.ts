@@ -2,9 +2,14 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { monthlyAllocations, categories } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  forbiddenError,
+  successResponse,
+  errorResponse,
+} from "@/shared/lib/api/responses";
 
 const copyAllocationsSchema = z.object({
   budgetId: z.string().uuid(),
@@ -22,10 +27,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = copyAllocationsSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { budgetId, fromYear, fromMonth, toYear, toMonth, mode } = validation.data;
@@ -33,18 +35,12 @@ export const POST = withAuthRequired(async (req, context) => {
   // Check user has access to budget
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json(
-      { error: "Budget not found or access denied" },
-      { status: 404 }
-    );
+    return forbiddenError("Budget not found or access denied");
   }
 
   // Validate not copying to same month
   if (fromYear === toYear && fromMonth === toMonth) {
-    return NextResponse.json(
-      { error: "Cannot copy to the same month" },
-      { status: 400 }
-    );
+    return errorResponse("Cannot copy to the same month", 400);
   }
 
   // Get source allocations
@@ -72,10 +68,7 @@ export const POST = withAuthRequired(async (req, context) => {
       );
 
     if (budgetCategories.length === 0) {
-      return NextResponse.json(
-        { error: "No categories or allocations to copy from" },
-        { status: 404 }
-      );
+      return errorResponse("No categories or allocations to copy from", 404);
     }
 
     // Use default planned amounts from categories
@@ -125,8 +118,7 @@ export const POST = withAuthRequired(async (req, context) => {
           if (allocationsToAdd.length > 0) {
             await db.insert(monthlyAllocations).values(allocationsToAdd);
           }
-          return NextResponse.json({
-            success: true,
+          return successResponse({
             copiedCount: allocationsToAdd.length,
             skippedCount: allocationsToCreate.length - allocationsToAdd.length,
             source: "category_defaults",
@@ -136,17 +128,13 @@ export const POST = withAuthRequired(async (req, context) => {
         await db.insert(monthlyAllocations).values(allocationsToCreate);
       }
 
-      return NextResponse.json({
-        success: true,
+      return successResponse({
         copiedCount: allocationsToCreate.length,
         source: "category_defaults",
       });
     }
 
-    return NextResponse.json(
-      { error: "No allocations or category defaults to copy" },
-      { status: 404 }
-    );
+    return errorResponse("No allocations or category defaults to copy", 404);
   }
 
   // Check for existing allocations in target month
@@ -185,8 +173,7 @@ export const POST = withAuthRequired(async (req, context) => {
         );
       await db.insert(monthlyAllocations).values(allocationsToCreate);
 
-      return NextResponse.json({
-        success: true,
+      return successResponse({
         copiedCount: allocationsToCreate.length,
         source: "previous_month",
       });
@@ -200,8 +187,7 @@ export const POST = withAuthRequired(async (req, context) => {
         await db.insert(monthlyAllocations).values(allocationsToAdd);
       }
 
-      return NextResponse.json({
-        success: true,
+      return successResponse({
         copiedCount: allocationsToAdd.length,
         skippedCount: allocationsToCreate.length - allocationsToAdd.length,
         source: "previous_month",
@@ -211,8 +197,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   await db.insert(monthlyAllocations).values(allocationsToCreate);
 
-  return NextResponse.json({
-    success: true,
+  return successResponse({
     copiedCount: allocationsToCreate.length,
     source: "previous_month",
   });

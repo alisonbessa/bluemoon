@@ -2,10 +2,14 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { transactions, financialAccounts } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { financialTransactionStatusEnum } from "@/db/schema/transactions";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  notFoundError,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 const updateTransactionSchema = z.object({
   categoryId: z.string().uuid().optional().nullable(),
@@ -25,7 +29,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+    return notFoundError("Transaction");
   }
 
   const [transaction] = await db
@@ -39,10 +43,10 @@ export const GET = withAuthRequired(async (req, context) => {
     );
 
   if (!transaction) {
-    return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+    return notFoundError("Transaction");
   }
 
-  return NextResponse.json({ transaction });
+  return successResponse({ transaction });
 });
 
 // PATCH - Update a transaction
@@ -54,7 +58,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+    return notFoundError("Transaction");
   }
 
   const [existingTransaction] = await db
@@ -68,15 +72,12 @@ export const PATCH = withAuthRequired(async (req, context) => {
     );
 
   if (!existingTransaction) {
-    return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+    return notFoundError("Transaction");
   }
 
   const validation = updateTransactionSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const updateData: Record<string, unknown> = {
@@ -146,7 +147,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
     return updated;
   });
 
-  return NextResponse.json({ transaction: updatedTransaction });
+  return successResponse({ transaction: updatedTransaction });
 });
 
 // DELETE - Delete a transaction
@@ -157,7 +158,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+    return notFoundError("Transaction");
   }
 
   const [existingTransaction] = await db
@@ -171,7 +172,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
     );
 
   if (!existingTransaction) {
-    return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+    return notFoundError("Transaction");
   }
 
   // Use transaction for atomic delete and balance update
@@ -227,5 +228,5 @@ export const DELETE = withAuthRequired(async (req, context) => {
     await tx.delete(transactions).where(eq(transactions.id, transactionId));
   });
 
-  return NextResponse.json({ success: true });
+  return successResponse({ success: true });
 });

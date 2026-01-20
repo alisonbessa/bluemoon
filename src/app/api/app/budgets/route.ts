@@ -2,9 +2,13 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { budgets, budgetMembers, groups, categories, defaultGroups } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { capitalizeWords } from "@/shared/lib/utils";
+import {
+  validationError,
+  successResponse,
+  cachedResponse,
+} from "@/shared/lib/api/responses";
 
 const createBudgetSchema = z.object({
   name: z.string().min(1).max(100),
@@ -29,15 +33,8 @@ export const GET = withAuthRequired(async (req, context) => {
     .innerJoin(budgets, eq(budgetMembers.budgetId, budgets.id))
     .where(eq(budgetMembers.userId, session.user.id));
 
-  return NextResponse.json(
-    { budgets: userBudgets },
-    {
-      // PERFORMANCE: Cache for 60 seconds, stale-while-revalidate for 5 minutes
-      headers: {
-        "Cache-Control": "private, max-age=60, stale-while-revalidate=300",
-      },
-    }
-  );
+  // PERFORMANCE: Cache for 60 seconds, stale-while-revalidate for 5 minutes
+  return cachedResponse({ budgets: userBudgets }, { maxAge: 60, staleWhileRevalidate: 300 });
 });
 
 // POST - Create a new budget
@@ -47,10 +44,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = createBudgetSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { name, description, currency } = validation.data;
@@ -126,5 +120,5 @@ export const POST = withAuthRequired(async (req, context) => {
 
   await db.insert(categories).values(categoryInserts);
 
-  return NextResponse.json({ budget: newBudget }, { status: 201 });
+  return successResponse({ budget: newBudget }, 201);
 });

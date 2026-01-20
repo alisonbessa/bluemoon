@@ -5,6 +5,13 @@ import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { MeResponse } from "./types";
+import {
+  validationError,
+  unauthorizedError,
+  notFoundError,
+  successResponse,
+  internalError,
+} from "@/shared/lib/api/responses";
 
 export const GET = withAuthRequired(async (req, context) => {
   const { getCurrentPlan, getUser } = context;
@@ -16,10 +23,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   // If user doesn't exist in database, return 401 to force re-login
   if (!userFromDb) {
-    return NextResponse.json(
-      { error: "User not found", message: "Please sign in again" },
-      { status: 401 }
-    );
+    return unauthorizedError("User not found - please sign in again");
   }
 
   const currentPlan = await getCurrentPlan();
@@ -38,13 +42,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
     const validationResult = profileUpdateSchema.safeParse(body);
 
     if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          error: "Validation failed",
-          details: validationResult.error.errors,
-        },
-        { status: 400 }
-      );
+      return validationError(validationResult.error);
     }
 
     const { name, displayName, image } = validationResult.data;
@@ -63,20 +61,17 @@ export const PATCH = withAuthRequired(async (req, context) => {
       .returning();
 
     if (!updatedUser.length) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return notFoundError("User");
     }
 
     // Return updated user data
-    return NextResponse.json({
+    return successResponse({
       user: updatedUser[0],
       message: "Profile updated successfully",
     });
   } catch (error) {
     console.error("Error updating profile:", error);
-    return NextResponse.json(
-      { error: "Failed to update profile" },
-      { status: 500 }
-    );
+    return internalError("Failed to update profile");
   }
 });
 
@@ -87,15 +82,12 @@ export const DELETE = withAuthRequired(async (req, context) => {
     // Delete the user - cascade will handle related data
     await db.delete(users).where(eq(users.id, session.user.id));
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       message: "Account deleted successfully",
     });
   } catch (error) {
     console.error("Error deleting account:", error);
-    return NextResponse.json(
-      { error: "Failed to delete account" },
-      { status: 500 }
-    );
+    return internalError("Failed to delete account");
   }
 });

@@ -2,8 +2,12 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { categories, groups, monthlyAllocations } from "@/db/schema";
 import { eq, and, gte, lte, isNotNull } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  forbiddenError,
+  successResponse,
+  errorResponse,
+} from "@/shared/lib/api/responses";
 
 // GET - Get upcoming commitments (categories with targetDate in the next 30 days)
 export const GET = withAuthRequired(async (req, context) => {
@@ -13,12 +17,12 @@ export const GET = withAuthRequired(async (req, context) => {
   const daysAhead = parseInt(searchParams.get("days") || "30");
 
   if (!budgetId) {
-    return NextResponse.json({ error: "budgetId is required" }, { status: 400 });
+    return errorResponse("budgetId is required", 400);
   }
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json({ error: "Budget not found or access denied" }, { status: 404 });
+    return forbiddenError("Budget not found or access denied");
   }
 
   const now = new Date();
@@ -77,7 +81,7 @@ export const GET = withAuthRequired(async (req, context) => {
     },
   }));
 
-  return NextResponse.json({
+  return successResponse({
     commitments,
     period: {
       from: now.toISOString(),

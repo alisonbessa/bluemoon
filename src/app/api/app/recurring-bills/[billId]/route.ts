@@ -2,10 +2,15 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { recurringBills } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { recurringBillFrequencyEnum } from "@/db/schema/recurring-bills";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  notFoundError,
+  successResponse,
+  errorResponse,
+} from "@/shared/lib/api/responses";
 
 const updateRecurringBillSchema = z.object({
   categoryId: z.string().uuid().optional(),
@@ -58,7 +63,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Recurring bill not found" }, { status: 404 });
+    return notFoundError("Recurring bill");
   }
 
   const [bill] = await db
@@ -72,10 +77,10 @@ export const GET = withAuthRequired(async (req, context) => {
     );
 
   if (!bill) {
-    return NextResponse.json({ error: "Recurring bill not found" }, { status: 404 });
+    return notFoundError("Recurring bill");
   }
 
-  return NextResponse.json({ recurringBill: bill });
+  return successResponse({ recurringBill: bill });
 });
 
 // PATCH - Update a recurring bill
@@ -87,7 +92,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Recurring bill not found" }, { status: 404 });
+    return notFoundError("Recurring bill");
   }
 
   const [existingBill] = await db
@@ -101,15 +106,12 @@ export const PATCH = withAuthRequired(async (req, context) => {
     );
 
   if (!existingBill) {
-    return NextResponse.json({ error: "Recurring bill not found" }, { status: 404 });
+    return notFoundError("Recurring bill");
   }
 
   const validation = updateRecurringBillSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   // Validate frequency-dependent fields using merged values (new + existing)
@@ -119,10 +121,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
 
   const frequencyValidation = validateFrequencyFields(frequency, dueDay, dueMonth);
   if (!frequencyValidation.valid) {
-    return NextResponse.json(
-      { error: frequencyValidation.error },
-      { status: 400 }
-    );
+    return errorResponse(frequencyValidation.error!, 400);
   }
 
   const updateData = {
@@ -136,7 +135,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(eq(recurringBills.id, billId))
     .returning();
 
-  return NextResponse.json({ recurringBill: updatedBill });
+  return successResponse({ recurringBill: updatedBill });
 });
 
 // DELETE - Delete a recurring bill (soft delete by deactivating)
@@ -147,7 +146,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Recurring bill not found" }, { status: 404 });
+    return notFoundError("Recurring bill");
   }
 
   const [existingBill] = await db
@@ -161,7 +160,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
     );
 
   if (!existingBill) {
-    return NextResponse.json({ error: "Recurring bill not found" }, { status: 404 });
+    return notFoundError("Recurring bill");
   }
 
   // Soft delete by deactivating
@@ -173,5 +172,5 @@ export const DELETE = withAuthRequired(async (req, context) => {
     })
     .where(eq(recurringBills.id, billId));
 
-  return NextResponse.json({ success: true });
+  return successResponse({ success: true });
 });

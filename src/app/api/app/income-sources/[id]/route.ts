@@ -2,11 +2,15 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { incomeSources } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { incomeTypeEnum, incomeFrequencyEnum } from "@/db/schema/income-sources";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  notFoundError,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 const updateIncomeSourceSchema = z.object({
   memberId: z.string().uuid().optional().nullable(),
@@ -29,7 +33,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Income source not found" }, { status: 404 });
+    return notFoundError("Income source");
   }
 
   const [source] = await db
@@ -43,10 +47,10 @@ export const GET = withAuthRequired(async (req, context) => {
     );
 
   if (!source) {
-    return NextResponse.json({ error: "Income source not found" }, { status: 404 });
+    return notFoundError("Income source");
   }
 
-  return NextResponse.json({ incomeSource: source });
+  return successResponse({ incomeSource: source });
 });
 
 // PATCH - Update an income source
@@ -58,7 +62,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Income source not found" }, { status: 404 });
+    return notFoundError("Income source");
   }
 
   const [existingSource] = await db
@@ -72,15 +76,12 @@ export const PATCH = withAuthRequired(async (req, context) => {
     );
 
   if (!existingSource) {
-    return NextResponse.json({ error: "Income source not found" }, { status: 404 });
+    return notFoundError("Income source");
   }
 
   const validation = updateIncomeSourceSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const updateData = {
@@ -95,7 +96,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(eq(incomeSources.id, sourceId))
     .returning();
 
-  return NextResponse.json({ incomeSource: updatedSource });
+  return successResponse({ incomeSource: updatedSource });
 });
 
 // DELETE - Delete an income source (soft delete by deactivating)
@@ -106,7 +107,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Income source not found" }, { status: 404 });
+    return notFoundError("Income source");
   }
 
   const [existingSource] = await db
@@ -120,7 +121,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
     );
 
   if (!existingSource) {
-    return NextResponse.json({ error: "Income source not found" }, { status: 404 });
+    return notFoundError("Income source");
   }
 
   // Soft delete by deactivating
@@ -132,5 +133,5 @@ export const DELETE = withAuthRequired(async (req, context) => {
     })
     .where(eq(incomeSources.id, sourceId));
 
-  return NextResponse.json({ success: true });
+  return successResponse({ success: true });
 });

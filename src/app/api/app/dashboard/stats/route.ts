@@ -2,8 +2,12 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { transactions, financialAccounts } from "@/db/schema";
 import { eq, and, inArray, gte, lte, sql } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  forbiddenError,
+  successResponse,
+  errorResponse,
+} from "@/shared/lib/api/responses";
 
 // GET - Get dashboard statistics including daily data for charts
 export const GET = withAuthRequired(async (req, context) => {
@@ -15,12 +19,12 @@ export const GET = withAuthRequired(async (req, context) => {
   const month = parseInt(searchParams.get("month") || (new Date().getMonth() + 1).toString());
 
   if (!budgetId) {
-    return NextResponse.json({ error: "budgetId is required" }, { status: 400 });
+    return errorResponse("budgetId is required", 400);
   }
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json({ error: "Budget not found or access denied" }, { status: 404 });
+    return forbiddenError("Budget not found or access denied");
   }
 
   // Calculate date range for current month
@@ -148,7 +152,7 @@ export const GET = withAuthRequired(async (req, context) => {
     )
     .groupBy(financialAccounts.id, financialAccounts.name, financialAccounts.icon, financialAccounts.creditLimit);
 
-  return NextResponse.json({
+  return successResponse({
     dailyChartData,
     monthlyComparison: monthlyData,
     creditCards: creditCardSpending.map((cc) => ({

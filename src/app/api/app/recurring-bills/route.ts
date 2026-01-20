@@ -2,10 +2,15 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { recurringBills, financialAccounts, categories } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { recurringBillFrequencyEnum } from "@/db/schema/recurring-bills";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  forbiddenError,
+  notFoundError,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 const createRecurringBillSchema = z.object({
   budgetId: z.string().uuid(),
@@ -57,7 +62,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ recurringBills: [] });
+    return successResponse({ recurringBills: [] });
   }
 
   let whereCondition = inArray(recurringBills.budgetId, budgetIds);
@@ -110,7 +115,7 @@ export const GET = withAuthRequired(async (req, context) => {
     return acc;
   }, {} as Record<string, number>);
 
-  return NextResponse.json({
+  return successResponse({
     recurringBills: formattedBills,
     totalsByCategory,
   });
@@ -123,10 +128,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = createRecurringBillSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { budgetId, ...billData } = validation.data;
@@ -134,10 +136,7 @@ export const POST = withAuthRequired(async (req, context) => {
   // Check user has access to budget
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json(
-      { error: "Budget not found or access denied" },
-      { status: 404 }
-    );
+    return forbiddenError("Budget not found or access denied");
   }
 
   // Verify category belongs to budget
@@ -152,7 +151,7 @@ export const POST = withAuthRequired(async (req, context) => {
     );
 
   if (!category) {
-    return NextResponse.json({ error: "Category not found" }, { status: 404 });
+    return notFoundError("Category");
   }
 
   // Get display order
@@ -170,5 +169,5 @@ export const POST = withAuthRequired(async (req, context) => {
     })
     .returning();
 
-  return NextResponse.json({ recurringBill: newBill }, { status: 201 });
+  return successResponse({ recurringBill: newBill }, 201);
 });

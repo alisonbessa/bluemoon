@@ -2,24 +2,21 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { budgetMembers, categories } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { capitalizeWords } from "@/shared/lib/utils";
+import { getUserBudgetMemberships } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  forbiddenError,
+  notFoundError,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 const updateMemberSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   color: z.string().optional(),
   monthlyPleasureBudget: z.number().int().min(0).optional(),
 });
-
-// Helper to get user's budget IDs where they are owner/partner
-async function getUserBudgetMemberships(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId, type: budgetMembers.type })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships;
-}
 
 // GET - Get a specific member
 export const GET = withAuthRequired(async (req, context) => {
@@ -31,7 +28,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const budgetIds = memberships.map((m) => m.budgetId);
 
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    return notFoundError("Member");
   }
 
   const [member] = await db
@@ -45,10 +42,10 @@ export const GET = withAuthRequired(async (req, context) => {
     );
 
   if (!member) {
-    return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    return notFoundError("Member");
   }
 
-  return NextResponse.json({ member });
+  return successResponse({ member });
 });
 
 // PATCH - Update a member
@@ -62,7 +59,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
   const budgetIds = memberships.map((m) => m.budgetId);
 
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    return notFoundError("Member");
   }
 
   const [existingMember] = await db
@@ -76,32 +73,23 @@ export const PATCH = withAuthRequired(async (req, context) => {
     );
 
   if (!existingMember) {
-    return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    return notFoundError("Member");
   }
 
   // Check user is owner or partner
   const membership = memberships.find((m) => m.budgetId === existingMember.budgetId);
   if (!membership || (membership.type !== "owner" && membership.type !== "partner")) {
-    return NextResponse.json(
-      { error: "Only owner or partner can update members" },
-      { status: 403 }
-    );
+    return forbiddenError("Only owner or partner can update members");
   }
 
   // Can't update owner/partner members (they update themselves via profile)
   if (existingMember.type === "owner" || existingMember.type === "partner") {
-    return NextResponse.json(
-      { error: "Cannot update owner or partner through this endpoint" },
-      { status: 403 }
-    );
+    return forbiddenError("Cannot update owner or partner through this endpoint");
   }
 
   const validation = updateMemberSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const capitalizedName = validation.data.name ? capitalizeWords(validation.data.name) : undefined;
@@ -138,7 +126,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
       .where(eq(categories.memberId, memberId));
   }
 
-  return NextResponse.json({ member: updatedMember });
+  return successResponse({ member: updatedMember });
 });
 
 // DELETE - Remove a dependent member
@@ -151,7 +139,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
   const budgetIds = memberships.map((m) => m.budgetId);
 
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    return notFoundError("Member");
   }
 
   const [existingMember] = await db
@@ -165,28 +153,22 @@ export const DELETE = withAuthRequired(async (req, context) => {
     );
 
   if (!existingMember) {
-    return NextResponse.json({ error: "Member not found" }, { status: 404 });
+    return notFoundError("Member");
   }
 
   // Check user is owner
   const membership = memberships.find((m) => m.budgetId === existingMember.budgetId);
   if (!membership || membership.type !== "owner") {
-    return NextResponse.json(
-      { error: "Only owner can remove members" },
-      { status: 403 }
-    );
+    return forbiddenError("Only owner can remove members");
   }
 
   // Can't delete owner
   if (existingMember.type === "owner") {
-    return NextResponse.json(
-      { error: "Cannot remove the budget owner" },
-      { status: 403 }
-    );
+    return forbiddenError("Cannot remove the budget owner");
   }
 
   // Delete the member (categories will be cascade deleted)
   await db.delete(budgetMembers).where(eq(budgetMembers.id, memberId));
 
-  return NextResponse.json({ success: true });
+  return successResponse({ success: true });
 });

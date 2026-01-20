@@ -8,9 +8,14 @@ import {
   recurringBills,
 } from "@/db/schema";
 import { eq, and, gte, lte, isNotNull } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  forbiddenError,
+  successResponse,
+  errorResponse,
+} from "@/shared/lib/api/responses";
 
 const startMonthSchema = z.object({
   budgetId: z.string(),
@@ -25,10 +30,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = startMonthSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Dados inválidos", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { budgetId, year, month } = validation.data;
@@ -36,10 +38,7 @@ export const POST = withAuthRequired(async (req, context) => {
   // Verify user has access to this budget
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json(
-      { error: "Orçamento não encontrado ou sem acesso" },
-      { status: 404 }
-    );
+    return forbiddenError("Orçamento não encontrado ou sem acesso");
   }
 
   // Check current month status
@@ -56,10 +55,7 @@ export const POST = withAuthRequired(async (req, context) => {
     .limit(1);
 
   if (existingStatus.length > 0 && existingStatus[0].status === "active") {
-    return NextResponse.json(
-      { error: "Este mês já foi iniciado" },
-      { status: 400 }
-    );
+    return errorResponse("Este mês já foi iniciado", 400);
   }
 
   // Calculate date range for this month
@@ -101,10 +97,7 @@ export const POST = withAuthRequired(async (req, context) => {
     .limit(1);
 
   if (defaultAccount.length === 0) {
-    return NextResponse.json(
-      { error: "Nenhuma conta encontrada. Crie uma conta primeiro." },
-      { status: 400 }
-    );
+    return errorResponse("Nenhuma conta encontrada. Crie uma conta primeiro.", 400);
   }
 
   // Check existing transactions to avoid duplicates
@@ -212,8 +205,7 @@ export const POST = withAuthRequired(async (req, context) => {
     });
   }
 
-  return NextResponse.json({
-    success: true,
+  return successResponse({
     message: `Mês iniciado com sucesso!`,
     createdTransactions: createdCount,
     expenses: expenseTransactions.length,
@@ -230,12 +222,12 @@ export const GET = withAuthRequired(async (req, context) => {
   const month = parseInt(searchParams.get("month") || (new Date().getMonth() + 1).toString());
 
   if (!budgetId) {
-    return NextResponse.json({ error: "budgetId is required" }, { status: 400 });
+    return errorResponse("budgetId is required", 400);
   }
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json({ error: "Budget not found" }, { status: 404 });
+    return forbiddenError("Budget not found");
   }
 
   const status = await db
@@ -250,7 +242,7 @@ export const GET = withAuthRequired(async (req, context) => {
     )
     .limit(1);
 
-  return NextResponse.json({
+  return successResponse({
     year,
     month,
     status: status.length > 0 ? status[0].status : "planning",

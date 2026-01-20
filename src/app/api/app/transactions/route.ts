@@ -2,9 +2,14 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { transactions, financialAccounts, categories, incomeSources } from "@/db/schema";
 import { eq, and, inArray, desc, gte, lte } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import { createTransactionSchema } from "@/shared/lib/validations/transaction.schema";
+import {
+  validationError,
+  forbiddenError,
+  successResponse,
+  errorResponse,
+} from "@/shared/lib/api/responses";
 
 // GET - Get transactions for user's budgets
 export const GET = withAuthRequired(async (req, context) => {
@@ -21,7 +26,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ transactions: [], total: 0 });
+    return successResponse({ transactions: [], total: 0 });
   }
 
   // Build conditions
@@ -63,7 +68,7 @@ export const GET = withAuthRequired(async (req, context) => {
     .limit(limit)
     .offset(offset);
 
-  return NextResponse.json({
+  return successResponse({
     transactions: userTransactions.map((t) => ({
       ...t.transaction,
       account: t.account,
@@ -80,10 +85,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = createTransactionSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const {
@@ -107,18 +109,12 @@ export const POST = withAuthRequired(async (req, context) => {
   // Check user has access to budget
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json(
-      { error: "Budget not found or access denied" },
-      { status: 404 }
-    );
+    return forbiddenError("Budget not found or access denied");
   }
 
   // Validate transfer has toAccountId
   if (type === "transfer" && !toAccountId) {
-    return NextResponse.json(
-      { error: "Transfer requires toAccountId" },
-      { status: 400 }
-    );
+    return errorResponse("Transfer requires toAccountId", 400);
   }
 
   const transactionDate = typeof date === "string" ? new Date(date) : date;
@@ -198,10 +194,7 @@ export const POST = withAuthRequired(async (req, context) => {
         .where(eq(financialAccounts.id, accountId));
     }
 
-    return NextResponse.json(
-      { transactions: createdTransactions },
-      { status: 201 }
-    );
+    return successResponse({ transactions: createdTransactions }, 201);
   }
 
   // Create transaction and update balances atomically
@@ -266,5 +259,5 @@ export const POST = withAuthRequired(async (req, context) => {
     return created;
   });
 
-  return NextResponse.json({ transaction: newTransaction }, { status: 201 });
+  return successResponse({ transaction: newTransaction }, 201);
 });

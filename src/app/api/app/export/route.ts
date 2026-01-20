@@ -4,6 +4,10 @@ import { transactions, financialAccounts, categories, incomeSources } from "@/db
 import { eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  notFoundError,
+  internalError,
+} from "@/shared/lib/api/responses";
 
 // Convert cents to currency format
 function formatAmount(cents: number): string {
@@ -32,7 +36,7 @@ export const GET = withAuthRequired(async (req, context) => {
     const budgetIds = await getUserBudgetIds(session.user.id);
 
     if (budgetIds.length === 0) {
-      return NextResponse.json({ error: "No budgets found" }, { status: 404 });
+      return notFoundError("Budgets");
     }
 
     // Fetch all transactions with related data
@@ -122,9 +126,6 @@ export const GET = withAuthRequired(async (req, context) => {
     });
   } catch (error) {
     console.error("Error exporting data:", error);
-    return NextResponse.json(
-      { error: "Failed to export data" },
-      { status: 500 }
-    );
+    return internalError("Failed to export data");
   }
 });

@@ -2,8 +2,12 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { incomeSources, transactions, goals, goalContributions, recurringBills, categories, monthlyBudgetStatus, monthlyAllocations } from "@/db/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  forbiddenError,
+  successResponse,
+  errorResponse,
+} from "@/shared/lib/api/responses";
 
 interface ScheduledTransaction {
   id: string;
@@ -36,12 +40,12 @@ export const GET = withAuthRequired(async (req, context) => {
   const month = parseInt(searchParams.get("month") || (new Date().getMonth() + 1).toString());
 
   if (!budgetId) {
-    return NextResponse.json({ error: "budgetId is required" }, { status: 400 });
+    return errorResponse("budgetId is required", 400);
   }
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json({ error: "Budget not found or access denied" }, { status: 404 });
+    return forbiddenError("Budget not found or access denied");
   }
 
   // Calculate date range - prefer startDate/endDate params, fallback to year/month
@@ -98,7 +102,7 @@ export const GET = withAuthRequired(async (req, context) => {
       )
       .limit(1);
 
-    return NextResponse.json({
+    return successResponse({
       year: filterYear,
       month: filterMonth,
       monthStatus,
@@ -331,7 +335,7 @@ export const GET = withAuthRequired(async (req, context) => {
       .reduce((sum, t) => sum + t.amount, 0),
   };
 
-  return NextResponse.json({
+  return successResponse({
     year: filterYear,
     month: filterMonth,
     monthStatus,

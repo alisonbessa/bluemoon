@@ -1,7 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { groups, defaultGroups } from "@/db/schema";
-import { NextResponse } from "next/server";
+import { successResponse } from "@/shared/lib/api/responses";
 
 // GET - Get all groups (with optional seeding)
 export const GET = withAuthRequired(async () => {
@@ -22,5 +22,5 @@ export const GET = withAuthRequired(async () => {
     existingGroups = await db.select().from(groups).orderBy(groups.displayOrder);
   }
 
-  return NextResponse.json({ groups: existingGroups });
+  return successResponse({ groups: existingGroups });
 });

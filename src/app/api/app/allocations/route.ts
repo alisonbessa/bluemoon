@@ -2,10 +2,15 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus, recurringBills, financialAccounts } from "@/db/schema";
 import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ensurePendingTransactionsForMonth } from "@/shared/lib/budget/pending-transactions";
 import { getUserBudgetIds, getUserMemberIdInBudget } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  forbiddenError,
+  successResponse,
+  errorResponse,
+} from "@/shared/lib/api/responses";
 
 const upsertAllocationSchema = z.object({
   budgetId: z.string().uuid(),
@@ -24,12 +29,12 @@ export const GET = withAuthRequired(async (req, context) => {
   const month = parseInt(searchParams.get("month") || (new Date().getMonth() + 1).toString());
 
   if (!budgetId) {
-    return NextResponse.json({ error: "budgetId is required" }, { status: 400 });
+    return errorResponse("budgetId is required", 400);
   }
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json({ error: "Budget not found or access denied" }, { status: 404 });
+    return forbiddenError("Budget not found or access denied");
   }
 
   // Lazy generation: ensure pending transactions exist for this month
@@ -466,7 +471,7 @@ export const GET = withAuthRequired(async (req, context) => {
     )
     .limit(1);
 
-  return NextResponse.json({
+  return successResponse({
     year,
     month,
     monthStatus: monthStatus?.status || "planning",
@@ -500,10 +505,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = upsertAllocationSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { budgetId, categoryId, year, month, allocated } = validation.data;
@@ -511,10 +513,7 @@ export const POST = withAuthRequired(async (req, context) => {
   // Check user has access to budget
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json(
-      { error: "Budget not found or access denied" },
-      { status: 404 }
-    );
+    return forbiddenError("Budget not found or access denied");
   }
 
   // Verify category belongs to budget
@@ -529,7 +528,7 @@ export const POST = withAuthRequired(async (req, context) => {
     );
 
   if (!category) {
-    return NextResponse.json({ error: "Category not found" }, { status: 404 });
+    return errorResponse("Category not found", 404);
   }
 
   // Upsert allocation
@@ -569,5 +568,5 @@ export const POST = withAuthRequired(async (req, context) => {
       .returning();
   }
 
-  return NextResponse.json({ allocation: result }, { status: existingAllocation ? 200 : 201 });
+  return successResponse({ allocation: result }, existingAllocation ? 200 : 201);
 });

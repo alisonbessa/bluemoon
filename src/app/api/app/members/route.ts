@@ -2,11 +2,16 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { budgetMembers, categories, groups } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { memberTypeEnum } from "@/db/schema/budget-members";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetMemberships } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  forbiddenError,
+  notFoundError,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 const createMemberSchema = z.object({
   budgetId: z.string().uuid(),
@@ -28,7 +33,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const budgetIds = memberships.map((m) => m.budgetId);
 
   if (budgetIds.length === 0) {
-    return NextResponse.json({ members: [] });
+    return successResponse({ members: [] });
   }
 
   const members = await db
@@ -43,7 +48,7 @@ export const GET = withAuthRequired(async (req, context) => {
         : inArray(budgetMembers.budgetId, budgetIds)
     );
 
-  return NextResponse.json({ members });
+  return successResponse({ members });
 });
 
 // POST - Add a dependent (child/pet) to budget
@@ -53,10 +58,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = createMemberSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { budgetId, name, type, color, monthlyPleasureBudget } = validation.data;
@@ -66,17 +68,11 @@ export const POST = withAuthRequired(async (req, context) => {
   const membership = memberships.find((m) => m.budgetId === budgetId);
 
   if (!membership) {
-    return NextResponse.json(
-      { error: "Budget not found or access denied" },
-      { status: 404 }
-    );
+    return notFoundError("Budget");
   }
 
   if (membership.type !== "owner" && membership.type !== "partner") {
-    return NextResponse.json(
-      { error: "Only owner or partner can add members" },
-      { status: 403 }
-    );
+    return forbiddenError("Only owner or partner can add members");
   }
 
   const capitalizedName = capitalizeWords(name);
@@ -113,5 +109,5 @@ export const POST = withAuthRequired(async (req, context) => {
     });
   }
 
-  return NextResponse.json({ member: newMember }, { status: 201 });
+  return successResponse({ member: newMember }, 201);
 });

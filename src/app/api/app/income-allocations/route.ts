@@ -2,9 +2,14 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { monthlyIncomeAllocations, incomeSources } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  forbiddenError,
+  notFoundError,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 const upsertIncomeAllocationSchema = z.object({
   budgetId: z.string().uuid(),
@@ -21,10 +26,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = upsertIncomeAllocationSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { budgetId, incomeSourceId, year, month, planned } = validation.data;
@@ -32,10 +34,7 @@ export const POST = withAuthRequired(async (req, context) => {
   // Check user has access to budget
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json(
-      { error: "Budget not found or access denied" },
-      { status: 404 }
-    );
+    return forbiddenError("Budget not found or access denied");
   }
 
   // Verify income source belongs to budget
@@ -50,7 +49,7 @@ export const POST = withAuthRequired(async (req, context) => {
     );
 
   if (!incomeSource) {
-    return NextResponse.json({ error: "Income source not found" }, { status: 404 });
+    return notFoundError("Income source");
   }
 
   // Upsert allocation
@@ -73,7 +72,7 @@ export const POST = withAuthRequired(async (req, context) => {
       await db
         .delete(monthlyIncomeAllocations)
         .where(eq(monthlyIncomeAllocations.id, existingAllocation.id));
-      return NextResponse.json({ deleted: true, incomeSourceId }, { status: 200 });
+      return successResponse({ deleted: true, incomeSourceId });
     }
 
     [result] = await db
@@ -87,7 +86,7 @@ export const POST = withAuthRequired(async (req, context) => {
   } else {
     // Don't create if it matches the default
     if (planned === incomeSource.amount) {
-      return NextResponse.json({ noChange: true, incomeSourceId }, { status: 200 });
+      return successResponse({ noChange: true, incomeSourceId });
     }
 
     [result] = await db
@@ -102,5 +101,5 @@ export const POST = withAuthRequired(async (req, context) => {
       .returning();
   }
 
-  return NextResponse.json({ allocation: result }, { status: existingAllocation ? 200 : 201 });
+  return successResponse({ allocation: result }, existingAllocation ? 200 : 201);
 });

@@ -26,7 +26,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const budgetIds = await getUserBudgetIds(session.user.id);
 
   if (budgetIds.length === 0) {
-    return NextResponse.json({ accounts: [] });
+    return successResponse({ accounts: [] });
   }
 
   // Get user's member ID for visibility filtering
