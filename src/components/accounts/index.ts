@@ -1,3 +1,9 @@
-export { AccountForm } from "./account-form";
-export { AccountCard } from "./account-card";
-export type { Account, AccountFormData, AccountOwner } from "./types";
+/**
+ * Account Components
+ *
+ * @deprecated Import from '@/features/accounts' instead
+ * This file is kept for backwards compatibility
+ */
+
+export { AccountForm, AccountCard } from "@/features/accounts";
+export type { Account, AccountFormData, AccountOwner } from "@/features/accounts";

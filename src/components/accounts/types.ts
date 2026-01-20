@@ -1,6 +1,8 @@
 /**
  * Account Component Types
- * Re-exports from centralized types for backwards compatibility
+ *
+ * @deprecated Import from '@/features/accounts' instead
+ * This file is kept for backwards compatibility
  */
 
 export type {
@@ -9,6 +11,6 @@ export type {
   Account,
   AccountSimple,
   AccountFormData,
-} from "@/types/account";
+} from "@/features/accounts";
 
-export { ACCOUNT_TYPE_CONFIG } from "@/types/account";
+export { ACCOUNT_TYPE_CONFIG } from "@/features/accounts";
