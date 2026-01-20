@@ -1,10 +1,11 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { transactions, budgetMembers, financialAccounts } from "@/db/schema";
+import { transactions, financialAccounts } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { financialTransactionStatusEnum } from "@/db/schema/transactions";
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 
 const updateTransactionSchema = z.object({
   categoryId: z.string().uuid().optional().nullable(),
@@ -15,15 +16,6 @@ const updateTransactionSchema = z.object({
   date: z.string().datetime().or(z.date()).optional(),
   status: financialTransactionStatusEnum.optional(),
 });
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
 
 // GET - Get a specific transaction
 export const GET = withAuthRequired(async (req, context) => {

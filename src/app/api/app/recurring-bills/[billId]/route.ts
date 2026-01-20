@@ -1,10 +1,11 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { recurringBills, budgetMembers } from "@/db/schema";
+import { recurringBills } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { recurringBillFrequencyEnum } from "@/db/schema/recurring-bills";
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 
 const updateRecurringBillSchema = z.object({
   categoryId: z.string().uuid().optional(),
@@ -47,15 +48,6 @@ function validateFrequencyFields(
   }
 
   return { valid: true };
-}
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
 }
 
 // GET - Get a specific recurring bill

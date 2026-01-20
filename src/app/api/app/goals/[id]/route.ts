@@ -1,10 +1,11 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { goals, budgetMembers } from "@/db/schema";
+import { goals } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { capitalizeWords } from "@/shared/lib/utils";
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 
 const updateGoalSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -20,15 +21,6 @@ const updateGoalSchema = z.object({
   isArchived: z.boolean().optional(),
   displayOrder: z.number().int().optional(),
 });
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
 
 // Helper to calculate goal metrics
 function calculateGoalMetrics(goal: typeof goals.$inferSelect) {

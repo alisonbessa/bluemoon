@@ -1,17 +1,9 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { transactions, budgetMembers, financialAccounts, categories, incomeSources } from "@/db/schema";
+import { transactions, financialAccounts, categories, incomeSources } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 
 // Convert cents to currency format
 function formatAmount(cents: number): string {

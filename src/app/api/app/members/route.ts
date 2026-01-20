@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { memberTypeEnum } from "@/db/schema/budget-members";
 import { capitalizeWords } from "@/shared/lib/utils";
+import { getUserBudgetMemberships } from "@/shared/lib/api/permissions";
 
 const createMemberSchema = z.object({
   budgetId: z.string().uuid(),
@@ -17,22 +18,13 @@ const createMemberSchema = z.object({
   monthlyPleasureBudget: z.number().int().min(0).default(0),
 });
 
-// Helper to get user's budget IDs where they are owner/partner
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId, type: budgetMembers.type })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships;
-}
-
 // GET - Get members for user's budgets
 export const GET = withAuthRequired(async (req, context) => {
   const { session } = context;
   const { searchParams } = new URL(req.url);
   const budgetId = searchParams.get("budgetId");
 
-  const memberships = await getUserBudgetIds(session.user.id);
+  const memberships = await getUserBudgetMemberships(session.user.id);
   const budgetIds = memberships.map((m) => m.budgetId);
 
   if (budgetIds.length === 0) {
@@ -70,7 +62,7 @@ export const POST = withAuthRequired(async (req, context) => {
   const { budgetId, name, type, color, monthlyPleasureBudget } = validation.data;
 
   // Check user is owner or partner of the budget
-  const memberships = await getUserBudgetIds(session.user.id);
+  const memberships = await getUserBudgetMemberships(session.user.id);
   const membership = memberships.find((m) => m.budgetId === budgetId);
 
   if (!membership) {

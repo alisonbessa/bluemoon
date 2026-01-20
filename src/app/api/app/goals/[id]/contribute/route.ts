@@ -1,9 +1,10 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { goals, goalContributions, budgetMembers, transactions, financialAccounts } from "@/db/schema";
+import { goals, goalContributions, transactions, financialAccounts } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 
 const contributeSchema = z.object({
   amount: z.number().int().min(1),
@@ -11,15 +12,6 @@ const contributeSchema = z.object({
   month: z.number().int().min(1).max(12),
   fromAccountId: z.string().uuid(), // Conta de origem (obrigatória)
 });
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
 
 // Helper to calculate goal metrics
 function calculateGoalMetrics(goal: typeof goals.$inferSelect) {

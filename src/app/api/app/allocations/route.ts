@@ -5,6 +5,7 @@ import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ensurePendingTransactionsForMonth } from "@/shared/lib/budget/pending-transactions";
+import { getUserBudgetIds, getUserMemberIdInBudget } from "@/shared/lib/api/permissions";
 
 const upsertAllocationSchema = z.object({
   budgetId: z.string().uuid(),
@@ -13,25 +14,6 @@ const upsertAllocationSchema = z.object({
   month: z.number().int().min(1).max(12),
   allocated: z.number().int().min(0),
 });
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
-
-// Helper to get user's member ID in a specific budget
-async function getUserMemberIdInBudget(userId: string, budgetId: string) {
-  const membership = await db
-    .select({ memberId: budgetMembers.id })
-    .from(budgetMembers)
-    .where(and(eq(budgetMembers.userId, userId), eq(budgetMembers.budgetId, budgetId)))
-    .limit(1);
-  return membership[0]?.memberId || null;
-}
 
 // GET - Get allocations for a specific month with spending data
 export const GET = withAuthRequired(async (req, context) => {

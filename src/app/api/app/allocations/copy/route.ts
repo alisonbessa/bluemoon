@@ -1,9 +1,10 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { monthlyAllocations, budgetMembers, categories } from "@/db/schema";
+import { monthlyAllocations, categories } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 
 const copyAllocationsSchema = z.object({
   budgetId: z.string().uuid(),
@@ -13,15 +14,6 @@ const copyAllocationsSchema = z.object({
   toMonth: z.number().int().min(1).max(12),
   mode: z.enum(["all", "empty_only"]).optional().default("all"),
 });
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
 
 // POST - Copy allocations from one month to another
 export const POST = withAuthRequired(async (req, context) => {

@@ -1,17 +1,9 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { transactions, budgetMembers, financialAccounts } from "@/db/schema";
+import { transactions, financialAccounts } from "@/db/schema";
 import { eq, and, inArray, gte, lte, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 
 // GET - Get dashboard statistics including daily data for charts
 export const GET = withAuthRequired(async (req, context) => {

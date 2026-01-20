@@ -1,17 +1,9 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { budgetMembers, incomeSources, transactions, goals, goalContributions, recurringBills, categories, monthlyBudgetStatus, monthlyAllocations } from "@/db/schema";
+import { incomeSources, transactions, goals, goalContributions, recurringBills, categories, monthlyBudgetStatus, monthlyAllocations } from "@/db/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 
 interface ScheduledTransaction {
   id: string;
