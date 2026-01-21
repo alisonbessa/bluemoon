@@ -1,43 +1,22 @@
 /**
  * Transaction Domain Types
+ *
+ * @deprecated Import from '@/features/transactions' instead
+ * This file re-exports from the new FSD location for backwards compatibility
  */
 
-import type { Account } from './account';
-import type { Category } from './category';
-import type { IncomeSource } from './income';
+export {
+  type Transaction,
+  type TransactionType,
+  type TransactionFormData,
+  type TypeFilter,
+  type FilterChip,
+  TYPE_FILTER_LABELS,
+} from '@/features/transactions';
 
-export type TransactionType = 'income' | 'expense' | 'transfer';
+// Legacy type aliases for API compatibility
 export type TransactionStatus = 'pending' | 'cleared' | 'reconciled';
 export type TransactionSource = 'web' | 'telegram' | 'import';
-
-export interface Transaction {
-  id: string;
-  budgetId: string;
-  accountId: string;
-  categoryId?: string | null;
-  incomeSourceId?: string | null;
-  memberId?: string | null;
-  toAccountId?: string | null;
-  type: TransactionType;
-  amount: number; // In cents
-  description?: string | null;
-  notes?: string | null;
-  date: Date;
-  status: TransactionStatus;
-  source: TransactionSource;
-  isInstallment: boolean;
-  installmentNumber?: number | null;
-  totalInstallments?: number | null;
-  parentTransactionId?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface TransactionWithRelations extends Transaction {
-  account?: Account | null;
-  category?: Category | null;
-  incomeSource?: IncomeSource | null;
-}
 
 export interface CreateTransactionInput {
   budgetId: string;
@@ -46,7 +25,7 @@ export interface CreateTransactionInput {
   incomeSourceId?: string;
   memberId?: string;
   toAccountId?: string;
-  type: TransactionType;
+  type: 'income' | 'expense' | 'transfer';
   amount: number;
   description?: string;
   notes?: string;

@@ -2,8 +2,6 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { incomeSources, budgetMembers, financialAccounts } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { z } from "zod";
-import { incomeTypeEnum, incomeFrequencyEnum } from "@/db/schema/income-sources";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
@@ -11,18 +9,7 @@ import {
   forbiddenError,
   successResponse,
 } from "@/shared/lib/api/responses";
-
-const createIncomeSourceSchema = z.object({
-  budgetId: z.string().uuid(),
-  memberId: z.string().uuid().optional(),
-  accountId: z.string().uuid().optional(),
-  name: z.string().min(1).max(100),
-  type: incomeTypeEnum.default("salary"),
-  amount: z.number().int().min(0),
-  frequency: incomeFrequencyEnum.default("monthly"),
-  dayOfMonth: z.number().int().min(1).max(31).optional(),
-  isAutoConfirm: z.boolean().optional().default(false),
-});
+import { createIncomeSourceSchema } from "@/shared/lib/validations/income.schema";
 
 // GET - Get income sources for user's budgets
 export const GET = withAuthRequired(async (req, context) => {

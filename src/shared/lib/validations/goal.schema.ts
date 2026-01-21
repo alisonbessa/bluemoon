@@ -8,18 +8,20 @@ const MAX_CENTS = 1_000_000_000;
  */
 export const createGoalSchema = z.object({
   budgetId: z.string().uuid("Invalid budget ID"),
+  accountId: z.string().uuid("Invalid account ID"), // Account where goal savings are stored
   name: z
     .string()
     .min(1, "Goal name is required")
     .max(100, "Goal name must be less than 100 characters"),
-  icon: z.string().optional(),
-  color: z.string().optional(),
+  icon: z.string().max(10).optional(),
+  color: z.string().max(10).optional(),
   targetAmount: z
     .number()
     .int("Amount must be in cents (integer)")
     .min(1, "Target amount must be at least 1 cent")
     .max(MAX_CENTS, "Amount exceeds maximum allowed"),
-  targetDate: z.string().datetime().or(z.date()).optional(),
+  initialAmount: z.number().int().min(0).max(MAX_CENTS).optional(),
+  targetDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
 });
 
 /**

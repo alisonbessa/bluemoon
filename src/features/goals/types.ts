@@ -8,10 +8,14 @@ export interface GoalFormData {
   color: string;
   targetAmount: number;
   targetDate: string;
+  accountId?: string;
+  initialAmount?: number;
 }
 
 export interface Goal {
   id: string;
+  budgetId: string;
+  accountId?: string;
   name: string;
   icon: string;
   color: string;
@@ -20,6 +24,12 @@ export interface Goal {
   progress: number;
   monthlyTarget: number;
   monthsRemaining: number;
-  targetDate?: string;
+  remaining: number;
+  targetDate: string;
   isCompleted: boolean;
+  completedAt?: string | null;
+  isArchived: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
 }

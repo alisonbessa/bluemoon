@@ -2,8 +2,6 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { categories, groups } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { z } from "zod";
-import { categoryBehaviorEnum } from "@/db/schema/categories";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
@@ -13,20 +11,7 @@ import {
   successResponse,
 } from "@/shared/lib/api/responses";
 import { suggestEmojiForCategory } from "@/shared/lib/category/suggest-emoji";
-
-const createCategorySchema = z.object({
-  budgetId: z.string().uuid(),
-  groupId: z.string().uuid(),
-  memberId: z.string().uuid().optional(), // For personal "Prazeres" categories
-  name: z.string().min(1).max(100),
-  icon: z.string().optional().nullable(),
-  color: z.string().optional(),
-  behavior: categoryBehaviorEnum.default("refill_up"),
-  plannedAmount: z.number().int().default(0),
-  targetAmount: z.number().int().optional(),
-  targetDate: z.string().datetime().or(z.date()).optional(),
-  suggestIcon: z.boolean().optional(), // If true, AI will suggest an emoji
-});
+import { createCategorySchema } from "@/shared/lib/validations/category.schema";
 
 // GET - Get categories for user's budgets (with groups)
 export const GET = withAuthRequired(async (req, context) => {

@@ -2,7 +2,6 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { goals } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { z } from "zod";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
@@ -10,17 +9,7 @@ import {
   forbiddenError,
   successResponse,
 } from "@/shared/lib/api/responses";
-
-const createGoalSchema = z.object({
-  budgetId: z.string().uuid(),
-  accountId: z.string().uuid(), // Conta onde a meta será guardada (obrigatória)
-  name: z.string().min(1).max(100),
-  icon: z.string().max(10).optional(),
-  color: z.string().max(10).optional(),
-  targetAmount: z.number().int().min(1),
-  initialAmount: z.number().int().min(0).optional(),
-  targetDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
-});
+import { createGoalSchema } from "@/shared/lib/validations/goal.schema";
 
 // Helper to calculate goal metrics
 function calculateGoalMetrics(goal: typeof goals.$inferSelect) {
