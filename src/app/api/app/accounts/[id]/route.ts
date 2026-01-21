@@ -2,8 +2,6 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { financialAccounts } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { z } from "zod";
-import { accountTypeEnum } from "@/db/schema/accounts";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
@@ -11,21 +9,7 @@ import {
   notFoundError,
   successResponse,
 } from "@/shared/lib/api/responses";
-
-const updateAccountSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  type: accountTypeEnum.optional(),
-  color: z.string().optional(),
-  icon: z.string().optional(),
-  balance: z.number().int().optional(),
-  clearedBalance: z.number().int().optional(),
-  ownerId: z.string().uuid().optional().nullable(),
-  // Credit card fields
-  creditLimit: z.number().int().optional(),
-  closingDay: z.number().int().min(1).max(31).optional(),
-  dueDay: z.number().int().min(1).max(31).optional(),
-  isArchived: z.boolean().optional(),
-});
+import { updateAccountSchema } from "@/shared/lib/validations";
 
 // GET - Get a specific account
 export const GET = withAuthRequired(async (req, context) => {

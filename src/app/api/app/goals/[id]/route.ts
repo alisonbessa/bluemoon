@@ -2,7 +2,6 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { goals } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { z } from "zod";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
@@ -10,21 +9,7 @@ import {
   notFoundError,
   successResponse,
 } from "@/shared/lib/api/responses";
-
-const updateGoalSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  icon: z.string().max(10).optional(),
-  color: z.string().max(10).optional(),
-  targetAmount: z.number().int().min(1).optional(),
-  targetDate: z
-    .string()
-    .datetime()
-    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
-    .optional(),
-  isCompleted: z.boolean().optional(),
-  isArchived: z.boolean().optional(),
-  displayOrder: z.number().int().optional(),
-});
+import { updateGoalSchema } from "@/shared/lib/validations";
 
 // Helper to calculate goal metrics
 function calculateGoalMetrics(goal: typeof goals.$inferSelect) {

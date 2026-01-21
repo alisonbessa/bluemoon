@@ -37,6 +37,7 @@ export const updateAccountSchema = z.object({
   color: z.string().optional().nullable(),
   icon: z.string().optional().nullable(),
   balance: z.number().int().min(-MAX_CENTS).max(MAX_CENTS).optional(),
+  clearedBalance: z.number().int().min(-MAX_CENTS).max(MAX_CENTS).optional(),
   ownerId: z.string().uuid().optional().nullable(),
   creditLimit: z.number().int().min(0).max(MAX_CENTS).optional().nullable(),
   closingDay: z.number().int().min(1).max(31).optional().nullable(),

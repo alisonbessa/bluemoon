@@ -33,10 +33,16 @@ export const updateGoalSchema = z.object({
     .min(1, "Goal name is required")
     .max(100, "Goal name must be less than 100 characters")
     .optional(),
-  icon: z.string().optional().nullable(),
-  color: z.string().optional().nullable(),
+  icon: z.string().max(10).optional().nullable(),
+  color: z.string().max(10).optional().nullable(),
   targetAmount: z.number().int().min(1).max(MAX_CENTS).optional(),
-  targetDate: z.string().datetime().or(z.date()).optional().nullable(),
+  targetDate: z
+    .string()
+    .datetime()
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .or(z.date())
+    .optional()
+    .nullable(),
   isCompleted: z.boolean().optional(),
   isArchived: z.boolean().optional(),
   displayOrder: z.number().int().min(0).optional(),

@@ -1,15 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Loader2 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/shared/ui/dialog';
+import { FormModalWrapper } from '@/shared/molecules';
 import {
   Select,
   SelectContent,
@@ -61,20 +53,20 @@ export function TransactionFormModal({
   const showInstallmentOption = formData.type === 'expense' && isCreditCard && !isEditing;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Editar Transação' : 'Nova Transação'}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? 'Atualize os dados da transação'
-              : 'Registre uma nova movimentação financeira'}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
+    <FormModalWrapper
+      open={isOpen}
+      onOpenChange={(open) => !open && onClose()}
+      title={isEditing ? 'Editar Transação' : 'Nova Transação'}
+      description={
+        isEditing
+          ? 'Atualize os dados da transação'
+          : 'Registre uma nova movimentação financeira'
+      }
+      isSubmitting={isSubmitting}
+      onSubmit={onSubmit}
+      submitLabel={isEditing ? 'Salvar' : 'Criar'}
+    >
+      <div className="space-y-4">
           {/* Type Selection */}
           <div className="space-y-2">
             <Label>Tipo</Label>
@@ -315,17 +307,6 @@ export function TransactionFormModal({
             </div>
           )}
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Cancelar
-          </Button>
-          <Button onClick={onSubmit} disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isEditing ? 'Salvar' : 'Criar'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormModalWrapper>
   );
 }

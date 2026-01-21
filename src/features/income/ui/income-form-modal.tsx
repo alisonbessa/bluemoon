@@ -1,14 +1,6 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/shared/ui/dialog';
+import { FormModalWrapper } from '@/shared/molecules';
 import {
   Select,
   SelectContent,
@@ -16,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
-import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { CurrencyInput } from '@/shared/ui/currency-input';
@@ -87,7 +78,7 @@ export function IncomeFormModal({
   };
 
   return (
-    <Dialog
+    <FormModalWrapper
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) {
@@ -95,20 +86,17 @@ export function IncomeFormModal({
           setErrors({});
         }
       }}
+      title={isEditing ? 'Editar Renda' : 'Nova Fonte de Renda'}
+      description={
+        isEditing
+          ? 'Atualize os dados da fonte de renda'
+          : 'Adicione uma nova fonte de renda ao orcamento'
+      }
+      isSubmitting={isSubmitting}
+      onSubmit={onSubmit}
+      submitLabel={isEditing ? 'Salvar' : 'Adicionar'}
     >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Editar Renda' : 'Nova Fonte de Renda'}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? 'Atualize os dados da fonte de renda'
-              : 'Adicione uma nova fonte de renda ao orcamento'}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
+      <div className="space-y-4">
           <div className="space-y-2">
             <Label
               htmlFor="name"
@@ -268,21 +256,6 @@ export function IncomeFormModal({
             </div>
           )}
         </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
-            Cancelar
-          </Button>
-          <Button onClick={onSubmit} disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isEditing ? 'Salvar' : 'Adicionar'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormModalWrapper>
   );
 }

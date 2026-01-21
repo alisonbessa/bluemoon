@@ -2,8 +2,6 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { categories } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { z } from "zod";
-import { categoryBehaviorEnum } from "@/db/schema/categories";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
@@ -11,19 +9,7 @@ import {
   notFoundError,
   successResponse,
 } from "@/shared/lib/api/responses";
-
-const updateCategorySchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  icon: z.string().optional(),
-  color: z.string().optional(),
-  behavior: categoryBehaviorEnum.optional(),
-  plannedAmount: z.number().int().optional(),
-  dueDay: z.number().int().min(1).max(31).optional().nullable(),
-  targetAmount: z.number().int().optional().nullable(),
-  targetDate: z.string().datetime().or(z.date()).optional().nullable(),
-  isArchived: z.boolean().optional(),
-  displayOrder: z.number().int().optional(),
-});
+import { updateCategorySchema } from "@/shared/lib/validations";
 
 // GET - Get a specific category
 export const GET = withAuthRequired(async (req, context) => {

@@ -2,8 +2,6 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { incomeSources } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { z } from "zod";
-import { incomeTypeEnum, incomeFrequencyEnum } from "@/db/schema/income-sources";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
@@ -11,19 +9,7 @@ import {
   notFoundError,
   successResponse,
 } from "@/shared/lib/api/responses";
-
-const updateIncomeSourceSchema = z.object({
-  memberId: z.string().uuid().optional().nullable(),
-  accountId: z.string().uuid().optional().nullable(),
-  name: z.string().min(1).max(100).optional(),
-  type: incomeTypeEnum.optional(),
-  amount: z.number().int().min(0).optional(),
-  frequency: incomeFrequencyEnum.optional(),
-  dayOfMonth: z.number().int().min(1).max(31).optional().nullable(),
-  isAutoConfirm: z.boolean().optional(),
-  isActive: z.boolean().optional(),
-  displayOrder: z.number().int().optional(),
-});
+import { updateIncomeSourceSchema } from "@/shared/lib/validations";
 
 // GET - Get a specific income source
 export const GET = withAuthRequired(async (req, context) => {

@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Button } from "@/shared/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
+import { FormModalWrapper } from "@/shared/molecules";
 import {
   Select,
   SelectContent,
@@ -21,7 +13,6 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { CurrencyInput } from "@/shared/ui/currency-input";
 import { IconPicker } from "@/shared/ui/icon-color-picker";
-import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 // Colors for random selection
@@ -192,109 +183,100 @@ export function GoalFormModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{editingGoal ? "Editar Meta" : "Nova Meta"}</DialogTitle>
-          <DialogDescription>
-            {editingGoal
-              ? "Altere os dados da sua meta financeira"
-              : "Defina uma meta financeira com valor e prazo"}
-          </DialogDescription>
-        </DialogHeader>
+    <FormModalWrapper
+      open={open}
+      onOpenChange={onOpenChange}
+      title={editingGoal ? "Editar Meta" : "Nova Meta"}
+      description={
+        editingGoal
+          ? "Altere os dados da sua meta financeira"
+          : "Defina uma meta financeira com valor e prazo"
+      }
+      isSubmitting={isSubmitting}
+      onSubmit={handleSubmit}
+      submitLabel={editingGoal ? "Salvar" : "Criar Meta"}
+    >
+      <div className="space-y-4">
+        {/* Row 1: Name */}
+        <div className="space-y-2">
+          <Label htmlFor="goal-name">Nome da meta</Label>
+          <Input
+            id="goal-name"
+            placeholder="Ex: Viagem Disney, Casa própria..."
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          />
+        </div>
 
-        <div className="space-y-4">
-          {/* Row 1: Name */}
+        {/* Icon Picker (without color - auto-generated) */}
+        <IconPicker
+          icon={formData.icon}
+          onIconChange={(icon) => setFormData({ ...formData, icon })}
+        />
+
+        {/* Row 2: Target Amount + Initial Amount */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="goal-name">Nome da meta</Label>
-            <Input
-              id="goal-name"
-              placeholder="Ex: Viagem Disney, Casa própria..."
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            <Label htmlFor="goal-targetAmount">Valor alvo</Label>
+            <CurrencyInput
+              id="goal-targetAmount"
+              value={formData.targetAmount}
+              onChange={(valueInCents) =>
+                setFormData({ ...formData, targetAmount: valueInCents })
+              }
+              placeholder="0,00"
             />
           </div>
-
-          {/* Icon Picker (without color - auto-generated) */}
-          <IconPicker
-            icon={formData.icon}
-            onIconChange={(icon) => setFormData({ ...formData, icon })}
-          />
-
-          {/* Row 2: Target Amount + Initial Amount */}
-          <div className="grid grid-cols-2 gap-4">
+          {!editingGoal && (
             <div className="space-y-2">
-              <Label htmlFor="goal-targetAmount">Valor alvo</Label>
+              <Label htmlFor="goal-initialAmount">Valor inicial</Label>
               <CurrencyInput
-                id="goal-targetAmount"
-                value={formData.targetAmount}
+                id="goal-initialAmount"
+                value={formData.initialAmount}
                 onChange={(valueInCents) =>
-                  setFormData({ ...formData, targetAmount: valueInCents })
+                  setFormData({ ...formData, initialAmount: valueInCents })
                 }
                 placeholder="0,00"
               />
             </div>
-            {!editingGoal && (
-              <div className="space-y-2">
-                <Label htmlFor="goal-initialAmount">Valor inicial</Label>
-                <CurrencyInput
-                  id="goal-initialAmount"
-                  value={formData.initialAmount}
-                  onChange={(valueInCents) =>
-                    setFormData({ ...formData, initialAmount: valueInCents })
-                  }
-                  placeholder="0,00"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Row 3: Target Date + Destination Account */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="goal-targetDate">Data limite</Label>
-              <Input
-                id="goal-targetDate"
-                type="date"
-                value={formData.targetDate}
-                onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
-                min={new Date().toISOString().split("T")[0]}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="goal-accountId">Conta destino</Label>
-              <Select
-                value={formData.accountId}
-                onValueChange={(value) => setFormData({ ...formData, accountId: value })}
-              >
-                <SelectTrigger id="goal-accountId">
-                  <SelectValue placeholder="Selecione uma conta" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      <span className="flex items-center gap-2">
-                        <span>{account.icon || "💳"}</span>
-                        <span>{account.name}</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {editingGoal ? "Salvar" : "Criar Meta"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        {/* Row 3: Target Date + Destination Account */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="goal-targetDate">Data limite</Label>
+            <Input
+              id="goal-targetDate"
+              type="date"
+              value={formData.targetDate}
+              onChange={(e) => setFormData({ ...formData, targetDate: e.target.value })}
+              min={new Date().toISOString().split("T")[0]}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="goal-accountId">Conta destino</Label>
+            <Select
+              value={formData.accountId}
+              onValueChange={(value) => setFormData({ ...formData, accountId: value })}
+            >
+              <SelectTrigger id="goal-accountId">
+                <SelectValue placeholder="Selecione uma conta" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    <span className="flex items-center gap-2">
+                      <span>{account.icon || "💳"}</span>
+                      <span>{account.name}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+    </FormModalWrapper>
   );
 }
