@@ -3,7 +3,7 @@
 import { ChevronDown, Plus } from 'lucide-react';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { cn } from '@/shared/lib/utils';
-import { CategoryWithBills } from '@/components/budget/category-with-bills';
+import { CategoryWithBills } from './category-with-bills';
 import { formatCurrency } from '../types';
 
 // Local types that match what the budget page provides

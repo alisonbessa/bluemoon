@@ -11,6 +11,10 @@ export { IncomeSectionAccordion } from './income-section-accordion';
 export { ExpensesSectionAccordion } from './expenses-section-accordion';
 export { GoalsSectionAccordion } from './goals-section-accordion';
 
+// Category Components
+export { CategoryWithBills } from './category-with-bills';
+export { RecurringBillItem } from './recurring-bill-item';
+
 // Modals
 export { AllocationModal } from './allocation-modal';
 export { CategoryFormModal } from './category-form-modal';

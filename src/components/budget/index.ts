@@ -6,4 +6,10 @@
  */
 
 export * from './types';
-export { GoalsSection, BudgetComparison, MonthPlanningBanner } from '@/features/budget';
+export {
+  GoalsSection,
+  BudgetComparison,
+  MonthPlanningBanner,
+  CategoryWithBills,
+  RecurringBillItem,
+} from '@/features/budget';

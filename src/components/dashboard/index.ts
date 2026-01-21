@@ -1,3 +1,12 @@
-export { DashboardCharts } from "./dashboard-charts";
-export { CreditCardSpending } from "./credit-card-spending";
-export { ScheduledTransactionsList } from "./scheduled-transactions-list";
+/**
+ * Dashboard Components
+ *
+ * @deprecated Import from '@/features/dashboard' instead
+ * This file re-exports from the new FSD location for backwards compatibility
+ */
+
+export {
+  DashboardCharts,
+  CreditCardSpending,
+  ScheduledTransactionsList,
+} from '@/features/dashboard';

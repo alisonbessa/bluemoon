@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { Progress } from "@/shared/ui/progress";
 import { MonthSelector } from "@/shared/ui/month-selector";
-import { DashboardCharts, CreditCardSpending, ScheduledTransactionsList } from "@/components/dashboard";
+import { DashboardCharts, CreditCardSpending, ScheduledTransactionsList } from "@/features/dashboard";
 import Link from "next/link";
 import { useUser } from "@/shared/hooks/use-current-user";
 import { formatCurrency } from "@/shared/lib/formatters";
