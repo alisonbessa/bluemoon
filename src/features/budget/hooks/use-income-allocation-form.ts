@@ -3,19 +3,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { formatCurrencyFromDigits } from '@/shared/lib/formatters';
-
-interface IncomeSource {
-  id: string;
-  name: string;
-  type: 'salary' | 'benefit' | 'freelance' | 'rental' | 'investment' | 'other';
-}
-
-interface IncomeSourceData {
-  incomeSource: IncomeSource;
-  planned: number;
-  defaultAmount: number;
-  received: number;
-}
+import type { IncomeSource, IncomeSourceData } from '@/features/income';
 
 interface UseIncomeAllocationFormOptions {
   budgetId: string;

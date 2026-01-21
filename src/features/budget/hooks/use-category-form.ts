@@ -2,23 +2,17 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import type { CategoryBehavior } from '@/features/categories';
 
 type IconMode = 'recent' | 'food' | 'transport' | 'home' | 'health' | 'entertainment' | 'money' | 'other';
-type BehaviorType = 'set_aside' | 'refill_up';
 
-interface Category {
+// Simplified category type for form (subset of full Category)
+interface CategoryForForm {
   id: string;
   name: string;
   icon?: string | null;
-  behavior: BehaviorType;
+  behavior: CategoryBehavior;
   plannedAmount: number;
-}
-
-interface Group {
-  id: string;
-  code: string;
-  name: string;
-  icon?: string | null;
 }
 
 interface UseCategoryFormOptions {
@@ -35,13 +29,13 @@ interface UseCategoryFormReturn {
 
   // Edit mode
   isEditOpen: boolean;
-  editingCategory: Category | null;
-  openEdit: (category: Category) => void;
+  editingCategory: CategoryForForm | null;
+  openEdit: (category: CategoryForForm) => void;
   closeEdit: () => void;
 
   // Delete mode
-  deletingCategory: Category | null;
-  setDeletingCategory: (category: Category | null) => void;
+  deletingCategory: CategoryForForm | null;
+  setDeletingCategory: (category: CategoryForForm | null) => void;
 
   // Create form state
   createName: string;
@@ -50,8 +44,8 @@ interface UseCategoryFormReturn {
   setCreateIcon: (icon: string) => void;
   createIconMode: IconMode;
   setCreateIconMode: (mode: IconMode) => void;
-  createBehavior: BehaviorType;
-  setCreateBehavior: (behavior: BehaviorType) => void;
+  createBehavior: CategoryBehavior;
+  setCreateBehavior: (behavior: CategoryBehavior) => void;
 
   // Edit form state
   editName: string;
@@ -73,7 +67,7 @@ interface UseCategoryFormReturn {
 }
 
 // Default behaviors by group code
-const GROUP_DEFAULT_BEHAVIORS: Record<string, BehaviorType> = {
+const GROUP_DEFAULT_BEHAVIORS: Record<string, CategoryBehavior> = {
   essential: 'refill_up',
   lifestyle: 'set_aside',
   pleasures: 'set_aside',
@@ -98,18 +92,18 @@ export function useCategoryForm({
   const [createName, setCreateName] = useState('');
   const [createIcon, setCreateIcon] = useState('');
   const [createIconMode, setCreateIconMode] = useState<IconMode>('recent');
-  const [createBehavior, setCreateBehavior] = useState<BehaviorType>('refill_up');
+  const [createBehavior, setCreateBehavior] = useState<CategoryBehavior>('refill_up');
   const [isCreating, setIsCreating] = useState(false);
 
   // Edit state
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryForForm | null>(null);
   const [editName, setEditName] = useState('');
   const [editIcon, setEditIcon] = useState('');
   const [editIconMode, setEditIconMode] = useState<IconMode>('recent');
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Delete state
-  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<CategoryForForm | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Open create modal
@@ -128,7 +122,7 @@ export function useCategoryForm({
   }, []);
 
   // Open edit modal
-  const openEdit = useCallback((category: Category) => {
+  const openEdit = useCallback((category: CategoryForForm) => {
     setEditingCategory(category);
     setEditName(category.name);
     setEditIcon(category.icon || '');

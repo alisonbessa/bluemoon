@@ -3,17 +3,19 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { formatCurrencyFromDigits } from '@/shared/lib/formatters';
+import type { CategoryBehavior } from '@/features/categories';
 
-interface Category {
+// Simplified category type for allocation form (subset of full Category)
+interface AllocationCategory {
   id: string;
   name: string;
   icon?: string | null;
-  behavior: 'set_aside' | 'refill_up';
+  behavior: CategoryBehavior;
   plannedAmount: number;
 }
 
 interface AllocationFormState {
-  category: Category;
+  category: AllocationCategory;
   allocated: number;
 }
 
@@ -30,7 +32,7 @@ interface UseAllocationFormOptions {
 interface UseAllocationFormReturn {
   // Modal state
   isOpen: boolean;
-  category: Category | null;
+  category: AllocationCategory | null;
   currentAllocated: number;
 
   // Form values
@@ -51,7 +53,7 @@ interface UseAllocationFormReturn {
   monthlyValue: { value: number; description: string };
 
   // Actions
-  open: (category: Category, allocated: number) => void;
+  open: (category: AllocationCategory, allocated: number) => void;
   close: () => void;
   save: () => Promise<void>;
   isSaving: boolean;
@@ -123,7 +125,7 @@ export function useAllocationForm({
   }, [inputValue, frequency, weekday, yearMonth, year, month, countWeekdayInMonth]);
 
   // Open modal with category data
-  const open = useCallback((category: Category, allocated: number) => {
+  const open = useCallback((category: AllocationCategory, allocated: number) => {
     setEditingCategory({ category, allocated });
     setInputValue((allocated / 100).toFixed(2).replace('.', ','));
     setBehavior(category.behavior);

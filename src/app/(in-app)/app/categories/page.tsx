@@ -207,11 +207,9 @@ export default function CategoriesPage() {
         editingCategory={form.editingCategory}
         formData={form.formData}
         isSubmitting={form.isSubmitting}
-        emojiCategory={form.emojiCategory}
         groups={groups}
         onClose={form.closeForm}
         onUpdateField={form.updateField}
-        onSetEmojiCategory={form.setEmojiCategory}
         onSubmit={form.submit}
       />
 

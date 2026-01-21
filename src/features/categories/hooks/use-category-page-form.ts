@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import type { Category, CategoryFormData, CategoryGroup, CategoryBehavior } from '../types';
+import type { Category, CategoryFormData, CategoryGroup } from '../types';
 
 interface UseCategoryPageFormProps {
   budgetId: string | undefined;
@@ -16,14 +16,12 @@ interface UseCategoryPageFormReturn {
   editingCategory: Category | null;
   formData: CategoryFormData;
   isSubmitting: boolean;
-  emojiCategory: EmojiCategoryKey;
 
   // Actions
   openCreate: (groupId?: string) => void;
   openEdit: (category: Category) => void;
   closeForm: () => void;
   updateField: <K extends keyof CategoryFormData>(field: K, value: CategoryFormData[K]) => void;
-  setEmojiCategory: (category: EmojiCategoryKey) => void;
   submit: () => Promise<void>;
 
   // Delete state
@@ -31,20 +29,6 @@ interface UseCategoryPageFormReturn {
   setDeletingCategory: (category: Category | null) => void;
   confirmDelete: () => Promise<void>;
 }
-
-// Emoji categories for picker
-export const EMOJI_CATEGORIES = {
-  recent: { icon: '🕐', label: 'Recentes', emojis: ['📌', '🛒', '🍔', '🚗', '🏠', '💪', '🎬', '💰'] },
-  food: { icon: '🍔', label: 'Comida', emojis: ['🛒', '🍔', '🍕', '🍜', '🍣', '🥗', '☕', '🍺', '🍷', '🥖', '🥩', '🛵', '🍽️', '🍰', '🧁'] },
-  transport: { icon: '🚗', label: 'Transporte', emojis: ['🚗', '🚌', '🚇', '✈️', '🚲', '⛽', '🅿️', '🚙', '🔧', '🛻', '🏍️', '🚕'] },
-  home: { icon: '🏠', label: 'Casa', emojis: ['🏠', '🏢', '💧', '💡', '🔥', '📶', '📱', '🧹', '🛋️', '🛏️', '🚿', '🧺', '🔑', '🏡'] },
-  health: { icon: '💪', label: 'Saúde', emojis: ['💪', '🏥', '💊', '🦷', '🧠', '🏃', '🧘', '💉', '🩺', '👁️', '❤️‍🩹', '🏋️'] },
-  entertainment: { icon: '🎬', label: 'Lazer', emojis: ['🎬', '📺', '🎵', '🎮', '📚', '✈️', '🏨', '🎭', '🎪', '🎯', '🎳', '⚽', '🏖️', '🎸'] },
-  money: { icon: '💰', label: 'Dinheiro', emojis: ['💰', '💳', '🧾', '🛡️', '❤️', '📈', '💵', '🏦', '💎', '🪙', '📊', '🎰'] },
-  other: { icon: '📦', label: 'Outros', emojis: ['📌', '👕', '👟', '💅', '🎁', '🐕', '🐱', '📖', '✏️', '🌍', '💼', '💻', '👶', '🧸', '🍼', '📦'] },
-} as const;
-
-export type EmojiCategoryKey = keyof typeof EMOJI_CATEGORIES;
 
 const DEFAULT_FORM_DATA: CategoryFormData = {
   name: '',
@@ -63,7 +47,6 @@ export function useCategoryPageForm({
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState<CategoryFormData>(DEFAULT_FORM_DATA);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [emojiCategory, setEmojiCategory] = useState<EmojiCategoryKey>('recent');
 
   const openCreate = useCallback((groupId?: string) => {
     setFormData({
@@ -71,7 +54,6 @@ export function useCategoryPageForm({
       groupId: groupId || groups[0]?.id || '',
     });
     setEditingCategory(null);
-    setEmojiCategory('recent');
     setIsFormOpen(true);
   }, [groups]);
 
@@ -83,7 +65,6 @@ export function useCategoryPageForm({
       behavior: category.behavior,
     });
     setEditingCategory(category);
-    setEmojiCategory('recent');
     setIsFormOpen(true);
   }, []);
 
@@ -180,12 +161,10 @@ export function useCategoryPageForm({
     editingCategory,
     formData,
     isSubmitting,
-    emojiCategory,
     openCreate,
     openEdit,
     closeForm,
     updateField,
-    setEmojiCategory,
     submit,
     deletingCategory,
     setDeletingCategory,

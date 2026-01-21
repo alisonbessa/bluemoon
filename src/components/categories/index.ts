@@ -8,7 +8,7 @@
 export {
   CategorySearch,
   CategoryList,
-  CategoryFormModal,
   CategoryWizard,
+  CategoryPageFormModal,
   type CategoryFormData,
 } from '@/features/categories';

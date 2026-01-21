@@ -2,46 +2,18 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
+import type {
+  IncomeSource,
+  IncomeType,
+  IncomeSourceFormData,
+} from '@/features/income';
+import { ALLOWED_ACCOUNT_TYPES_BY_INCOME } from '@/features/income';
+import type { AccountSimple } from '@/features/accounts';
+import type { MemberSummary } from '@/types/member';
 
-type IncomeType = 'salary' | 'benefit' | 'freelance' | 'rental' | 'investment' | 'other';
-type IncomeFrequency = 'monthly' | 'biweekly' | 'weekly';
-
-interface IncomeSource {
-  id: string;
-  name: string;
-  type: IncomeType;
-  amount: number;
-  frequency: IncomeFrequency;
-  dayOfMonth?: number | null;
-  memberId: string | null;
-  member?: { id: string; name: string; color?: string | null } | null;
-  account?: { id: string; name: string; icon?: string | null } | null;
-  isAutoConfirm?: boolean;
-}
-
-interface Account {
-  id: string;
-  name: string;
-  type: string;
-  icon?: string | null;
-}
-
-interface Member {
-  id: string;
-  name: string;
-  color: string | null;
-}
-
-interface IncomeSourceFormData {
-  name: string;
-  type: IncomeType;
-  amount: number;
-  frequency: IncomeFrequency;
-  dayOfMonth?: number;
-  memberId?: string;
-  accountId?: string;
-  isAutoConfirm?: boolean;
-}
+// Use simplified types for the options
+type Account = AccountSimple;
+type Member = MemberSummary;
 
 interface UseIncomeSourceFormOptions {
   budgetId: string;
@@ -82,16 +54,6 @@ interface UseIncomeSourceFormReturn {
   isSubmitting: boolean;
   isDeleting: boolean;
 }
-
-// Account types allowed for each income type
-const ALLOWED_ACCOUNT_TYPES_BY_INCOME: Record<IncomeType, string[]> = {
-  salary: ['checking', 'savings'],
-  freelance: ['checking', 'savings'],
-  rental: ['checking', 'savings'],
-  investment: ['checking', 'savings', 'investment'],
-  benefit: ['benefit'],
-  other: ['checking', 'savings', 'credit_card', 'cash', 'investment', 'benefit'],
-};
 
 const initialFormData: IncomeSourceFormData = {
   name: '',
