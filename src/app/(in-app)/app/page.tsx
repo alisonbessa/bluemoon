@@ -30,6 +30,7 @@ import {
   ScheduledTransactionsList,
   useDashboardData,
 } from "@/features/dashboard";
+import { SummaryCardGrid } from "@/shared/organisms";
 import Link from "next/link";
 import { useUser } from "@/shared/hooks/use-current-user";
 import { formatCurrency } from "@/shared/lib/formatters";
@@ -125,64 +126,39 @@ function AppHomepage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Saldo do Mês
-            </CardTitle>
-            <WalletIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${((monthSummary?.income.received ?? 0) - (monthSummary?.expenses.spent ?? 0)) >= 0 ? "text-green-600" : "text-red-600"}`}>
-              {formatCurrency((monthSummary?.income.received ?? 0) - (monthSummary?.expenses.spent ?? 0))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Planejado {formatCurrency(
-                (monthSummary?.income.planned ?? 0) - (monthSummary?.expenses.allocated ?? 0)
-              )}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Receitas do Mês
-            </CardTitle>
-            <TrendingUpIcon className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(monthSummary?.income.received ?? 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {monthSummary?.income.received === monthSummary?.income.planned
-                ? "Meta atingida!"
-                : `Faltam ${formatCurrency(Math.max(0, (monthSummary?.income.planned ?? 0) - (monthSummary?.income.received ?? 0)))}`}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Despesas do Mês
-            </CardTitle>
-            <TrendingDownIcon className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(monthSummary?.expenses.spent ?? 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {(monthSummary?.expenses.spent ?? 0) <= (monthSummary?.expenses.allocated ?? 0)
-                ? `Restam ${formatCurrency((monthSummary?.expenses.allocated ?? 0) - (monthSummary?.expenses.spent ?? 0))}`
-                : `Excedido em ${formatCurrency((monthSummary?.expenses.spent ?? 0) - (monthSummary?.expenses.allocated ?? 0))}`}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <SummaryCardGrid
+        items={[
+          {
+            id: "balance",
+            icon: <WalletIcon className="h-full w-full text-muted-foreground" />,
+            label: "Saldo do Mês",
+            value: formatCurrency((monthSummary?.income.received ?? 0) - (monthSummary?.expenses.spent ?? 0)),
+            valueColor: ((monthSummary?.income.received ?? 0) - (monthSummary?.expenses.spent ?? 0)) >= 0 ? "positive" : "negative",
+            subtitle: `Planejado ${formatCurrency((monthSummary?.income.planned ?? 0) - (monthSummary?.expenses.allocated ?? 0))}`,
+          },
+          {
+            id: "income",
+            icon: <TrendingUpIcon className="h-full w-full text-green-500" />,
+            label: "Receitas do Mês",
+            value: formatCurrency(monthSummary?.income.received ?? 0),
+            valueColor: "positive",
+            subtitle: monthSummary?.income.received === monthSummary?.income.planned
+              ? "Meta atingida!"
+              : `Faltam ${formatCurrency(Math.max(0, (monthSummary?.income.planned ?? 0) - (monthSummary?.income.received ?? 0)))}`,
+          },
+          {
+            id: "expenses",
+            icon: <TrendingDownIcon className="h-full w-full text-red-500" />,
+            label: "Despesas do Mês",
+            value: formatCurrency(monthSummary?.expenses.spent ?? 0),
+            valueColor: "negative",
+            subtitle: (monthSummary?.expenses.spent ?? 0) <= (monthSummary?.expenses.allocated ?? 0)
+              ? `Restam ${formatCurrency((monthSummary?.expenses.allocated ?? 0) - (monthSummary?.expenses.spent ?? 0))}`
+              : `Excedido em ${formatCurrency((monthSummary?.expenses.spent ?? 0) - (monthSummary?.expenses.allocated ?? 0))}`,
+          },
+        ]}
+        className="grid-cols-1 sm:grid-cols-3"
+      />
 
       {/* Main Content */}
       <div className="grid gap-6 md:grid-cols-2">

@@ -8,6 +8,8 @@ interface SummaryCardProps {
   value: string;
   valueColor?: "default" | "positive" | "negative";
   tooltip?: React.ReactNode;
+  /** Optional supporting text below the value */
+  subtitle?: string;
   className?: string;
 }
 
@@ -23,6 +25,7 @@ export function SummaryCard({
   value,
   valueColor = "default",
   tooltip,
+  subtitle,
   className,
 }: SummaryCardProps) {
   return (
@@ -42,6 +45,9 @@ export function SummaryCard({
       >
         {value}
       </div>
+      {subtitle && (
+        <p className="text-xs text-muted-foreground">{subtitle}</p>
+      )}
     </div>
   );
 }

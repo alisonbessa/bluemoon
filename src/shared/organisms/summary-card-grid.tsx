@@ -10,6 +10,7 @@ interface SummaryCardItem {
   value: string;
   valueColor?: "default" | "positive" | "negative";
   tooltip?: React.ReactNode;
+  subtitle?: string;
 }
 
 interface SummaryCardGridProps {
@@ -40,6 +41,7 @@ export function SummaryCardGrid({
           value={item.value}
           valueColor={item.valueColor}
           tooltip={item.tooltip}
+          subtitle={item.subtitle}
         />
       ))}
     </div>

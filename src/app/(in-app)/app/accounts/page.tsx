@@ -7,9 +7,9 @@ import {
   EmptyState,
   DeleteConfirmDialog,
   LoadingState,
-  SummaryCard,
   ResponsiveButton,
 } from "@/shared/molecules";
+import { SummaryCardGrid } from "@/shared/organisms";
 import {
   COMPACT_TABLE_STYLES,
   GroupToggleRow,
@@ -200,28 +200,31 @@ export default function AccountsPage() {
       />
 
       {/* Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <SummaryCard
-          icon={<Wallet className="h-4 w-4" />}
-          label="Patrimônio Líquido"
-          value={formatCurrency(totalBalance - totalDebt)}
-          tooltip="Soma de todas as suas contas menos as dívidas (faturas de cartão de crédito)"
-        />
-        <SummaryCard
-          icon={<PiggyBank className="h-4 w-4 text-green-500" />}
-          label="Saldo em Contas"
-          value={formatCurrency(totalBalance)}
-          valueColor="positive"
-          tooltip={`Soma de contas correntes, poupança${includeInvestments ? ", investimentos" : ""} e benefícios. Não inclui cartões de crédito.`}
-        />
-        <SummaryCard
-          icon={<CreditCard className="h-4 w-4 text-red-500" />}
-          label="Fatura dos Cartões"
-          value={formatCurrency(totalDebt)}
-          valueColor="negative"
-          tooltip="Soma das faturas de todos os cartões de crédito"
-        />
-      </div>
+      <SummaryCardGrid
+        items={[
+          {
+            id: "net-worth",
+            icon: <Wallet className="h-full w-full" />,
+            label: "Patrimônio Líquido",
+            value: formatCurrency(totalBalance - totalDebt),
+          },
+          {
+            id: "accounts-balance",
+            icon: <PiggyBank className="h-full w-full text-green-500" />,
+            label: "Saldo em Contas",
+            value: formatCurrency(totalBalance),
+            valueColor: "positive",
+          },
+          {
+            id: "credit-cards",
+            icon: <CreditCard className="h-full w-full text-red-500" />,
+            label: "Fatura dos Cartões",
+            value: formatCurrency(totalDebt),
+            valueColor: "negative",
+          },
+        ]}
+        className="grid-cols-1 sm:grid-cols-3"
+      />
 
       {/* Compact Accounts Table */}
       {accounts.length > 0 ? (
