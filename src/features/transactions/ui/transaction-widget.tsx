@@ -6,8 +6,6 @@ import { Button } from "@/shared/ui/button";
 import { formatCurrencyCompact, parseLocalDate } from "@/shared/lib/formatters";
 import {
   Check,
-  CheckCircle2,
-  Clock,
   Pencil,
   ArrowLeftRight,
   Trash2,
@@ -312,11 +310,7 @@ export function TransactionWidget({
                       )}
                     >
                       <div className="flex items-center justify-center w-6">
-                        {isOverdue ? (
-                          <Clock className="h-4 w-4 text-red-500" />
-                        ) : (
-                          <span className="text-base">{item.icon || (item.type === "income" ? "💰" : "📋")}</span>
-                        )}
+                        <span className="text-base">{item.icon || (item.type === "income" ? "💰" : "📋")}</span>
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -398,8 +392,12 @@ export function TransactionWidget({
                     <div className="flex items-center justify-center w-6">
                       {transaction.type === "transfer" ? (
                         <ArrowLeftRight className="h-4 w-4 text-blue-500" />
+                      ) : transaction.type === "income" && transaction.incomeSource ? (
+                        <span className="text-base">
+                          {transaction.incomeSource.type === "salary" ? "💼" : transaction.incomeSource.type === "benefit" ? "🎁" : transaction.incomeSource.type === "freelance" ? "💻" : transaction.incomeSource.type === "rental" ? "🏠" : transaction.incomeSource.type === "investment" ? "📈" : "💰"}
+                        </span>
                       ) : (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        <span className="text-base">{transaction.category?.icon || (transaction.type === "income" ? "💰" : "📋")}</span>
                       )}
                     </div>
 
