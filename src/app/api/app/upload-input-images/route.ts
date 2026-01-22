@@ -41,8 +41,8 @@ export const POST = withAuthRequired(async (req, context) => {
           validUntil: Date.now() + 3600000, // 1 hour
         };
       },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        console.log("Input image uploaded successfully:", blob.url);
+      onUploadCompleted: async () => {
+        // Upload completed successfully
       },
     });
 

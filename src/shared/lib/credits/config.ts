@@ -29,13 +29,8 @@ export const creditsConfig: CreditsConfig = {
     name: "Video Generation Credits",
     currency: "USD",
     minimumAmount: 1,
-    priceCalculator: (amountOfCredits, userPlan) => {
-      // If userplan is provided, you can use it to calculate the price
-      // For example, if user's plan is
-      // enterprise plan and userPlan.quotas.videoCreditsRate is 0.0001,
-      // return amountOfCredits * 0.0001
-      // Else use default rate of 0.01
-      console.log({ userPlan });
+    priceCalculator: (amountOfCredits) => {
+      // Default rate of 0.01 per credit
       return amountOfCredits * 0.01;
     },
   },

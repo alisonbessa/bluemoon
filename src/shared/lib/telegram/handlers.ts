@@ -248,8 +248,6 @@ function parseAmount(text: string): number | null {
 
 // Handle connection request from deep link
 async function handleConnectionRequest(chatId: number, telegramUserId: number, username?: string, firstName?: string, userId?: string) {
-  console.log("[Telegram] handleConnectionRequest called with userId:", userId);
-
   if (!userId) {
     await sendMessage(chatId, "❌ Link de conexão inválido. Gere um novo no app.");
     return;
@@ -337,8 +335,6 @@ async function handleConnectionRequest(chatId: number, telegramUserId: number, u
 
 // Handle /start command
 async function handleStart(chatId: number, telegramUserId: number, username?: string, firstName?: string, startParam?: string) {
-  console.log("[Telegram] handleStart called with startParam:", startParam);
-
   const telegramUser = await getOrCreateTelegramUser(chatId, telegramUserId, username, firstName);
 
   // Check if this is a connection request with userId
@@ -347,10 +343,8 @@ async function handleStart(chatId: number, telegramUserId: number, username?: st
     // Remove "connect_" prefix, then split only on first underscore to get code and userId
     const withoutPrefix = startParam.substring(8); // Remove "connect_"
     const firstUnderscoreIndex = withoutPrefix.indexOf("_");
-    console.log("[Telegram] withoutPrefix:", withoutPrefix, "firstUnderscoreIndex:", firstUnderscoreIndex);
     if (firstUnderscoreIndex > 0) {
       const userId = withoutPrefix.substring(firstUnderscoreIndex + 1); // Everything after the code
-      console.log("[Telegram] Extracted userId:", userId);
       return handleConnectionRequest(chatId, telegramUserId, username, firstName, userId);
     }
   }
@@ -946,14 +940,8 @@ async function handleAIMessage(chatId: number, text: string, userId: string, mes
   try {
     // Parse message with AI
     const aiResponse = await parseUserMessage(text, userContext);
-    console.log("[handleAIMessage] AI Response:", {
-      intent: aiResponse.intent,
-      confidence: aiResponse.confidence,
-      requiresConfirmation: aiResponse.requiresConfirmation,
-      data: aiResponse.data,
-    });
 
-    // Route to appropriate handler (also logs the AI response for analysis)
+    // Route to appropriate handler
     await routeIntent(chatId, aiResponse, userContext, text, messagesToDelete);
   } catch (error) {
     console.error("[Telegram] AI processing error:", error);
@@ -1111,8 +1099,6 @@ export async function handleMessage(message: TelegramMessage) {
 
 // Handle income confirmation
 async function handleIncomeConfirmation(chatId: number, confirmed: boolean, callbackQueryId: string) {
-  console.log("[handleIncomeConfirmation] Called with:", { chatId, confirmed, callbackQueryId });
-
   const [telegramUser] = await db
     .select()
     .from(telegramUsers)
@@ -1124,10 +1110,6 @@ async function handleIncomeConfirmation(chatId: number, confirmed: boolean, call
   }
 
   const context = telegramUser.context as TelegramConversationContext;
-  console.log("[handleIncomeConfirmation] Context:", {
-    pendingIncome: context.pendingIncome,
-    scheduledTransactionId: context.scheduledTransactionId,
-  });
 
   if (!context.pendingIncome) {
     await answerCallbackQuery(callbackQueryId, "Erro: dados incompletos.");
@@ -1159,7 +1141,6 @@ async function handleIncomeConfirmation(chatId: number, confirmed: boolean, call
 
   // Check if we should update an existing scheduled transaction
   if (context.scheduledTransactionId) {
-    console.log("[handleIncomeConfirmation] Updating scheduled transaction:", context.scheduledTransactionId);
     // Update existing scheduled transaction
     await markTransactionAsPaid(
       context.scheduledTransactionId,
@@ -1615,8 +1596,6 @@ export async function handleCallbackQuery(query: TelegramCallbackQuery) {
   const chatId = query.message?.chat.id;
   const data = query.data;
 
-  console.log("[handleCallbackQuery] Received:", { chatId, data });
-
   if (!chatId || !data) return;
 
   // Get current context to determine what type of confirmation
@@ -1626,13 +1605,6 @@ export async function handleCallbackQuery(query: TelegramCallbackQuery) {
     .where(eq(telegramUsers.chatId, chatId));
 
   const context = telegramUser?.context as TelegramConversationContext | undefined;
-  console.log("[handleCallbackQuery] Context:", {
-    currentStep: telegramUser?.currentStep,
-    hasPendingIncome: !!context?.pendingIncome,
-    hasPendingExpense: !!context?.pendingExpense,
-    hasPendingTransfer: !!context?.pendingTransfer,
-    scheduledTransactionId: context?.scheduledTransactionId,
-  });
 
   if (data.startsWith("cat_")) {
     const categoryId = data.replace("cat_", "");

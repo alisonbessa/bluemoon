@@ -411,20 +411,9 @@ export async function handleIncomeIntent(
   const incomeSourceId = sourceMatch?.incomeSource.id;
   const incomeSourceName = sourceMatch?.incomeSource.name;
 
-  console.log("[handleIncomeIntent] Starting", {
-    chatId,
-    confidence,
-    dataAmount: data?.amount,
-    dataDescription: data?.description,
-    dataIncomeSourceHint: data?.incomeSourceHint,
-    sourceMatch: sourceMatch ? { id: sourceMatch.incomeSource.id, name: sourceMatch.incomeSource.name, confidence: sourceMatch.confidence } : null,
-    availableIncomeSources: incomeSources.map(s => ({ id: s.id, name: s.name })),
-  });
-
   // CASE 1: No amount provided (null, undefined, or 0) - try to find a scheduled transaction
   // AI sometimes returns 0 instead of null when no amount is mentioned
   if (!data?.amount || data.amount === 0) {
-    console.log("[handleIncomeIntent] CASE 1: No amount, searching by hint");
     // Try to find a scheduled income by hint
     const scheduledByHint = await findScheduledIncomeByHint(
       budgetId,
@@ -434,18 +423,10 @@ export async function handleIncomeIntent(
       currentMonth
     );
 
-    console.log("[handleIncomeIntent] CASE 1 scheduledByHint result:", scheduledByHint ? {
-      txId: scheduledByHint.transaction.id,
-      txAmount: scheduledByHint.transaction.amount,
-      txIncomeSourceName: scheduledByHint.transaction.incomeSourceName,
-      confidence: scheduledByHint.confidence,
-    } : null);
-
     if (scheduledByHint && scheduledByHint.confidence >= 0.5) {
       // Found a matching scheduled income - ask for confirmation
       const tx = scheduledByHint.transaction;
       const txSourceName = tx.incomeSourceName || incomeSourceName || "Receita";
-      console.log("[handleIncomeIntent] CASE 1: Found match, asking confirmation for:", txSourceName);
 
       let message = `💵 <b>Confirmar receita?</b>\n\n`;
       message += `Fonte: ${txSourceName}\n`;
@@ -482,9 +463,7 @@ export async function handleIncomeIntent(
     return;
   }
 
-  // CASE 2: Amount provided - normal flow
-  console.log("[handleIncomeIntent] CASE 2: Amount provided, searching for scheduled match");
-  // Check for matching scheduled income
+  // CASE 2: Amount provided - check for matching scheduled income
   const scheduledMatch = await findMatchingScheduledIncome(
     budgetId,
     incomeSourceId || null,
@@ -493,21 +472,11 @@ export async function handleIncomeIntent(
     currentMonth
   );
 
-  console.log("[handleIncomeIntent] CASE 2 scheduledMatch result:", scheduledMatch ? {
-    txId: scheduledMatch.transaction.id,
-    txAmount: scheduledMatch.transaction.amount,
-    txIncomeSourceName: scheduledMatch.transaction.incomeSourceName,
-    confidence: scheduledMatch.confidence,
-  } : null);
-
   const finalConfidence = confidence * (sourceMatch?.confidence || 0.7);
-  console.log("[handleIncomeIntent] finalConfidence:", finalConfidence, "threshold:", CONFIDENCE_THRESHOLDS.HIGH);
 
   // HIGH CONFIDENCE without scheduled match: Auto-save new transaction
   // Note: We NEVER auto-save when updating scheduled transactions - always confirm
   if (finalConfidence >= CONFIDENCE_THRESHOLDS.HIGH && !scheduledMatch) {
-    console.log("[handleIncomeIntent] HIGH CONFIDENCE path: Auto-saving new transaction");
-
     // Delete processing messages before showing final result
     if (initialMessagesToDelete.length > 0) {
       await deleteMessages(chatId, initialMessagesToDelete);
@@ -548,10 +517,6 @@ export async function handleIncomeIntent(
   }
 
   // MEDIUM/LOW CONFIDENCE: Ask for confirmation
-  console.log("[handleIncomeIntent] MEDIUM/LOW CONFIDENCE path: Asking for confirmation", {
-    scheduledMatchId: scheduledMatch?.transaction.id,
-    incomeSourceName,
-  });
   let message = `💵 <b>Confirmar receita?</b>\n\n`;
   if (incomeSourceName) {
     message += `Fonte: ${incomeSourceName}\n`;

@@ -14,7 +14,6 @@ const updatePlan = async ({
   newPlanId: string;
   sendEmail?: boolean;
 }) => {
-  console.log("updatePlan", userId, newPlanId);
   await db.update(users).set({ planId: newPlanId }).where(eq(users.id, userId));
   if (sendEmail) {
     const plan = await db
@@ -27,10 +26,7 @@ const updatePlan = async ({
       throw new APIError("Plan not found");
     }
 
-    const planName = plan[0].name;
-    console.log("planName", planName);
-
-    // TODO: Implement this
+    // TODO: Send email notification about plan change
   }
 };
 

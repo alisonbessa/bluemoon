@@ -68,9 +68,6 @@ const handleExpireCredits = async () => {
             .limit(1);
 
           if (existingExpiredTransaction.length > 0) {
-            console.log(
-              `Credits already expired for transaction ${transaction.id}`
-            );
             return { status: "skipped", transactionId: transaction.id };
           }
 
@@ -88,9 +85,6 @@ const handleExpireCredits = async () => {
             }
           );
 
-          console.log(
-            `Expired ${transaction.amount} ${transaction.creditType} credits for user ${transaction.userId}`
-          );
           return { status: "processed", transactionId: transaction.id };
         } catch (error) {
           console.error(

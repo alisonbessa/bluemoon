@@ -41,9 +41,8 @@ export const POST = withAuthRequired(async (req, context) => {
           validUntil: Date.now() + 3600000, // 1 hour
         };
       },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        console.log("Avatar uploaded successfully:", blob.url);
-        // You can update the user's avatar in the database here if needed
+      onUploadCompleted: async () => {
+        // Upload completed successfully
       },
     });
 

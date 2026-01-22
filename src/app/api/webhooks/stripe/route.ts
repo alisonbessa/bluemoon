@@ -23,11 +23,7 @@ class StripeWebhookHandler {
     this.eventType = eventType;
   }
   async handleOutsidePlanManagementProductInvoicePaid() {
-    // @ts-expect-error Stripe types are not fully compatible with Next.js
-    const object: Stripe.Invoice = this.data.object;
-    console.log("eventType", this.eventType);
-    console.log("Outside plan management product invoice paid", object);
-    // TODO: Implement your own logic here ex: update user credits (if you have a credits system)
+    // Handle non-plan products here (e.g., credits, one-time purchases)
   }
 
   /**
@@ -83,13 +79,10 @@ class StripeWebhookHandler {
         }
       );
 
-      console.log(`Successfully added ${creditAmount} ${creditType} credits to user ${user.id} via payment ${paymentId}`);
       return true; // Credits purchase handled
     } catch (error) {
-      console.error("Error adding credits:", error);
       // If it's a duplicate payment error, that's okay - idempotency working
       if (error instanceof Error && error.message.includes("already exists")) {
-        console.log(`Credits purchase already processed for payment ${checkoutSession.id}`);
         return true;
       }
       throw new APIError(`Failed to add credits: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -362,7 +355,6 @@ class StripeWebhookHandler {
 
     if (!dbPlan) {
       // Handle outside plan management product - could be credits or other products
-      console.log("No plan found for price ID:", firstItem.price.id, "- may be credits or other product");
       return;
     }
 

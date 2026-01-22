@@ -249,14 +249,6 @@ export async function findScheduledIncomeByHint(
   year: number,
   month: number
 ): Promise<MatchResult | null> {
-  console.log("[findScheduledIncomeByHint] Called with:", {
-    budgetId,
-    incomeSourceId,
-    descriptionHint,
-    year,
-    month,
-  });
-
   // Ensure pending transactions exist for this month (lazy generation)
   await ensurePendingTransactionsForMonth(budgetId, year, month);
 
@@ -289,17 +281,7 @@ export async function findScheduledIncomeByHint(
       )
     );
 
-  console.log("[findScheduledIncomeByHint] Found pending income transactions:", pendingIncome.map(t => ({
-    id: t.id,
-    amount: t.amount,
-    incomeSourceId: t.incomeSourceId,
-    incomeSourceName: t.incomeSourceName,
-    description: t.description,
-    status: t.status,
-  })));
-
   if (pendingIncome.length === 0) {
-    console.log("[findScheduledIncomeByHint] No pending income found");
     return null;
   }
 
@@ -345,25 +327,15 @@ export async function findScheduledIncomeByHint(
       }
     }
 
-    console.log("[findScheduledIncomeByHint] Scoring transaction:", {
-      id: tx.id,
-      incomeSourceName: tx.incomeSourceName,
-      sourceMatched,
-      isCurrentMonth,
-      confidence,
-    });
-
     // If income source matched or description matched well, consider it
     if (confidence >= 0.4 && (!bestMatch || confidence > bestMatch.confidence)) {
       bestMatch = {
         transaction: tx,
         confidence,
       };
-      console.log("[findScheduledIncomeByHint] New best match:", tx.incomeSourceName, confidence);
     }
   }
 
-  console.log("[findScheduledIncomeByHint] Final best match:", bestMatch ? { id: bestMatch.transaction.id, name: bestMatch.transaction.incomeSourceName, confidence: bestMatch.confidence } : null);
   return bestMatch;
 }
 
@@ -475,12 +447,6 @@ export async function markTransactionAsPaid(
   newAmount?: number,
   newDescription?: string
 ): Promise<void> {
-  console.log("[markTransactionAsPaid] Called with:", {
-    transactionId,
-    newAmount,
-    newDescription,
-  });
-
   const updateData: Record<string, unknown> = {
     status: "cleared",
     date: getTodayNoonUTC(),
@@ -497,12 +463,8 @@ export async function markTransactionAsPaid(
     updateData.description = newDescription.replace(/\s*\(agendado\)\s*$/i, "").trim();
   }
 
-  console.log("[markTransactionAsPaid] Updating transaction with:", updateData);
-
   await db
     .update(transactions)
     .set(updateData)
     .where(eq(transactions.id, transactionId));
-
-  console.log("[markTransactionAsPaid] Transaction updated successfully:", transactionId);
 }

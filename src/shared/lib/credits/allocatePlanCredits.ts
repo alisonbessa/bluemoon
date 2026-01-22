@@ -39,9 +39,6 @@ export async function allocatePlanCredits(
       .limit(1);
 
     if (!plan.length || !plan[0].codename) {
-      console.log(
-        `Plan ${planId} not found or has no codename, skipping credit allocation`
-      );
       return;
     }
 
@@ -51,15 +48,8 @@ export async function allocatePlanCredits(
     // Check if this plan has credit allocations configured
     const planCredits = onPlanChangeCredits[planCodename];
     if (!planCredits) {
-      console.log(
-        `No credit allocations configured for plan ${planCodename}, skipping`
-      );
       return;
     }
-
-    console.log(
-      `Allocating credits for plan ${planCodename} (${planName}) to user ${userId}`
-    );
 
     // Allocate credits for each credit type configured for this plan
     const creditAllocations = Object.entries(planCredits) as Array<
@@ -95,24 +85,13 @@ export async function allocatePlanCredits(
           metadata,
           expirationDate ? new Date(expirationDate) : null
         );
-
-        console.log(
-          `Successfully allocated ${creditConfig.amount} ${creditType} credits to user ${userId} for plan ${planCodename}`
-        );
       } catch (error) {
-        console.error(
-          `Error allocating ${creditType} credits for user ${userId}:`,
-          error
-        );
-
         // If it's a duplicate payment error, that's okay - idempotency working
         if (
           error instanceof Error &&
           error.message.includes("already exists")
         ) {
-          console.log(
-            `Credits allocation already processed for ${creditType} on plan ${planCodename} for user ${userId}`
-          );
+          // Already processed, continue
         } else {
           // Log error but don't throw - we want to continue with other credit types
           console.error(
@@ -122,10 +101,6 @@ export async function allocatePlanCredits(
         }
       }
     }
-
-    console.log(
-      `Completed credit allocation for plan ${planCodename} to user ${userId}`
-    );
   } catch (error) {
     console.error("Error in allocatePlanCredits:", error);
     throw new Error(
