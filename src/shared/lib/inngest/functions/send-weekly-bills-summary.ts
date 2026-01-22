@@ -2,7 +2,7 @@ import { inngest } from "../client";
 import { db } from "@/db";
 import { telegramUsers, transactions, recurringBills, budgetMembers } from "@/db/schema";
 import { eq, and, gte, lte, isNotNull, inArray } from "drizzle-orm";
-import { sendMessage } from "@/shared/lib/telegram/bot";
+import { sendMessage } from "@/integrations/telegram/lib/bot";
 import { formatCurrency, parseLocalDate } from "@/shared/lib/formatters";
 
 /**

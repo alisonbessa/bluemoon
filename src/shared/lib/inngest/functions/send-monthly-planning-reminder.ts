@@ -2,7 +2,7 @@ import { inngest } from "../client";
 import { db } from "@/db";
 import { telegramUsers } from "@/db/schema";
 import { isNotNull } from "drizzle-orm";
-import { sendMessage } from "@/shared/lib/telegram/bot";
+import { sendMessage } from "@/integrations/telegram/lib/bot";
 
 /**
  * Sends a reminder to plan the next month's budget
