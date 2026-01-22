@@ -421,7 +421,7 @@ export function UnifiedExpenseForm({
 
           {/* Opções extras (só recorrente) */}
           {isRecurring && (
-            <div className="space-y-3 rounded-lg border p-3">
+            <div className="grid gap-3 rounded-lg border p-3">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label htmlFor="expense-autoDebit" className="text-sm">

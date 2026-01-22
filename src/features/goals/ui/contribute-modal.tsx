@@ -57,8 +57,8 @@ export function ContributeModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
+        <div className="grid gap-4">
+          <div className="grid gap-2">
             <Label htmlFor="contributeFromAccount">Conta de origem</Label>
             <Select value={accountId} onValueChange={onAccountChange}>
               <SelectTrigger id="contributeFromAccount">
@@ -83,7 +83,7 @@ export function ContributeModal({
             </p>
           </div>
 
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label htmlFor="contributeAmount">Valor da contribuição</Label>
             <CurrencyInput
               id="contributeAmount"

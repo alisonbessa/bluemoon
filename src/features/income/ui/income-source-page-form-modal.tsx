@@ -71,9 +71,9 @@ export function IncomeSourcePageFormModal({
       onSubmit={onSubmit}
       submitLabel={isEditing ? 'Salvar' : 'Adicionar'}
     >
-      <div className="space-y-4">
+      <div className="grid gap-4">
         {/* Name */}
-        <div className="space-y-2">
+        <div className="grid gap-2">
           <Label htmlFor="name" className={errors.name ? 'text-destructive' : ''}>
             Nome *
           </Label>
@@ -108,7 +108,7 @@ export function IncomeSourcePageFormModal({
 
         {/* Amount and Day */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label className={errors.amount ? 'text-destructive' : ''}>
               Valor *
             </Label>
@@ -142,7 +142,7 @@ export function IncomeSourcePageFormModal({
 
         {/* Account */}
         {filteredAccounts.length > 0 && (
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <AccountSelector
               value={formData.accountId}
               onChange={(value) => onUpdateField('accountId', value)}

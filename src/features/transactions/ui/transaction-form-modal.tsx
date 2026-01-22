@@ -66,9 +66,9 @@ export function TransactionFormModal({
       onSubmit={onSubmit}
       submitLabel={isEditing ? 'Salvar' : 'Criar'}
     >
-      <div className="space-y-4">
+      <div className="grid gap-4">
           {/* Type Selection */}
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label>Tipo</Label>
             <div className="grid grid-cols-3 gap-2">
               {typeOptions.map((type) => (
@@ -93,7 +93,7 @@ export function TransactionFormModal({
 
           {/* Amount + Date */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Label htmlFor="amount">Valor</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -123,7 +123,7 @@ export function TransactionFormModal({
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Label htmlFor="date">Data</Label>
               <Input
                 id="date"
@@ -135,7 +135,7 @@ export function TransactionFormModal({
           </div>
 
           {/* Description */}
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label htmlFor="description">Descrição</Label>
             <Input
               id="description"
@@ -174,7 +174,7 @@ export function TransactionFormModal({
 
           {/* Category (for expenses) */}
           {formData.type === 'expense' && (
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Label htmlFor="category">Categoria</Label>
               <Select
                 value={formData.categoryId || 'none'}
@@ -202,7 +202,7 @@ export function TransactionFormModal({
 
           {/* Installment option (only for credit card expenses, not when editing) */}
           {showInstallmentOption && (
-            <div className="space-y-3 rounded-lg border p-3 bg-muted/30">
+            <div className="grid gap-3 rounded-lg border p-3 bg-muted/30">
               <div className="flex items-center justify-between">
                 <Label htmlFor="installment" className="cursor-pointer">
                   Parcelar compra
@@ -220,7 +220,7 @@ export function TransactionFormModal({
                 />
               </div>
               {formData.isInstallment && (
-                <div className="space-y-2">
+                <div className="grid gap-2">
                   <Label htmlFor="totalInstallments">Número de parcelas</Label>
                   <Select
                     value={String(formData.totalInstallments)}
@@ -253,7 +253,7 @@ export function TransactionFormModal({
 
           {/* Income Source (for income) */}
           {formData.type === 'income' && incomeSources.length > 0 && (
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Label htmlFor="incomeSource">Fonte de Renda</Label>
               <Select
                 value={formData.incomeSourceId || 'none'}

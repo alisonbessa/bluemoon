@@ -51,9 +51,9 @@ export function CategoryPageFormModal({
       submitLabel={isEditing ? 'Salvar' : 'Criar'}
       submitDisabled={!formData.name.trim() || (!isEditing && !formData.groupId)}
     >
-      <div className="space-y-4">
+      <div className="grid gap-4">
         {/* Name */}
-        <div className="space-y-2">
+        <div className="grid gap-2">
           <Label htmlFor="name">Nome</Label>
           <Input
             id="name"
@@ -72,7 +72,7 @@ export function CategoryPageFormModal({
 
         {/* Group (only for create) */}
         {!isEditing && (
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label htmlFor="group">Grupo</Label>
             <Select
               value={formData.groupId}

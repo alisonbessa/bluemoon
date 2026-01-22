@@ -189,9 +189,9 @@ export function GoalFormModal({
       onSubmit={handleSubmit}
       submitLabel={editingGoal ? "Salvar" : "Criar Meta"}
     >
-      <div className="space-y-4">
+      <div className="grid gap-4">
         {/* Row 1: Name */}
-        <div className="space-y-2">
+        <div className="grid gap-2">
           <Label htmlFor="goal-name">Nome da meta</Label>
           <Input
             id="goal-name"
@@ -209,7 +209,7 @@ export function GoalFormModal({
 
         {/* Row 2: Target Amount + Initial Amount */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label htmlFor="goal-targetAmount">Valor alvo</Label>
             <CurrencyInput
               id="goal-targetAmount"
@@ -221,7 +221,7 @@ export function GoalFormModal({
             />
           </div>
           {!editingGoal && (
-            <div className="space-y-2">
+            <div className="grid gap-2">
               <Label htmlFor="goal-initialAmount">Valor inicial</Label>
               <CurrencyInput
                 id="goal-initialAmount"
@@ -237,7 +237,7 @@ export function GoalFormModal({
 
         {/* Row 3: Target Date + Destination Account */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label htmlFor="goal-targetDate">Data limite</Label>
             <Input
               id="goal-targetDate"
