@@ -57,6 +57,7 @@ export {
 export {
   createIncomeSourceSchema,
   updateIncomeSourceSchema,
+  validateIncomeFrequencyFields,
   type CreateIncomeSourceInput,
   type UpdateIncomeSourceInput,
 } from "./income.schema";

@@ -8,8 +8,9 @@ import {
   validationError,
   notFoundError,
   successResponse,
+  errorResponse,
 } from "@/shared/lib/api/responses";
-import { updateIncomeSourceSchema } from "@/shared/lib/validations";
+import { updateIncomeSourceSchema, validateIncomeFrequencyFields } from "@/shared/lib/validations";
 
 // GET - Get a specific income source
 export const GET = withAuthRequired(async (req, context) => {
@@ -68,6 +69,18 @@ export const PATCH = withAuthRequired(async (req, context) => {
   const validation = updateIncomeSourceSchema.safeParse(body);
   if (!validation.success) {
     return validationError(validation.error);
+  }
+
+  // Validate frequency-dependent fields
+  // Use new frequency if provided, otherwise use existing frequency
+  const effectiveFrequency = validation.data.frequency ?? existingSource.frequency ?? "monthly";
+  const effectiveDayOfMonth = validation.data.dayOfMonth !== undefined
+    ? validation.data.dayOfMonth
+    : existingSource.dayOfMonth;
+
+  const frequencyValidation = validateIncomeFrequencyFields(effectiveFrequency, effectiveDayOfMonth);
+  if (!frequencyValidation.valid) {
+    return errorResponse(frequencyValidation.error!, 400);
   }
 
   const updateData = {
