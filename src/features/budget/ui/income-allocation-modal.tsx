@@ -4,17 +4,8 @@ import { Undo2 } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
-import { FormModalWrapper } from '@/shared/molecules';
+import { FormModalWrapper, INCOME_TYPE_CONFIG } from '@/shared/molecules';
 import { formatCurrency } from '@/features/budget/types';
-
-const INCOME_TYPE_ICONS: Record<string, string> = {
-  salary: '💼',
-  benefit: '🎁',
-  freelance: '💻',
-  rental: '🏠',
-  investment: '📈',
-  other: '💵',
-};
 
 interface IncomeSource {
   id: string;
@@ -62,7 +53,7 @@ export function IncomeAllocationModal({
 }: IncomeAllocationModalProps) {
   if (!incomeSource) return null;
 
-  const icon = INCOME_TYPE_ICONS[incomeSource.type] || '💵';
+  const icon = INCOME_TYPE_CONFIG[incomeSource.type]?.icon || '💵';
 
   return (
     <FormModalWrapper
