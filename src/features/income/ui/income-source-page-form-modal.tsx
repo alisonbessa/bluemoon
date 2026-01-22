@@ -1,21 +1,20 @@
 'use client';
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/ui/select';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { CurrencyInput } from '@/shared/ui/currency-input';
-import { FormModalWrapper, FrequencySelector } from '@/shared/molecules';
 import {
-  INCOME_TYPE_CONFIG,
+  FormModalWrapper,
+  FrequencySelector,
+  IncomeTypeSelector,
+  MemberSelector,
+  AccountSelector,
+  DayOfMonthInput,
+} from '@/shared/molecules';
+import type { IncomeType } from '@/shared/molecules';
+import {
   type IncomeFormData,
   type IncomeSource,
-  type IncomeType,
   type IncomeFrequency,
 } from '../types';
 
@@ -90,30 +89,15 @@ export function IncomeSourcePageFormModal({
 
         {/* Type and Frequency */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Tipo *</Label>
-            <Select
-              value={formData.type}
-              onValueChange={(value) => {
-                onUpdateField('type', value as IncomeType);
-                onUpdateField('accountId', undefined);
-              }}
-            >
-              <SelectTrigger className={errors.type ? 'border-destructive' : ''}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(INCOME_TYPE_CONFIG).map(([key, { label, icon }]) => (
-                  <SelectItem key={key} value={key}>
-                    <span className="flex items-center gap-2">
-                      <span>{icon}</span>
-                      <span>{label}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <IncomeTypeSelector
+            value={formData.type as IncomeType}
+            onChange={(value) => {
+              onUpdateField('type', value);
+              onUpdateField('accountId', undefined);
+            }}
+            label="Tipo *"
+            hasError={errors.type}
+          />
 
           <FrequencySelector
             value={formData.frequency}
@@ -136,68 +120,37 @@ export function IncomeSourcePageFormModal({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="dayOfMonth">Dia do Pagamento</Label>
-            <Input
-              id="dayOfMonth"
-              type="number"
-              min="1"
-              max="31"
-              placeholder="1-31"
-              value={formData.dayOfMonth || ''}
-              onChange={(e) =>
-                onUpdateField('dayOfMonth', parseInt(e.target.value) || undefined)
-              }
-            />
-          </div>
+          <DayOfMonthInput
+            value={formData.dayOfMonth}
+            onChange={(value) => onUpdateField('dayOfMonth', value)}
+            label="Dia do Pagamento"
+            placeholder="1-31"
+          />
         </div>
 
         {/* Member */}
         {members.length > 1 && (
-          <div className="space-y-2">
-            <Label>Quem Recebe</Label>
-            <Select
-              value={formData.memberId || 'none'}
-              onValueChange={(value) => onUpdateField('memberId', value === 'none' ? undefined : value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione (opcional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhum responsável específico</SelectItem>
-                {members.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    {member.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <MemberSelector
+            value={formData.memberId}
+            onChange={(value) => onUpdateField('memberId', value)}
+            members={members}
+            label="Quem Recebe"
+            allowNone
+            noneLabel="Nenhum responsável específico"
+          />
         )}
 
         {/* Account */}
         {filteredAccounts.length > 0 && (
           <div className="space-y-2">
-            <Label>Conta de Destino</Label>
-            <Select
-              value={formData.accountId || 'none'}
-              onValueChange={(value) => onUpdateField('accountId', value === 'none' ? undefined : value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione (opcional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhuma conta específica</SelectItem>
-                {filteredAccounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    <span className="flex items-center gap-2">
-                      <span>{account.icon || '🏦'}</span>
-                      <span>{account.name}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AccountSelector
+              value={formData.accountId}
+              onChange={(value) => onUpdateField('accountId', value)}
+              accounts={filteredAccounts}
+              label="Conta de Destino"
+              allowNone
+              noneLabel="Nenhuma conta específica"
+            />
             <p className="text-xs text-muted-foreground">
               {formData.type === 'benefit'
                 ? 'Apenas contas de benefício'

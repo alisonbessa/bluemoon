@@ -1,19 +1,18 @@
 'use client';
 
-import { FormModalWrapper } from '@/shared/molecules';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/ui/select';
+  FormModalWrapper,
+  IncomeTypeSelector,
+  FrequencySelector,
+  MemberSelector,
+  AccountSelector,
+  DayOfMonthInput,
+} from '@/shared/molecules';
+import type { IncomeType } from '@/shared/molecules';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { CurrencyInput } from '@/shared/ui/currency-input';
 import {
-  INCOME_TYPE_CONFIG,
-  INCOME_FREQUENCY_LABELS,
   ALLOWED_ACCOUNT_TYPES_BY_INCOME,
   type IncomeFormData,
 } from '../types';
@@ -119,47 +118,16 @@ export function IncomeFormModal({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="type">Tipo</Label>
-              <Select value={formData.type} onValueChange={handleTypeChange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(INCOME_TYPE_CONFIG).map(
-                    ([key, { label, icon }]) => (
-                      <SelectItem key={key} value={key}>
-                        <div className="flex items-center gap-2">
-                          <span>{icon}</span>
-                          {label}
-                        </div>
-                      </SelectItem>
-                    )
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+            <IncomeTypeSelector
+              value={formData.type as IncomeType}
+              onChange={(value) => handleTypeChange(value)}
+              label="Tipo"
+            />
 
-            <div className="space-y-2">
-              <Label htmlFor="frequency">Frequencia</Label>
-              <Select
-                value={formData.frequency}
-                onValueChange={(value: IncomeFormData['frequency']) =>
-                  setFormData({ ...formData, frequency: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(INCOME_FREQUENCY_LABELS).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <FrequencySelector
+              value={formData.frequency}
+              onChange={(value) => setFormData({ ...formData, frequency: value })}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -184,68 +152,35 @@ export function IncomeFormModal({
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="dayOfMonth">Dia do Pagamento</Label>
-              <Input
-                id="dayOfMonth"
-                type="number"
-                min="1"
-                max="31"
-                placeholder="5"
-                value={formData.dayOfMonth || ''}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    dayOfMonth: parseInt(e.target.value) || undefined,
-                  })
-                }
-              />
-            </div>
+            <DayOfMonthInput
+              value={formData.dayOfMonth}
+              onChange={(value) => setFormData({ ...formData, dayOfMonth: value })}
+              label="Dia do Pagamento"
+              placeholder="5"
+            />
           </div>
 
           {members.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="member">Quem Recebe</Label>
-              <Select
-                value={formData.memberId || ''}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, memberId: value || undefined })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {members.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                      {member.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <MemberSelector
+              value={formData.memberId}
+              onChange={(value) => setFormData({ ...formData, memberId: value })}
+              members={members}
+              label="Quem Recebe"
+              allowNone
+              noneLabel="Selecione (opcional)"
+            />
           )}
 
           {filteredAccounts.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="account">Conta de Destino</Label>
-              <Select
-                value={formData.accountId || ''}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, accountId: value || undefined })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredAccounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.icon || '🏦'} {account.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <AccountSelector
+                value={formData.accountId}
+                onChange={(value) => setFormData({ ...formData, accountId: value })}
+                accounts={filteredAccounts}
+                label="Conta de Destino"
+                allowNone
+                noneLabel="Selecione (opcional)"
+              />
               <p className="text-xs text-muted-foreground">
                 {formData.type === 'benefit'
                   ? 'Apenas contas de beneficio'

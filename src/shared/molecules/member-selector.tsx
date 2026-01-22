@@ -12,7 +12,7 @@ import {
 interface Member {
   id: string;
   name: string;
-  color: string | null;
+  color?: string | null;
 }
 
 interface MemberSelectorProps {
@@ -23,6 +23,8 @@ interface MemberSelectorProps {
   showLabel?: boolean;
   /** Custom label text */
   label?: string;
+  /** Allow selecting "none" option. Defaults to true */
+  allowNone?: boolean;
   /** Label for the "none" option */
   noneLabel?: string;
   /** Placeholder text */
@@ -58,6 +60,7 @@ export function MemberSelector({
   members,
   showLabel = true,
   label = 'Responsável',
+  allowNone = true,
   noneLabel = 'Nenhum responsável específico',
   placeholder = 'Selecione...',
   defaultColor = '#6366f1',
@@ -72,7 +75,7 @@ export function MemberSelector({
         </div>
       )}
       <Select
-        value={value || 'none'}
+        value={value || (allowNone ? 'none' : undefined)}
         onValueChange={(val) => onChange(val === 'none' ? undefined : val)}
         disabled={disabled}
       >
@@ -80,7 +83,7 @@ export function MemberSelector({
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="none">{noneLabel}</SelectItem>
+          {allowNone && <SelectItem value="none">{noneLabel}</SelectItem>}
           {members.map((member) => (
             <SelectItem key={member.id} value={member.id}>
               <span className="flex items-center gap-2">
