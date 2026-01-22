@@ -1,7 +1,5 @@
 /**
  * Dashboard Hooks
- *
- * Hooks will be added here as they are created.
  */
 
-export {};
+export { useDashboardData } from './use-dashboard-data';
