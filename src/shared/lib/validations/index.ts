@@ -70,3 +70,38 @@ export {
   type UpdateGoalInput,
   type GoalContributionInput,
 } from "./goal.schema";
+
+// Budget schemas
+export {
+  createBudgetSchema,
+  updateBudgetSchema,
+  type CreateBudgetInput,
+  type UpdateBudgetInput,
+} from "./budget.schema";
+
+// Member schemas
+export {
+  createMemberSchema,
+  updateMemberSchema,
+  type CreateMemberInput,
+  type UpdateMemberInput,
+} from "./member.schema";
+
+// Allocation schemas
+export {
+  upsertAllocationSchema,
+  copyAllocationsSchema,
+  upsertIncomeAllocationSchema,
+  type UpsertAllocationInput,
+  type CopyAllocationsInput,
+  type UpsertIncomeAllocationInput,
+} from "./allocation.schema";
+
+// Recurring Bill schemas
+export {
+  createRecurringBillSchema,
+  updateRecurringBillSchema,
+  validateFrequencyFields,
+  type CreateRecurringBillInput,
+  type UpdateRecurringBillInput,
+} from "./recurring-bill.schema";

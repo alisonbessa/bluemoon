@@ -2,7 +2,6 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus, recurringBills, financialAccounts } from "@/db/schema";
 import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
-import { z } from "zod";
 import { ensurePendingTransactionsForMonth } from "@/shared/lib/budget/pending-transactions";
 import { getUserBudgetIds, getUserMemberIdInBudget } from "@/shared/lib/api/permissions";
 import {
@@ -11,14 +10,7 @@ import {
   successResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
-
-const upsertAllocationSchema = z.object({
-  budgetId: z.string().uuid(),
-  categoryId: z.string().uuid(),
-  year: z.number().int().min(2020).max(2100),
-  month: z.number().int().min(1).max(12),
-  allocated: z.number().int().min(0),
-});
+import { upsertAllocationSchema } from "@/shared/lib/validations";
 
 // GET - Get allocations for a specific month with spending data
 export const GET = withAuthRequired(async (req, context) => {

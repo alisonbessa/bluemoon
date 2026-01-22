@@ -2,8 +2,6 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { recurringBills, financialAccounts, categories } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { z } from "zod";
-import { recurringBillFrequencyEnum } from "@/db/schema/recurring-bills";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
   validationError,
@@ -11,47 +9,7 @@ import {
   notFoundError,
   successResponse,
 } from "@/shared/lib/api/responses";
-
-const createRecurringBillSchema = z.object({
-  budgetId: z.string().uuid(),
-  categoryId: z.string().uuid(),
-  accountId: z.string().uuid(), // obrigatório
-  name: z.string().min(1).max(100),
-  amount: z.number().int().min(0),
-  frequency: recurringBillFrequencyEnum.default("monthly"),
-  dueDay: z.number().int().min(0).max(31).optional().nullable(), // 0-6 for weekly, 1-31 for monthly/yearly
-  dueMonth: z.number().int().min(1).max(12).optional().nullable(),
-  isAutoDebit: z.boolean().default(false),
-  isVariable: z.boolean().default(false),
-}).refine((data) => {
-  // Yearly requires dueMonth
-  if (data.frequency === "yearly" && !data.dueMonth) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Despesa anual requer mês de vencimento",
-  path: ["dueMonth"],
-}).refine((data) => {
-  // Weekly dueDay should be 0-6 (day of week)
-  if (data.frequency === "weekly" && data.dueDay !== null && data.dueDay !== undefined) {
-    return data.dueDay >= 0 && data.dueDay <= 6;
-  }
-  return true;
-}, {
-  message: "Para semanal, dia deve ser 0 (Domingo) a 6 (Sábado)",
-  path: ["dueDay"],
-}).refine((data) => {
-  // Monthly/Yearly dueDay should be 1-31 (day of month)
-  if ((data.frequency === "monthly" || data.frequency === "yearly") &&
-      data.dueDay !== null && data.dueDay !== undefined) {
-    return data.dueDay >= 1 && data.dueDay <= 31;
-  }
-  return true;
-}, {
-  message: "Para mensal/anual, dia deve ser 1 a 31",
-  path: ["dueDay"],
-});
+import { createRecurringBillSchema } from "@/shared/lib/validations";
 
 // GET - Get recurring bills for a category or budget
 export const GET = withAuthRequired(async (req, context) => {

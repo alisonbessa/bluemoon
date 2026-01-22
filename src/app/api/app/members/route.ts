@@ -2,8 +2,6 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { budgetMembers, categories, groups } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { z } from "zod";
-import { memberTypeEnum } from "@/db/schema/budget-members";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetMemberships } from "@/shared/lib/api/permissions";
 import {
@@ -12,16 +10,7 @@ import {
   notFoundError,
   successResponse,
 } from "@/shared/lib/api/responses";
-
-const createMemberSchema = z.object({
-  budgetId: z.string().uuid(),
-  name: z.string().min(1).max(100),
-  type: memberTypeEnum.refine((val) => val === "child" || val === "pet", {
-    message: "Can only add dependents (child or pet) through this endpoint",
-  }),
-  color: z.string().optional(),
-  monthlyPleasureBudget: z.number().int().min(0).default(0),
-});
+import { createMemberSchema } from "@/shared/lib/validations";
 
 // GET - Get members for user's budgets
 export const GET = withAuthRequired(async (req, context) => {

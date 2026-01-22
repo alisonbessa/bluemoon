@@ -2,7 +2,6 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { monthlyAllocations, categories } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { z } from "zod";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
   validationError,
@@ -10,15 +9,7 @@ import {
   successResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
-
-const copyAllocationsSchema = z.object({
-  budgetId: z.string().uuid(),
-  fromYear: z.number().int().min(2020).max(2100),
-  fromMonth: z.number().int().min(1).max(12),
-  toYear: z.number().int().min(2020).max(2100),
-  toMonth: z.number().int().min(1).max(12),
-  mode: z.enum(["all", "empty_only"]).optional().default("all"),
-});
+import { copyAllocationsSchema } from "@/shared/lib/validations";
 
 // POST - Copy allocations from one month to another
 export const POST = withAuthRequired(async (req, context) => {
