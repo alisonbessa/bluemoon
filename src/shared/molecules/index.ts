@@ -12,3 +12,7 @@ export type { IncomeFrequency } from "./frequency-selector";
 export { DayOfMonthInput } from "./day-of-month-input";
 export { AccountSelector } from "./account-selector";
 export { WeekdaySelector, WEEKDAYS } from "./weekday-selector";
+export { MemberSelector } from "./member-selector";
+export { MonthGridSelector, MONTH_NAMES } from "./month-grid-selector";
+export { IncomeTypeSelector, INCOME_TYPE_CONFIG } from "./income-type-selector";
+export type { IncomeType } from "./income-type-selector";

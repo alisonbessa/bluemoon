@@ -8,14 +8,10 @@ import {
   BehaviorSelector,
   WeekdaySelector,
   DayOfMonthInput,
+  MonthGridSelector,
 } from '@/shared/molecules';
 
 type AllocationFrequency = 'weekly' | 'monthly' | 'yearly' | 'once';
-
-const MONTH_NAMES = [
-  'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-  'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
-];
 
 const FREQUENCY_OPTIONS: { value: AllocationFrequency; label: string }[] = [
   { value: 'weekly', label: 'Semanal' },
@@ -166,27 +162,12 @@ export function AllocationModal({
         {/* Yearly: Month and Day Selector */}
         {frequency === 'yearly' && (
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-2">
-              <Label>Mês do Vencimento</Label>
-              <div className="grid grid-cols-4 gap-1">
-                {MONTH_NAMES.map((month, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => onYearMonthChange(idx + 1)}
-                    className={cn(
-                      'rounded border py-1.5 text-[10px] font-medium transition-colors',
-                      yearMonth === idx + 1
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-muted hover:bg-muted/50',
-                      idx + 1 === currentMonth && yearMonth !== idx + 1 && 'bg-muted/30'
-                    )}
-                  >
-                    {month}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <MonthGridSelector
+              value={yearMonth}
+              onChange={onYearMonthChange}
+              currentMonth={currentMonth}
+              label="Mês do Vencimento"
+            />
             <div className="grid gap-2">
               <DayOfMonthInput
                 value={dueDay}

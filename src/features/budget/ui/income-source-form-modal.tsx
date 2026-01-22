@@ -3,23 +3,17 @@
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Switch } from '@/shared/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/ui/select';
 import { CurrencyInput } from '@/shared/ui/currency-input';
 import {
   FormModalWrapper,
   FrequencySelector,
   DayOfMonthInput,
   AccountSelector,
+  MemberSelector,
+  IncomeTypeSelector,
 } from '@/shared/molecules';
-import { INCOME_TYPE_CONFIG } from '@/features/budget/types';
+import type { IncomeType } from '@/shared/molecules';
 
-type IncomeType = 'salary' | 'benefit' | 'freelance' | 'rental' | 'investment' | 'other';
 type IncomeFrequency = 'monthly' | 'biweekly' | 'weekly';
 
 interface Account {
@@ -112,30 +106,15 @@ export function IncomeSourceFormModal({
 
         {/* Tipo e Frequência */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="grid gap-2">
-            <Label>Tipo *</Label>
-            <Select
-              value={formData.type}
-              onValueChange={(value) => {
-                onFieldChange('type', value as IncomeType);
-                onFieldChange('accountId', undefined);
-              }}
-            >
-              <SelectTrigger className={errors.type ? 'border-destructive' : ''}>
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(INCOME_TYPE_CONFIG).map(([key, config]) => (
-                  <SelectItem key={key} value={key}>
-                    <span className="flex items-center gap-2">
-                      <span>{config.icon}</span>
-                      <span>{config.label}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <IncomeTypeSelector
+            value={formData.type}
+            onChange={(value) => {
+              onFieldChange('type', value);
+              onFieldChange('accountId', undefined);
+            }}
+            label="Tipo *"
+            hasError={errors.type}
+          />
 
           <FrequencySelector
             value={formData.frequency}
@@ -165,33 +144,12 @@ export function IncomeSourceFormModal({
 
         {/* Responsável */}
         {members.length > 1 && (
-          <div className="grid gap-2">
-            <Label>Quem Recebe</Label>
-            <Select
-              value={formData.memberId || 'none'}
-              onValueChange={(value) =>
-                onFieldChange('memberId', value === 'none' ? undefined : value)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhum responsável específico</SelectItem>
-                {members.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    <span className="flex items-center gap-2">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: member.color || '#6366f1' }}
-                      />
-                      <span>{member.name}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <MemberSelector
+            value={formData.memberId}
+            onChange={(value) => onFieldChange('memberId', value)}
+            members={members}
+            label="Quem Recebe"
+          />
         )}
 
         {/* Conta de Destino */}
