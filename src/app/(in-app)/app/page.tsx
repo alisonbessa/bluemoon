@@ -31,13 +31,14 @@ import {
   useDashboardData,
 } from "@/features/dashboard";
 import { SummaryCardGrid } from "@/shared/organisms";
+import { PageContent } from "@/shared/molecules";
 import Link from "next/link";
 import { useUser } from "@/shared/hooks/use-current-user";
 import { formatCurrency } from "@/shared/lib/formatters";
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <PageContent>
       <div className="flex flex-col gap-2">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-4 w-64 sm:w-96" />
@@ -51,7 +52,7 @@ function DashboardSkeleton() {
         <Skeleton className="h-64" />
         <Skeleton className="h-64" />
       </div>
-    </div>
+    </PageContent>
   );
 }
 
@@ -85,28 +86,28 @@ function AppHomepage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-6">
+      <PageContent>
         <DashboardSkeleton />
-      </div>
+      </PageContent>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col gap-6 p-6">
+      <PageContent>
         <Alert variant="destructive">
           <AlertDescription>
             Erro ao carregar dados: {error.message}
           </AlertDescription>
         </Alert>
-      </div>
+      </PageContent>
     );
   }
 
   const firstName = user?.name?.split(" ")[0] || "Usuário";
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <PageContent>
       {/* Header with Month Navigation */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-1">
@@ -304,7 +305,7 @@ function AppHomepage() {
           </Link>
         </Card>
       </div>
-    </div>
+    </PageContent>
   );
 }
 

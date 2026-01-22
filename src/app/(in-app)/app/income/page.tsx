@@ -63,7 +63,7 @@ export default function IncomePage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-6 p-6">
       {/* Header */}
       <PageHeader
         title="Rendas"

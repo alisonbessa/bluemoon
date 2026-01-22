@@ -1,5 +1,6 @@
 export { EmptyState } from "./empty-state";
 export { PageHeader } from "./page-header";
+export { PageContent } from "./page-content";
 export { SummaryCard } from "./summary-card";
 export { DeleteConfirmDialog } from "./delete-confirm-dialog";
 export { ResponsiveButton } from "./responsive-button";
