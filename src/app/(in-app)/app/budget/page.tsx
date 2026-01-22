@@ -1,24 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
-import { Loader2, PiggyBank, Copy } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/shared/ui/dialog';
-import { toast } from 'sonner';
+import { Loader2, PiggyBank } from 'lucide-react';
 import { GoalFormModal } from '@/features/goals';
 import { useTutorial } from '@/shared/tutorial/tutorial-provider';
 
 import {
   useBudgetPeriod,
   useBudgetUIState,
+  useBudgetPageData,
   useAllocationForm,
   useCategoryForm,
   useIncomeAllocationForm,
@@ -39,19 +31,14 @@ import {
   IncomeSourceFormModal,
   IncomeSourceDeleteDialog,
   CopyAllocationsModal,
+  CopyHintModal,
 } from '@/features/budget/ui';
 
 import type {
-  Budget,
   GroupData,
-  IncomeData,
   IncomeMemberGroup,
   IncomeSource,
   IncomeSourceData,
-  Goal,
-  Account,
-  Member,
-  MONTH_NAMES_PT,
 } from '@/features/budget/types';
 
 export default function BudgetPage() {
@@ -69,85 +56,49 @@ export default function BudgetPage() {
   // UI state
   const uiState = useBudgetUIState();
 
-  // Data state
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [groupsData, setGroupsData] = useState<GroupData[]>([]);
-  const [totals, setTotals] = useState({ allocated: 0, spent: 0, available: 0 });
-  const [incomeData, setIncomeData] = useState<IncomeData | null>(null);
-  const [totalIncome, setTotalIncome] = useState(0);
-  const [hasPreviousMonthData, setHasPreviousMonthData] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [goals, setGoals] = useState<Goal[]>([]);
+  // Data fetching via SWR
+  const {
+    budgets,
+    primaryBudgetId: budgetId,
+    members,
+    accounts,
+    groupsData,
+    totals,
+    incomeData,
+    totalIncome,
+    hasPreviousMonthData,
+    goals,
+    isLoading,
+    refreshData,
+  } = useBudgetPageData(currentYear, currentMonth);
+
+  // Local UI state
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [showCopyHintModal, setShowCopyHintModal] = useState(false);
+  const hasInitializedUI = useRef(false);
 
-  const budgetId = budgets[0]?.id;
-
-  // Data fetching
-  const fetchData = useCallback(async () => {
-    try {
-      const [budgetsRes, membersRes, accountsRes] = await Promise.all([
-        fetch('/api/app/budgets'),
-        fetch('/api/app/members'),
-        fetch('/api/app/accounts'),
-      ]);
-
-      if (membersRes.ok) {
-        const data = await membersRes.json();
-        setMembers(data.members || []);
-      }
-
-      if (accountsRes.ok) {
-        const data = await accountsRes.json();
-        setAccounts(data.accounts || []);
-      }
-
-      if (budgetsRes.ok) {
-        const data = await budgetsRes.json();
-        setBudgets(data.budgets || []);
-
-        if (data.budgets?.length > 0) {
-          const allocationsRes = await fetch(
-            `/api/app/allocations?budgetId=${data.budgets[0].id}&year=${currentYear}&month=${currentMonth}`
-          );
-
-          if (allocationsRes.ok) {
-            const allocData = await allocationsRes.json();
-            setGroupsData(allocData.groups || []);
-            setTotals(allocData.totals || { allocated: 0, spent: 0, available: 0 });
-            uiState.setExpandedGroups(allocData.groups?.map((g: GroupData) => g.group.id) || []);
-            setHasPreviousMonthData(allocData.hasPreviousMonthData || false);
-
-            if (allocData.income) {
-              setIncomeData(allocData.income);
-              setTotalIncome(allocData.income.totals.planned || 0);
-              const memberIds = allocData.income.byMember
-                .map((m: IncomeMemberGroup) => m.member?.id || 'no-member')
-                .filter(Boolean);
-              uiState.setExpandedIncomeMembers(memberIds);
-            }
-          }
-
-          const goalsRes = await fetch(`/api/app/goals?budgetId=${data.budgets[0].id}`);
-          if (goalsRes.ok) {
-            const goalsData = await goalsRes.json();
-            setGoals(goalsData.goals?.filter((g: Goal) => !g.isCompleted) || []);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Erro ao carregar dados');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentYear, currentMonth, uiState]);
-
+  // Initialize expanded groups/members when data loads
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (isLoading || hasInitializedUI.current) return;
+
+    if (groupsData.length > 0) {
+      uiState.setExpandedGroups(groupsData.map((g: GroupData) => g.group.id));
+    }
+
+    if (incomeData?.byMember) {
+      const memberIds = incomeData.byMember
+        .map((m: IncomeMemberGroup) => m.member?.id || 'no-member')
+        .filter(Boolean);
+      uiState.setExpandedIncomeMembers(memberIds);
+    }
+
+    hasInitializedUI.current = true;
+  }, [isLoading, groupsData, incomeData, uiState]);
+
+  // Reset initialization flag when period changes
+  useEffect(() => {
+    hasInitializedUI.current = false;
+  }, [currentYear, currentMonth]);
 
   // Show copy hint modal when no allocations exist for current month
   useEffect(() => {
@@ -180,7 +131,7 @@ export default function BudgetPage() {
     year: currentYear,
     month: currentMonth,
     onSuccess: () => {
-      fetchData();
+      refreshData();
       if (isTutorialActive) {
         notifyActionCompleted('hasAllocations');
       }
@@ -189,28 +140,28 @@ export default function BudgetPage() {
 
   const categoryForm = useCategoryForm({
     budgetId,
-    onSuccess: fetchData,
+    onSuccess: refreshData,
   });
 
   const incomeAllocationForm = useIncomeAllocationForm({
     budgetId,
     year: currentYear,
     month: currentMonth,
-    onSuccess: fetchData,
+    onSuccess: refreshData,
   });
 
   const incomeSourceForm = useIncomeSourceForm({
     budgetId,
     members,
     accounts,
-    onSuccess: fetchData,
+    onSuccess: refreshData,
   });
 
   const budgetActions = useBudgetActions({
     budgetId,
     year: currentYear,
     month: currentMonth,
-    onSuccess: fetchData,
+    onSuccess: refreshData,
   });
 
   // Handle copy button click
@@ -311,7 +262,7 @@ export default function BudgetPage() {
             onEditCategory={(category) => categoryForm.openEdit(category)}
             onDeleteCategory={(category) => categoryForm.setDeletingCategory(category)}
             onAddCategory={(groupId, groupCode) => categoryForm.openCreate(groupId, groupCode)}
-            onBillsChange={fetchData}
+            onBillsChange={refreshData}
           />
         ) : (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
@@ -448,57 +399,21 @@ export default function BudgetPage() {
       />
 
       {/* Copy Hint Modal */}
-      <Dialog open={showCopyHintModal} onOpenChange={(open) => !open && dismissCopyHintModal()}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Copy className="h-5 w-5 text-primary" />
-              Copiar planejamento anterior
-            </DialogTitle>
-            <DialogDescription>
-              Parece que {budgetActions.currentMonthName} ainda não tem um planejamento definido.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              Você pode copiar o planejamento de{' '}
-              <span className="font-medium text-foreground">
-                {budgetActions.previousMonthName}
-              </span>{' '}
-              para começar rapidamente, ou definir os valores manualmente clicando em cada categoria.
-            </p>
-          </div>
-
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={dismissCopyHintModal} className="w-full sm:w-auto">
-              Fazer manualmente
-            </Button>
-            <Button
-              onClick={() => {
-                dismissCopyHintModal();
-                budgetActions.copyFromPreviousMonth('all');
-              }}
-              disabled={budgetActions.isCopying}
-              className="w-full sm:w-auto"
-            >
-              {budgetActions.isCopying ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Copy className="mr-2 h-4 w-4" />
-              )}
-              Copiar de {budgetActions.previousMonthName}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CopyHintModal
+        open={showCopyHintModal}
+        onDismiss={dismissCopyHintModal}
+        onCopy={() => budgetActions.copyFromPreviousMonth('all')}
+        isCopying={budgetActions.isCopying}
+        currentMonthName={budgetActions.currentMonthName}
+        previousMonthName={budgetActions.previousMonthName}
+      />
 
       {/* Goal Form Modal */}
       <GoalFormModal
         open={isGoalFormOpen}
         onOpenChange={setIsGoalFormOpen}
         budgetId={budgetId || ''}
-        onSuccess={fetchData}
+        onSuccess={refreshData}
       />
     </div>
   );
