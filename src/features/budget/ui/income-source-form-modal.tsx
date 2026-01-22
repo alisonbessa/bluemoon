@@ -11,7 +11,12 @@ import {
   SelectValue,
 } from '@/shared/ui/select';
 import { CurrencyInput } from '@/shared/ui/currency-input';
-import { FormModalWrapper, FrequencySelector } from '@/shared/molecules';
+import {
+  FormModalWrapper,
+  FrequencySelector,
+  DayOfMonthInput,
+  AccountSelector,
+} from '@/shared/molecules';
 import { INCOME_TYPE_CONFIG } from '@/features/budget/types';
 
 type IncomeType = 'salary' | 'benefit' | 'freelance' | 'rental' | 'investment' | 'other';
@@ -150,21 +155,12 @@ export function IncomeSourceFormModal({
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="incomeSourceDayOfMonth">Dia do Pagamento</Label>
-            <Input
-              id="incomeSourceDayOfMonth"
-              type="number"
-              min="1"
-              max="31"
-              placeholder="1-31"
-              value={formData.dayOfMonth || ''}
-              onChange={(e) => {
-                const val = e.target.value ? parseInt(e.target.value) : undefined;
-                onFieldChange('dayOfMonth', val);
-              }}
-            />
-          </div>
+          <DayOfMonthInput
+            value={formData.dayOfMonth}
+            onChange={(val) => onFieldChange('dayOfMonth', val)}
+            label="Dia do Pagamento"
+            id="incomeSourceDayOfMonth"
+          />
         </div>
 
         {/* Responsável */}
@@ -200,30 +196,12 @@ export function IncomeSourceFormModal({
 
         {/* Conta de Destino */}
         {filteredAccounts.length > 0 && (
-          <div className="grid gap-2">
-            <Label>Conta de Destino</Label>
-            <Select
-              value={formData.accountId || 'none'}
-              onValueChange={(value) =>
-                onFieldChange('accountId', value === 'none' ? undefined : value)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhuma conta específica</SelectItem>
-                {filteredAccounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    <span className="flex items-center gap-2">
-                      <span>{account.icon || '🏦'}</span>
-                      <span>{account.name}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <AccountSelector
+            value={formData.accountId}
+            onChange={(val) => onFieldChange('accountId', val)}
+            accounts={filteredAccounts}
+            label="Conta de Destino"
+          />
         )}
 
         {/* Confirmação Automática */}

@@ -3,19 +3,14 @@
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { cn } from '@/shared/lib/utils';
-import { FormModalWrapper, BehaviorSelector } from '@/shared/molecules';
+import {
+  FormModalWrapper,
+  BehaviorSelector,
+  WeekdaySelector,
+  DayOfMonthInput,
+} from '@/shared/molecules';
 
 type AllocationFrequency = 'weekly' | 'monthly' | 'yearly' | 'once';
-
-const WEEKDAYS = [
-  { value: 0, label: 'Domingo', short: 'Dom' },
-  { value: 1, label: 'Segunda', short: 'Seg' },
-  { value: 2, label: 'Terça', short: 'Ter' },
-  { value: 3, label: 'Quarta', short: 'Qua' },
-  { value: 4, label: 'Quinta', short: 'Qui' },
-  { value: 5, label: 'Sexta', short: 'Sex' },
-  { value: 6, label: 'Sábado', short: 'Sáb' },
-];
 
 const MONTH_NAMES = [
   'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
@@ -155,31 +150,17 @@ export function AllocationModal({
 
         {/* Weekly: Day of Week Selector */}
         {frequency === 'weekly' && (
-          <div className="grid gap-2">
-            <Label>Dia da Semana</Label>
-            <div className="grid grid-cols-7 gap-1">
-              {WEEKDAYS.map((day) => (
-                <button
-                  key={day.value}
-                  type="button"
-                  onClick={() => onWeekdayChange(day.value)}
-                  className={cn(
-                    'rounded-lg border py-2 text-xs font-medium transition-colors',
-                    weekday === day.value
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-muted hover:bg-muted/50'
-                  )}
-                >
-                  {day.short}
-                </button>
-              ))}
-            </div>
+          <>
+            <WeekdaySelector
+              value={weekday}
+              onChange={(val) => onWeekdayChange(val)}
+            />
             {weekday !== null && monthlyValueDescription && (
               <p className="text-xs text-muted-foreground">
                 {monthlyValueDescription}
               </p>
             )}
-          </div>
+          </>
         )}
 
         {/* Yearly: Month and Day Selector */}
@@ -207,15 +188,12 @@ export function AllocationModal({
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="dueDayYearly">Dia</Label>
-              <Input
-                id="dueDayYearly"
-                type="number"
-                min="1"
-                max="31"
+              <DayOfMonthInput
+                value={dueDay}
+                onChange={(val) => onDueDayChange(val ?? null)}
+                label="Dia"
                 placeholder="Ex: 15"
-                value={dueDay || ''}
-                onChange={(e) => onDueDayChange(e.target.value ? parseInt(e.target.value) : null)}
+                id="dueDayYearly"
               />
               {yearMonth && monthlyValueDescription && (
                 <p className="text-xs text-muted-foreground">

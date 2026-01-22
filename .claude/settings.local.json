@@ -41,7 +41,9 @@
       "Bash(npx tsc:*)",
       "Bash(for file in /home/ahbessa/Projects/bluemoon/src/features/transactions/ui/*.tsx)",
       "Bash(do sed -i \"s|from [\"\"'']./types[\"\"'']|from ''../types''|g\" \"$file\")",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git status:*)",
+      "Bash(head:*)"
     ],
     "deny": [],
     "ask": []
