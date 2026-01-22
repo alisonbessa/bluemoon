@@ -1,14 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { FormModalWrapper } from "@/shared/molecules";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
+import { FormModalWrapper, AccountSelector } from "@/shared/molecules";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { CurrencyInput } from "@/shared/ui/currency-input";
@@ -254,27 +247,14 @@ export function GoalFormModal({
               min={new Date().toISOString().split("T")[0]}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="goal-accountId">Conta destino</Label>
-            <Select
-              value={formData.accountId}
-              onValueChange={(value) => setFormData({ ...formData, accountId: value })}
-            >
-              <SelectTrigger id="goal-accountId">
-                <SelectValue placeholder="Selecione uma conta" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((account) => (
-                  <SelectItem key={account.id} value={account.id}>
-                    <span className="flex items-center gap-2">
-                      <span>{account.icon || "💳"}</span>
-                      <span>{account.name}</span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <AccountSelector
+            value={formData.accountId}
+            onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
+            accounts={accounts}
+            label="Conta destino"
+            allowNone={false}
+            placeholder="Selecione uma conta"
+          />
         </div>
       </div>
     </FormModalWrapper>

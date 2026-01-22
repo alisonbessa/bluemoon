@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { FormModalWrapper } from '@/shared/molecules';
+import { FormModalWrapper, AccountSelector } from '@/shared/molecules';
 import {
   Select,
   SelectContent,
@@ -151,52 +151,24 @@ export function TransactionFormModal({
           <div
             className={formData.type === 'transfer' ? 'grid grid-cols-2 gap-4' : ''}
           >
-            <div className="space-y-2 w-full">
-              <Label htmlFor="account">
-                {formData.type === 'transfer' ? 'Origem' : 'Conta'}
-              </Label>
-              <Select
-                value={formData.accountId}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, accountId: value })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione uma conta" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.icon || '🏦'} {account.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <AccountSelector
+              value={formData.accountId}
+              onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
+              accounts={accounts}
+              label={formData.type === 'transfer' ? 'Origem' : 'Conta'}
+              allowNone={false}
+              placeholder="Selecione uma conta"
+            />
 
             {formData.type === 'transfer' && (
-              <div className="space-y-2 w-full">
-                <Label htmlFor="toAccount">Destino</Label>
-                <Select
-                  value={formData.toAccountId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, toAccountId: value })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione a conta" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accounts
-                      .filter((account) => account.id !== formData.accountId)
-                      .map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.icon || '🏦'} {account.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <AccountSelector
+                value={formData.toAccountId}
+                onChange={(value) => setFormData({ ...formData, toAccountId: value || '' })}
+                accounts={accounts.filter((account) => account.id !== formData.accountId)}
+                label="Destino"
+                allowNone={false}
+                placeholder="Selecione a conta"
+              />
             )}
           </div>
 
