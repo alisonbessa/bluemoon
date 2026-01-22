@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/shared/ui/select';
 import { CurrencyInput } from '@/shared/ui/currency-input';
+import { AccountSelector, WEEKDAYS } from '@/shared/molecules';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -69,15 +70,6 @@ const FREQUENCY_OPTIONS = [
 ];
 
 const DAYS_OF_MONTH = Array.from({ length: 31 }, (_, i) => i + 1);
-const DAYS_OF_WEEK = [
-  { value: 0, label: 'Domingo' },
-  { value: 1, label: 'Segunda-feira' },
-  { value: 2, label: 'Terça-feira' },
-  { value: 3, label: 'Quarta-feira' },
-  { value: 4, label: 'Quinta-feira' },
-  { value: 5, label: 'Sexta-feira' },
-  { value: 6, label: 'Sábado' },
-];
 const MONTHS = [
   'Janeiro',
   'Fevereiro',
@@ -360,7 +352,7 @@ export function UnifiedExpenseForm({
                       <SelectValue placeholder="Selecione o dia" />
                     </SelectTrigger>
                     <SelectContent>
-                      {DAYS_OF_WEEK.map((day) => (
+                      {WEEKDAYS.map((day) => (
                         <SelectItem key={day.value} value={day.value.toString()}>
                           {day.label}
                         </SelectItem>
@@ -432,21 +424,14 @@ export function UnifiedExpenseForm({
           </div>
 
           {/* Conta */}
-          <div className="grid gap-2">
-            <Label>Conta *</Label>
-            <Select value={accountId || ''} onValueChange={setAccountId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma conta" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((acc) => (
-                  <SelectItem key={acc.id} value={acc.id}>
-                    {acc.icon} {acc.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <AccountSelector
+            value={accountId}
+            onChange={(value) => setAccountId(value || undefined)}
+            accounts={accounts}
+            label="Conta *"
+            allowNone={false}
+            placeholder="Selecione uma conta"
+          />
 
           {/* Opções extras (só recorrente) */}
           {isRecurring && (
