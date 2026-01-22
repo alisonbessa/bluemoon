@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/shared/ui/select';
 import { CurrencyInput } from '@/shared/ui/currency-input';
-import { AccountSelector, WEEKDAYS } from '@/shared/molecules';
+import { AccountSelector, WEEKDAYS, MONTH_NAMES_FULL } from '@/shared/molecules';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -70,20 +70,6 @@ const FREQUENCY_OPTIONS = [
 ];
 
 const DAYS_OF_MONTH = Array.from({ length: 31 }, (_, i) => i + 1);
-const MONTHS = [
-  'Janeiro',
-  'Fevereiro',
-  'Março',
-  'Abril',
-  'Maio',
-  'Junho',
-  'Julho',
-  'Agosto',
-  'Setembro',
-  'Outubro',
-  'Novembro',
-  'Dezembro',
-];
 
 export function UnifiedExpenseForm({
   isOpen,
@@ -392,7 +378,7 @@ export function UnifiedExpenseForm({
                           <SelectValue placeholder="Selecione o mês" />
                         </SelectTrigger>
                         <SelectContent>
-                          {MONTHS.map((month, index) => (
+                          {MONTH_NAMES_FULL.map((month, index) => (
                             <SelectItem key={index + 1} value={(index + 1).toString()}>
                               {month}
                             </SelectItem>

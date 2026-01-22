@@ -8,6 +8,11 @@ const MONTH_NAMES = [
   'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
 ];
 
+const MONTH_NAMES_FULL = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
 interface MonthGridSelectorProps {
   /** Selected month (1-12) */
   value: number | null;
@@ -84,4 +89,4 @@ export function MonthGridSelector({
   );
 }
 
-export { MONTH_NAMES };
+export { MONTH_NAMES, MONTH_NAMES_FULL };
