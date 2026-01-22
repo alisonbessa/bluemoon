@@ -2,24 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/shared/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
-import { Label } from "@/shared/ui/label";
 import { Progress } from "@/shared/ui/progress";
-import { CurrencyInput } from "@/shared/ui/currency-input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
 import {
   Plus,
   Target,
@@ -32,7 +15,7 @@ import {
 import { toast } from "sonner";
 import { formatCurrency } from "@/shared/lib/formatters";
 import confetti from "canvas-confetti";
-import { GoalFormModal } from "@/features/goals";
+import { GoalFormModal, ContributeModal } from "@/features/goals";
 import { useGoals, useBudgets, useAccounts } from "@/shared/hooks";
 import type { Goal } from "@/types";
 import {
@@ -347,82 +330,20 @@ export default function GoalsPage() {
       )}
 
       {/* Contribute Dialog */}
-      <Dialog open={!!contributeGoal} onOpenChange={(open) => !open && setContributeGoal(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <span className="text-2xl">{contributeGoal?.icon}</span>
-              Contribuir para {contributeGoal?.name}
-            </DialogTitle>
-            <DialogDescription>
-              Progresso atual: {formatCurrency(contributeGoal?.currentAmount || 0)} de{" "}
-              {formatCurrency(contributeGoal?.targetAmount || 0)}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="contributeFromAccount">Conta de origem</Label>
-              <Select
-                value={contributeFromAccountId}
-                onValueChange={setContributeFromAccountId}
-              >
-                <SelectTrigger id="contributeFromAccount">
-                  <SelectValue placeholder="Selecione a conta" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      <span className="flex items-center gap-2">
-                        <span>{account.icon || "💳"}</span>
-                        <span>{account.name}</span>
-                        <span className="text-muted-foreground">
-                          ({formatCurrency(account.balance)})
-                        </span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                O valor será transferido desta conta para a meta
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="contributeAmount">Valor da contribuição</Label>
-              <CurrencyInput
-                id="contributeAmount"
-                value={contributeAmountCents}
-                onChange={(valueInCents) => setContributeAmountCents(valueInCents)}
-                autoFocus
-                placeholder="0,00"
-              />
-              {contributeGoal && contributeGoal.monthlyTarget > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Sugestão mensal: {formatCurrency(contributeGoal.monthlyTarget)}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <DialogFooter className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              className="w-1/4"
-              onClick={() => {
-                setContributeGoal(null);
-                setContributeAmountCents(0);
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button className="w-1/4" onClick={handleContribute}>
-              Contribuir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ContributeModal
+        goal={contributeGoal}
+        amountCents={contributeAmountCents}
+        onAmountChange={setContributeAmountCents}
+        accountId={contributeFromAccountId}
+        onAccountChange={setContributeFromAccountId}
+        accounts={accounts}
+        onClose={() => {
+          setContributeGoal(null);
+          setContributeAmountCents(0);
+          setContributeFromAccountId("");
+        }}
+        onSubmit={handleContribute}
+      />
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog
