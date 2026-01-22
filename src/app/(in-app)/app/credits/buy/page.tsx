@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema/user";
 import { plans, Quotas } from "@/db/schema/plans";
 import { PlanProvider } from "@/shared/lib/plans/getSubscribeUrl";
-import stripe from "@/shared/lib/stripe";
+import stripe from "@/integrations/stripe";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";

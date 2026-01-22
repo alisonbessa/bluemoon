@@ -9,7 +9,7 @@ import {
   subscribeParams,
   SubscribeParams,
 } from "@/shared/lib/plans/getSubscribeUrl";
-import stripe from "@/shared/lib/stripe";
+import stripe from "@/integrations/stripe";
 import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import React from "react";

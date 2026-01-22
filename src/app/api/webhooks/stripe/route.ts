@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import stripe from "@/shared/lib/stripe";
+import stripe from "@/integrations/stripe";
 import { NextRequest, NextResponse } from "next/server";
 import APIError from "@/shared/lib/api/errors";
 import getOrCreateUser from "@/shared/lib/users/getOrCreateUser";

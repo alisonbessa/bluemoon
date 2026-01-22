@@ -1,5 +1,5 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
-import stripe from "@/shared/lib/stripe";
+import stripe from "@/integrations/stripe";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 
