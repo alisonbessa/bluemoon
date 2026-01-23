@@ -229,4 +229,26 @@
   .dark * {
     scrollbar-color: oklch(0.4 0 0 / 0.5) transparent;
   }
+
+  /* Date input - text to the left, icon to the right */
+  input[type="date"] {
+    position: relative;
+  }
+
+  input[type="date"]::-webkit-datetime-edit {
+    padding-right: 0;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.6;
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
 }
