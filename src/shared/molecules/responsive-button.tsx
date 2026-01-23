@@ -13,17 +13,6 @@ interface ResponsiveButtonProps
   asChild?: boolean;
 }
 
-const breakpointClasses = {
-  sm: {
-    iconMargin: "sm:mr-2",
-    textHidden: "hidden sm:inline",
-  },
-  md: {
-    iconMargin: "md:mr-2",
-    textHidden: "hidden md:inline",
-  },
-} as const;
-
 export function ResponsiveButton({
   icon,
   children,
@@ -31,12 +20,13 @@ export function ResponsiveButton({
   className,
   ...props
 }: ResponsiveButtonProps) {
-  const classes = breakpointClasses[breakpoint];
+  // Mobile: full width, Tablet+: auto width on the right
+  const responsiveWidth = breakpoint === "sm" ? "w-full sm:w-auto" : "w-full md:w-auto";
 
   return (
-    <Button className={className} {...props}>
-      <span className={cn("h-4 w-4", classes.iconMargin)}>{icon}</span>
-      <span className={classes.textHidden}>{children}</span>
+    <Button className={cn(responsiveWidth, className)} {...props}>
+      <span className="h-4 w-4 mr-2">{icon}</span>
+      <span>{children}</span>
     </Button>
   );
 }
