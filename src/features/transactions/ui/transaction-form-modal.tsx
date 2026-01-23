@@ -101,7 +101,7 @@ export function TransactionFormModal({
                 </span>
                 <Input
                   id="amount"
-                  className="pl-10"
+                  className="pl-10 w-full"
                   placeholder="0,00"
                   value={formData.amount}
                   onChange={(e) => {
@@ -128,17 +128,121 @@ export function TransactionFormModal({
               <Input
                 id="date"
                 type="date"
+                className="w-full"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               />
             </div>
           </div>
 
+          {/* Category + Account (for expenses) */}
+          {formData.type === 'expense' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="category">Categoria</Label>
+                <Select
+                  value={formData.categoryId || 'none'}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      categoryId: value === 'none' ? '' : value,
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem categoria</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.icon || '📌'} {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <AccountSelector
+                value={formData.accountId}
+                onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
+                accounts={accounts}
+                label="Conta"
+                allowNone={false}
+                placeholder="Selecione"
+              />
+            </div>
+          )}
+
+          {/* Income Source + Account (for income) */}
+          {formData.type === 'income' && (
+            <div className="grid grid-cols-2 gap-4">
+              {incomeSources.length > 0 ? (
+                <div className="grid gap-2">
+                  <Label htmlFor="incomeSource">Fonte</Label>
+                  <Select
+                    value={formData.incomeSourceId || 'none'}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        incomeSourceId: value === 'none' ? '' : value,
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem fonte</SelectItem>
+                      {incomeSources.map((source) => (
+                        <SelectItem key={source.id} value={source.id}>
+                          {source.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div /> /* Empty space to maintain grid */
+              )}
+              <AccountSelector
+                value={formData.accountId}
+                onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
+                accounts={accounts}
+                label="Conta"
+                allowNone={false}
+                placeholder="Selecione"
+              />
+            </div>
+          )}
+
+          {/* Transfer: Origin + Destination */}
+          {formData.type === 'transfer' && (
+            <div className="grid grid-cols-2 gap-4">
+              <AccountSelector
+                value={formData.accountId}
+                onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
+                accounts={accounts}
+                label="Origem"
+                allowNone={false}
+                placeholder="Selecione"
+              />
+              <AccountSelector
+                value={formData.toAccountId}
+                onChange={(value) => setFormData({ ...formData, toAccountId: value || '' })}
+                accounts={accounts.filter((account) => account.id !== formData.accountId)}
+                label="Destino"
+                allowNone={false}
+                placeholder="Selecione"
+              />
+            </div>
+          )}
+
           {/* Description */}
           <div className="grid gap-2">
             <Label htmlFor="description">Descrição</Label>
             <Input
               id="description"
+              className="w-full"
               placeholder="Ex: Supermercado"
               value={formData.description}
               onChange={(e) =>
@@ -146,59 +250,6 @@ export function TransactionFormModal({
               }
             />
           </div>
-
-          {/* Account Selection */}
-          <div
-            className={formData.type === 'transfer' ? 'grid grid-cols-2 gap-4' : ''}
-          >
-            <AccountSelector
-              value={formData.accountId}
-              onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
-              accounts={accounts}
-              label={formData.type === 'transfer' ? 'Origem' : 'Conta'}
-              allowNone={false}
-              placeholder="Selecione uma conta"
-            />
-
-            {formData.type === 'transfer' && (
-              <AccountSelector
-                value={formData.toAccountId}
-                onChange={(value) => setFormData({ ...formData, toAccountId: value || '' })}
-                accounts={accounts.filter((account) => account.id !== formData.accountId)}
-                label="Destino"
-                allowNone={false}
-                placeholder="Selecione a conta"
-              />
-            )}
-          </div>
-
-          {/* Category (for expenses) */}
-          {formData.type === 'expense' && (
-            <div className="grid gap-2">
-              <Label htmlFor="category">Categoria</Label>
-              <Select
-                value={formData.categoryId || 'none'}
-                onValueChange={(value) =>
-                  setFormData({
-                    ...formData,
-                    categoryId: value === 'none' ? '' : value,
-                  })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem categoria</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.icon || '📌'} {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           {/* Installment option (only for credit card expenses, not when editing) */}
           {showInstallmentOption && (
@@ -248,34 +299,6 @@ export function TransactionFormModal({
                   </Select>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Income Source (for income) */}
-          {formData.type === 'income' && incomeSources.length > 0 && (
-            <div className="grid gap-2">
-              <Label htmlFor="incomeSource">Fonte de Renda</Label>
-              <Select
-                value={formData.incomeSourceId || 'none'}
-                onValueChange={(value) =>
-                  setFormData({
-                    ...formData,
-                    incomeSourceId: value === 'none' ? '' : value,
-                  })
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione uma fonte" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem fonte específica</SelectItem>
-                  {incomeSources.map((source) => (
-                    <SelectItem key={source.id} value={source.id}>
-                      {source.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           )}
         </div>
