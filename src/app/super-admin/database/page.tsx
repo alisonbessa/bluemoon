@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
-import { Database, AlertTriangle, Trash2 } from "lucide-react";
+import { Checkbox } from "@/shared/ui/checkbox";
+import { Label } from "@/shared/ui/label";
+import { Database, AlertTriangle, Trash2, Users } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -36,18 +38,25 @@ const TABLES_TO_DELETE = [
   { name: "telegram_pending_connections", description: "Pending Telegram links" },
 ];
 
-const TABLES_PRESERVED = [
+const USER_TABLES = [
   { name: "users", description: "User accounts" },
-  { name: "plans", description: "Subscription plans" },
   { name: "credits", description: "User credit balances" },
   { name: "credit_transactions", description: "Credit transaction history" },
   { name: "coupons", description: "Lifetime deal coupons" },
+  { name: "sessions", description: "Active sessions" },
+  { name: "accounts", description: "OAuth accounts" },
+  { name: "verification_tokens", description: "Email verification tokens" },
+];
+
+const TABLES_ALWAYS_PRESERVED = [
+  { name: "plans", description: "Subscription plans" },
   { name: "contact_messages", description: "Contact form messages" },
   { name: "waitlist", description: "Waitlist entries" },
 ];
 
 export default function DatabasePage() {
   const [confirmation, setConfirmation] = useState("");
+  const [includeUsers, setIncludeUsers] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
 
   const handleReset = async () => {
@@ -61,7 +70,7 @@ export default function DatabasePage() {
       const response = await fetch("/api/super-admin/database/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirmationCode: confirmation }),
+        body: JSON.stringify({ confirmationCode: confirmation, includeUsers }),
       });
 
       const data = await response.json();
@@ -70,8 +79,13 @@ export default function DatabasePage() {
         throw new Error(data.message || "Failed to reset database");
       }
 
-      toast.success("Database reset completed successfully");
+      toast.success(
+        includeUsers
+          ? "Full database reset completed (including users)"
+          : "Database reset completed (users preserved)"
+      );
       setConfirmation("");
+      setIncludeUsers(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to reset database");
       console.error(error);
@@ -101,51 +115,76 @@ export default function DatabasePage() {
         </AlertDescription>
       </Alert>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Tables to be deleted */}
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Tables always deleted */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
               <Trash2 className="h-5 w-5" />
-              Tables to be Deleted
+              Always Deleted
             </CardTitle>
             <CardDescription>
-              These tables will be completely emptied
+              HiveBudget data (budgets, transactions, etc.)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-1.5 text-sm max-h-64 overflow-y-auto">
               {TABLES_TO_DELETE.map((table) => (
-                <li key={table.name} className="flex justify-between">
-                  <code className="bg-destructive/10 px-1 rounded text-destructive">
+                <li key={table.name} className="flex justify-between gap-2">
+                  <code className="bg-destructive/10 px-1 rounded text-destructive text-xs">
                     {table.name}
                   </code>
-                  <span className="text-muted-foreground">{table.description}</span>
+                  <span className="text-muted-foreground text-xs truncate">{table.description}</span>
                 </li>
               ))}
             </ul>
           </CardContent>
         </Card>
 
-        {/* Tables to be preserved */}
+        {/* User tables (optional) */}
+        <Card className={includeUsers ? "border-destructive" : ""}>
+          <CardHeader>
+            <CardTitle className={`flex items-center gap-2 ${includeUsers ? "text-destructive" : "text-amber-600"}`}>
+              <Users className="h-5 w-5" />
+              User Data {includeUsers ? "(Will Delete)" : "(Optional)"}
+            </CardTitle>
+            <CardDescription>
+              {includeUsers ? "Will be deleted with checkbox enabled" : "Enable checkbox to also delete users"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1.5 text-sm">
+              {USER_TABLES.map((table) => (
+                <li key={table.name} className="flex justify-between gap-2">
+                  <code className={`px-1 rounded text-xs ${includeUsers ? "bg-destructive/10 text-destructive" : "bg-amber-500/10 text-amber-600"}`}>
+                    {table.name}
+                  </code>
+                  <span className="text-muted-foreground text-xs truncate">{table.description}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Tables always preserved */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-600">
               <Database className="h-5 w-5" />
-              Tables Preserved
+              Always Preserved
             </CardTitle>
             <CardDescription>
-              These tables will remain untouched
+              System config (plans, waitlist, messages)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2 text-sm">
-              {TABLES_PRESERVED.map((table) => (
-                <li key={table.name} className="flex justify-between">
-                  <code className="bg-green-500/10 px-1 rounded text-green-600">
+            <ul className="space-y-1.5 text-sm">
+              {TABLES_ALWAYS_PRESERVED.map((table) => (
+                <li key={table.name} className="flex justify-between gap-2">
+                  <code className="bg-green-500/10 px-1 rounded text-green-600 text-xs">
                     {table.name}
                   </code>
-                  <span className="text-muted-foreground">{table.description}</span>
+                  <span className="text-muted-foreground text-xs truncate">{table.description}</span>
                 </li>
               ))}
             </ul>
@@ -159,10 +198,32 @@ export default function DatabasePage() {
           <CardTitle className="text-destructive">Reset All Data</CardTitle>
           <CardDescription>
             This will delete all HiveBudget data including budgets, transactions,
-            categories, accounts, and more. User accounts will be preserved.
+            categories, accounts, and more.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Include Users Checkbox */}
+          <div className="flex items-start space-x-3 p-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
+            <Checkbox
+              id="includeUsers"
+              checked={includeUsers}
+              onCheckedChange={(checked) => setIncludeUsers(checked === true)}
+            />
+            <div className="grid gap-1.5 leading-none">
+              <Label
+                htmlFor="includeUsers"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Also delete user accounts
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                This will remove all users, credits, coupons, and sessions.
+                Only plans and system config will remain.
+              </p>
+            </div>
+          </div>
+
+          {/* Confirmation Code */}
           <div>
             <p className="text-sm font-medium mb-2">
               To confirm, type <code className="bg-muted px-1 rounded">{CONFIRMATION_CODE}</code> below:
@@ -175,7 +236,7 @@ export default function DatabasePage() {
             />
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex-col items-start gap-2 sm:flex-row sm:items-center">
           <Button
             variant="destructive"
             onClick={handleReset}
@@ -187,10 +248,15 @@ export default function DatabasePage() {
             ) : (
               <>
                 <Trash2 className="h-4 w-4 mr-2" />
-                Reset Database
+                {includeUsers ? "Reset Everything" : "Reset Database"}
               </>
             )}
           </Button>
+          {includeUsers && (
+            <span className="text-xs text-destructive">
+              Warning: This will delete ALL users!
+            </span>
+          )}
         </CardFooter>
       </Card>
     </div>

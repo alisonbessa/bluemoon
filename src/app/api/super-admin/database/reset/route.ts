@@ -6,24 +6,29 @@ import { sql } from "drizzle-orm";
 /**
  * POST /api/super-admin/database/reset
  *
- * Resets all HiveBudget data while preserving user accounts and system config.
+ * Resets all HiveBudget data. Optionally includes user data.
  * Requires confirmation code "RESET_ALL_DATA" to execute.
  *
- * Tables deleted:
+ * Options:
+ * - includeUsers: boolean - Also delete users, credits, coupons (default: false)
+ *
+ * Tables always deleted:
  * - transactions, monthly_allocations, monthly_income_allocations, monthly_budget_status
  * - recurring_bills, income_sources, goals
  * - categories, financial_accounts, budget_members, invites
  * - budgets, groups
  * - telegram_users, telegram_ai_logs, telegram_pending_connections
  *
- * Tables preserved:
- * - users, plans, credits, credit_transactions, coupons
- * - contact_messages, waitlist
+ * Tables deleted when includeUsers=true:
+ * - users, credits, credit_transactions, coupons, accounts, sessions, verification_tokens
+ *
+ * Tables always preserved:
+ * - plans, contact_messages, waitlist
  */
 export const POST = withSuperAdminAuthRequired(async (req) => {
   try {
     const body = await req.json();
-    const { confirmationCode } = body;
+    const { confirmationCode, includeUsers = false } = body;
 
     if (confirmationCode !== "RESET_ALL_DATA") {
       return NextResponse.json(
@@ -35,50 +40,53 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
       );
     }
 
-    // Delete tables in order respecting foreign key constraints
-    // Using raw SQL for TRUNCATE with CASCADE for efficiency
-    await db.execute(sql`
-      TRUNCATE TABLE
-        transactions,
-        monthly_allocations,
-        monthly_income_allocations,
-        monthly_budget_status,
-        recurring_bills,
-        income_sources,
-        goals,
-        categories,
-        financial_accounts,
-        budget_members,
-        invites,
-        budgets,
-        groups,
-        telegram_users,
-        telegram_ai_logs,
-        telegram_pending_connections
+    const baseTables = [
+      "transactions",
+      "monthly_allocations",
+      "monthly_income_allocations",
+      "monthly_budget_status",
+      "recurring_bills",
+      "income_sources",
+      "goals",
+      "categories",
+      "financial_accounts",
+      "budget_members",
+      "invites",
+      "budgets",
+      "groups",
+      "telegram_users",
+      "telegram_ai_logs",
+      "telegram_pending_connections",
+    ];
+
+    const userTables = [
+      "credits",
+      "credit_transactions",
+      "coupons",
+      "sessions",
+      "accounts",
+      "verification_tokens",
+      "users",
+    ];
+
+    const tablesToDelete = includeUsers
+      ? [...baseTables, ...userTables]
+      : baseTables;
+
+    // Delete tables using TRUNCATE with CASCADE
+    // Build dynamic SQL based on selected tables
+    await db.execute(sql.raw(`
+      TRUNCATE TABLE ${tablesToDelete.join(", ")}
       RESTART IDENTITY CASCADE
-    `);
+    `));
 
     return NextResponse.json({
       success: true,
-      message: "Database reset completed successfully",
-      deletedTables: [
-        "transactions",
-        "monthly_allocations",
-        "monthly_income_allocations",
-        "monthly_budget_status",
-        "recurring_bills",
-        "income_sources",
-        "goals",
-        "categories",
-        "financial_accounts",
-        "budget_members",
-        "invites",
-        "budgets",
-        "groups",
-        "telegram_users",
-        "telegram_ai_logs",
-        "telegram_pending_connections",
-      ],
+      message: includeUsers
+        ? "Full database reset completed (including users)"
+        : "Database reset completed (users preserved)",
+      deletedTables: tablesToDelete,
+      includeUsers,
     });
   } catch (error) {
     console.error("Error resetting database:", error);
