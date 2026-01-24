@@ -236,7 +236,9 @@ export default function TransactionsPage() {
 
           toast.success("Contribuição para meta confirmada!");
         } else {
-          const payload = {
+          // First, check if there's an existing pending transaction for this item
+          // This prevents creating duplicates when a pending transaction already exists
+          const confirmPayload = {
             budgetId: budgets[0].id,
             type: scheduled.type,
             amount: scheduled.amount,
@@ -246,17 +248,17 @@ export default function TransactionsPage() {
             incomeSourceId: scheduled.incomeSourceId || undefined,
             recurringBillId: scheduled.recurringBillId || undefined,
             date: new Date(scheduled.dueDate).toISOString(),
-            status: "cleared",
           };
 
-          const response = await fetch("/api/app/transactions", {
+          // Use the confirm-scheduled endpoint that handles duplicates
+          const response = await fetch("/api/app/transactions/confirm-scheduled", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
+            body: JSON.stringify(confirmPayload),
           });
 
           if (!response.ok) {
-            throw new Error("Erro ao criar transação");
+            throw new Error("Erro ao confirmar transação");
           }
 
           toast.success("Transação confirmada!");
