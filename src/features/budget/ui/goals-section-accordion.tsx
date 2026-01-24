@@ -80,7 +80,7 @@ export function GoalsSectionAccordion({
         <div className="overflow-x-auto">
           <div className="min-w-[550px]">
             {/* Goals Table Header */}
-            <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
+            <div className="grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
               <div />
               <div>Meta</div>
               <div className="text-right">Progresso</div>
@@ -93,7 +93,7 @@ export function GoalsSectionAccordion({
               <Link
                 key={goal.id}
                 href="/app/goals"
-                className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-2 items-center border-b hover:bg-muted/20 text-sm cursor-pointer"
+                className="grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-2 items-center border-b hover:bg-muted/20 text-sm cursor-pointer"
               >
                 <div className="flex items-center justify-center">
                   <span className="text-base">{goal.icon}</span>

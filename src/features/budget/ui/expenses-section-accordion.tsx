@@ -145,11 +145,11 @@ export function ExpensesSectionAccordion({
         </div>
         <div className="flex items-center gap-4 text-sm font-bold text-red-800 dark:text-red-200">
           <span className="text-xs text-muted-foreground font-normal">
-            Alocado:
+            Planejado:
           </span>
           <span>{formatCurrency(totals.allocated)}</span>
           <span className="text-xs text-muted-foreground font-normal">
-            Gasto:
+            Realizado:
           </span>
           <span className="text-red-600 dark:text-red-400">
             {formatCurrency(totals.spent)}
@@ -167,11 +167,11 @@ export function ExpensesSectionAccordion({
         <div className="overflow-x-auto">
           <div className="min-w-[550px]">
             {/* Expenses Table Header */}
-            <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
+            <div className="grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
               <div />
               <div>Categoria</div>
-              <div className="text-right">Alocado</div>
-              <div className="text-right">Gasto</div>
+              <div className="text-right">Planejado</div>
+              <div className="text-right">Realizado</div>
               <div className="text-right">Disponivel</div>
             </div>
           </div>
@@ -200,7 +200,7 @@ export function ExpensesSectionAccordion({
                 <div key={group.id}>
                   {/* Group Row */}
                   <div
-                    className="group grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center bg-muted/40 border-b cursor-pointer hover:bg-muted/60 text-sm"
+                    className="group grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 items-center bg-muted/40 border-b cursor-pointer hover:bg-muted/60 text-sm"
                     onClick={() => onToggleGroup(group.id)}
                   >
                     <Checkbox
@@ -259,7 +259,7 @@ export function ExpensesSectionAccordion({
                         return (
                           <div
                             key={item.category.id}
-                            className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b text-sm opacity-75 cursor-default"
+                            className="grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 items-center border-b text-sm opacity-75 cursor-default"
                             data-tutorial="category-row"
                           >
                             <div className="h-3.5 w-3.5" />

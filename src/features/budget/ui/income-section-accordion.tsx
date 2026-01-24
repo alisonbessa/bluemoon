@@ -105,15 +105,13 @@ export function IncomeSectionAccordion({
           </span>
           <span>{formatCurrency(incomeData.totals.planned)}</span>
           <span className="text-xs text-muted-foreground font-normal">
-            Recebido:
+            Realizado:
           </span>
           <span className="text-green-600 dark:text-green-400">
             {formatCurrency(incomeData.totals.received)}
           </span>
           <span className="text-xs text-muted-foreground font-normal">
-            {incomeData.totals.received < incomeData.totals.planned
-              ? 'A Receber:'
-              : 'Extra:'}
+            Disponivel:
           </span>
           <span
             className={
@@ -133,12 +131,12 @@ export function IncomeSectionAccordion({
         <div className="overflow-x-auto">
           <div className="min-w-[550px]">
             {/* Income Table Header */}
-            <div className="grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
+            <div className="grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
               <div />
               <div>Fonte</div>
               <div className="text-right">Planejado</div>
-              <div className="text-right">Recebido</div>
-              <div className="text-right">A Receber</div>
+              <div className="text-right">Realizado</div>
+              <div className="text-right">Disponivel</div>
             </div>
 
             {/* If only one member (or no member), show sources directly */}
@@ -205,7 +203,7 @@ function IncomeMemberSection({
     <div>
       {/* Member Row */}
       <div
-        className="group grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center bg-green-50/50 dark:bg-green-950/20 border-b cursor-pointer hover:bg-green-100/50 dark:hover:bg-green-950/40 text-sm"
+        className="group grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 items-center bg-green-50/50 dark:bg-green-950/20 border-b cursor-pointer hover:bg-green-100/50 dark:hover:bg-green-950/40 text-sm"
         onClick={onToggle}
       >
         <div />
@@ -295,7 +293,7 @@ function IncomeSourceRow({
 
   return (
     <div
-      className="group/row grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm cursor-pointer"
+      className="group/row grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm cursor-pointer"
       onClick={onEditIncome}
     >
       <div />

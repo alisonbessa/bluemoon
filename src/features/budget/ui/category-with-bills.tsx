@@ -144,7 +144,7 @@ export function CategoryWithBills({
       {/* Category Row */}
       <div
         className={cn(
-          'group/row grid grid-cols-[24px_1fr_100px_100px_110px] px-4 py-1.5 items-center border-b hover:bg-muted/20 text-sm cursor-pointer',
+          'group/row grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 items-center border-b hover:bg-muted/20 text-sm cursor-pointer',
           isSelected && 'bg-primary/5'
         )}
         onClick={handleCategoryClick}
