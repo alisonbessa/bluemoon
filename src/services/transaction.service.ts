@@ -5,10 +5,11 @@
  * Follows Clean Architecture by separating data access from UI.
  */
 
-import type { TransactionWithRelations, CreateTransactionInput } from '@/types';
+import type { Transaction } from '@/features/transactions';
+import type { CreateTransactionInput } from '@/types';
 
 interface TransactionResponse {
-  transactions: TransactionWithRelations[];
+  transactions: Transaction[];
   pagination?: {
     total: number;
     page: number;
@@ -87,7 +88,7 @@ export const transactionService = {
   /**
    * Create a new transaction
    */
-  async createTransaction(data: CreateTransactionInput): Promise<TransactionWithRelations> {
+  async createTransaction(data: CreateTransactionInput): Promise<Transaction> {
     const response = await fetch('/api/app/transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -106,7 +107,7 @@ export const transactionService = {
   async updateTransaction(
     id: string,
     data: Partial<CreateTransactionInput>
-  ): Promise<TransactionWithRelations> {
+  ): Promise<Transaction> {
     const response = await fetch(`/api/app/transactions/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

@@ -3,7 +3,7 @@ import { Button } from "@react-email/button";
 import { Html } from "@react-email/html";
 import { Text } from "@react-email/text";
 import Layout from "./components/Layout";
-import { appConfig } from "@/lib/config";
+import { appConfig } from "@/shared/lib/config";
 import { formatDistanceToNow } from "date-fns";
 interface MagicLinkEmailProps {
   url: string;

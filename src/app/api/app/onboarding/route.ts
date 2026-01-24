@@ -1,4 +1,4 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import {
   users,
@@ -10,9 +10,13 @@ import {
   defaultGroups,
 } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
-import { capitalizeWords } from "@/lib/utils";
+import { capitalizeWords } from "@/shared/lib/utils";
+import {
+  validationError,
+  internalError,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 const householdSchema = z.object({
   hasPartner: z.boolean(),
@@ -147,10 +151,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = onboardingSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validação falhou", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { data } = validation.data;
@@ -265,10 +266,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const allGroups = await db.select().from(groups);
   if (allGroups.length === 0) {
-    return NextResponse.json(
-      { error: "Grupos não encontrados. Por favor, execute o seed do banco de dados." },
-      { status: 500 }
-    );
+    return internalError("Grupos não encontrados. Por favor, execute o seed do banco de dados.");
   }
   const groupByCode = Object.fromEntries(allGroups.map((g) => [g.code, g]));
 
@@ -483,12 +481,9 @@ export const POST = withAuthRequired(async (req, context) => {
     await db.insert(categories).values(categoryInserts);
   }
 
-  return NextResponse.json(
-    {
-      success: true,
-      budgetId: newBudget.id,
-      message: "Onboarding completo com sucesso!",
-    },
-    { status: 201 }
-  );
+  return successResponse({
+    success: true,
+    budgetId: newBudget.id,
+    message: "Onboarding completo com sucesso!",
+  }, 201);
 });

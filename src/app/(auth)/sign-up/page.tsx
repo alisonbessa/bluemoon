@@ -1,8 +1,8 @@
 import { Metadata } from "next"
 import Link from "next/link"
-import { appConfig } from "@/lib/config"
-import { SignUpForm } from "@/components/auth/signup-form"
-import { AuthForm } from "@/components/auth/auth-form"
+import { appConfig } from "@/shared/lib/config"
+import { SignUpForm } from "@/shared/auth/signup-form"
+import { AuthForm } from "@/shared/auth/auth-form"
 
 export const metadata: Metadata = {
   title: "Cadastrar",

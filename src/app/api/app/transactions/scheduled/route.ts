@@ -1,17 +1,13 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { budgetMembers, incomeSources, transactions, goals, goalContributions, recurringBills, categories, monthlyBudgetStatus, monthlyAllocations } from "@/db/schema";
+import { incomeSources, transactions, goals, goalContributions, recurringBills, categories, monthlyBudgetStatus, monthlyAllocations } from "@/db/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  forbiddenError,
+  successResponse,
+  errorResponse,
+} from "@/shared/lib/api/responses";
 
 interface ScheduledTransaction {
   id: string;
@@ -44,12 +40,12 @@ export const GET = withAuthRequired(async (req, context) => {
   const month = parseInt(searchParams.get("month") || (new Date().getMonth() + 1).toString());
 
   if (!budgetId) {
-    return NextResponse.json({ error: "budgetId is required" }, { status: 400 });
+    return errorResponse("budgetId is required", 400);
   }
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json({ error: "Budget not found or access denied" }, { status: 404 });
+    return forbiddenError("Budget not found or access denied");
   }
 
   // Calculate date range - prefer startDate/endDate params, fallback to year/month
@@ -106,7 +102,7 @@ export const GET = withAuthRequired(async (req, context) => {
       )
       .limit(1);
 
-    return NextResponse.json({
+    return successResponse({
       year: filterYear,
       month: filterMonth,
       monthStatus,
@@ -165,6 +161,7 @@ export const GET = withAuthRequired(async (req, context) => {
         status: transactions.status,
         amount: transactions.amount,
         type: transactions.type,
+        date: transactions.date,
       })
       .from(transactions)
       .where(
@@ -203,8 +200,12 @@ export const GET = withAuthRequired(async (req, context) => {
   ]);
 
   // Build map of already paid items (only count confirmed transactions)
+  // For weekly/biweekly: track by billId + date to match specific occurrences
+  // For monthly/yearly: track by billId only
   const paidBills = new Set<string>();
+  const paidBillDates = new Map<string, Set<string>>(); // billId -> Set of ISO date strings
   const paidIncomeSources = new Set<string>();
+  const paidIncomeDates = new Map<string, Set<string>>(); // incomeSourceId -> Set of ISO date strings
   const paidGoals = new Set<string>();
 
   for (const tx of existingTransactions) {
@@ -213,9 +214,23 @@ export const GET = withAuthRequired(async (req, context) => {
 
     if (tx.recurringBillId && tx.type === "expense" && isConfirmed) {
       paidBills.add(tx.recurringBillId);
+      // Track specific dates for weekly bills
+      if (tx.date) {
+        if (!paidBillDates.has(tx.recurringBillId)) {
+          paidBillDates.set(tx.recurringBillId, new Set());
+        }
+        paidBillDates.get(tx.recurringBillId)!.add(tx.date.toISOString().split('T')[0]);
+      }
     }
     if (tx.incomeSourceId && tx.type === "income" && isConfirmed) {
       paidIncomeSources.add(tx.incomeSourceId);
+      // Track specific dates for weekly/biweekly income
+      if (tx.date) {
+        if (!paidIncomeDates.has(tx.incomeSourceId)) {
+          paidIncomeDates.set(tx.incomeSourceId, new Set());
+        }
+        paidIncomeDates.get(tx.incomeSourceId)!.add(tx.date.toISOString().split('T')[0]);
+      }
     }
   }
 
@@ -228,43 +243,154 @@ export const GET = withAuthRequired(async (req, context) => {
 
   // Add scheduled expenses from recurring bills
   for (const { bill, category } of activeBills) {
-    // Check frequency - skip yearly bills that don't match this month
-    if (bill.frequency === "yearly" && bill.dueMonth !== filterMonth) continue;
-
-    // Weekly bills - for now, just show one per month (TODO: implement weekly properly)
     if (bill.amount <= 0) continue;
 
-    const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
-    const dueDate = new Date(filterYear, filterMonth - 1, dueDay);
+    // Handle different frequencies
+    if (bill.frequency === "weekly") {
+      // Weekly bills: generate for each occurrence of the weekday in the month
+      // dueDay for weekly = day of week (0=Sunday, 1=Monday, ..., 6=Saturday)
+      const dayOfWeek = bill.dueDay ?? 1; // Default to Monday if not set
+      const paidDates = paidBillDates.get(bill.id) || new Set();
 
-    scheduledTransactions.push({
-      id: `bill-${bill.id}-${filterYear}-${filterMonth}`,
-      type: "expense",
-      name: bill.name,
-      icon: category?.icon || "💰",
-      amount: bill.amount,
-      dueDay: dueDay,
-      dueDate: dueDate.toISOString(),
-      isPaid: paidBills.has(bill.id),
-      isAutoDebit: bill.isAutoDebit ?? false,
-      isVariable: bill.isVariable ?? false,
-      sourceType: "recurring_bill",
-      sourceId: bill.id,
-      categoryId: bill.categoryId,
-      recurringBillId: bill.id,
-    });
+      // Find all occurrences of this day of week in the month
+      for (let day = 1; day <= lastDayOfMonth; day++) {
+        const date = new Date(Date.UTC(filterYear, filterMonth - 1, day, 12, 0, 0));
+        if (date.getUTCDay() === dayOfWeek) {
+          const dateStr = date.toISOString().split('T')[0];
+
+          scheduledTransactions.push({
+            id: `bill-${bill.id}-${filterYear}-${filterMonth}-${day}`,
+            type: "expense",
+            name: bill.name,
+            icon: category?.icon || "💰",
+            amount: bill.amount,
+            dueDay: day,
+            dueDate: date.toISOString(),
+            isPaid: paidDates.has(dateStr),
+            isAutoDebit: bill.isAutoDebit ?? false,
+            isVariable: bill.isVariable ?? false,
+            sourceType: "recurring_bill",
+            sourceId: bill.id,
+            categoryId: bill.categoryId,
+            recurringBillId: bill.id,
+          });
+        }
+      }
+    } else if (bill.frequency === "yearly") {
+      // Yearly bills: only show in the specified month
+      if (bill.dueMonth !== filterMonth) continue;
+
+      const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
+      const dueDate = new Date(filterYear, filterMonth - 1, dueDay);
+
+      scheduledTransactions.push({
+        id: `bill-${bill.id}-${filterYear}-${filterMonth}`,
+        type: "expense",
+        name: bill.name,
+        icon: category?.icon || "💰",
+        amount: bill.amount,
+        dueDay: dueDay,
+        dueDate: dueDate.toISOString(),
+        isPaid: paidBills.has(bill.id),
+        isAutoDebit: bill.isAutoDebit ?? false,
+        isVariable: bill.isVariable ?? false,
+        sourceType: "recurring_bill",
+        sourceId: bill.id,
+        categoryId: bill.categoryId,
+        recurringBillId: bill.id,
+      });
+    } else {
+      // Monthly bills (default)
+      const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
+      const dueDate = new Date(filterYear, filterMonth - 1, dueDay);
+
+      scheduledTransactions.push({
+        id: `bill-${bill.id}-${filterYear}-${filterMonth}`,
+        type: "expense",
+        name: bill.name,
+        icon: category?.icon || "💰",
+        amount: bill.amount,
+        dueDay: dueDay,
+        dueDate: dueDate.toISOString(),
+        isPaid: paidBills.has(bill.id),
+        isAutoDebit: bill.isAutoDebit ?? false,
+        isVariable: bill.isVariable ?? false,
+        sourceType: "recurring_bill",
+        sourceId: bill.id,
+        categoryId: bill.categoryId,
+        recurringBillId: bill.id,
+      });
+    }
   }
 
   // Add scheduled income from income sources
   for (const source of incomeSourcesWithDay) {
-    if (source.dayOfMonth && source.amount > 0) {
+    if (source.amount <= 0) continue;
+
+    const frequency = source.frequency || "monthly";
+    const paidDates = paidIncomeDates.get(source.id) || new Set();
+    const incomeIcon = source.type === "salary" ? "💼" : source.type === "benefit" ? "🎁" : "💰";
+
+    if (frequency === "weekly") {
+      // Weekly income: generate for each week of the month
+      // dayOfMonth for weekly = day of week (0=Sunday, 6=Saturday)
+      const dayOfWeek = source.dayOfMonth ?? 5; // Default to Friday
+
+      for (let day = 1; day <= lastDayOfMonth; day++) {
+        const date = new Date(Date.UTC(filterYear, filterMonth - 1, day, 12, 0, 0));
+        if (date.getUTCDay() === dayOfWeek) {
+          const dateStr = date.toISOString().split('T')[0];
+
+          scheduledTransactions.push({
+            id: `income-${source.id}-${filterYear}-${filterMonth}-${day}`,
+            type: "income",
+            name: source.name,
+            icon: incomeIcon,
+            amount: source.amount,
+            dueDay: day,
+            dueDate: date.toISOString(),
+            isPaid: paidDates.has(dateStr),
+            sourceType: "income_source",
+            sourceId: source.id,
+            incomeSourceId: source.id,
+          });
+        }
+      }
+    } else if (frequency === "biweekly") {
+      // Biweekly income: generate 2 times per month (around day X and day X+14)
+      const baseDayOfMonth = source.dayOfMonth ?? 15;
+      const days = [
+        Math.min(baseDayOfMonth, lastDayOfMonth),
+        Math.min(baseDayOfMonth + 14, lastDayOfMonth)
+      ];
+
+      for (const day of days) {
+        const date = new Date(Date.UTC(filterYear, filterMonth - 1, day, 12, 0, 0));
+        const dateStr = date.toISOString().split('T')[0];
+
+        scheduledTransactions.push({
+          id: `income-${source.id}-${filterYear}-${filterMonth}-${day}`,
+          type: "income",
+          name: source.name,
+          icon: incomeIcon,
+          amount: source.amount,
+          dueDay: day,
+          dueDate: date.toISOString(),
+          isPaid: paidDates.has(dateStr),
+          sourceType: "income_source",
+          sourceId: source.id,
+          incomeSourceId: source.id,
+        });
+      }
+    } else if (source.dayOfMonth) {
+      // Monthly income (default)
       const dueDate = new Date(filterYear, filterMonth - 1, Math.min(source.dayOfMonth, lastDayOfMonth));
 
       scheduledTransactions.push({
         id: `income-${source.id}-${filterYear}-${filterMonth}`,
         type: "income",
         name: source.name,
-        icon: source.type === "salary" ? "💼" : source.type === "benefit" ? "🎁" : "💰",
+        icon: incomeIcon,
         amount: source.amount,
         dueDay: source.dayOfMonth,
         dueDate: dueDate.toISOString(),
@@ -339,7 +465,7 @@ export const GET = withAuthRequired(async (req, context) => {
       .reduce((sum, t) => sum + t.amount, 0),
   };
 
-  return NextResponse.json({
+  return successResponse({
     year: filterYear,
     month: filterMonth,
     monthStatus,

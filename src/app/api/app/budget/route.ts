@@ -1,9 +1,16 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { budgets, budgetMembers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
+import {
+  validationError,
+  forbiddenError,
+  notFoundError,
+  successResponse,
+  errorResponse,
+  internalError,
+} from "@/shared/lib/api/responses";
 
 // GET - Fetch budget info
 export const GET = withAuthRequired(async (request, context) => {
@@ -12,7 +19,7 @@ export const GET = withAuthRequired(async (request, context) => {
   const budgetId = searchParams.get("budgetId");
 
   if (!budgetId) {
-    return NextResponse.json({ error: "budgetId is required" }, { status: 400 });
+    return errorResponse("budgetId is required", 400);
   }
 
   try {
@@ -29,7 +36,7 @@ export const GET = withAuthRequired(async (request, context) => {
       .limit(1);
 
     if (membership.length === 0) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return forbiddenError("Unauthorized");
     }
 
     // Fetch budget
@@ -44,16 +51,13 @@ export const GET = withAuthRequired(async (request, context) => {
       .limit(1);
 
     if (!budget) {
-      return NextResponse.json({ error: "Budget not found" }, { status: 404 });
+      return notFoundError("Budget");
     }
 
-    return NextResponse.json({ budget });
+    return successResponse({ budget });
   } catch (error) {
     console.error("Error fetching budget:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch budget" },
-      { status: 500 }
-    );
+    return internalError("Failed to fetch budget");
   }
 });
 
@@ -68,7 +72,11 @@ export const PATCH = withAuthRequired(async (request, context) => {
 
   try {
     const body = await request.json();
-    const { budgetId, name } = updateBudgetSchema.parse(body);
+    const validation = updateBudgetSchema.safeParse(body);
+    if (!validation.success) {
+      return validationError(validation.error);
+    }
+    const { budgetId, name } = validation.data;
 
     // Verify user is owner of this budget
     const membership = await db
@@ -84,10 +92,7 @@ export const PATCH = withAuthRequired(async (request, context) => {
       .limit(1);
 
     if (membership.length === 0) {
-      return NextResponse.json(
-        { error: "Only budget owners can update the name" },
-        { status: 403 }
-      );
+      return forbiddenError("Only budget owners can update the name");
     }
 
     // Update budget name
@@ -97,20 +102,9 @@ export const PATCH = withAuthRequired(async (request, context) => {
       .where(eq(budgets.id, budgetId))
       .returning();
 
-    return NextResponse.json({ budget: updated });
+    return successResponse({ budget: updated });
   } catch (error) {
     console.error("Error updating budget:", error);
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid data", details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: "Failed to update budget" },
-      { status: 500 }
-    );
+    return internalError("Failed to update budget");
   }
 });

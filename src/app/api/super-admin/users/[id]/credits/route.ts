@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import withSuperAdminAuthRequired from "@/lib/auth/withSuperAdminAuthRequired";
+import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
 import {
   getUserCredits,
   addCreditTransaction,
-} from "@/lib/credits/recalculate";
-import { creditTypeSchema } from "@/lib/credits/config";
+} from "@/shared/lib/credits/recalculate";
+import { creditTypeSchema } from "@/shared/lib/credits/config";
 import { z } from "zod";
 import { db } from "@/db";
 import { creditTransactions } from "@/db/schema/credits";

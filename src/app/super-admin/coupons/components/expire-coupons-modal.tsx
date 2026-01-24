@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -10,9 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
+} from "@/shared/ui/dialog";
+import { Textarea } from "@/shared/ui/textarea";
+import { Progress } from "@/shared/ui/progress";
 import { AlertTriangle, Ban } from "lucide-react";
 
 interface ExpireReportData {

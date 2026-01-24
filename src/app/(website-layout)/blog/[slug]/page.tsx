@@ -1,15 +1,15 @@
-import { getBlogBySlug, getAllBlogs, getRelatedBlogs } from "@/lib/mdx/blogs";
+import { getBlogBySlug, getAllBlogs, getRelatedBlogs } from "@/shared/lib/mdx/blogs";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Calendar, ChevronRight, Home, Tag } from "lucide-react";
 import Link from "next/link";
-import { ShareButton } from "@/components/share-button";
+import { ShareButton } from "@/shared/share-button";
 import { Metadata } from "next";
-import { TableOfContents } from "@/components/table-of-contents";
-import { cn } from "@/lib/utils";
-import { CTA2 } from "@/components/website/cta-2";
+import { TableOfContents } from "@/shared/table-of-contents";
+import { cn } from "@/shared/lib/utils";
+import { CTA2 } from "@/shared/website/cta-2";
 import { WebPageJsonLd, ArticleJsonLd, BreadcrumbJsonLd } from "next-seo";
-import { appConfig } from "@/lib/config";
+import { appConfig } from "@/shared/lib/config";
 
 interface Props {
   params: Promise<{ slug: string }>;

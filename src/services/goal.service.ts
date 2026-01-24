@@ -6,7 +6,7 @@
  */
 
 import type { Goal } from '@/types';
-import type { GoalFormData } from '@/components/goals';
+import type { GoalFormData } from '@/features/goals';
 
 interface GoalResponse {
   goals: Goal[];

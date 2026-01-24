@@ -1,33 +1,16 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { incomeSources, budgetMembers } from "@/db/schema";
+import { incomeSources } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { incomeTypeEnum, incomeFrequencyEnum } from "@/db/schema/income-sources";
-import { capitalizeWords } from "@/lib/utils";
-
-const updateIncomeSourceSchema = z.object({
-  memberId: z.string().uuid().optional().nullable(),
-  accountId: z.string().uuid().optional().nullable(),
-  name: z.string().min(1).max(100).optional(),
-  type: incomeTypeEnum.optional(),
-  amount: z.number().int().min(0).optional(),
-  frequency: incomeFrequencyEnum.optional(),
-  dayOfMonth: z.number().int().min(1).max(31).optional().nullable(),
-  isAutoConfirm: z.boolean().optional(),
-  isActive: z.boolean().optional(),
-  displayOrder: z.number().int().optional(),
-});
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
+import { capitalizeWords } from "@/shared/lib/utils";
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  notFoundError,
+  successResponse,
+  errorResponse,
+} from "@/shared/lib/api/responses";
+import { updateIncomeSourceSchema, validateIncomeFrequencyFields } from "@/shared/lib/validations";
 
 // GET - Get a specific income source
 export const GET = withAuthRequired(async (req, context) => {
@@ -37,7 +20,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Income source not found" }, { status: 404 });
+    return notFoundError("Income source");
   }
 
   const [source] = await db
@@ -51,10 +34,10 @@ export const GET = withAuthRequired(async (req, context) => {
     );
 
   if (!source) {
-    return NextResponse.json({ error: "Income source not found" }, { status: 404 });
+    return notFoundError("Income source");
   }
 
-  return NextResponse.json({ incomeSource: source });
+  return successResponse({ incomeSource: source });
 });
 
 // PATCH - Update an income source
@@ -66,7 +49,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Income source not found" }, { status: 404 });
+    return notFoundError("Income source");
   }
 
   const [existingSource] = await db
@@ -80,15 +63,24 @@ export const PATCH = withAuthRequired(async (req, context) => {
     );
 
   if (!existingSource) {
-    return NextResponse.json({ error: "Income source not found" }, { status: 404 });
+    return notFoundError("Income source");
   }
 
   const validation = updateIncomeSourceSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
+  }
+
+  // Validate frequency-dependent fields
+  // Use new frequency if provided, otherwise use existing frequency
+  const effectiveFrequency = validation.data.frequency ?? existingSource.frequency ?? "monthly";
+  const effectiveDayOfMonth = validation.data.dayOfMonth !== undefined
+    ? validation.data.dayOfMonth
+    : existingSource.dayOfMonth;
+
+  const frequencyValidation = validateIncomeFrequencyFields(effectiveFrequency, effectiveDayOfMonth);
+  if (!frequencyValidation.valid) {
+    return errorResponse(frequencyValidation.error!, 400);
   }
 
   const updateData = {
@@ -103,7 +95,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(eq(incomeSources.id, sourceId))
     .returning();
 
-  return NextResponse.json({ incomeSource: updatedSource });
+  return successResponse({ incomeSource: updatedSource });
 });
 
 // DELETE - Delete an income source (soft delete by deactivating)
@@ -114,7 +106,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Income source not found" }, { status: 404 });
+    return notFoundError("Income source");
   }
 
   const [existingSource] = await db
@@ -128,7 +120,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
     );
 
   if (!existingSource) {
-    return NextResponse.json({ error: "Income source not found" }, { status: 404 });
+    return notFoundError("Income source");
   }
 
   // Soft delete by deactivating
@@ -140,5 +132,5 @@ export const DELETE = withAuthRequired(async (req, context) => {
     })
     .where(eq(incomeSources.id, sourceId));
 
-  return NextResponse.json({ success: true });
+  return successResponse({ success: true });
 });

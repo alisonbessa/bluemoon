@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import withSuperAdminAuthRequired from "@/lib/auth/withSuperAdminAuthRequired";
+import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
-import { encryptJson } from "@/lib/encryption/edge-jwt";
+import { encryptJson } from "@/shared/lib/encryption/edge-jwt";
 
 export const POST = withSuperAdminAuthRequired(async (req, context) => {
   const { id } = (await context.params) as { id: string };

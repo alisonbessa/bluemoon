@@ -1,6 +1,9 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
-import { NextResponse } from "next/server";
+import {
+  successResponse,
+  internalError,
+} from "@/shared/lib/api/responses";
 
 export const POST = withAuthRequired(async (req, context) => {
   try {
@@ -38,20 +41,16 @@ export const POST = withAuthRequired(async (req, context) => {
           validUntil: Date.now() + 3600000, // 1 hour
         };
       },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        console.log("Input image uploaded successfully:", blob.url);
+      onUploadCompleted: async () => {
+        // Upload completed successfully
       },
     });
 
-    return NextResponse.json(jsonResponse);
+    return successResponse(jsonResponse);
   } catch (error) {
     console.error("Error handling image upload:", error);
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to create upload URL",
-      },
-      { status: 500 }
+    return internalError(
+      error instanceof Error ? error.message : "Failed to create upload URL"
     );
   }
 });

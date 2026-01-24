@@ -1,6 +1,6 @@
 "use client";
 
-import { ErrorBoundary } from "@/components/error-boundary";
+import { ErrorBoundary } from "@/shared/error-boundary";
 
 export default function InAppError({
   error,

@@ -1,34 +1,15 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { goals, budgetMembers } from "@/db/schema";
+import { goals } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { capitalizeWords } from "@/lib/utils";
-
-const updateGoalSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  icon: z.string().max(10).optional(),
-  color: z.string().max(10).optional(),
-  targetAmount: z.number().int().min(1).optional(),
-  targetDate: z
-    .string()
-    .datetime()
-    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
-    .optional(),
-  isCompleted: z.boolean().optional(),
-  isArchived: z.boolean().optional(),
-  displayOrder: z.number().int().optional(),
-});
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
+import { capitalizeWords } from "@/shared/lib/utils";
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  notFoundError,
+  successResponse,
+} from "@/shared/lib/api/responses";
+import { updateGoalSchema } from "@/shared/lib/validations";
 
 // Helper to calculate goal metrics
 function calculateGoalMetrics(goal: typeof goals.$inferSelect) {
@@ -68,7 +49,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+    return notFoundError("Goal");
   }
 
   const [goal] = await db
@@ -77,10 +58,10 @@ export const GET = withAuthRequired(async (req, context) => {
     .where(and(eq(goals.id, id), inArray(goals.budgetId, budgetIds)));
 
   if (!goal) {
-    return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+    return notFoundError("Goal");
   }
 
-  return NextResponse.json({
+  return successResponse({
     goal: {
       ...goal,
       ...calculateGoalMetrics(goal),
@@ -97,15 +78,12 @@ export const PATCH = withAuthRequired(async (req, context) => {
 
   const validation = updateGoalSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+    return notFoundError("Goal");
   }
 
   // Check goal exists and user has access
@@ -115,7 +93,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(and(eq(goals.id, id), inArray(goals.budgetId, budgetIds)));
 
   if (!existingGoal) {
-    return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+    return notFoundError("Goal");
   }
 
   const { targetDate, name, ...restData } = validation.data;
@@ -146,7 +124,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(eq(goals.id, id))
     .returning();
 
-  return NextResponse.json({
+  return successResponse({
     goal: {
       ...updatedGoal,
       ...calculateGoalMetrics(updatedGoal),
@@ -162,7 +140,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+    return notFoundError("Goal");
   }
 
   // Check goal exists and user has access
@@ -172,7 +150,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
     .where(and(eq(goals.id, id), inArray(goals.budgetId, budgetIds)));
 
   if (!existingGoal) {
-    return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+    return notFoundError("Goal");
   }
 
   // Soft delete - mark as archived
@@ -181,5 +159,5 @@ export const DELETE = withAuthRequired(async (req, context) => {
     .set({ isArchived: true, updatedAt: new Date() })
     .where(eq(goals.id, id));
 
-  return NextResponse.json({ success: true });
+  return successResponse({ success: true });
 });

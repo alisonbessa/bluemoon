@@ -1,35 +1,15 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { financialAccounts, budgetMembers } from "@/db/schema";
+import { financialAccounts } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { accountTypeEnum } from "@/db/schema/accounts";
-import { capitalizeWords } from "@/lib/utils";
-
-const updateAccountSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  type: accountTypeEnum.optional(),
-  color: z.string().optional(),
-  icon: z.string().optional(),
-  balance: z.number().int().optional(),
-  clearedBalance: z.number().int().optional(),
-  ownerId: z.string().uuid().optional().nullable(),
-  // Credit card fields
-  creditLimit: z.number().int().optional(),
-  closingDay: z.number().int().min(1).max(31).optional(),
-  dueDay: z.number().int().min(1).max(31).optional(),
-  isArchived: z.boolean().optional(),
-});
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
+import { capitalizeWords } from "@/shared/lib/utils";
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  notFoundError,
+  successResponse,
+} from "@/shared/lib/api/responses";
+import { updateAccountSchema } from "@/shared/lib/validations";
 
 // GET - Get a specific account
 export const GET = withAuthRequired(async (req, context) => {
@@ -39,7 +19,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    return notFoundError("Account");
   }
 
   const [account] = await db
@@ -53,10 +33,10 @@ export const GET = withAuthRequired(async (req, context) => {
     );
 
   if (!account) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    return notFoundError("Account");
   }
 
-  return NextResponse.json({ account });
+  return successResponse({ account });
 });
 
 // PATCH - Update an account
@@ -68,7 +48,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    return notFoundError("Account");
   }
 
   // Check account exists and user has access
@@ -83,15 +63,12 @@ export const PATCH = withAuthRequired(async (req, context) => {
     );
 
   if (!existingAccount) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    return notFoundError("Account");
   }
 
   const validation = updateAccountSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const updateData = {
@@ -106,7 +83,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(eq(financialAccounts.id, accountId))
     .returning();
 
-  return NextResponse.json({ account: updatedAccount });
+  return successResponse({ account: updatedAccount });
 });
 
 // DELETE - Delete an account
@@ -117,7 +94,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    return notFoundError("Account");
   }
 
   // Check account exists and user has access
@@ -132,10 +109,10 @@ export const DELETE = withAuthRequired(async (req, context) => {
     );
 
   if (!existingAccount) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    return notFoundError("Account");
   }
 
   await db.delete(financialAccounts).where(eq(financialAccounts.id, accountId));
 
-  return NextResponse.json({ success: true });
+  return successResponse({ success: true });
 });

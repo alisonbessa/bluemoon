@@ -1,17 +1,12 @@
 /**
  * Budget Domain Types
+ *
+ * @deprecated Import from '@/features/budget' instead
+ * This file re-exports from the new FSD location for backwards compatibility
  */
 
-export interface Budget {
-  id: string;
-  name: string;
-  description?: string | null;
-  currency: string;
-  createdAt: Date;
-}
-
-export interface BudgetWithMembership extends Budget {
-  memberType: 'owner' | 'member';
-}
-
-export type BudgetMemberType = 'owner' | 'member';
+export {
+  type Budget,
+  type BudgetWithMembership,
+  type BudgetMemberType,
+} from '@/features/budget';

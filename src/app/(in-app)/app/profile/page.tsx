@@ -6,19 +6,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Loader2, User } from "lucide-react";
 
-import { useUser } from "@/hooks/use-current-user";
+import { useUser } from "@/shared/hooks/use-current-user";
 import {
   profileUpdateSchema,
   ProfileUpdateValues,
-} from "@/lib/validations/profile.schema";
-import { Button } from "@/components/ui/button";
+} from "@/shared/lib/validations/profile.schema";
+import { Button } from "@/shared/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/ui/card";
 import {
   Form,
   FormControl,
@@ -26,10 +26,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { BlobUploader } from "@/components/ui/blob-uploader";
+} from "@/shared/ui/form";
+import { Input } from "@/shared/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
+import { BlobUploader } from "@/shared/ui/blob-uploader";
 
 export default function ProfilePage() {
   const { user, isLoading, mutate } = useUser();

@@ -1,8 +1,8 @@
-import { getPageImage, source } from "@/lib/docs/source";
+import { getPageImage, source } from "@/shared/lib/docs/source";
 import { notFound } from "next/navigation";
 import { ImageResponse } from "next/og";
 import { generate as DefaultImage } from "fumadocs-ui/og";
-import { appConfig } from "@/lib/config";
+import { appConfig } from "@/shared/lib/config";
 
 export const revalidate = false;
 

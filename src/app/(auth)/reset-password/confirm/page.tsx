@@ -4,13 +4,13 @@ import * as React from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Label } from "@/shared/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { resetPasswordConfirmSchema, type ResetPasswordConfirmInput } from "@/lib/validations/auth.schema";
-import { appConfig } from "@/lib/config";
+import { resetPasswordConfirmSchema, type ResetPasswordConfirmInput } from "@/shared/lib/validations/auth.schema";
+import { appConfig } from "@/shared/lib/config";
 
 export default function ResetPasswordConfirmPage() {
   const [isLoading, setIsLoading] = React.useState<boolean>(false);

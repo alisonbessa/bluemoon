@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import withSuperAdminAuthRequired from "@/lib/auth/withSuperAdminAuthRequired";
+import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
 import { z } from "zod";
-import updatePlan from "@/lib/plans/updatePlan";
+import updatePlan from "@/shared/lib/plans/updatePlan";
 
 const updatePlanSchema = z.object({
   planId: z.string().min(1, "Plan ID is required"),

@@ -11,8 +11,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+} from "@/shared/ui/card";
+import { Badge } from "@/shared/ui/badge";
 import {
   Table,
   TableBody,
@@ -20,8 +20,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+} from "@/shared/ui/table";
+import { Button } from "@/shared/ui/button";
 import {
   ArrowLeft,
   History,
@@ -31,9 +31,9 @@ import {
   CreditCard,
 } from "lucide-react";
 import Link from "next/link";
-import { creditsConfig } from "@/lib/credits/config";
-import { type CreditType } from "@/lib/credits/credits";
-import { cn } from "@/lib/utils";
+import { creditsConfig } from "@/shared/lib/credits/config";
+import { type CreditType } from "@/shared/lib/credits/credits";
+import { cn } from "@/shared/lib/utils";
 
 // Transaction type styles map
 const transactionTypeStyles = {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { appConfig } from "@/lib/config";
+import { appConfig } from "@/shared/lib/config";
 import Providers from "./Providers";
 
 // Using system fonts as fallback when Google Fonts is unavailable

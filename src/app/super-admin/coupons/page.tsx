@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/shared/ui/input";
+import { Button } from "@/shared/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/shared/ui/select";
 import {
   Table,
   TableBody,
@@ -17,19 +17,19 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/shared/ui/table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/shared/ui/dropdown-menu";
 import { AlertTriangle, MoreVertical, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import useSWR from "swr";
 import { GenerateModal } from "./components/generate-modal";
-import { useDebounce } from "@/hooks/use-debounce";
-import { Pagination } from "@/components/ui/pagination";
+import { useDebounce } from "@/shared/hooks/use-debounce";
+import { Pagination } from "@/shared/ui/pagination";
 import Link from "next/link";
 import { ExpireCouponsModal } from "./components/expire-coupons-modal";
 import { ExportCouponsModal } from "./components/export-coupons-modal";

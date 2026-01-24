@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { creditTransactions } from "@/db/schema/credits";
 import { and, eq, lte, isNotNull } from "drizzle-orm";
-import { enableCredits } from "@/lib/credits/config";
-import { addCreditTransaction } from "@/lib/credits/recalculate";
+import { enableCredits } from "@/shared/lib/credits/config";
+import { addCreditTransaction } from "@/shared/lib/credits/recalculate";
 import { endOfDay } from "date-fns";
-import cronAuthRequired from "@/lib/auth/cronAuthRequired";
+import cronAuthRequired from "@/shared/lib/auth/cronAuthRequired";
 
 const handleExpireCredits = async () => {
   try {
@@ -68,9 +68,6 @@ const handleExpireCredits = async () => {
             .limit(1);
 
           if (existingExpiredTransaction.length > 0) {
-            console.log(
-              `Credits already expired for transaction ${transaction.id}`
-            );
             return { status: "skipped", transactionId: transaction.id };
           }
 
@@ -88,9 +85,6 @@ const handleExpireCredits = async () => {
             }
           );
 
-          console.log(
-            `Expired ${transaction.amount} ${transaction.creditType} credits for user ${transaction.userId}`
-          );
           return { status: "processed", transactionId: transaction.id };
         } catch (error) {
           console.error(

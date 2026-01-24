@@ -1,16 +1,16 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState } from "react";
+import { Button } from "@/shared/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+} from "@/shared/ui/card";
+import { Skeleton } from "@/shared/ui/skeleton";
+import { Alert, AlertDescription } from "@/shared/ui/alert";
 import {
   PlusIcon,
   WalletIcon,
@@ -22,96 +22,23 @@ import {
   SettingsIcon,
   TargetIcon,
 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { MonthSelector } from "@/components/ui/month-selector";
-import { DashboardCharts, CreditCardSpending, ScheduledTransactionsList } from "@/components/dashboard";
+import { Progress } from "@/shared/ui/progress";
+import { MonthSelector } from "@/shared/ui/month-selector";
+import {
+  DashboardCharts,
+  CreditCardSpending,
+  ScheduledTransactionsList,
+  useDashboardData,
+} from "@/features/dashboard";
+import { SummaryCardGrid } from "@/shared/organisms";
+import { PageContent } from "@/shared/molecules";
 import Link from "next/link";
-import { useUser } from "@/hooks/use-current-user";
-import { formatCurrency } from "@/lib/formatters";
-
-interface Commitment {
-  id: string;
-  name: string;
-  icon: string | null;
-  targetDate: string;
-  allocated: number;
-  group: {
-    id: string;
-    name: string;
-    code: string;
-  };
-}
-
-interface Budget {
-  id: string;
-  name: string;
-}
-
-interface MonthSummary {
-  income: { planned: number; received: number };
-  expenses: { allocated: number; spent: number };
-  available: number;
-}
-
-interface Goal {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-  targetAmount: number;
-  currentAmount: number;
-  progress: number;
-  monthlyTarget: number;
-  monthsRemaining: number;
-  isCompleted: boolean;
-}
-
-interface DailyChartData {
-  day: number;
-  date: string;
-  income: number;
-  expense: number;
-  balance: number;
-  pendingIncome?: number;
-  pendingExpense?: number;
-  pendingBalance?: number;
-}
-
-interface MonthlyChartData {
-  month: string;
-  year: number;
-  label: string;
-  income: number;
-  expense: number;
-}
-
-interface CreditCard {
-  id: string;
-  name: string;
-  icon: string | null;
-  creditLimit: number;
-  spent: number;
-  available: number;
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "short",
-  });
-}
-
-function getDaysUntil(dateString: string): number {
-  const target = new Date(dateString);
-  const now = new Date();
-  const diff = target.getTime() - now.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
+import { useUser } from "@/shared/hooks/use-current-user";
+import { formatCurrency } from "@/shared/lib/formatters";
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <PageContent>
       <div className="flex flex-col gap-2">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-4 w-64 sm:w-96" />
@@ -125,146 +52,62 @@ function DashboardSkeleton() {
         <Skeleton className="h-64" />
         <Skeleton className="h-64" />
       </div>
-    </div>
+    </PageContent>
   );
 }
 
 function AppHomepage() {
-  const { user, isLoading, error } = useUser();
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [commitments, setCommitments] = useState<Commitment[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [commitmentsLoading, setCommitmentsLoading] = useState(true);
-  const [goalsLoading, setGoalsLoading] = useState(true);
-  const [monthSummary, setMonthSummary] = useState<MonthSummary | null>(null);
-  const [dailyChartData, setDailyChartData] = useState<DailyChartData[]>([]);
-  const [monthlyChartData, setMonthlyChartData] = useState<MonthlyChartData[]>([]);
-  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
-  const [chartsLoading, setChartsLoading] = useState(true);
-  const [scheduledRefreshKey, setScheduledRefreshKey] = useState(0);
+  const { user, isLoading: userLoading, error } = useUser();
 
   // Month navigation
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
 
-  const hasCompletedOnboarding = !!user?.onboardingCompletedAt;
+  // Dashboard data via SWR
+  const {
+    budgets,
+    monthSummary,
+    goals,
+    dailyChartData,
+    monthlyChartData,
+    creditCards,
+    isLoading: dataLoading,
+    chartsLoading,
+    goalsLoading,
+  } = useDashboardData(currentYear, currentMonth);
+
+  const isLoading = userLoading || dataLoading;
 
   const handleMonthChange = (year: number, month: number) => {
     setCurrentYear(year);
     setCurrentMonth(month);
   };
 
-  const fetchData = useCallback(async () => {
-    try {
-      // Fetch budgets first
-      const budgetsRes = await fetch("/api/app/budgets");
-      if (budgetsRes.ok) {
-        const data = await budgetsRes.json();
-        setBudgets(data.budgets || []);
-
-        // If we have a budget, fetch allocations and commitments
-        if (data.budgets?.length > 0) {
-          const budgetId = data.budgets[0].id;
-
-          // Fetch allocations for the month (includes income data)
-          const allocationsRes = await fetch(
-            `/api/app/allocations?budgetId=${budgetId}&year=${currentYear}&month=${currentMonth}`
-          );
-          if (allocationsRes.ok) {
-            const allocData = await allocationsRes.json();
-
-            // Calculate summary from allocations
-            const income = allocData.income?.totals || { planned: 0, received: 0 };
-            const expenses = allocData.totals || { allocated: 0, spent: 0 };
-            const available = income.planned - expenses.allocated;
-
-            setMonthSummary({
-              income,
-              expenses,
-              available,
-            });
-          }
-
-          // Fetch commitments (only for current/future months)
-          if (currentYear > today.getFullYear() ||
-              (currentYear === today.getFullYear() && currentMonth >= today.getMonth() + 1)) {
-            const commitmentsRes = await fetch(
-              `/api/app/commitments?budgetId=${budgetId}&days=30&year=${currentYear}&month=${currentMonth}`
-            );
-            if (commitmentsRes.ok) {
-              const commitmentsData = await commitmentsRes.json();
-              setCommitments(commitmentsData.commitments || []);
-            }
-          } else {
-            setCommitments([]);
-          }
-
-          // Fetch goals
-          const goalsRes = await fetch(`/api/app/goals?budgetId=${budgetId}`);
-          if (goalsRes.ok) {
-            const goalsData = await goalsRes.json();
-            setGoals(goalsData.goals || []);
-          }
-
-          // Fetch dashboard stats (charts, credit cards)
-          const statsRes = await fetch(
-            `/api/app/dashboard/stats?budgetId=${budgetId}&year=${currentYear}&month=${currentMonth}`
-          );
-          if (statsRes.ok) {
-            const statsData = await statsRes.json();
-            setDailyChartData(statsData.dailyChartData || []);
-            setMonthlyChartData(statsData.monthlyComparison || []);
-            setCreditCards(statsData.creditCards || []);
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Error fetching dashboard data:", err);
-    } finally {
-      setCommitmentsLoading(false);
-      setGoalsLoading(false);
-      setChartsLoading(false);
-    }
-  }, [currentYear, currentMonth]);
-
-  useEffect(() => {
-    if (user) {
-      setCommitmentsLoading(true);
-      setGoalsLoading(true);
-      setChartsLoading(true);
-      fetchData();
-    } else {
-      setCommitmentsLoading(false);
-      setGoalsLoading(false);
-      setChartsLoading(false);
-    }
-  }, [user, fetchData]);
-
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-6">
+      <PageContent>
         <DashboardSkeleton />
-      </div>
+      </PageContent>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col gap-6 p-6">
+      <PageContent>
         <Alert variant="destructive">
           <AlertDescription>
             Erro ao carregar dados: {error.message}
           </AlertDescription>
         </Alert>
-      </div>
+      </PageContent>
     );
   }
 
   const firstName = user?.name?.split(" ")[0] || "Usuário";
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <PageContent>
       {/* Header with Month Navigation */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-1">
@@ -284,64 +127,39 @@ function AppHomepage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Saldo do Mês
-            </CardTitle>
-            <WalletIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${((monthSummary?.income.received ?? 0) - (monthSummary?.expenses.spent ?? 0)) >= 0 ? "text-green-600" : "text-red-600"}`}>
-              {formatCurrency((monthSummary?.income.received ?? 0) - (monthSummary?.expenses.spent ?? 0))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Planejado {formatCurrency(
-                (monthSummary?.income.planned ?? 0) - (monthSummary?.expenses.allocated ?? 0)
-              )}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Receitas do Mês
-            </CardTitle>
-            <TrendingUpIcon className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(monthSummary?.income.received ?? 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {monthSummary?.income.received === monthSummary?.income.planned
-                ? "Meta atingida!"
-                : `Faltam ${formatCurrency(Math.max(0, (monthSummary?.income.planned ?? 0) - (monthSummary?.income.received ?? 0)))}`}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Despesas do Mês
-            </CardTitle>
-            <TrendingDownIcon className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(monthSummary?.expenses.spent ?? 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {(monthSummary?.expenses.spent ?? 0) <= (monthSummary?.expenses.allocated ?? 0)
-                ? `Restam ${formatCurrency((monthSummary?.expenses.allocated ?? 0) - (monthSummary?.expenses.spent ?? 0))}`
-                : `Excedido em ${formatCurrency((monthSummary?.expenses.spent ?? 0) - (monthSummary?.expenses.allocated ?? 0))}`}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <SummaryCardGrid
+        items={[
+          {
+            id: "balance",
+            icon: <WalletIcon className="h-full w-full text-muted-foreground" />,
+            label: "Saldo do Mês",
+            value: formatCurrency((monthSummary?.income.received ?? 0) - (monthSummary?.expenses.spent ?? 0)),
+            valueColor: ((monthSummary?.income.received ?? 0) - (monthSummary?.expenses.spent ?? 0)) >= 0 ? "positive" : "negative",
+            subtitle: `Planejado ${formatCurrency((monthSummary?.income.planned ?? 0) - (monthSummary?.expenses.allocated ?? 0))}`,
+          },
+          {
+            id: "income",
+            icon: <TrendingUpIcon className="h-full w-full text-green-500" />,
+            label: "Receitas do Mês",
+            value: formatCurrency(monthSummary?.income.received ?? 0),
+            valueColor: "positive",
+            subtitle: monthSummary?.income.received === monthSummary?.income.planned
+              ? "Meta atingida!"
+              : `Faltam ${formatCurrency(Math.max(0, (monthSummary?.income.planned ?? 0) - (monthSummary?.income.received ?? 0)))}`,
+          },
+          {
+            id: "expenses",
+            icon: <TrendingDownIcon className="h-full w-full text-red-500" />,
+            label: "Despesas do Mês",
+            value: formatCurrency(monthSummary?.expenses.spent ?? 0),
+            valueColor: "negative",
+            subtitle: (monthSummary?.expenses.spent ?? 0) <= (monthSummary?.expenses.allocated ?? 0)
+              ? `Restam ${formatCurrency((monthSummary?.expenses.allocated ?? 0) - (monthSummary?.expenses.spent ?? 0))}`
+              : `Excedido em ${formatCurrency((monthSummary?.expenses.spent ?? 0) - (monthSummary?.expenses.allocated ?? 0))}`,
+          },
+        ]}
+        className="grid-cols-1 sm:grid-cols-3"
+      />
 
       {/* Main Content */}
       <div className="grid gap-6 md:grid-cols-2">
@@ -424,7 +242,6 @@ function AppHomepage() {
             budgetId={budgets[0].id}
             year={currentYear}
             month={currentMonth}
-            refreshKey={scheduledRefreshKey}
           />
         )}
       </div>
@@ -488,7 +305,7 @@ function AppHomepage() {
           </Link>
         </Card>
       </div>
-    </div>
+    </PageContent>
   );
 }
 

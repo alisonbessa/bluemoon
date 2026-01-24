@@ -1,6 +1,6 @@
 import { MetadataRoute } from "next";
-import { getAllBlogs } from "@/lib/mdx/blogs";
-import { source } from "@/lib/docs/source";
+import { getAllBlogs } from "@/shared/lib/mdx/blogs";
+import { source } from "@/shared/lib/docs/source";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL!;
   const blogs = await getAllBlogs();

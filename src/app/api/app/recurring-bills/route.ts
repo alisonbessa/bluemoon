@@ -1,60 +1,15 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { recurringBills, budgetMembers, financialAccounts, categories } from "@/db/schema";
+import { recurringBills, financialAccounts, categories } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
-import { z } from "zod";
-import { recurringBillFrequencyEnum } from "@/db/schema/recurring-bills";
-
-const createRecurringBillSchema = z.object({
-  budgetId: z.string().uuid(),
-  categoryId: z.string().uuid(),
-  accountId: z.string().uuid(), // obrigatório
-  name: z.string().min(1).max(100),
-  amount: z.number().int().min(0),
-  frequency: recurringBillFrequencyEnum.default("monthly"),
-  dueDay: z.number().int().min(0).max(31).optional().nullable(), // 0-6 for weekly, 1-31 for monthly/yearly
-  dueMonth: z.number().int().min(1).max(12).optional().nullable(),
-  isAutoDebit: z.boolean().default(false),
-  isVariable: z.boolean().default(false),
-}).refine((data) => {
-  // Yearly requires dueMonth
-  if (data.frequency === "yearly" && !data.dueMonth) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Despesa anual requer mês de vencimento",
-  path: ["dueMonth"],
-}).refine((data) => {
-  // Weekly dueDay should be 0-6 (day of week)
-  if (data.frequency === "weekly" && data.dueDay !== null && data.dueDay !== undefined) {
-    return data.dueDay >= 0 && data.dueDay <= 6;
-  }
-  return true;
-}, {
-  message: "Para semanal, dia deve ser 0 (Domingo) a 6 (Sábado)",
-  path: ["dueDay"],
-}).refine((data) => {
-  // Monthly/Yearly dueDay should be 1-31 (day of month)
-  if ((data.frequency === "monthly" || data.frequency === "yearly") &&
-      data.dueDay !== null && data.dueDay !== undefined) {
-    return data.dueDay >= 1 && data.dueDay <= 31;
-  }
-  return true;
-}, {
-  message: "Para mensal/anual, dia deve ser 1 a 31",
-  path: ["dueDay"],
-});
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  forbiddenError,
+  notFoundError,
+  successResponse,
+} from "@/shared/lib/api/responses";
+import { createRecurringBillSchema } from "@/shared/lib/validations";
 
 // GET - Get recurring bills for a category or budget
 export const GET = withAuthRequired(async (req, context) => {
@@ -65,7 +20,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ recurringBills: [] });
+    return successResponse({ recurringBills: [] });
   }
 
   let whereCondition = inArray(recurringBills.budgetId, budgetIds);
@@ -118,7 +73,7 @@ export const GET = withAuthRequired(async (req, context) => {
     return acc;
   }, {} as Record<string, number>);
 
-  return NextResponse.json({
+  return successResponse({
     recurringBills: formattedBills,
     totalsByCategory,
   });
@@ -131,10 +86,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = createRecurringBillSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { budgetId, ...billData } = validation.data;
@@ -142,10 +94,7 @@ export const POST = withAuthRequired(async (req, context) => {
   // Check user has access to budget
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
-    return NextResponse.json(
-      { error: "Budget not found or access denied" },
-      { status: 404 }
-    );
+    return forbiddenError("Budget not found or access denied");
   }
 
   // Verify category belongs to budget
@@ -160,7 +109,7 @@ export const POST = withAuthRequired(async (req, context) => {
     );
 
   if (!category) {
-    return NextResponse.json({ error: "Category not found" }, { status: 404 });
+    return notFoundError("Category");
   }
 
   // Get display order
@@ -178,5 +127,5 @@ export const POST = withAuthRequired(async (req, context) => {
     })
     .returning();
 
-  return NextResponse.json({ recurringBill: newBill }, { status: 201 });
+  return successResponse({ recurringBill: newBill }, 201);
 });

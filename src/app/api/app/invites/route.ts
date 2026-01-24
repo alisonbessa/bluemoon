@@ -1,9 +1,14 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { invites, budgetMembers, budgets, groups, categories } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
+import {
+  validationError,
+  forbiddenError,
+  successResponse,
+  errorResponse,
+} from "@/shared/lib/api/responses";
 
 const createInviteSchema = z.object({
   budgetId: z.string().uuid(),
@@ -29,7 +34,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const ownerBudgetIds = await getOwnerBudgetIds(session.user.id);
 
   if (ownerBudgetIds.length === 0) {
-    return NextResponse.json({ invites: [] });
+    return successResponse({ invites: [] });
   }
 
   const budgetInvites = await db
@@ -48,7 +53,7 @@ export const GET = withAuthRequired(async (req, context) => {
         : inArray(invites.budgetId, ownerBudgetIds)
     );
 
-  return NextResponse.json({
+  return successResponse({
     invites: budgetInvites.map((i) => ({
       ...i.invite,
       budget: i.budget,
@@ -63,10 +68,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = createInviteSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { budgetId } = validation.data;
@@ -74,10 +76,7 @@ export const POST = withAuthRequired(async (req, context) => {
   // Check user is owner of the budget
   const ownerBudgetIds = await getOwnerBudgetIds(session.user.id);
   if (!ownerBudgetIds.includes(budgetId)) {
-    return NextResponse.json(
-      { error: "Budget not found or you are not the owner" },
-      { status: 404 }
-    );
+    return forbiddenError("Budget not found or you are not the owner");
   }
 
   // Check if there's already a connected partner (with userId)
@@ -94,10 +93,7 @@ export const POST = withAuthRequired(async (req, context) => {
 
   // Only block if partner is actually connected (has userId)
   if (existingPartner.length > 0 && existingPartner[0].userId) {
-    return NextResponse.json(
-      { error: "This budget already has a connected partner" },
-      { status: 400 }
-    );
+    return errorResponse("This budget already has a connected partner", 400);
   }
 
   // Check if there's already a pending invite
@@ -113,10 +109,7 @@ export const POST = withAuthRequired(async (req, context) => {
     .limit(1);
 
   if (existingInvite.length > 0) {
-    return NextResponse.json(
-      { error: "There is already a pending invite for this budget" },
-      { status: 400 }
-    );
+    return errorResponse("There is already a pending invite for this budget", 400);
   }
 
   // Generate a unique token
@@ -136,11 +129,8 @@ export const POST = withAuthRequired(async (req, context) => {
 
   // TODO: Send invite email via Inngest/Resend
 
-  return NextResponse.json(
-    {
-      invite: newInvite,
-      inviteLink: `${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`,
-    },
-    { status: 201 }
-  );
+  return successResponse({
+    invite: newInvite,
+    inviteLink: `${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`,
+  }, 201);
 });

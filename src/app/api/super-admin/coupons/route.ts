@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import withSuperAdminAuthRequired from "@/lib/auth/withSuperAdminAuthRequired";
+import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
 import { db } from "@/db";
 import { coupons } from "@/db/schema/coupons";
 import { desc, eq, like, sql, and, isNull, isNotNull } from "drizzle-orm";

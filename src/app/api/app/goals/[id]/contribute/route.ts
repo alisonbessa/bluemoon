@@ -1,9 +1,14 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { goals, goalContributions, budgetMembers, transactions, financialAccounts } from "@/db/schema";
+import { goals, goalContributions, transactions, financialAccounts } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import {
+  validationError,
+  notFoundError,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 const contributeSchema = z.object({
   amount: z.number().int().min(1),
@@ -11,15 +16,6 @@ const contributeSchema = z.object({
   month: z.number().int().min(1).max(12),
   fromAccountId: z.string().uuid(), // Conta de origem (obrigatória)
 });
-
-// Helper to get user's budget IDs
-async function getUserBudgetIds(userId: string) {
-  const memberships = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, userId));
-  return memberships.map((m) => m.budgetId);
-}
 
 // Helper to calculate goal metrics
 function calculateGoalMetrics(goal: typeof goals.$inferSelect) {
@@ -60,17 +56,14 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const validation = contributeSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const { amount, year, month, fromAccountId } = validation.data;
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+    return notFoundError("Goal");
   }
 
   // Check goal exists and user has access
@@ -80,7 +73,7 @@ export const POST = withAuthRequired(async (req, context) => {
     .where(and(eq(goals.id, goalId), inArray(goals.budgetId, budgetIds)));
 
   if (!existingGoal) {
-    return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+    return notFoundError("Goal");
   }
 
   // Verify the source account exists and belongs to user's budget
@@ -95,10 +88,7 @@ export const POST = withAuthRequired(async (req, context) => {
     );
 
   if (!fromAccount) {
-    return NextResponse.json(
-      { error: "Conta de origem não encontrada" },
-      { status: 404 }
-    );
+    return notFoundError("Conta de origem");
   }
 
   // Create the transfer transaction
@@ -181,7 +171,7 @@ export const POST = withAuthRequired(async (req, context) => {
     .where(eq(goals.id, goalId))
     .returning();
 
-  return NextResponse.json({
+  return successResponse({
     contribution,
     transaction: newTransaction,
     goal: {
@@ -202,7 +192,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
-    return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+    return notFoundError("Goal");
   }
 
   // Check goal exists and user has access
@@ -212,7 +202,7 @@ export const GET = withAuthRequired(async (req, context) => {
     .where(and(eq(goals.id, goalId), inArray(goals.budgetId, budgetIds)));
 
   if (!existingGoal) {
-    return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+    return notFoundError("Goal");
   }
 
   const conditions = [eq(goalContributions.goalId, goalId)];
@@ -226,5 +216,5 @@ export const GET = withAuthRequired(async (req, context) => {
     .where(and(...conditions))
     .orderBy(goalContributions.year, goalContributions.month);
 
-  return NextResponse.json({ contributions });
+  return successResponse({ contributions });
 });

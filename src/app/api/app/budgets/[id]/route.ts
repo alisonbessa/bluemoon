@@ -1,10 +1,15 @@
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { budgets, budgetMembers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { z } from "zod";
-import { capitalizeWords } from "@/lib/utils";
+import { capitalizeWords } from "@/shared/lib/utils";
+import {
+  validationError,
+  forbiddenError,
+  notFoundError,
+  successResponse,
+} from "@/shared/lib/api/responses";
 
 const updateBudgetSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -36,7 +41,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const membership = await checkBudgetAccess(budgetId, session.user.id);
   if (!membership) {
-    return NextResponse.json({ error: "Budget not found" }, { status: 404 });
+    return notFoundError("Budget");
   }
 
   const [budget] = await db
@@ -45,10 +50,10 @@ export const GET = withAuthRequired(async (req, context) => {
     .where(eq(budgets.id, budgetId));
 
   if (!budget) {
-    return NextResponse.json({ error: "Budget not found" }, { status: 404 });
+    return notFoundError("Budget");
   }
 
-  return NextResponse.json({
+  return successResponse({
     budget,
     membership,
   });
@@ -63,23 +68,17 @@ export const PATCH = withAuthRequired(async (req, context) => {
 
   const membership = await checkBudgetAccess(budgetId, session.user.id);
   if (!membership) {
-    return NextResponse.json({ error: "Budget not found" }, { status: 404 });
+    return notFoundError("Budget");
   }
 
   // Only owner can update budget
   if (membership.type !== "owner") {
-    return NextResponse.json(
-      { error: "Only the owner can update the budget" },
-      { status: 403 }
-    );
+    return forbiddenError("Only the owner can update the budget");
   }
 
   const validation = updateBudgetSchema.safeParse(body);
   if (!validation.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: validation.error.errors },
-      { status: 400 }
-    );
+    return validationError(validation.error);
   }
 
   const updateData = {
@@ -94,7 +93,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(eq(budgets.id, budgetId))
     .returning();
 
-  return NextResponse.json({ budget: updatedBudget });
+  return successResponse({ budget: updatedBudget });
 });
 
 // DELETE - Delete a budget
@@ -105,18 +104,15 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
   const membership = await checkBudgetAccess(budgetId, session.user.id);
   if (!membership) {
-    return NextResponse.json({ error: "Budget not found" }, { status: 404 });
+    return notFoundError("Budget");
   }
 
   // Only owner can delete budget
   if (membership.type !== "owner") {
-    return NextResponse.json(
-      { error: "Only the owner can delete the budget" },
-      { status: 403 }
-    );
+    return forbiddenError("Only the owner can delete the budget");
   }
 
   await db.delete(budgets).where(eq(budgets.id, budgetId));
 
-  return NextResponse.json({ success: true });
+  return successResponse({ success: true });
 });

@@ -23,9 +23,10 @@
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/features/*": ["./src/features/*"],
+      "@/shared/*": ["./src/shared/*"],
+      "@/integrations/*": ["./src/integrations/*"],
+      "@/*": ["./src/*"]
     }
   },
   "include": [

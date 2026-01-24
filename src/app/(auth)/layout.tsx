@@ -1,4 +1,4 @@
-import { appConfig } from "@/lib/config";
+import { appConfig } from "@/shared/lib/config";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";

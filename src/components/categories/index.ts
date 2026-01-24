@@ -1,10 +1,14 @@
 /**
- * Category Components Index
+ * Category Components
+ *
+ * @deprecated Import from '@/features/categories' instead
+ * This file re-exports from the new FSD location for backwards compatibility
  */
 
-export { CategorySummary } from './category-summary';
-export { CategorySearch } from './category-search';
-export { CategoryList } from './category-list';
-export { CategoryFormModal, type CategoryFormData } from './category-form-modal';
-export { CategoryDeleteDialog } from './category-delete-dialog';
-export { CategoryEmptyState } from './category-empty-state';
+export {
+  CategorySearch,
+  CategoryList,
+  CategoryWizard,
+  CategoryPageFormModal,
+  type CategoryFormData,
+} from '@/features/categories';

@@ -1,4 +1,4 @@
-import { PlanProvider } from "@/lib/plans/getSubscribeUrl";
+import { PlanProvider } from "@/shared/lib/plans/getSubscribeUrl";
 import CreditsSuccessRedirector from "./CreditsSuccessRedirector";
 
 export default async function CreditsSuccessPage({

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import withSuperAdminAuthRequired from "@/lib/auth/withSuperAdminAuthRequired";
+import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
 import { db } from "@/db";
 import { waitlist } from "@/db/schema/waitlist";
 import { desc } from "drizzle-orm";

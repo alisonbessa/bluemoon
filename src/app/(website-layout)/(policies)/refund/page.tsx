@@ -1,8 +1,8 @@
-import { getPolicyBySlug } from "@/lib/mdx/policies";
+import { getPolicyBySlug } from "@/shared/lib/mdx/policies";
 import { format } from "date-fns";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
-import { appConfig } from "@/lib/config";
+import { appConfig } from "@/shared/lib/config";
 import { WebPageJsonLd } from "next-seo";
 
 export async function generateMetadata(): Promise<Metadata> {

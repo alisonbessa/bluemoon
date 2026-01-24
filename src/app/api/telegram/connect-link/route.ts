@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import withAuthRequired from "@/lib/auth/withAuthRequired";
+import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { telegramUsers, telegramPendingConnections } from "@/db/schema";
 import { eq, and, gt } from "drizzle-orm";
