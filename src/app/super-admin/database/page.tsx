@@ -36,6 +36,7 @@ const TABLES_TO_DELETE = [
   { name: "telegram_users", description: "Telegram connections" },
   { name: "telegram_ai_logs", description: "AI conversation logs" },
   { name: "telegram_pending_connections", description: "Pending Telegram links" },
+  { name: "access_links", description: "Lifetime/Beta access links" },
 ];
 
 const USER_TABLES = [
