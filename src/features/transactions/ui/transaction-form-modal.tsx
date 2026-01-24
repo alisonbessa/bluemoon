@@ -135,9 +135,17 @@ export function TransactionFormModal({
             </div>
           </div>
 
-          {/* Category + Account (for expenses) */}
+          {/* Account + Category (for expenses) */}
           {formData.type === 'expense' && (
             <div className="grid grid-cols-2 gap-4">
+              <AccountSelector
+                value={formData.accountId}
+                onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
+                accounts={accounts}
+                label="Conta"
+                allowNone={false}
+                placeholder="Selecione"
+              />
               <div className="grid gap-2">
                 <Label htmlFor="category">Categoria</Label>
                 <Select
@@ -162,6 +170,12 @@ export function TransactionFormModal({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          )}
+
+          {/* Account + Income Source (for income) */}
+          {formData.type === 'income' && (
+            <div className="grid grid-cols-2 gap-4">
               <AccountSelector
                 value={formData.accountId}
                 onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
@@ -170,12 +184,6 @@ export function TransactionFormModal({
                 allowNone={false}
                 placeholder="Selecione"
               />
-            </div>
-          )}
-
-          {/* Income Source + Account (for income) */}
-          {formData.type === 'income' && (
-            <div className="grid grid-cols-2 gap-4">
               {incomeSources.length > 0 ? (
                 <div className="grid gap-2">
                   <Label htmlFor="incomeSource">Fonte</Label>
@@ -204,14 +212,6 @@ export function TransactionFormModal({
               ) : (
                 <div /> /* Empty space to maintain grid */
               )}
-              <AccountSelector
-                value={formData.accountId}
-                onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
-                accounts={accounts}
-                label="Conta"
-                allowNone={false}
-                placeholder="Selecione"
-              />
             </div>
           )}
 

@@ -419,9 +419,7 @@ export function TransactionWidget({
                             {transaction.incomeSource.type === "salary" ? "💼" : transaction.incomeSource.type === "benefit" ? "🎁" : transaction.incomeSource.type === "freelance" ? "💻" : transaction.incomeSource.type === "rental" ? "🏠" : transaction.incomeSource.type === "investment" ? "📈" : "📦"} {transaction.incomeSource.name}
                           </span>
                         ) : transaction.category && (
-                          <span className="flex items-center gap-1">
-                            {transaction.category.icon || "📌"} {transaction.category.name}
-                          </span>
+                          <span>{transaction.category.name}</span>
                         )}
                       </div>
                     </div>

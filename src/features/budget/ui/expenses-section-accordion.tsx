@@ -128,38 +128,34 @@ export function ExpensesSectionAccordion({
     <>
       {/* Expenses Section Header - Clickable Toggle */}
       <div
-        className="px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-red-200/50 dark:hover:bg-red-950/70 transition-colors"
+        className="grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b items-center cursor-pointer hover:bg-red-200/50 dark:hover:bg-red-950/70 transition-colors"
         onClick={onToggle}
       >
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 text-red-700 dark:text-red-300 transition-transform',
+            !isExpanded && '-rotate-90'
+          )}
+        />
         <div className="flex items-center gap-2">
-          <ChevronDown
-            className={cn(
-              'h-4 w-4 text-red-700 dark:text-red-300 transition-transform',
-              !isExpanded && '-rotate-90'
-            )}
-          />
           <span className="text-lg">💸</span>
           <span className="font-bold text-sm text-red-800 dark:text-red-200">
             DESPESAS
           </span>
         </div>
-        <div className="flex items-center gap-4 text-sm font-bold text-red-800 dark:text-red-200">
-          <span className="text-xs text-muted-foreground font-normal">
-            Planejado:
-          </span>
-          <span>{formatCurrency(totals.allocated)}</span>
-          <span className="text-xs text-muted-foreground font-normal">
-            Realizado:
-          </span>
-          <span className="text-red-600 dark:text-red-400">
-            {formatCurrency(totals.spent)}
-          </span>
-          <span className="text-xs text-muted-foreground font-normal">
-            Disponivel:
-          </span>
-          <span className={totals.allocated - totals.spent >= 0 ? '' : 'text-red-600'}>
-            {formatCurrency(totals.allocated - totals.spent)}
-          </span>
+        <div className="text-right text-sm font-bold text-red-800 dark:text-red-200">
+          {formatCurrency(totals.allocated)}
+        </div>
+        <div className="text-right text-sm font-bold text-red-600 dark:text-red-400">
+          {formatCurrency(totals.spent)}
+        </div>
+        <div
+          className={cn(
+            'text-right text-sm font-bold',
+            totals.allocated - totals.spent >= 0 ? '' : 'text-red-600'
+          )}
+        >
+          {formatCurrency(totals.allocated - totals.spent)}
         </div>
       </div>
 

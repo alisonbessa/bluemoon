@@ -74,16 +74,16 @@ export function IncomeSectionAccordion({
     <div className="border-b-4 border-green-200 dark:border-green-900">
       {/* Income Section Header - Clickable Toggle */}
       <div
-        className="group px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b flex items-center justify-between cursor-pointer hover:bg-green-200/50 dark:hover:bg-green-950/70 transition-colors"
+        className="group grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b items-center cursor-pointer hover:bg-green-200/50 dark:hover:bg-green-950/70 transition-colors"
         onClick={onToggle}
       >
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 text-green-700 dark:text-green-300 transition-transform',
+            !isExpanded && '-rotate-90'
+          )}
+        />
         <div className="flex items-center gap-2">
-          <ChevronDown
-            className={cn(
-              'h-4 w-4 text-green-700 dark:text-green-300 transition-transform',
-              !isExpanded && '-rotate-90'
-            )}
-          />
           <span className="text-lg">💰</span>
           <span className="font-bold text-sm text-green-800 dark:text-green-200">
             RECEITAS
@@ -99,31 +99,23 @@ export function IncomeSectionAccordion({
             <Plus className="h-3.5 w-3.5 text-green-700 dark:text-green-300" />
           </button>
         </div>
-        <div className="flex items-center gap-4 text-sm font-bold text-green-800 dark:text-green-200">
-          <span className="text-xs text-muted-foreground font-normal">
-            Planejado:
-          </span>
-          <span>{formatCurrency(incomeData.totals.planned)}</span>
-          <span className="text-xs text-muted-foreground font-normal">
-            Realizado:
-          </span>
-          <span className="text-green-600 dark:text-green-400">
-            {formatCurrency(incomeData.totals.received)}
-          </span>
-          <span className="text-xs text-muted-foreground font-normal">
-            Disponivel:
-          </span>
-          <span
-            className={
-              incomeData.totals.received < incomeData.totals.planned
-                ? 'text-red-600'
-                : 'text-green-600'
-            }
-          >
-            {formatCurrency(
-              Math.abs(incomeData.totals.planned - incomeData.totals.received)
-            )}
-          </span>
+        <div className="text-right text-sm font-bold text-green-800 dark:text-green-200">
+          {formatCurrency(incomeData.totals.planned)}
+        </div>
+        <div className="text-right text-sm font-bold text-green-600 dark:text-green-400">
+          {formatCurrency(incomeData.totals.received)}
+        </div>
+        <div
+          className={cn(
+            'text-right text-sm font-bold',
+            incomeData.totals.received < incomeData.totals.planned
+              ? 'text-red-600'
+              : 'text-green-600'
+          )}
+        >
+          {formatCurrency(
+            Math.abs(incomeData.totals.planned - incomeData.totals.received)
+          )}
         </div>
       </div>
 
