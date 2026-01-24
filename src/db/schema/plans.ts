@@ -9,17 +9,17 @@ import {
 import { z } from "zod";
 
 export const quotaSchema = z.object({
-  permiumSupport: z.boolean().default(true),
-  monthlyImages: z.number(),
-  somethingElse: z.string(),
+  maxBudgetMembers: z.number().default(1), // Solo=1, Duo=2
+  premiumSupport: z.boolean().default(false),
+  monthlyImages: z.number().default(10),
 });
 
 export type Quotas = z.infer<typeof quotaSchema>;
 
 export const defaultQuotas: Quotas = {
-  permiumSupport: false,
+  maxBudgetMembers: 1,
+  premiumSupport: false,
   monthlyImages: 10,
-  somethingElse: "something",
 };
 
 export const plans = pgTable("plans", {

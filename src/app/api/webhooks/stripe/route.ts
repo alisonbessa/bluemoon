@@ -186,10 +186,26 @@ class StripeWebhookHandler {
     const isActive = object.status === "active" || object.status === "trialing";
 
     if (!isActive) {
-      // Subscription is cancelled, downgrade to free plan
+      // Subscription is cancelled, downgrade to free plan and clear trial
+      await db
+        .update(users)
+        .set({ trialEndsAt: null })
+        .where(eq(users.id, user[0].id));
       await downgradeToDefaultPlan({ userId: user[0].id });
       return;
     }
+
+    // Update trialEndsAt based on current subscription status
+    const trialUpdate: { trialEndsAt: Date | null } = {
+      trialEndsAt: object.status === "trialing" && object.trial_end
+        ? new Date(object.trial_end * 1000)
+        : null, // Clear trial end if subscription is no longer in trial
+    };
+
+    await db
+      .update(users)
+      .set(trialUpdate)
+      .where(eq(users.id, user[0].id));
 
     const dbPlan = await this._getPlanFromStripePriceId(price.id);
     if (!dbPlan) {
@@ -251,10 +267,22 @@ class StripeWebhookHandler {
       // TIP: Handle outside plan management subscription
       throw new APIError("Plan not found");
     }
+
+    // Prepare update data
+    const updateData: { stripeSubscriptionId: string; trialEndsAt?: Date | null } = {
+      stripeSubscriptionId: object.id,
+    };
+
+    // If subscription is in trial, set trialEndsAt
+    if (object.status === "trialing" && object.trial_end) {
+      updateData.trialEndsAt = new Date(object.trial_end * 1000);
+    }
+
     await db
       .update(users)
-      .set({ stripeSubscriptionId: object.id })
+      .set(updateData)
       .where(eq(users.id, user.id));
+
     await updatePlan({ userId: user.id, newPlanId: dbPlan.id });
 
     // Allocate plan-based credits
@@ -268,6 +296,37 @@ class StripeWebhookHandler {
         customerId: customer.id,
       }
     });
+  }
+
+  /**
+   * Handles the trial_will_end event - fired 3 days before trial ends
+   * This is useful for sending reminder emails to users
+   */
+  async onSubscriptionTrialWillEnd() {
+    // @ts-expect-error Stripe types are not fully compatible with Next.js
+    const object: Stripe.Subscription = this.data.object;
+
+    const user = await db
+      .select()
+      .from(users)
+      .where(eq(users.stripeSubscriptionId, object.id))
+      .limit(1);
+
+    if (!user?.[0]) {
+      // Subscription is not for any user we know, skip
+      return;
+    }
+
+    // Update trialEndsAt in case it changed
+    if (object.trial_end) {
+      await db
+        .update(users)
+        .set({ trialEndsAt: new Date(object.trial_end * 1000) })
+        .where(eq(users.id, user[0].id));
+    }
+
+    // Note: Email notifications are handled by Inngest scheduled jobs
+    // that check trialEndsAt for D-7 and D-2 reminders
   }
 
   async onSubscriptionDeleted() {
@@ -434,6 +493,9 @@ async function handler(req: NextRequest) {
           break;
         case "customer.subscription.deleted":
           await handler.onSubscriptionDeleted();
+          break;
+        case "customer.subscription.trial_will_end":
+          await handler.onSubscriptionTrialWillEnd();
           break;
         default:
           // Unhandled event type

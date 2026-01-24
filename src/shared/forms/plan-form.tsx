@@ -63,9 +63,9 @@ export function PlanForm({
       onetimePriceAnchor: 0,
       onetimePaypalPlanId: "",
       quotas: {
-        permiumSupport: false,
-        monthlyImages: 0,
-        somethingElse: "",
+        maxBudgetMembers: 1,
+        premiumSupport: false,
+        monthlyImages: 10,
       },
     },
   });
@@ -531,7 +531,28 @@ export function PlanForm({
           <div className="grid gap-4 md:grid-cols-3">
             <FormField
               control={form.control}
-              name="quotas.permiumSupport"
+              name="quotas.maxBudgetMembers"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Max Budget Members</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Solo=1, Duo=2
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="quotas.premiumSupport"
               render={({ field }) => (
                 <FormItem className="flex items-center gap-2">
                   <FormControl>
@@ -550,26 +571,13 @@ export function PlanForm({
               name="quotas.monthlyImages"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Number of Monthly Images</FormLabel>
+                  <FormLabel>Monthly AI Images</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
                       {...field}
                       onChange={(e) => field.onChange(Number(e.target.value))}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="quotas.somethingElse"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Something Else</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

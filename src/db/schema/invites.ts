@@ -27,6 +27,9 @@ export const invites = pgTable("invites", {
   expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
   acceptedAt: timestamp("accepted_at", { mode: "date" }),
 
+  // Tracking for invite reminders
+  reminderSentAt: timestamp("reminder_sent_at", { mode: "date" }),
+
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
 });
