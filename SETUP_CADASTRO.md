@@ -6,7 +6,21 @@ Este documento descreve as configurações manuais necessárias para ativar o si
 
 ## 1. Stripe Dashboard
 
-### 1.1 Criar Produtos e Preços
+### 1.1 Criar Produtos e Preços (Opção A: Automático via App)
+
+A forma mais fácil é usar a funcionalidade de sincronização automática:
+
+1. Acesse `/super-admin/plans`
+2. Crie ou edite um plano (ex: Solo, Duo)
+3. Configure os preços em centavos (ex: 1490 para R$ 14,90)
+4. Marque os tipos de preço ativos (Mensal, Anual)
+5. Clique no botão **"Sync to Stripe"**
+6. O sistema irá:
+   - Criar o produto automaticamente no Stripe
+   - Criar os preços com trial de 30 dias
+   - Atualizar os Price IDs no banco de dados
+
+### 1.1 Criar Produtos e Preços (Opção B: Manual no Dashboard)
 
 Acesse: https://dashboard.stripe.com/products
 
@@ -26,7 +40,9 @@ Acesse: https://dashboard.stripe.com/products
 
 ### 1.2 Configurar Trial Period
 
-Em cada preço criado:
+**Se usou a Opção A (Automático):** O trial de 30 dias já é configurado automaticamente.
+
+**Se usou a Opção B (Manual):** Em cada preço criado:
 1. Clique no preço para editar
 2. Em "Free trial", defina 30 dias
 3. Salvar
@@ -76,11 +92,20 @@ npx drizzle-kit push
 
 ### 3.2 Atualizar Tabela Plans
 
-Após criar os produtos no Stripe, atualize a tabela `plans` com os price IDs:
+**Se usou a sincronização automática:** Os price IDs já foram salvos automaticamente no banco.
 
+**Se criou os preços manualmente no Stripe:**
+
+**Opção A: Via Super Admin (Recomendado)**
+1. Acesse `/super-admin/plans`
+2. Edite o plano Solo e adicione os price IDs
+3. Edite o plano Duo e adicione os price IDs
+4. Configure as quotas:
+   - Solo: `maxBudgetMembers: 1`
+   - Duo: `maxBudgetMembers: 2`
+
+**Opção B: Via SQL**
 ```sql
--- Ou use o admin panel em /super-admin/plans para editar os planos
-
 -- Solo Mensal
 UPDATE plans
 SET "monthlyStripePriceId" = 'price_xxx'
@@ -101,14 +126,6 @@ UPDATE plans
 SET "yearlyStripePriceId" = 'price_xxx'
 WHERE codename = 'duo';
 ```
-
-**Ou via Super Admin:**
-1. Acesse `/super-admin/plans`
-2. Edite o plano Solo e adicione os price IDs
-3. Edite o plano Duo e adicione os price IDs
-4. Configure as quotas:
-   - Solo: `maxBudgetMembers: 1`
-   - Duo: `maxBudgetMembers: 2`
 
 ---
 

@@ -29,6 +29,8 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Cloud,
+  CloudOff,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -42,6 +44,9 @@ interface Plan {
   monthlyPrice: number;
   yearlyPrice: number;
   onetimePrice: number;
+  monthlyStripePriceId: string | null;
+  yearlyStripePriceId: string | null;
+  onetimeStripePriceId: string | null;
   createdAt: string;
 }
 
@@ -111,6 +116,7 @@ export default function PlansPage() {
               <TableHead className="min-w-[100px]">Monthly</TableHead>
               <TableHead className="min-w-[100px]">Yearly</TableHead>
               <TableHead className="min-w-[100px]">One-time</TableHead>
+              <TableHead className="min-w-[80px]">Stripe</TableHead>
               <TableHead className="min-w-[100px]">Status</TableHead>
               <TableHead className="min-w-[120px]">Created</TableHead>
               <TableHead className="w-[50px]"></TableHead>
@@ -119,19 +125,19 @@ export default function PlansPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center">
+                <TableCell colSpan={9} className="text-center">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-red-500">
+                <TableCell colSpan={9} className="text-center text-red-500">
                   Error loading plans
                 </TableCell>
               </TableRow>
             ) : data?.plans.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center">
+                <TableCell colSpan={9} className="text-center">
                   No plans found
                 </TableCell>
               </TableRow>
@@ -145,6 +151,21 @@ export default function PlansPage() {
                   <TableCell>{formatPrice(plan.monthlyPrice)}</TableCell>
                   <TableCell>{formatPrice(plan.yearlyPrice)}</TableCell>
                   <TableCell>{formatPrice(plan.onetimePrice)}</TableCell>
+                  <TableCell>
+                    {plan.monthlyStripePriceId ||
+                    plan.yearlyStripePriceId ||
+                    plan.onetimeStripePriceId ? (
+                      <div className="flex items-center gap-1 text-green-600">
+                        <Cloud className="h-4 w-4" />
+                        <span className="text-xs">Synced</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <CloudOff className="h-4 w-4" />
+                        <span className="text-xs">Not synced</span>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       {plan.default && (
