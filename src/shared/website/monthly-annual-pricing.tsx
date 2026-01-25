@@ -127,14 +127,16 @@ const MonthlyAnnualPricing = () => {
               return (
                 <div
                   key={key}
-                  className={`rounded-xl border-2 p-8 transition-colors ${
+                  className={`relative rounded-xl border-2 p-8 transition-colors ${
                     plan.popular
                       ? "border-primary bg-primary/5"
                       : "border-gray-400 hover:border-primary"
                   }`}
                 >
                   {plan.popular && (
-                    <Badge className="mb-4">Mais popular</Badge>
+                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
+                      Mais popular
+                    </Badge>
                   )}
                   <div className="flex h-full flex-col justify-between gap-6">
                     <div>
