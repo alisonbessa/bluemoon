@@ -31,9 +31,12 @@ import {
   Trash2,
   Cloud,
   CloudOff,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface Plan {
   id: string;
@@ -61,12 +64,35 @@ export default function PlansPage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [isSeeding, setIsSeeding] = useState(false);
   const limit = 10;
 
-  const { data, error, isLoading } = useSWR<{
+  const { data, error, isLoading, mutate } = useSWR<{
     plans: Plan[];
     pagination: PaginationInfo;
   }>(`/api/super-admin/plans?page=${page}&limit=${limit}&search=${search}`);
+
+  const handleSeedPlans = async () => {
+    setIsSeeding(true);
+    try {
+      const response = await fetch("/api/super-admin/plans/seed", {
+        method: "POST",
+      });
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success(result.message);
+        mutate(); // Refresh the plans list
+      } else {
+        toast.error(result.error || "Failed to seed plans");
+      }
+    } catch (error) {
+      console.error("Error seeding plans:", error);
+      toast.error("Failed to seed plans");
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -98,6 +124,19 @@ export default function PlansPage() {
               onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={handleSeedPlans}
+            disabled={isSeeding}
+          >
+            {isSeeding ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            Seed Plans
+          </Button>
           <Button className="w-full sm:w-auto" asChild>
             <Link href="/super-admin/plans/create">
               <Plus className="h-4 w-4 mr-2" />
