@@ -33,13 +33,13 @@ const testimonials = [
       "Como freela minha renda varia muito né, um mês vem bem, outro vem menos. O HiveBudget me ajudou a parar de torrar tudo quando vem mais e guardar pros meses magros. Parece óbvio mas eu nunca tinha conseguido fazer isso antes.",
   },
   {
-    name: "Dona Célia",
-    role: "Mãe de 3, professora",
-    location: "Recife",
+    name: "Juliana",
+    role: "Analista de marketing",
+    location: "Porto Alegre",
     avatarDescription:
-      "Foto de mulher madura, cabelo curto, sorriso acolhedor, fundo simples, estilo natural",
+      "Foto de mulher jovem, cabelo loiro, sorriso simpático, fundo de escritório, estilo profissional",
     quote:
-      "Meus filhos adolescentes agora têm mesada pelo app e eles mesmos controlam. Minha filha mais velha já tá economizando pro intercâmbio dela! Nunca pensei que ia ver isso acontecer kk",
+      "Eu tinha uns 5 parcelamentos no cartão e nunca sabia quanto ia vir a fatura. Agora eu vejo tudo organizado, sei exatamente quanto já comprometi do meu limite e quanto ainda posso gastar. Acabou a surpresa no fechamento!",
   },
 ];
 
