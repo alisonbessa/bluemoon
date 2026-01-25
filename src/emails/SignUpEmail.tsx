@@ -5,6 +5,7 @@ import { Text } from "@react-email/text";
 import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface SignUpEmailProps {
   name: string;
@@ -19,27 +20,27 @@ export default function SignUpEmail({
 }: SignUpEmailProps) {
   return (
     <Html>
-      <Layout previewText={`Complete your ${appConfig.projectName} account setup 🚀`}>
-        <Text>Hello {name}! 👋</Text>
+      <Layout previewText={`Complete seu cadastro no ${appConfig.projectName} 🚀`}>
+        <Text>Olá, {name}! 👋</Text>
 
         <Text>
-          Welcome to {appConfig.projectName}! Click the button below to set your password and complete your account setup.
+          Bem-vindo ao {appConfig.projectName}! Clique no botão abaixo para definir sua
+          senha e finalizar seu cadastro.
         </Text>
 
         <Button
           href={url}
           className="bg-primary text-primary-foreground rounded-md py-2 px-4 mt-4"
         >
-          Set Your Password
+          Definir Minha Senha
         </Button>
 
         <Text className="text-muted text-[14px] mt-4">
-          This link will expire{" "}
-          {formatDistanceToNow(new Date(expiresAt), { addSuffix: true })}. If
-          you didn&apos;t request this email, you can safely ignore it.
+          Este link expira{" "}
+          {formatDistanceToNow(new Date(expiresAt), { addSuffix: true, locale: ptBR })}.
+          Se você não solicitou este email, pode ignorá-lo.
         </Text>
       </Layout>
     </Html>
   );
 }
-

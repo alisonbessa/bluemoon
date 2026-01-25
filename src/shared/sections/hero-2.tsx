@@ -21,7 +21,7 @@ const Hero2 = () => {
           <p className="text-balance text-muted-foreground lg:text-lg">
             HiveBudget é a plataforma de gestão financeira pessoal e familiar
             inspirada no YNAB, mas adaptada para o contexto brasileiro.
-            Parcelamentos, cartões de crédito e entrada de gastos via Telegram.
+            Parcelamentos, cartões de crédito e entrada de gastos por mensagem.
           </p>
         </div>
 
@@ -40,7 +40,7 @@ const Hero2 = () => {
           </div>
           <div className="flex items-center gap-2">
             <MessageCircle className="size-4 text-primary" />
-            <span>Integração Telegram</span>
+            <span>Registre por mensagem</span>
           </div>
         </div>
 

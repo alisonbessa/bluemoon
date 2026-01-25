@@ -22,11 +22,12 @@ export function TelegramFeature() {
           <div className="grid gap-12 md:grid-cols-2 md:items-center">
             <div className="space-y-6">
               <h2 className="text-3xl font-bold md:text-4xl">
-                Controle pelo Telegram
+                Controle por Mensagem
               </h2>
               <p className="text-lg text-muted-foreground">
                 Registre gastos sem abrir nenhum app. Mande uma mensagem, foto
-                do comprovante ou até áudio para o nosso bot inteligente.
+                do comprovante ou até áudio para o nosso assistente inteligente
+                no seu app de mensagens favorito.
               </p>
 
               <ul className="space-y-3">
@@ -40,14 +41,14 @@ export function TelegramFeature() {
 
               <div className="pt-4">
                 <Button size="lg" asChild>
-                  <Link href="/sign-up">Experimentar por 7 dias grátis</Link>
+                  <Link href="/sign-up">Experimentar 30 dias grátis</Link>
                 </Button>
               </div>
             </div>
 
             <div>
               <ImagePlaceholder
-                description="Mockup grande de celular mostrando conversa no Telegram. Sequência de mensagens: Usuário: 'gastei 45 no ifood' - HiveBudget Bot: '✅ Registrado! Alimentação - R$ 45,00. Orçamento: R$ 455/600 usado. Você ainda tem R$ 145 para alimentação este mês'. Usuário: [imagem de comprovante Pix] - HiveBudget Bot: '✅ Comprovante recebido! Mercado Extra - R$ 127,50. Categoria: Alimentação'. Visual: bolhas de chat estilo Telegram, cores azul do Telegram, ícone do HiveBudget como avatar do bot."
+                description="Mockup grande de celular mostrando conversa em app de mensagens. Sequência de mensagens: Usuário: 'gastei 45 no ifood' - HiveBudget: '✅ Registrado! Alimentação - R$ 45,00. Orçamento: R$ 455/600 usado. Você ainda tem R$ 145 para alimentação este mês'. Usuário: [imagem de comprovante Pix] - HiveBudget: '✅ Comprovante recebido! Mercado Extra - R$ 127,50. Categoria: Alimentação'. Visual: bolhas de chat, ícone do HiveBudget como avatar do assistente."
                 className="h-[500px]"
                 aspectRatio="auto"
               />

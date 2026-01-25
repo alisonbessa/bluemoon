@@ -15,36 +15,37 @@ export default function Welcome({ userName, dashboardUrl }: WelcomeEmailProps) {
   return (
     <Html>
       <Layout
-        previewText={`Welcome to ${appConfig.projectName}, ${userName}! 👋`}
+        previewText={`Bem-vindo ao ${appConfig.projectName}, ${userName}! 🎉`}
       >
         <Text>
-          Welcome to {appConfig.projectName}, {userName}! 👋
+          Olá, {userName}! 👋
         </Text>
 
-        <Text>We&apos;re excited to have you on board!</Text>
+        <Text>
+          Seja muito bem-vindo ao {appConfig.projectName}! Estamos felizes em ter você por aqui.
+        </Text>
 
         <Container className="ml-4 mt-4">
           <Text className="mb-2">
-            🚀 Here&apos;s what you can do with {appConfig.projectName}:
+            🚀 O que você pode fazer agora:
           </Text>
-          <Text className="ml-4 mb-2">• Lorem ipsum dolor sit amet</Text>
-          <Text className="ml-4 mb-2">• Lorem ipsum dolor sit amet</Text>
-          <Text className="ml-4 mb-2">• Lorem ipsum dolor sit amet</Text>
-          <Text className="ml-4 mb-2">• Lorem ipsum dolor sit amet</Text>
+          <Text className="ml-4 mb-2">• <strong>Criar seu orçamento</strong> e definir para onde cada real vai</Text>
+          <Text className="ml-4 mb-2">• <strong>Adicionar suas contas</strong> bancárias e cartões</Text>
+          <Text className="ml-4 mb-2">• <strong>Convidar seu parceiro(a)</strong> para organizar juntos</Text>
+          <Text className="ml-4 mb-2">• <strong>Registrar gastos</strong> pelo app ou por mensagem</Text>
         </Container>
 
-        <Text className="mt-4">Ready to get started?</Text>
+        <Text className="mt-4">Pronto para começar?</Text>
 
         <Button
           href={dashboardUrl}
           className="bg-primary text-primary-foreground rounded-md py-2 px-4 mt-4"
         >
-          Get Started
+          Acessar Meu Dashboard
         </Button>
 
         <Text className="mt-4 text-muted">
-          Need help getting started? Reply to this email and our support team
-          will be happy to help!
+          Precisa de ajuda? Responda este email que teremos prazer em ajudar!
         </Text>
       </Layout>
     </Html>

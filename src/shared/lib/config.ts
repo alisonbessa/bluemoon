@@ -15,10 +15,10 @@ export const appConfig: AppConfigPublic = {
     "YNAB Brasil",
     "Cartão de Crédito",
     "Parcelamento",
-    "Telegram Bot Financeiro",
+    "Controle Financeiro por Mensagem",
   ],
   description:
-    "HiveBudget: A melhor forma de controlar suas finanças pessoais ou em grupo. Organize suas receitas, despesas e metas financeiras de forma colaborativa. Inspirado no YNAB, adaptado para o Brasil com suporte a parcelamentos, cartões de crédito e integração com Telegram.",
+    "HiveBudget: A melhor forma de controlar suas finanças pessoais ou em grupo. Organize suas receitas, despesas e metas financeiras de forma colaborativa. Inspirado no YNAB, adaptado para o Brasil com suporte a parcelamentos, cartões de crédito e registro por mensagem.",
   auth: {
     enablePasswordAuth: false,
   },

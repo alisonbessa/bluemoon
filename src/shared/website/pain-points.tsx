@@ -29,7 +29,7 @@ const solutions = [
   },
   {
     emoji: "✅",
-    text: "Acompanha tudo pelo celular ou Telegram, sem complicação",
+    text: "Acompanha tudo pelo celular ou por mensagem, sem complicação",
   },
   {
     emoji: "✅",
