@@ -17,12 +17,14 @@ import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
 import Link from "next/link";
 
+type UserRole = "user" | "beta" | "lifetime" | "admin";
+
 interface User {
   id: string;
   name: string | null;
   email: string | null;
   image: string | null;
-  active: boolean;
+  role: UserRole;
   createdAt: string;
 }
 
@@ -77,7 +79,7 @@ export default function UsersPage() {
             <TableRow>
               <TableHead className="min-w-[200px]">User</TableHead>
               <TableHead className="min-w-[200px]">Email</TableHead>
-              <TableHead className="min-w-[100px]">Status</TableHead>
+              <TableHead className="min-w-[100px]">Role</TableHead>
               <TableHead className="min-w-[120px]">Created At</TableHead>
               <TableHead className="min-w-[150px]">ID</TableHead>
             </TableRow>
@@ -117,8 +119,18 @@ export default function UsersPage() {
                   </Link>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant={user.active ? "default" : "secondary"}>
-                      {user.active ? "Active" : "Inactive"}
+                    <Badge
+                      variant={
+                        user.role === "admin"
+                          ? "destructive"
+                          : user.role === "lifetime"
+                            ? "default"
+                            : user.role === "beta"
+                              ? "secondary"
+                              : "outline"
+                      }
+                    >
+                      {user.role || "user"}
                     </Badge>
                   </TableCell>
                   <TableCell>

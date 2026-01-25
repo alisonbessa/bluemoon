@@ -29,9 +29,14 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Cloud,
+  CloudOff,
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface Plan {
   id: string;
@@ -42,6 +47,9 @@ interface Plan {
   monthlyPrice: number;
   yearlyPrice: number;
   onetimePrice: number;
+  monthlyStripePriceId: string | null;
+  yearlyStripePriceId: string | null;
+  onetimeStripePriceId: string | null;
   createdAt: string;
 }
 
@@ -56,12 +64,35 @@ export default function PlansPage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [isSeeding, setIsSeeding] = useState(false);
   const limit = 10;
 
-  const { data, error, isLoading } = useSWR<{
+  const { data, error, isLoading, mutate } = useSWR<{
     plans: Plan[];
     pagination: PaginationInfo;
   }>(`/api/super-admin/plans?page=${page}&limit=${limit}&search=${search}`);
+
+  const handleSeedPlans = async () => {
+    setIsSeeding(true);
+    try {
+      const response = await fetch("/api/super-admin/plans/seed", {
+        method: "POST",
+      });
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success(result.message);
+        mutate(); // Refresh the plans list
+      } else {
+        toast.error(result.error || "Failed to seed plans");
+      }
+    } catch (error) {
+      console.error("Error seeding plans:", error);
+      toast.error("Failed to seed plans");
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   const handleSearch = (value: string) => {
     setSearch(value);
@@ -93,6 +124,19 @@ export default function PlansPage() {
               onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={handleSeedPlans}
+            disabled={isSeeding}
+          >
+            {isSeeding ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            Seed Plans
+          </Button>
           <Button className="w-full sm:w-auto" asChild>
             <Link href="/super-admin/plans/create">
               <Plus className="h-4 w-4 mr-2" />
@@ -111,6 +155,7 @@ export default function PlansPage() {
               <TableHead className="min-w-[100px]">Monthly</TableHead>
               <TableHead className="min-w-[100px]">Yearly</TableHead>
               <TableHead className="min-w-[100px]">One-time</TableHead>
+              <TableHead className="min-w-[80px]">Stripe</TableHead>
               <TableHead className="min-w-[100px]">Status</TableHead>
               <TableHead className="min-w-[120px]">Created</TableHead>
               <TableHead className="w-[50px]"></TableHead>
@@ -119,19 +164,19 @@ export default function PlansPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center">
+                <TableCell colSpan={9} className="text-center">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-red-500">
+                <TableCell colSpan={9} className="text-center text-red-500">
                   Error loading plans
                 </TableCell>
               </TableRow>
             ) : data?.plans.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center">
+                <TableCell colSpan={9} className="text-center">
                   No plans found
                 </TableCell>
               </TableRow>
@@ -145,6 +190,21 @@ export default function PlansPage() {
                   <TableCell>{formatPrice(plan.monthlyPrice)}</TableCell>
                   <TableCell>{formatPrice(plan.yearlyPrice)}</TableCell>
                   <TableCell>{formatPrice(plan.onetimePrice)}</TableCell>
+                  <TableCell>
+                    {plan.monthlyStripePriceId ||
+                    plan.yearlyStripePriceId ||
+                    plan.onetimeStripePriceId ? (
+                      <div className="flex items-center gap-1 text-green-600">
+                        <Cloud className="h-4 w-4" />
+                        <span className="text-xs">Synced</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <CloudOff className="h-4 w-4" />
+                        <span className="text-xs">Not synced</span>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       {plan.default && (

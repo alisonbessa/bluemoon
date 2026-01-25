@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     description: appConfig.description,
     url: process.env.NEXT_PUBLIC_APP_URL,
     siteName: appConfig.projectName,
-    locale: "en_US",
+    locale: "pt_BR",
     type: "website",
   },
 };
@@ -29,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/assets/logo.png" sizes="any" />
         <link rel="apple-touch-icon" href="/assets/logo.png" />

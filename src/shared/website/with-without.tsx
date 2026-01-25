@@ -28,9 +28,9 @@ export function WithWithout() {
         "Compartilhe o orçamento com seu parceiro(a). Cada um tem sua categoria de Prazeres pessoal.",
     },
     {
-      title: "Entrada Rápida via Telegram",
+      title: "Entrada Rápida por Mensagem",
       description:
-        "Registre gastos em segundos enviando uma mensagem: 'gastei 50 no mercado'. A IA entende e categoriza automaticamente.",
+        "Registre gastos em segundos enviando uma mensagem pelo seu app favorito: 'gastei 50 no mercado'. A IA entende e categoriza automaticamente.",
     },
     {
       title: "Flexibilidade Total",

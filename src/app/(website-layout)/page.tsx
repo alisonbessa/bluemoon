@@ -62,14 +62,14 @@ const faqItems = [
       "Você cria um orçamento e pode adicionar membros da família (parceiro, filhos). Todos veem as mesmas contas, categorias e transações em tempo real. Perfeito para casais e famílias organizarem as finanças juntos.",
   },
   {
-    question: "Como funciona o trial de 7 dias?",
+    question: "Como funciona o período de teste?",
     answer:
-      "Você testa todas as funcionalidades por 7 dias sem pagar nada e sem precisar colocar cartão de crédito. Depois, escolhe se quer continuar com um dos nossos planos.",
+      "Você testa todas as funcionalidades por 30 dias gratuitamente. Se não quiser continuar, basta cancelar antes do fim do período - sem cobrança nenhuma.",
   },
   {
-    question: "O plano inclui membros ilimitados?",
+    question: "Quantos membros posso adicionar?",
     answer:
-      "Sim! Você pode adicionar quantos membros quiser (parceiro, filhos, etc.) sem custo adicional. Apenas quem cria a conta paga - membros convidados têm acesso grátis ao orçamento compartilhado.",
+      "Depende do plano: Solo permite 1 pessoa, Duo permite 2 (você e seu parceiro/a). Apenas quem cria a conta paga - membros convidados têm acesso grátis ao orçamento compartilhado.",
   },
   {
     question: "Como funciona o planejamento do orçamento?",
@@ -89,12 +89,12 @@ const faqItems = [
   {
     question: "Posso cancelar quando quiser?",
     answer:
-      "Sim! Cancele a qualquer momento sem burocracia. Seus dados são preservados se quiser voltar depois.",
+      "Sim! Cancele a qualquer momento sem burocracia. Durante o período de teste, você não é cobrado se cancelar antes dos 30 dias. Seus dados são preservados se quiser voltar depois.",
   },
   {
     question: "Tem integração com bancos brasileiros?",
     answer:
-      "Em breve via Open Banking para importação automática de transações. Por enquanto, você adiciona transações manualmente (é rápido e simples).",
+      "Em breve via Open Banking para importação automática de transações. Por enquanto, você adiciona transações manualmente ou pelo app de mensagens (é rápido e simples).",
   },
   {
     question: "O que significa 'orçamento primeiro'?",
@@ -102,19 +102,19 @@ const faqItems = [
       "Diferente de apps que só rastreiam gastos, no HiveBudget você define ANTES para onde cada real vai. Assim você toma decisões conscientes e não tem surpresa no fim do mês.",
   },
   {
-    question: "Como funciona a integração com Telegram?",
+    question: "Como funciona o registro por mensagem?",
     answer:
-      "Você conecta seu Telegram e pode registrar gastos mandando mensagem, foto de comprovante ou até áudio. O HiveBudget entende e categoriza automaticamente com IA. Também pode consultar seu saldo e orçamento por lá.",
+      "Você conecta seu app de mensagens favorito e pode registrar gastos mandando texto, foto de comprovante ou até áudio. O HiveBudget entende e categoriza automaticamente com IA. Também pode consultar seu saldo e orçamento por lá.",
   },
   {
     question: "Meu parceiro(a) precisa pagar também?",
     answer:
-      "Não! Quem cria a conta é o único que paga. Você pode convidar quantas pessoas quiser (parceiro, filhos, etc.) e elas têm acesso grátis ao orçamento compartilhado.",
+      "Não! Quem cria a conta é o único que paga. No plano Duo, você convida seu parceiro(a) e ele(a) tem acesso grátis ao orçamento compartilhado.",
   },
   {
     question: "É seguro colocar minhas informações financeiras?",
     answer:
-      "Sim! Usamos criptografia de ponta a ponta e nunca pedimos senha de banco. Você registra as transações manualmente ou via Telegram, não conectamos direto na sua conta bancária.",
+      "Sim! Seus dados são protegidos com conexão segura (HTTPS) e nunca pedimos senha de banco. Você registra as transações manualmente ou por mensagem, não conectamos direto na sua conta bancária.",
   },
 ];
 

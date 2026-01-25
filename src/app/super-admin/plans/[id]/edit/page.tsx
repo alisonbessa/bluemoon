@@ -1,17 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { PlanForm } from "@/shared/forms/plan-form";
 import { Button } from "@/shared/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, CloudUpload, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
 import type { PlanFormValues } from "@/shared/lib/validations/plan.schema";
+import { SyncStripeModal } from "../../components/sync-stripe-modal";
 
 export default function EditPlanPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { data: plan, error } = useSWR<PlanFormValues>(
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const { data: plan, error, mutate } = useSWR<PlanFormValues>(
     `/api/super-admin/plans/${id}`
   );
 
@@ -55,16 +58,42 @@ export default function EditPlanPage() {
     );
   }
 
+  const hasSyncedPrices = Boolean(
+    plan?.monthlyStripePriceId ||
+      plan?.yearlyStripePriceId ||
+      plan?.onetimeStripePriceId
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href="/super-admin/plans">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-bold">Edit Plan</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/super-admin/plans">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Link>
+          </Button>
+          <h1 className="text-2xl font-bold">Edit Plan</h1>
+        </div>
+        {plan && (
+          <Button
+            variant={hasSyncedPrices ? "outline" : "default"}
+            onClick={() => setIsSyncModalOpen(true)}
+          >
+            {hasSyncedPrices ? (
+              <>
+                <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                Stripe Synced
+              </>
+            ) : (
+              <>
+                <CloudUpload className="h-4 w-4 mr-2" />
+                Sync to Stripe
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       <div className="border rounded-lg p-4">
@@ -85,6 +114,25 @@ export default function EditPlanPage() {
           </div>
         )}
       </div>
+
+      {plan && (
+        <SyncStripeModal
+          open={isSyncModalOpen}
+          onOpenChange={setIsSyncModalOpen}
+          planId={id as string}
+          planName={plan.name || ""}
+          hasMonthly={plan.hasMonthlyPricing || false}
+          hasYearly={plan.hasYearlyPricing || false}
+          hasOnetime={plan.hasOnetimePricing || false}
+          monthlyPrice={plan.monthlyPrice || 0}
+          yearlyPrice={plan.yearlyPrice || 0}
+          onetimePrice={plan.onetimePrice || 0}
+          currentMonthlyPriceId={plan.monthlyStripePriceId || null}
+          currentYearlyPriceId={plan.yearlyStripePriceId || null}
+          currentOnetimePriceId={plan.onetimeStripePriceId || null}
+          onSyncComplete={() => mutate()}
+        />
+      )}
     </div>
   );
 }

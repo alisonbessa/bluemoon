@@ -5,6 +5,7 @@ import { Text } from "@react-email/text";
 import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface ResetPasswordEmailProps {
   url: string;
@@ -17,28 +18,27 @@ export default function ResetPasswordEmail({
 }: ResetPasswordEmailProps) {
   return (
     <Html>
-      <Layout previewText={`Reset your ${appConfig.projectName} password 🔐`}>
-        <Text>Hello there! 👋</Text>
+      <Layout previewText={`Redefinir sua senha do ${appConfig.projectName} 🔐`}>
+        <Text>Olá! 👋</Text>
 
         <Text>
-          We received a request to reset your password for your {appConfig.projectName} account.
-          Click the button below to set a new password.
+          Recebemos uma solicitação para redefinir a senha da sua conta no{" "}
+          {appConfig.projectName}. Clique no botão abaixo para criar uma nova senha.
         </Text>
 
         <Button
           href={url}
           className="bg-primary text-primary-foreground rounded-md py-2 px-4 mt-4"
         >
-          Reset Password
+          Redefinir Senha
         </Button>
 
         <Text className="text-muted text-[14px] mt-4">
-          This link will expire{" "}
-          {formatDistanceToNow(new Date(expiresAt), { addSuffix: true })}. If
-          you didn&apos;t request this email, you can safely ignore it.
+          Este link expira{" "}
+          {formatDistanceToNow(new Date(expiresAt), { addSuffix: true, locale: ptBR })}.
+          Se você não solicitou este email, pode ignorá-lo com segurança.
         </Text>
       </Layout>
     </Html>
   );
 }
-

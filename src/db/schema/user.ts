@@ -13,10 +13,14 @@ import type { AdapterAccountType } from "next-auth/adapters";
 import { plans } from "./plans";
 
 import { type CreditType } from "@/shared/lib/credits/credits";
+import { z } from "zod";
 
 type CreditRecord = {
   [K in CreditType]?: number;
 };
+
+export const userRoleEnum = z.enum(["user", "beta", "lifetime", "admin"]);
+export type UserRole = z.infer<typeof userRoleEnum>;
 
 export const users = pgTable("app_user", {
   id: text("id")
@@ -38,10 +42,21 @@ export const users = pgTable("app_user", {
   stripeSubscriptionId: text("stripeSubscriptionId"),
 
   planId: text("planId").references(() => plans.id),
+
+  // User role (user, beta, lifetime, admin)
+  role: text("role").$type<UserRole>().default("user"),
+
+  // Trial tracking - when the trial period ends
+  trialEndsAt: timestamp("trial_ends_at", { mode: "date" }),
+
+  // Access link used to redeem lifetime/beta access
+  accessLinkId: text("access_link_id"),
 }, (table) => [
   // PERFORMANCE: Index for Stripe webhook lookups
   index("idx_users_stripe_customer_id").on(table.stripeCustomerId),
   index("idx_users_stripe_subscription_id").on(table.stripeSubscriptionId),
+  // PERFORMANCE: Index for role-based queries
+  index("idx_users_role").on(table.role),
 ]);
 
 export const accounts = pgTable(

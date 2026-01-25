@@ -47,6 +47,8 @@ import { RadioGroup, RadioGroupItem } from "@/shared/ui/radio-group";
 import { Plus, Minus, CreditCard } from "lucide-react";
 import { enableCredits } from "@/shared/lib/credits/config";
 
+type UserRole = "user" | "beta" | "lifetime" | "admin";
+
 interface UserDetails {
   id: string;
   name: string | null;
@@ -54,6 +56,8 @@ interface UserDetails {
   image: string | null;
   createdAt: string;
   emailVerified: string | null;
+  role: UserRole;
+  trialEndsAt: string | null;
   currentPlan: typeof plans.$inferSelect | null;
   stripeSubscriptionId: string | null;
   lemonSqueezySubscriptionId: string | null;
@@ -99,6 +103,7 @@ export default function UserDetailsPage() {
   const [impersonationUrl, setImpersonationUrl] = useState("");
   const [isCopied, setIsCopied] = useState(false);
   const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false);
 
   // Credit management state
   const [creditPage, setCreditPage] = useState(1);
@@ -197,6 +202,31 @@ export default function UserDetailsPage() {
       toast.error("Failed to update plan");
     } finally {
       setIsUpdatingPlan(false);
+    }
+  };
+
+  const handleRoleChange = async (role: UserRole) => {
+    try {
+      setIsUpdatingRole(true);
+      const response = await fetch(`/api/super-admin/users/${id}/role`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ role }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update role");
+      }
+
+      await mutate();
+      toast.success(`Role updated to ${role}`);
+    } catch (error) {
+      console.error("Error updating role:", error);
+      toast.error("Failed to update role");
+    } finally {
+      setIsUpdatingRole(false);
     }
   };
 
@@ -545,7 +575,39 @@ export default function UserDetailsPage() {
                   {user?.emailVerified ? formatDate(user.emailVerified) : "No"}
                 </dd>
               </div>
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">
+                  Trial Ends At
+                </dt>
+                <dd className="text-sm mt-1">
+                  {user?.trialEndsAt ? formatDate(user.trialEndsAt) : "N/A"}
+                </dd>
+              </div>
             </dl>
+
+            <div className="pt-4 border-t">
+              <label className="text-sm font-medium text-muted-foreground">
+                User Role
+              </label>
+              <Select
+                value={user?.role || "user"}
+                onValueChange={(value: UserRole) => handleRoleChange(value)}
+                disabled={isUpdatingRole}
+              >
+                <SelectTrigger className="w-full mt-1.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User (Default)</SelectItem>
+                  <SelectItem value="beta">Beta (Free Access)</SelectItem>
+                  <SelectItem value="lifetime">Lifetime (Permanent)</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Beta and Lifetime users bypass subscription requirements.
+              </p>
+            </div>
           </CardContent>
         </Card>
 

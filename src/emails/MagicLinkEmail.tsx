@@ -5,6 +5,8 @@ import { Text } from "@react-email/text";
 import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
 interface MagicLinkEmailProps {
   url: string;
   expiresAt: Date;
@@ -16,25 +18,24 @@ export default function MagicLinkEmail({
 }: MagicLinkEmailProps) {
   return (
     <Html>
-      <Layout previewText={`Sign in to ${appConfig.projectName} 🔐`}>
-        <Text>Hello there! 👋</Text>
+      <Layout previewText={`Entrar no ${appConfig.projectName} 🔐`}>
+        <Text>Olá! 👋</Text>
 
         <Text>
-          Click the button below to continue to your {appConfig.projectName}{" "}
-          account.
+          Clique no botão abaixo para acessar sua conta no {appConfig.projectName}.
         </Text>
 
         <Button
           href={url}
           className="bg-primary text-primary-foreground rounded-md py-2 px-4 mt-4"
         >
-          Continue to {appConfig.projectName}
+          Acessar {appConfig.projectName}
         </Button>
 
         <Text className="text-muted text-[14px] mt-4">
-          This login link will expire{" "}
-          {formatDistanceToNow(new Date(expiresAt), { addSuffix: true })}. If
-          you didn&apos;t request this email, you can safely ignore it.
+          Este link de acesso expira{" "}
+          {formatDistanceToNow(new Date(expiresAt), { addSuffix: true, locale: ptBR })}.
+          Se você não solicitou este email, pode ignorá-lo.
         </Text>
       </Layout>
     </Html>

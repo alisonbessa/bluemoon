@@ -43,7 +43,8 @@
       "Bash(do sed -i \"s|from [\"\"'']./types[\"\"'']|from ''../types''|g\" \"$file\")",
       "Bash(npm run build:*)",
       "Bash(git status:*)",
-      "Bash(head:*)"
+      "Bash(head:*)",
+      "Bash(tail:*)"
     ],
     "deny": [],
     "ask": []

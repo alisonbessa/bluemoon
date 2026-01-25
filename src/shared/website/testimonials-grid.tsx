@@ -1,16 +1,14 @@
 "use client";
 
-import React from "react";
+import Image from "next/image";
 import { Card, CardContent } from "@/shared/ui/card";
-import { ImagePlaceholder } from "@/shared/ui/image-placeholder";
 
 const testimonials = [
   {
     name: "Mariana",
     role: "Designer, 28 anos",
     location: "São Paulo",
-    avatarDescription:
-      "Foto de mulher jovem, cabelo escuro, sorrindo, fundo neutro, estilo foto de perfil casual",
+    avatar: "/images/depoimento1.png",
     quote:
       "Gente, eu NUNCA consegui manter uma planilha por mais de uma semana. Com o HiveBudget já são 3 meses e ainda tô usando todo dia. O negócio do WhatsApp é genial porque eu registro na hora que gasto, não esqueço mais.",
   },
@@ -18,8 +16,7 @@ const testimonials = [
     name: "Ricardo e Camila",
     role: "Casados há 2 anos",
     location: "Belo Horizonte",
-    avatarDescription:
-      "Foto de casal jovem, abraçados, sorrindo, ambiente casual, estilo foto de celular",
+    avatar: "/images/depoimento2.png",
     quote:
       "A gente brigava MUITO por causa de dinheiro. Tipo, eu achava que ela gastava demais, ela achava que eu era mão de vaca. Agora tá tudo no app, cada um tem seu espacinho mas a gente vê os gastos da casa junto. Mudou nosso relacionamento real.",
   },
@@ -27,19 +24,17 @@ const testimonials = [
     name: "Fernando",
     role: "Desenvolvedor freelancer",
     location: "Curitiba",
-    avatarDescription:
-      "Foto de homem jovem, barba, óculos, fundo de home office, estilo casual",
+    avatar: "/images/depoimento3.PNG",
     quote:
       "Como freela minha renda varia muito né, um mês vem bem, outro vem menos. O HiveBudget me ajudou a parar de torrar tudo quando vem mais e guardar pros meses magros. Parece óbvio mas eu nunca tinha conseguido fazer isso antes.",
   },
   {
-    name: "Dona Célia",
-    role: "Mãe de 3, professora",
-    location: "Recife",
-    avatarDescription:
-      "Foto de mulher madura, cabelo curto, sorriso acolhedor, fundo simples, estilo natural",
+    name: "Juliana",
+    role: "Analista de marketing",
+    location: "Porto Alegre",
+    avatar: "/images/depoimento4.PNG",
     quote:
-      "Meus filhos adolescentes agora têm mesada pelo app e eles mesmos controlam. Minha filha mais velha já tá economizando pro intercâmbio dela! Nunca pensei que ia ver isso acontecer kk",
+      "Eu tinha uns 5 parcelamentos no cartão e nunca sabia quanto ia vir a fatura. Agora eu vejo tudo organizado, sei exatamente quanto já comprometi do meu limite e quanto ainda posso gastar. Acabou a surpresa no fechamento!",
   },
 ];
 
@@ -66,10 +61,12 @@ export function TestimonialsGrid() {
                   <div className="flex gap-4">
                     {/* Avatar */}
                     <div className="flex-shrink-0">
-                      <ImagePlaceholder
-                        description={testimonial.avatarDescription}
-                        className="h-12 w-12 rounded-full"
-                        aspectRatio="square"
+                      <Image
+                        src={testimonial.avatar}
+                        alt={testimonial.name}
+                        width={48}
+                        height={48}
+                        className="h-12 w-12 rounded-full object-cover"
                       />
                     </div>
 

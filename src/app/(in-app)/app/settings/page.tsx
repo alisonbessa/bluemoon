@@ -29,28 +29,47 @@ import {
   Monitor,
   RefreshCw,
   Loader2,
+  CreditCard,
+  Crown,
+  Sparkles,
+  Clock,
+  AlertTriangle,
 } from "lucide-react";
 import { TelegramConnectionCard } from "@/integrations/telegram/TelegramConnectionCard";
 import { MembersManagement } from "@/shared/settings/members-management";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useUser } from "@/shared/hooks/use-current-user";
+import { useCurrentUser } from "@/shared/hooks/use-current-user";
+import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useTheme } from "next-themes";
 import { signOut } from "next-auth/react";
 
 export default function SettingsPage() {
-  const { user, isLoading: isUserLoading, mutate: mutateUser } = useUser();
+  const { user, currentPlan, isLoading: isUserLoading, mutate: mutateUser } = useCurrentUser();
   const { theme, setTheme } = useTheme();
   const [showOnboardingConfirm, setShowOnboardingConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCancelTrialConfirm, setShowCancelTrialConfirm] = useState(false);
   const [budgetId, setBudgetId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCancellingTrial, setIsCancellingTrial] = useState(false);
   const { startTutorial } = useTutorial();
   const router = useRouter();
+
+  // Computed properties for plan/trial status
+  const isLifetime = user?.role === "lifetime";
+  const isBeta = user?.role === "beta";
+  const isSpecialAccess = isLifetime || isBeta;
+  const hasTrialEnding = user?.trialEndsAt && new Date(user.trialEndsAt) > new Date();
+  const trialDaysRemaining = user?.trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   // Load user's display name
   useEffect(() => {
@@ -163,6 +182,29 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: "/" });
+  };
+
+  const handleCancelTrial = async () => {
+    setIsCancellingTrial(true);
+    try {
+      const response = await fetch("/api/app/trial/cancel", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        toast.success("Assinatura cancelada. Você não será cobrado.");
+        mutateUser();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || "Erro ao cancelar assinatura");
+      }
+    } catch (error) {
+      console.error("Error cancelling trial:", error);
+      toast.error("Erro ao cancelar assinatura");
+    } finally {
+      setIsCancellingTrial(false);
+      setShowCancelTrialConfirm(false);
+    }
   };
 
   // Get user initials for avatar fallback
@@ -363,21 +405,104 @@ export default function SettingsPage() {
           {/* Plan */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Seu plano</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border bg-muted/50 p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold">Plano Gratuito</span>
-                  <Badge>Ativo</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Funcionalidades básicas para controle financeiro pessoal
-                </p>
-                <Button className="w-full" variant="outline">
-                  Ver planos premium
-                </Button>
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="text-lg">Seu plano</CardTitle>
               </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isSpecialAccess ? (
+                // Lifetime/Beta users
+                <div className="rounded-lg border bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200 dark:border-amber-900 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {isLifetime ? (
+                        <Crown className="h-5 w-5 text-amber-600" />
+                      ) : (
+                        <Sparkles className="h-5 w-5 text-blue-600" />
+                      )}
+                      <span className="font-semibold">
+                        {currentPlan?.name || (isLifetime ? "Acesso Vitalício" : "Acesso Beta")}
+                      </span>
+                    </div>
+                    <Badge variant={isLifetime ? "default" : "secondary"} className="bg-amber-600">
+                      {isLifetime ? "Lifetime" : "Beta"}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {isLifetime
+                      ? "Acesso completo permanente, sem cobranças futuras."
+                      : "Acesso antecipado a todas as funcionalidades."}
+                  </p>
+                </div>
+              ) : hasTrialEnding ? (
+                // Users in trial
+                <div className="rounded-lg border bg-muted/50 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-primary" />
+                      <span className="font-semibold">{currentPlan?.name || "Plano"}</span>
+                    </div>
+                    <Badge variant="outline" className="text-primary border-primary">
+                      Trial
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {trialDaysRemaining > 0
+                      ? `Seu trial termina em ${trialDaysRemaining} dia${trialDaysRemaining > 1 ? "s" : ""}.`
+                      : "Seu trial termina hoje."}
+                  </p>
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Após o trial, você será cobrado automaticamente. Cancele a qualquer momento.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-destructive hover:text-destructive"
+                      onClick={() => setShowCancelTrialConfirm(true)}
+                    >
+                      Cancelar assinatura
+                    </Button>
+                  </div>
+                </div>
+              ) : currentPlan && !currentPlan.default ? (
+                // Active paid subscription
+                <div className="rounded-lg border bg-muted/50 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold">{currentPlan.name}</span>
+                    <Badge>Ativo</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Sua assinatura está ativa.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-destructive hover:text-destructive"
+                    onClick={() => setShowCancelTrialConfirm(true)}
+                  >
+                    Cancelar assinatura
+                  </Button>
+                </div>
+              ) : (
+                // Free/default plan
+                <div className="rounded-lg border bg-muted/50 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold">{currentPlan?.name || "Plano Gratuito"}</span>
+                    <Badge variant="secondary">Gratuito</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Funcionalidades básicas para controle financeiro pessoal
+                  </p>
+                  <Button asChild className="w-full" variant="default">
+                    <Link href="/app/choose-plan">
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Fazer upgrade
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -468,6 +593,37 @@ export default function SettingsPage() {
                 </>
               ) : (
                 "Excluir minha conta"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Trial/Subscription Confirmation Dialog */}
+      <AlertDialog open={showCancelTrialConfirm} onOpenChange={setShowCancelTrialConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar assinatura?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {hasTrialEnding
+                ? "Ao cancelar durante o trial, você não será cobrado. Seu acesso continua até o fim do período de teste."
+                : "Ao cancelar, você manterá acesso até o fim do período pago atual. Após isso, sua conta voltará ao plano gratuito."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancellingTrial}>Manter assinatura</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelTrial}
+              disabled={isCancellingTrial}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isCancellingTrial ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cancelando...
+                </>
+              ) : (
+                "Cancelar assinatura"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

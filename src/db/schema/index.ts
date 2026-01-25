@@ -5,6 +5,7 @@ export * from "./credits";
 export * from "./coupons";
 export * from "./contact";
 export * from "./waitlist";
+export * from "./access-links";
 // export * from "./roadmap"; // Removed - empty file
 
 // HiveBudget entities

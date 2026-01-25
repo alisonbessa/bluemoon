@@ -12,13 +12,13 @@ export const appConfig: AppConfigPublic = {
     "Finanças para Casais",
     "Finanças para Famílias",
     "Gestão Financeira",
-    "YNAB Brasil",
+    "Orçamento Familiar",
     "Cartão de Crédito",
     "Parcelamento",
-    "Telegram Bot Financeiro",
+    "Controle Financeiro por Mensagem",
   ],
   description:
-    "HiveBudget: A melhor forma de controlar suas finanças pessoais ou em grupo. Organize suas receitas, despesas e metas financeiras de forma colaborativa. Inspirado no YNAB, adaptado para o Brasil com suporte a parcelamentos, cartões de crédito e integração com Telegram.",
+    "HiveBudget: Planeje seu orçamento antes de gastar. Controle suas finanças pessoais ou em família com suporte a parcelamentos, cartões de crédito brasileiros e registro rápido por mensagem. Defina o destino de cada real.",
   auth: {
     enablePasswordAuth: false,
   },

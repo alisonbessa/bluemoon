@@ -15,6 +15,12 @@ import { useUser } from "@/shared/hooks/use-current-user";
 
 const BUDGET_INITIALIZED_KEY = "hivebudget_budget_initialized";
 
+// Roles that don't require a Stripe subscription
+const SUBSCRIPTION_EXEMPT_ROLES = ["beta", "lifetime", "admin"];
+
+// Pages that don't require an active subscription
+const SUBSCRIPTION_EXEMPT_PATHS = ["/app/choose-plan", "/app/settings", "/app/subscribe/success"];
+
 function DashboardSkeleton() {
   return (
     <div className="flex flex-col h-screen">
@@ -87,6 +93,11 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading || !user) return;
     if (initializingRef.current) return;
+
+    // Don't initialize budget for users who haven't subscribed yet
+    const hasActiveSubscription = user.stripeSubscriptionId !== null;
+    const hasExemptRole = user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role);
+    if (!hasActiveSubscription && !hasExemptRole) return;
 
     // Check if budget was already initialized
     const budgetInitialized = localStorage.getItem(BUDGET_INITIALIZED_KEY) === "true";
@@ -194,12 +205,48 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, user, error, router]);
 
+  // Redirect to choose-plan if user doesn't have an active subscription
+  useEffect(() => {
+    if (isLoading || !user) return;
+
+    // Skip check for exempt paths (choose-plan, settings)
+    if (SUBSCRIPTION_EXEMPT_PATHS.some((path) => pathname?.startsWith(path))) {
+      return;
+    }
+
+    // Skip check for exempt roles (beta, lifetime, admin)
+    if (user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role)) {
+      return;
+    }
+
+    // If user doesn't have a Stripe subscription, redirect to choose-plan
+    if (!user.stripeSubscriptionId) {
+      router.replace("/app/choose-plan");
+    }
+  }, [isLoading, user, pathname, router]);
+
   if (isLoading) {
     return <DashboardSkeleton />;
   }
 
   if (!user || error) {
     return <DashboardSkeleton />;
+  }
+
+  // Check if user has an active subscription or exempt role
+  const hasActiveSubscription = user.stripeSubscriptionId !== null;
+  const hasExemptRole = user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role);
+  const isOnChoosePlanPage = pathname === "/app/choose-plan";
+
+  // Show minimal layout for choose-plan page when user doesn't have a subscription
+  if (isOnChoosePlanPage && !hasActiveSubscription && !hasExemptRole) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="flex-1">
+          {children}
+        </main>
+      </div>
+    );
   }
 
   return (

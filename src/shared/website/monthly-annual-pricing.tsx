@@ -1,25 +1,81 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, User, Users } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/shared/ui/radio-group";
 
+type Plan = {
+  name: string;
+  icon: typeof User;
+  description: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  members: number;
+  popular?: boolean;
+};
+
+const plans: Record<string, Plan> = {
+  solo: {
+    name: "Solo",
+    icon: User,
+    description: "Para você organizar suas finanças pessoais",
+    monthlyPrice: 14.9,
+    yearlyPrice: 139.9,
+    members: 1,
+  },
+  duo: {
+    name: "Duo",
+    icon: Users,
+    description: "Para casais organizarem as finanças juntos",
+    monthlyPrice: 19.9,
+    yearlyPrice: 189.9,
+    members: 2,
+    popular: true,
+  },
+};
+
+const baseFeatures = [
+  "Orçamento inteligente",
+  "Controle de parcelamentos",
+  "Cartões de crédito",
+  "Registro por mensagem",
+  "Metas financeiras",
+  "Relatórios e dashboards",
+];
+
+const duoExtras = [
+  "Orçamento compartilhado em tempo real",
+  "Privacidade em contas individuais",
+  "Convide sem custo adicional",
+];
+
+const formatPrice = (price: number) => {
+  return price.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 const MonthlyAnnualPricing = () => {
   const [isAnnually, setIsAnnually] = useState(false);
+
   return (
-    <section className="py-32">
+    <section className="py-32" id="pricing">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto mb-20 max-w-(--breakpoint-md) text-center">
-          <p className="text-primary font-medium mb-4">Oferta Especial de Lançamento</p>
+          <Badge variant="secondary" className="mb-4">
+            30 dias grátis
+          </Badge>
           <h2 className="mb-4 text-4xl tracking-tight font-bold lg:text-5xl">
-            Preços Simples e Transparentes
+            Preços Simples e Acessíveis
           </h2>
           <p className="text-muted-foreground text-lg">
-            Escolha o plano perfeito para suas necessidades. Sem taxas ocultas.
+            Comece grátis por 30 dias. Cancele quando quiser.
           </p>
         </div>
 
@@ -61,103 +117,111 @@ const MonthlyAnnualPricing = () => {
                     variant="outline"
                     className="border-green-200 bg-green-100 px-1.5 text-green-600"
                   >
-                    -20%
+                    -22%
                   </Badge>
                 </Label>
               </div>
             </RadioGroup>
           </div>
+
           <div className="mt-12 grid max-w-(--breakpoint-md) gap-8 md:grid-cols-2">
-            <div className="rounded-xl border border-2 border-gray-400 p-8 hover:border-primary transition-colors">
-              <div className="flex h-full flex-col justify-between gap-6">
-                <div>
-                  <h3 className="mb-4 text-2xl font-bold">Plano Básico</h3>
-                  <div className="mb-6">
-                    <span className="text-5xl font-bold">
-                      {isAnnually ? "R$ 63" : "R$ 79"}
-                    </span>
-                    <span className="ml-2 font-medium text-muted-foreground">
-                      por mês
-                    </span>
+            {Object.entries(plans).map(([key, plan]) => {
+              const Icon = plan.icon;
+              const price = isAnnually ? plan.yearlyPrice / 12 : plan.monthlyPrice;
+              const totalYearly = plan.yearlyPrice;
+              const isDuo = key === "duo";
+
+              return (
+                <div
+                  key={key}
+                  className={`relative rounded-xl border-2 p-8 transition-colors ${
+                    plan.popular
+                      ? "border-primary bg-primary/5"
+                      : "border-gray-400 hover:border-primary"
+                  }`}
+                >
+                  {plan.popular && (
+                    <Badge className="absolute -top-3 right-4">
+                      Mais popular
+                    </Badge>
+                  )}
+                  <div className="flex h-full flex-col justify-between gap-6">
+                    <div>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                          <Icon className="h-5 w-5 text-primary" />
+                        </div>
+                        <h3 className="text-2xl font-bold">{plan.name}</h3>
+                      </div>
+
+                      <div className="mb-2">
+                        <span className="text-5xl font-bold">
+                          R$ {formatPrice(price)}
+                        </span>
+                        <span className="ml-2 font-medium text-muted-foreground">
+                          /mês
+                        </span>
+                      </div>
+
+                      {isAnnually && (
+                        <p className="text-sm text-muted-foreground mb-4">
+                          R$ {formatPrice(totalYearly)} cobrado anualmente
+                        </p>
+                      )}
+
+                      <p className="text-muted-foreground font-medium mb-6">
+                        {plan.description}
+                      </p>
+
+                      <div className="rounded-lg bg-muted/50 p-3 mb-6">
+                        <p className="text-sm font-medium">
+                          {plan.members === 1
+                            ? "Para 1 pessoa"
+                            : `Para até ${plan.members} pessoas`}
+                        </p>
+                      </div>
+
+                      {isDuo ? (
+                        <>
+                          <p className="mb-4 font-bold text-lg">Tudo do Solo, mais</p>
+                          <ul className="flex flex-col gap-3">
+                            {duoExtras.map((feature) => (
+                              <li key={feature} className="flex gap-3">
+                                <Check className="mt-0.5 size-5 shrink-0 text-primary" />
+                                <span className="font-medium">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : (
+                        <>
+                          <p className="mb-4 font-bold text-lg">Inclui</p>
+                          <ul className="flex flex-col gap-3">
+                            {baseFeatures.map((feature) => (
+                              <li key={feature} className="flex gap-3">
+                                <Check className="mt-0.5 size-5 shrink-0 text-primary" />
+                                <span className="font-medium">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
+                    </div>
+
+                    <Button size="lg" className="mt-8 w-full" asChild>
+                      <Link href="/sign-in">
+                        Começar 30 dias grátis
+                      </Link>
+                    </Button>
                   </div>
-                  <p className="text-muted-foreground font-medium">
-                    Ideal para pequenas equipes ou negócios que estão começando.
-                  </p>
-                  <p className="mb-4 mt-8 font-bold text-lg">Inclui</p>
-                  <ul className="flex flex-col gap-4">
-                    <li className="flex gap-3">
-                      <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">Limite de 5 projetos</span>
-                    </li>
-                    <li className="flex gap-3">
-                      <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">5GB de armazenamento</span>
-                    </li>
-                    <li className="flex gap-3">
-                      <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">Até 3 usuários</span>
-                    </li>
-                    <li className="flex gap-3">
-                      <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">Suporte apenas por email</span>
-                    </li>
-                    <li className="flex gap-3">
-                      <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">
-                        Sem rastreamento de tempo
-                      </span>
-                    </li>
-                  </ul>
                 </div>
-                <Button size="lg" className="mt-8">
-                  Iniciar teste grátis
-                </Button>
-              </div>
-            </div>
-            <div className="rounded-xl border border-gray-400 border-2 p-8 hover:border-primary transition-colors">
-              <div className="flex h-full flex-col justify-between gap-6">
-                <div>
-                  <h3 className="mb-4 text-2xl font-bold">Plano Pro</h3>
-                  <div className="mb-6">
-                    <span className="text-5xl font-bold">
-                      {isAnnually ? "R$ 239" : "R$ 299"}
-                    </span>
-                    <span className="ml-2 font-medium text-muted-foreground">
-                      por mês
-                    </span>
-                  </div>
-                  <p className="text-muted-foreground font-medium">
-                    Ideal para negócios de médio a grande porte. Tenha todos os recursos
-                    que você precisa.
-                  </p>
-                  <p className="mb-4 mt-8 font-bold text-lg">
-                    Tudo do Básico, mais
-                  </p>
-                  <ul className="flex flex-col gap-4">
-                    <li className="flex gap-3">
-                      <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">Projetos ilimitados</span>
-                    </li>
-                    <li className="flex gap-3">
-                      <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">50GB de armazenamento</span>
-                    </li>
-                    <li className="flex gap-3">
-                      <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">Usuários ilimitados</span>
-                    </li>
-                    <li className="flex gap-3">
-                      <Check className="mt-1 size-5 shrink-0 text-primary" />
-                      <span className="font-medium">Suporte prioritário</span>
-                    </li>
-                  </ul>
-                </div>
-                <Button size="lg" className="mt-8">
-                  Iniciar teste grátis
-                </Button>
-              </div>
-            </div>
+              );
+            })}
           </div>
+
+          <p className="mt-8 text-center text-sm text-muted-foreground">
+            Sem compromisso. Cancele a qualquer momento.
+          </p>
         </div>
       </div>
     </section>

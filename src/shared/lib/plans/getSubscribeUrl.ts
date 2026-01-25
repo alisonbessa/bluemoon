@@ -10,7 +10,8 @@ export enum PlanProvider {
   STRIPE = "stripe",
 }
 
-const trialPeriodDays = [7, 14];
+const ALLOWED_TRIAL_PERIOD_DAYS = [7, 14, 30];
+export const DEFAULT_TRIAL_PERIOD_DAYS = 30;
 
 export const subscribeParams = z.object({
   codename: z.string(),
@@ -24,10 +25,10 @@ export const subscribeParams = z.object({
         if (n === undefined || n === null) {
           return true;
         }
-        return trialPeriodDays.includes(n);
+        return ALLOWED_TRIAL_PERIOD_DAYS.includes(n);
       },
       {
-        message: `Trial period days must be ${trialPeriodDays.join(" or ")}`,
+        message: `Trial period days must be ${ALLOWED_TRIAL_PERIOD_DAYS.join(", ")}`,
       }
     ),
 });

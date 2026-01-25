@@ -29,7 +29,7 @@ const solutions = [
   },
   {
     emoji: "✅",
-    text: "Acompanha tudo pelo celular ou Telegram, sem complicação",
+    text: "Acompanha tudo pelo celular ou por mensagem, sem complicação",
   },
   {
     emoji: "✅",
@@ -53,6 +53,9 @@ export function PainPoints() {
           <div className="grid gap-8 md:grid-cols-2">
             <Card className="border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20">
               <CardContent className="p-6">
+                <h3 className="mb-4 font-semibold text-red-700 dark:text-red-400">
+                  Sem controle financeiro...
+                </h3>
                 <ul className="space-y-4">
                   {problems.map((problem, index) => (
                     <li key={index} className="flex items-start gap-3">
