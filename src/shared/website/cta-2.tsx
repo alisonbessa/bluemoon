@@ -28,7 +28,7 @@ export function CTA2() {
             </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            Sem cartão de crédito. Cancele quando quiser.
+            30 dias grátis. Cancele quando quiser.
           </p>
         </div>
       </div>

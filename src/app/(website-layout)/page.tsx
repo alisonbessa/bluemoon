@@ -114,7 +114,7 @@ const faqItems = [
   {
     question: "É seguro colocar minhas informações financeiras?",
     answer:
-      "Sim! Usamos criptografia de ponta a ponta e nunca pedimos senha de banco. Você registra as transações manualmente ou por mensagem, não conectamos direto na sua conta bancária.",
+      "Sim! Seus dados são protegidos com conexão segura (HTTPS) e nunca pedimos senha de banco. Você registra as transações manualmente ou por mensagem, não conectamos direto na sua conta bancária.",
   },
 ];
 
