@@ -15,13 +15,13 @@ const Hero2 = () => {
             Feito para o Brasil
           </Badge>
           <h1 className="text-3xl font-extrabold lg:text-6xl">
-            Dê trabalho a cada{" "}
-            <span className="text-primary">real</span> do seu dinheiro
+            Defina o destino de cada{" "}
+            <span className="text-primary">real</span>
           </h1>
           <p className="text-balance text-muted-foreground lg:text-lg">
-            HiveBudget é a plataforma de gestão financeira pessoal e familiar
-            inspirada no YNAB, mas adaptada para o contexto brasileiro.
-            Parcelamentos, cartões de crédito e entrada de gastos por mensagem.
+            Planeje seu orçamento antes de gastar, não depois.
+            Controle parcelamentos, cartões de crédito e registre gastos
+            rapidamente por mensagem. Perfeito para casais e famílias.
           </p>
         </div>
 
