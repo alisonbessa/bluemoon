@@ -39,13 +39,19 @@ const plans: Record<string, Plan> = {
   },
 };
 
-const features = [
+const baseFeatures = [
   "Orçamento inteligente",
   "Controle de parcelamentos",
   "Cartões de crédito",
   "Registro por mensagem",
   "Metas financeiras",
   "Relatórios e dashboards",
+];
+
+const duoExtras = [
+  "Orçamento compartilhado em tempo real",
+  "Privacidade em contas individuais",
+  "Convide sem custo adicional",
 ];
 
 const formatPrice = (price: number) => {
@@ -123,6 +129,7 @@ const MonthlyAnnualPricing = () => {
               const Icon = plan.icon;
               const price = isAnnually ? plan.yearlyPrice / 12 : plan.monthlyPrice;
               const totalYearly = plan.yearlyPrice;
+              const isDuo = key === "duo";
 
               return (
                 <div
@@ -134,7 +141,7 @@ const MonthlyAnnualPricing = () => {
                   }`}
                 >
                   {plan.popular && (
-                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <Badge className="absolute -top-3 right-4">
                       Mais popular
                     </Badge>
                   )}
@@ -174,15 +181,31 @@ const MonthlyAnnualPricing = () => {
                         </p>
                       </div>
 
-                      <p className="mb-4 font-bold text-lg">Inclui</p>
-                      <ul className="flex flex-col gap-3">
-                        {features.map((feature) => (
-                          <li key={feature} className="flex gap-3">
-                            <Check className="mt-0.5 size-5 shrink-0 text-primary" />
-                            <span className="font-medium">{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      {isDuo ? (
+                        <>
+                          <p className="mb-4 font-bold text-lg">Tudo do Solo, mais</p>
+                          <ul className="flex flex-col gap-3">
+                            {duoExtras.map((feature) => (
+                              <li key={feature} className="flex gap-3">
+                                <Check className="mt-0.5 size-5 shrink-0 text-primary" />
+                                <span className="font-medium">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : (
+                        <>
+                          <p className="mb-4 font-bold text-lg">Inclui</p>
+                          <ul className="flex flex-col gap-3">
+                            {baseFeatures.map((feature) => (
+                              <li key={feature} className="flex gap-3">
+                                <Check className="mt-0.5 size-5 shrink-0 text-primary" />
+                                <span className="font-medium">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
                     </div>
 
                     <Button size="lg" className="mt-8 w-full" asChild>
