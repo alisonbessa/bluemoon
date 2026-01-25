@@ -1,9 +1,7 @@
 "use client";
 
-import React from "react";
 import Image from "next/image";
 import { Card, CardContent } from "@/shared/ui/card";
-import { ImagePlaceholder } from "@/shared/ui/image-placeholder";
 
 const testimonials = [
   {
@@ -18,8 +16,7 @@ const testimonials = [
     name: "Ricardo e Camila",
     role: "Casados há 2 anos",
     location: "Belo Horizonte",
-    avatarDescription:
-      "Foto de casal jovem, abraçados, sorrindo, ambiente casual, estilo foto de celular",
+    avatar: "/images/depoimento2.png",
     quote:
       "A gente brigava MUITO por causa de dinheiro. Tipo, eu achava que ela gastava demais, ela achava que eu era mão de vaca. Agora tá tudo no app, cada um tem seu espacinho mas a gente vê os gastos da casa junto. Mudou nosso relacionamento real.",
   },
@@ -27,8 +24,7 @@ const testimonials = [
     name: "Fernando",
     role: "Desenvolvedor freelancer",
     location: "Curitiba",
-    avatarDescription:
-      "Foto de homem jovem, barba, óculos, fundo de home office, estilo casual",
+    avatar: "/images/depoimento3.PNG",
     quote:
       "Como freela minha renda varia muito né, um mês vem bem, outro vem menos. O HiveBudget me ajudou a parar de torrar tudo quando vem mais e guardar pros meses magros. Parece óbvio mas eu nunca tinha conseguido fazer isso antes.",
   },
@@ -36,8 +32,7 @@ const testimonials = [
     name: "Juliana",
     role: "Analista de marketing",
     location: "Porto Alegre",
-    avatarDescription:
-      "Foto de mulher jovem, cabelo loiro, sorriso simpático, fundo de escritório, estilo profissional",
+    avatar: "/images/depoimento4.PNG",
     quote:
       "Eu tinha uns 5 parcelamentos no cartão e nunca sabia quanto ia vir a fatura. Agora eu vejo tudo organizado, sei exatamente quanto já comprometi do meu limite e quanto ainda posso gastar. Acabou a surpresa no fechamento!",
   },
@@ -66,21 +61,13 @@ export function TestimonialsGrid() {
                   <div className="flex gap-4">
                     {/* Avatar */}
                     <div className="flex-shrink-0">
-                      {testimonial.avatar ? (
-                        <Image
-                          src={testimonial.avatar}
-                          alt={testimonial.name}
-                          width={48}
-                          height={48}
-                          className="h-12 w-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <ImagePlaceholder
-                          description={testimonial.avatarDescription || ""}
-                          className="h-12 w-12 rounded-full"
-                          aspectRatio="square"
-                        />
-                      )}
+                      <Image
+                        src={testimonial.avatar}
+                        alt={testimonial.name}
+                        width={48}
+                        height={48}
+                        className="h-12 w-12 rounded-full object-cover"
+                      />
                     </div>
 
                     {/* Content */}
