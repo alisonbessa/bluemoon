@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Card, CardContent } from "@/shared/ui/card";
 import { ImagePlaceholder } from "@/shared/ui/image-placeholder";
 
@@ -9,8 +10,7 @@ const testimonials = [
     name: "Mariana",
     role: "Designer, 28 anos",
     location: "São Paulo",
-    avatarDescription:
-      "Foto de mulher jovem, cabelo escuro, sorrindo, fundo neutro, estilo foto de perfil casual",
+    avatar: "/images/depoimento1.png",
     quote:
       "Gente, eu NUNCA consegui manter uma planilha por mais de uma semana. Com o HiveBudget já são 3 meses e ainda tô usando todo dia. O negócio do WhatsApp é genial porque eu registro na hora que gasto, não esqueço mais.",
   },
@@ -66,11 +66,21 @@ export function TestimonialsGrid() {
                   <div className="flex gap-4">
                     {/* Avatar */}
                     <div className="flex-shrink-0">
-                      <ImagePlaceholder
-                        description={testimonial.avatarDescription}
-                        className="h-12 w-12 rounded-full"
-                        aspectRatio="square"
-                      />
+                      {testimonial.avatar ? (
+                        <Image
+                          src={testimonial.avatar}
+                          alt={testimonial.name}
+                          width={48}
+                          height={48}
+                          className="h-12 w-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <ImagePlaceholder
+                          description={testimonial.avatarDescription || ""}
+                          className="h-12 w-12 rounded-full"
+                          aspectRatio="square"
+                        />
+                      )}
                     </div>
 
                     {/* Content */}
