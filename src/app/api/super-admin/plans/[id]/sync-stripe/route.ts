@@ -41,16 +41,18 @@ export const POST = withSuperAdminAuthRequired(
 
       const result: SyncResult = { success: false };
 
-      // Check if product already exists by searching for metadata
+      // Check if product already exists by listing and filtering
+      // (Search API not available in all regions)
       let product: Awaited<ReturnType<typeof stripe.products.retrieve>> | null = null;
 
-      const existingProducts = await stripe.products.search({
-        query: `metadata['plan_codename']:'${plan.codename}'`,
-      });
+      const allProducts = await stripe.products.list({ limit: 100, active: true });
+      const existingProduct = allProducts.data.find(
+        (p) => p.metadata?.plan_codename === plan.codename
+      );
 
-      if (existingProducts.data.length > 0) {
+      if (existingProduct) {
         // Update existing product
-        product = await stripe.products.update(existingProducts.data[0].id, {
+        product = await stripe.products.update(existingProduct.id, {
           name: plan.name,
           description: getProductDescription(plan.codename),
         });
