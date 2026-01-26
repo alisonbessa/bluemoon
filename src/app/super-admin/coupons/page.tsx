@@ -26,6 +26,7 @@ import {
 } from "@/shared/ui/dropdown-menu";
 import { AlertTriangle, MoreVertical, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import useSWR from "swr";
 import { GenerateModal } from "./components/generate-modal";
 import { useDebounce } from "@/shared/hooks/use-debounce";
@@ -95,16 +96,16 @@ export default function CouponsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Lifetime Deal Coupons</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Cupons Lifetime Deal</h1>
         <p className="text-muted-foreground">
-          Helpful for running lifetime deals on platforms like Appsumo
+          Útil para campanhas de lifetime deal em plataformas como AppSumo
         </p>
       </div>
 
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1">
           <Input
-            placeholder="Search coupons..."
+            placeholder="Buscar cupons..."
             className="max-w-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -114,13 +115,13 @@ export default function CouponsPage() {
             onValueChange={(value: StatusFilter) => setStatusFilter(value)}
           >
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder="Filtrar por status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Coupons</SelectItem>
-              <SelectItem value="used">Used</SelectItem>
-              <SelectItem value="unused">Unused</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
+              <SelectItem value="all">Todos os Cupons</SelectItem>
+              <SelectItem value="used">Usados</SelectItem>
+              <SelectItem value="unused">Disponíveis</SelectItem>
+              <SelectItem value="expired">Expirados</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -135,25 +136,25 @@ export default function CouponsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Code</TableHead>
-              <TableHead>Created At</TableHead>
-              <TableHead>Used By</TableHead>
-              <TableHead>Used On</TableHead>
+              <TableHead>Código</TableHead>
+              <TableHead>Criado em</TableHead>
+              <TableHead>Usado por</TableHead>
+              <TableHead>Usado em</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[70px]">Actions</TableHead>
+              <TableHead className="w-[70px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">
-                  Loading...
+                  Carregando...
                 </TableCell>
               </TableRow>
             ) : data?.coupons.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">
-                  No coupons found
+                  Nenhum cupom encontrado
                 </TableCell>
               </TableRow>
             ) : (
@@ -161,11 +162,11 @@ export default function CouponsPage() {
                 <TableRow key={coupon.id}>
                   <TableCell className="font-mono">{coupon.code}</TableCell>
                   <TableCell>
-                    {format(new Date(coupon.createdAt), "PPP 'at' p")}
+                    {format(new Date(coupon.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                   </TableCell>
                   <TableCell>
                     {coupon.userId ? (
-                      <Link 
+                      <Link
                         href={`/super-admin/users/${coupon.userId}`}
                         className="flex items-center text-primary hover:underline"
                       >
@@ -178,16 +179,16 @@ export default function CouponsPage() {
                   </TableCell>
                   <TableCell>
                     {coupon.usedAt
-                      ? format(new Date(coupon.usedAt), "PPP 'at' p")
+                      ? format(new Date(coupon.usedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
                       : "-"}
                   </TableCell>
                   <TableCell>
                     {coupon.expired ? (
-                      <span className="text-destructive">Expired</span>
+                      <span className="text-destructive">Expirado</span>
                     ) : coupon.usedAt ? (
-                      <span className="text-muted-foreground">Used</span>
+                      <span className="text-muted-foreground">Usado</span>
                     ) : (
-                      <span className="text-primary">Active</span>
+                      <span className="text-primary">Ativo</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -197,7 +198,7 @@ export default function CouponsPage() {
                           variant="ghost"
                           className="h-8 w-8 p-0"
                         >
-                          <span className="sr-only">Open menu</span>
+                          <span className="sr-only">Abrir menu</span>
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -208,18 +209,18 @@ export default function CouponsPage() {
                             className="text-destructive"
                           >
                             <AlertTriangle className="mr-2 h-4 w-4" />
-                            Expire
+                            Expirar
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem
                           onClick={() => {
-                            if (confirm("Are you sure you want to delete this coupon?")) {
+                            if (confirm("Tem certeza que deseja excluir este cupom?")) {
                               deleteCoupon(coupon.id);
                             }
                           }}
                           className="text-destructive"
                         >
-                          Delete
+                          Excluir
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

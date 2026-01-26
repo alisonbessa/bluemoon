@@ -36,7 +36,7 @@ export const creditsConfig: CreditsConfig = {
   },
 };
 
-export const enableCredits = true; // Enable or disable credits
+export const enableCredits = false; // Enable or disable credits
 
 export const onRegisterCredits: OnRegisterCredits = {
   image_generation: {

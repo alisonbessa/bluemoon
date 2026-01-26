@@ -19,7 +19,7 @@ const BUDGET_INITIALIZED_KEY = "hivebudget_budget_initialized";
 const SUBSCRIPTION_EXEMPT_ROLES = ["beta", "lifetime", "admin"];
 
 // Pages that don't require an active subscription
-const SUBSCRIPTION_EXEMPT_PATHS = ["/app/choose-plan", "/app/settings", "/app/subscribe/success"];
+const SUBSCRIPTION_EXEMPT_PATHS = ["/app/choose-plan", "/app/settings", "/app/subscribe"];
 
 function DashboardSkeleton() {
   return (

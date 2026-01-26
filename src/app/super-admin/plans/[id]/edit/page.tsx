@@ -35,7 +35,6 @@ export default function EditPlanPage() {
       router.push("/super-admin/plans");
     } catch (error) {
       console.error("Error updating plan:", error);
-      // TODO: Add error toast
     }
   };
 
@@ -43,14 +42,14 @@ export default function EditPlanPage() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-14rem)]">
         <div className="text-center">
-          <h2 className="text-lg font-medium">Error loading plan</h2>
+          <h2 className="text-lg font-medium">Erro ao carregar plano</h2>
           <p className="text-sm text-muted-foreground">
-            Failed to load plan details. Please try again.
+            Não foi possível carregar os detalhes do plano. Tente novamente.
           </p>
           <Button variant="ghost" size="sm" asChild className="mt-4">
             <Link href="/super-admin/plans">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Plans
+              Voltar para Planos
             </Link>
           </Button>
         </div>
@@ -71,10 +70,10 @@ export default function EditPlanPage() {
           <Button variant="ghost" size="sm" asChild>
             <Link href="/super-admin/plans">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              Voltar
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold">Edit Plan</h1>
+          <h1 className="text-2xl font-bold">Editar Plano</h1>
         </div>
         {plan && (
           <Button
@@ -84,12 +83,12 @@ export default function EditPlanPage() {
             {hasSyncedPrices ? (
               <>
                 <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                Stripe Synced
+                Sincronizado
               </>
             ) : (
               <>
                 <CloudUpload className="h-4 w-4 mr-2" />
-                Sync to Stripe
+                Sincronizar Stripe
               </>
             )}
           </Button>
@@ -101,14 +100,14 @@ export default function EditPlanPage() {
           <PlanForm
             initialData={plan}
             onSubmit={handleSubmit}
-            submitLabel="Update Plan"
+            submitLabel="Salvar Alterações"
           />
         ) : (
           <div className="flex items-center justify-center h-96">
             <div className="text-center">
-              <div className="text-lg">Loading...</div>
+              <div className="text-lg">Carregando...</div>
               <div className="text-sm text-muted-foreground">
-                Please wait while we load the plan details.
+                Aguarde enquanto carregamos os detalhes do plano.
               </div>
             </div>
           </div>

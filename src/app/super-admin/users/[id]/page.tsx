@@ -133,7 +133,7 @@ export default function UserDetailsPage() {
 
   const formatDate = (date: string | null) => {
     if (!date) return "N/A";
-    return new Date(date).toLocaleDateString();
+    return new Date(date).toLocaleDateString("pt-BR");
   };
 
   const handleImpersonate = async () => {
@@ -154,7 +154,7 @@ export default function UserDetailsPage() {
       setImpersonationUrl(url);
       setIsModalOpen(true);
     } catch (error) {
-      toast.error("Failed to impersonate user");
+      toast.error("Falha ao personificar usuário");
       console.error("Impersonation error:", error);
     }
   };
@@ -163,14 +163,14 @@ export default function UserDetailsPage() {
     try {
       await navigator.clipboard.writeText(impersonationUrl);
       setIsCopied(true);
-      toast.success("Link copied to clipboard");
+      toast.success("Link copiado!");
 
       // Reset the copied state after 2 seconds
       setTimeout(() => {
         setIsCopied(false);
       }, 2000);
     } catch (error) {
-      toast.error("Failed to copy link");
+      toast.error("Falha ao copiar link");
       console.error("Copy error:", error);
     }
   };
@@ -196,10 +196,10 @@ export default function UserDetailsPage() {
       }
 
       await mutate();
-      toast.success("Plan updated successfully");
+      toast.success("Plano atualizado com sucesso");
     } catch (error) {
       console.error("Error updating plan:", error);
-      toast.error("Failed to update plan");
+      toast.error("Falha ao atualizar plano");
     } finally {
       setIsUpdatingPlan(false);
     }
@@ -220,11 +220,17 @@ export default function UserDetailsPage() {
         throw new Error("Failed to update role");
       }
 
+      const roleLabels: Record<UserRole, string> = {
+        user: "Usuário",
+        beta: "Beta",
+        lifetime: "Vitalício",
+        admin: "Admin",
+      };
       await mutate();
-      toast.success(`Role updated to ${role}`);
+      toast.success(`Tipo alterado para ${roleLabels[role]}`);
     } catch (error) {
       console.error("Error updating role:", error);
-      toast.error("Failed to update role");
+      toast.error("Falha ao alterar tipo de usuário");
     } finally {
       setIsUpdatingRole(false);
     }
@@ -232,7 +238,7 @@ export default function UserDetailsPage() {
 
   const handleCreditSubmit = async () => {
     if (!creditAmount || !creditReason || parseFloat(creditAmount) <= 0) {
-      toast.error("Please provide a valid amount (> 0) and reason");
+      toast.error("Informe uma quantidade válida (> 0) e um motivo");
       return;
     }
 
@@ -267,7 +273,7 @@ export default function UserDetailsPage() {
     } catch (error) {
       console.error("Error managing credits:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to manage credits"
+        error instanceof Error ? error.message : "Falha ao gerenciar créditos"
       );
     } finally {
       setIsProcessingCredit(false);
@@ -282,14 +288,14 @@ export default function UserDetailsPage() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-14rem)]">
         <div className="text-center">
-          <h2 className="text-lg font-medium">Error loading user</h2>
+          <h2 className="text-lg font-medium">Erro ao carregar usuário</h2>
           <p className="text-sm text-muted-foreground">
-            Failed to load user details. Please try again.
+            Não foi possível carregar os detalhes do usuário. Tente novamente.
           </p>
           <Button variant="ghost" size="sm" asChild className="mt-4">
             <Link href="/super-admin/users">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Users
+              Voltar para Usuários
             </Link>
           </Button>
         </div>
@@ -301,9 +307,9 @@ export default function UserDetailsPage() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-14rem)]">
         <div className="text-center">
-          <h2 className="text-lg font-medium">Loading...</h2>
+          <h2 className="text-lg font-medium">Carregando...</h2>
           <p className="text-sm text-muted-foreground">
-            Please wait while we load the user details.
+            Aguarde enquanto carregamos os detalhes do usuário.
           </p>
         </div>
       </div>
@@ -317,10 +323,10 @@ export default function UserDetailsPage() {
           <Button variant="ghost" size="sm" asChild>
             <Link href="/super-admin/users">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              Voltar
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold">User Details</h1>
+          <h1 className="text-2xl font-bold">Detalhes do Usuário</h1>
         </div>
         <div className="flex items-center gap-2">
           {enableCredits && (
@@ -330,12 +336,12 @@ export default function UserDetailsPage() {
               onClick={() => setIsCreditModalOpen(true)}
             >
               <CreditCard className="h-4 w-4 mr-2" />
-              Manage Credits
+              Gerenciar Créditos
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={handleImpersonate}>
             <User className="h-4 w-4 mr-2" />
-            Impersonate
+            Personificar
           </Button>
           <Button
             variant="destructive"
@@ -343,18 +349,18 @@ export default function UserDetailsPage() {
             onClick={() => router.push(`/super-admin/users/${id}/delete`)}
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Delete User
+            Excluir Usuário
           </Button>
         </div>
       </div>
 
-      {/* User Impersonation Link Modal */}
+      {/* Modal de Link de Personificação */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Impersonation Link Generated</DialogTitle>
+            <DialogTitle>Link de Personificação Gerado</DialogTitle>
             <DialogDescription>
-              Open this link in an incognito window to impersonate{" "}
+              Abra este link em uma janela anônima para personificar{" "}
               {user?.name || user?.email}.
             </DialogDescription>
           </DialogHeader>
@@ -364,16 +370,16 @@ export default function UserDetailsPage() {
               <AlertTriangle className="h-5 w-5 mt-0.5 text-amber-600 dark:text-amber-400" />
               <div>
                 <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-                  Security Warning
+                  Aviso de Segurança
                 </h4>
                 <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                  This link grants temporary access to {user?.email}&apos;s
-                  account. Handle with care:
+                  Este link concede acesso temporário à conta de {user?.email}.
+                  Manuseie com cuidado:
                 </p>
                 <ul className="list-disc list-inside text-xs text-amber-700 dark:text-amber-400 mt-1">
-                  <li>Only use in incognito/private browsing</li>
-                  <li>Do not share with unauthorized personnel</li>
-                  <li>The link expires in 30 minutes</li>
+                  <li>Use apenas em navegação anônima/privada</li>
+                  <li>Não compartilhe com pessoas não autorizadas</li>
+                  <li>O link expira em 30 minutos</li>
                 </ul>
               </div>
             </div>
@@ -382,7 +388,7 @@ export default function UserDetailsPage() {
           <div className="flex items-center space-x-2">
             <div className="grid flex-1 gap-2">
               <label htmlFor="impersonation-link" className="sr-only">
-                Impersonation Link
+                Link de Personificação
               </label>
               <Input
                 id="impersonation-link"
@@ -406,28 +412,28 @@ export default function UserDetailsPage() {
               size="sm"
               onClick={() => setIsModalOpen(false)}
             >
-              Close
+              Fechar
             </Button>
             <Button type="button" size="sm" onClick={handleDirectAccess}>
-              Open Link
+              Abrir Link
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Credit Management Modal */}
+      {/* Modal de Gerenciamento de Créditos */}
       <Dialog open={isCreditModalOpen} onOpenChange={setIsCreditModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Manage User Credits</DialogTitle>
+            <DialogTitle>Gerenciar Créditos do Usuário</DialogTitle>
             <DialogDescription>
-              Add or deduct credits for {user?.name || user?.email}.
+              Adicionar ou deduzir créditos para {user?.name || user?.email}.
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-4">
             <div>
-              <Label htmlFor="credit-action">Action</Label>
+              <Label htmlFor="credit-action">Ação</Label>
               <RadioGroup
                 value={creditAction}
                 onValueChange={(value: "add" | "deduct") =>
@@ -439,21 +445,21 @@ export default function UserDetailsPage() {
                   <RadioGroupItem value="add" id="add" />
                   <Label htmlFor="add" className="flex items-center gap-1">
                     <Plus className="h-4 w-4 text-green-600" />
-                    Add Credits
+                    Adicionar Créditos
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="deduct" id="deduct" />
                   <Label htmlFor="deduct" className="flex items-center gap-1">
                     <Minus className="h-4 w-4 text-red-600" />
-                    Deduct Credits
+                    Deduzir Créditos
                   </Label>
                 </div>
               </RadioGroup>
             </div>
 
             <div>
-              <Label htmlFor="credit-type">Credit Type</Label>
+              <Label htmlFor="credit-type">Tipo de Crédito</Label>
               <Select
                 value={creditType}
                 onValueChange={(
@@ -465,17 +471,17 @@ export default function UserDetailsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="image_generation">
-                    Image Generation
+                    Geração de Imagem
                   </SelectItem>
                   <SelectItem value="video_generation">
-                    Video Generation
+                    Geração de Vídeo
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="credit-amount">Amount *</Label>
+              <Label htmlFor="credit-amount">Quantidade *</Label>
               <Input
                 id="credit-amount"
                 type="number"
@@ -483,18 +489,18 @@ export default function UserDetailsPage() {
                 step="1"
                 value={creditAmount}
                 onChange={(e) => setCreditAmount(e.target.value)}
-                placeholder="Enter amount (must be > 0)"
+                placeholder="Informe a quantidade (deve ser > 0)"
                 className="mt-1.5"
               />
             </div>
 
             <div>
-              <Label htmlFor="credit-reason">Reason *</Label>
+              <Label htmlFor="credit-reason">Motivo *</Label>
               <Textarea
                 id="credit-reason"
                 value={creditReason}
                 onChange={(e) => setCreditReason(e.target.value)}
-                placeholder="Enter reason for this credit transaction"
+                placeholder="Informe o motivo desta transação de créditos"
                 className="mt-1.5"
                 rows={3}
               />
@@ -507,7 +513,7 @@ export default function UserDetailsPage() {
               onClick={() => setIsCreditModalOpen(false)}
               disabled={isProcessingCredit}
             >
-              Cancel
+              Cancelar
             </Button>
             <Button
               onClick={handleCreditSubmit}
@@ -519,8 +525,8 @@ export default function UserDetailsPage() {
               }
             >
               {isProcessingCredit
-                ? "Processing..."
-                : `${creditAction === "add" ? "Add" : "Deduct"} Credits`}
+                ? "Processando..."
+                : `${creditAction === "add" ? "Adicionar" : "Deduzir"} Créditos`}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -529,8 +535,8 @@ export default function UserDetailsPage() {
       <div className="flex flex-row gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>User Profile</CardTitle>
-            <CardDescription>Basic information about the user.</CardDescription>
+            <CardTitle>Perfil do Usuário</CardTitle>
+            <CardDescription>Informações básicas sobre o usuário.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center gap-4">
@@ -546,7 +552,7 @@ export default function UserDetailsPage() {
               </Avatar>
               <div>
                 <h2 className="text-xl font-semibold">
-                  {user?.name || "Unnamed User"}
+                  {user?.name || "Usuário sem nome"}
                 </h2>
                 <p className="text-sm text-muted-foreground">{user?.email}</p>
               </div>
@@ -555,13 +561,13 @@ export default function UserDetailsPage() {
             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">
-                  User ID
+                  ID do Usuário
                 </dt>
                 <dd className="text-sm font-mono mt-1">{user?.id}</dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">
-                  Joined
+                  Cadastro
                 </dt>
                 <dd className="text-sm mt-1">
                   {formatDate(user?.createdAt || null)}
@@ -569,15 +575,15 @@ export default function UserDetailsPage() {
               </div>
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">
-                  Email Verified
+                  Email Verificado
                 </dt>
                 <dd className="text-sm mt-1">
-                  {user?.emailVerified ? formatDate(user.emailVerified) : "No"}
+                  {user?.emailVerified ? formatDate(user.emailVerified) : "Não"}
                 </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">
-                  Trial Ends At
+                  Trial Termina em
                 </dt>
                 <dd className="text-sm mt-1">
                   {user?.trialEndsAt ? formatDate(user.trialEndsAt) : "N/A"}
@@ -587,7 +593,7 @@ export default function UserDetailsPage() {
 
             <div className="pt-4 border-t">
               <label className="text-sm font-medium text-muted-foreground">
-                User Role
+                Tipo de Usuário
               </label>
               <Select
                 value={user?.role || "user"}
@@ -598,14 +604,14 @@ export default function UserDetailsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user">User (Default)</SelectItem>
-                  <SelectItem value="beta">Beta (Free Access)</SelectItem>
-                  <SelectItem value="lifetime">Lifetime (Permanent)</SelectItem>
+                  <SelectItem value="user">Usuário (Padrão)</SelectItem>
+                  <SelectItem value="beta">Beta (Acesso Gratuito)</SelectItem>
+                  <SelectItem value="lifetime">Vitalício (Permanente)</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
-                Beta and Lifetime users bypass subscription requirements.
+                Usuários Beta e Vitalício não precisam de assinatura.
               </p>
             </div>
           </CardContent>
@@ -613,16 +619,16 @@ export default function UserDetailsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Plan Details</CardTitle>
+            <CardTitle>Detalhes do Plano</CardTitle>
             <CardDescription>
-              Subscription and plan information.
+              Informações de assinatura e plano.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">
-                  Current Plan
+                  Plano Atual
                 </label>
                 <Select
                   value={user?.currentPlan?.id || ""}
@@ -630,13 +636,13 @@ export default function UserDetailsPage() {
                   disabled={isUpdatingPlan}
                 >
                   <SelectTrigger className="w-full mt-1.5">
-                    <SelectValue placeholder="Select a plan" />
+                    <SelectValue placeholder="Selecione um plano" />
                   </SelectTrigger>
                   <SelectContent>
                     {plansData?.plans.map((plan) => (
                       <SelectItem key={plan.id} value={plan.id}>
                         {plan.name}
-                        {plan.default && " (Default)"}
+                        {plan.default && " (Padrão)"}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -646,15 +652,15 @@ export default function UserDetailsPage() {
               <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">
-                    Plan Name
+                    Nome do Plano
                   </dt>
                   <dd className="text-sm mt-1">
-                    {user?.currentPlan?.name || "No Plan"}
+                    {user?.currentPlan?.name || "Sem Plano"}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">
-                    Plan Codename
+                    Código do Plano
                   </dt>
                   <dd className="text-sm font-mono mt-1">
                     {user?.currentPlan?.codename || "N/A"}
@@ -662,7 +668,7 @@ export default function UserDetailsPage() {
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">
-                    Stripe Subscription
+                    Assinatura Stripe
                   </dt>
                   <dd className="text-sm font-mono mt-1">
                     {user?.stripeSubscriptionId || "N/A"}
@@ -670,7 +676,7 @@ export default function UserDetailsPage() {
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">
-                    LemonSqueezy Subscription
+                    Assinatura LemonSqueezy
                   </dt>
                   <dd className="text-sm font-mono mt-1">
                     {user?.lemonSqueezySubscriptionId || "N/A"}
@@ -685,16 +691,16 @@ export default function UserDetailsPage() {
         <div className="flex flex-row gap-6">
           <Card className="flex-1">
             <CardHeader>
-              <CardTitle>Credits & History</CardTitle>
+              <CardTitle>Créditos e Histórico</CardTitle>
               <CardDescription>
-                User credit balances and transaction history.
+                Saldo de créditos e histórico de transações do usuário.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="balance" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="balance">Current Balance</TabsTrigger>
-                  <TabsTrigger value="history">Transaction History</TabsTrigger>
+                  <TabsTrigger value="balance">Saldo Atual</TabsTrigger>
+                  <TabsTrigger value="history">Histórico de Transações</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="balance" className="space-y-4">
@@ -715,21 +721,21 @@ export default function UserDetailsPage() {
                             <Badge
                               variant={amount > 0 ? "default" : "secondary"}
                             >
-                              {amount} credits
+                              {amount} créditos
                             </Badge>
                           </div>
                         )
                       )}
                       {Object.keys(creditData.currentCredits).length === 0 && (
                         <p className="text-sm text-muted-foreground text-center py-4">
-                          No credits available
+                          Nenhum crédito disponível
                         </p>
                       )}
                     </div>
                   ) : (
                     <div className="text-center py-4">
                       <p className="text-sm text-muted-foreground">
-                        Loading credits...
+                        Carregando créditos...
                       </p>
                     </div>
                   )}
@@ -766,17 +772,17 @@ export default function UserDetailsPage() {
                               </div>
                               <p className="text-xs text-muted-foreground">
                                 {transaction.metadata?.reason ||
-                                  "No reason provided"}
+                                  "Motivo não informado"}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {new Date(
                                   transaction.createdAt
-                                ).toLocaleString()}
+                                ).toLocaleString("pt-BR")}
                               </p>
                             </div>
                             {transaction.metadata?.adminAction && (
                               <Badge variant="outline" className="text-xs">
-                                Admin Action
+                                Ação de Admin
                               </Badge>
                             )}
                           </div>
@@ -786,8 +792,8 @@ export default function UserDetailsPage() {
                       {creditData.pagination && (
                         <div className="flex items-center justify-between pt-4">
                           <p className="text-sm text-muted-foreground">
-                            Page {creditData.pagination.page} of{" "}
-                            {creditData.pagination.totalPages}(
+                            Página {creditData.pagination.page} de{" "}
+                            {creditData.pagination.totalPages} (
                             {creditData.pagination.total} total)
                           </p>
                           <div className="flex gap-2">
@@ -797,7 +803,7 @@ export default function UserDetailsPage() {
                               onClick={() => setCreditPage(creditPage - 1)}
                               disabled={!creditData.pagination.hasPrev}
                             >
-                              Previous
+                              Anterior
                             </Button>
                             <Button
                               variant="outline"
@@ -805,7 +811,7 @@ export default function UserDetailsPage() {
                               onClick={() => setCreditPage(creditPage + 1)}
                               disabled={!creditData.pagination.hasNext}
                             >
-                              Next
+                              Próximo
                             </Button>
                           </div>
                         </div>
@@ -814,7 +820,7 @@ export default function UserDetailsPage() {
                   ) : (
                     <div className="text-center py-4">
                       <p className="text-sm text-muted-foreground">
-                        Loading transaction history...
+                        Carregando histórico de transações...
                       </p>
                     </div>
                   )}

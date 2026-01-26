@@ -122,15 +122,15 @@ export function ExpireCouponsModal({ onSuccess }: ExpireCouponsModalProps) {
       <DialogTrigger asChild>
         <Button variant="destructive">
           <Ban className="mr-2 h-4 w-4" />
-          Expire Coupon Codes
+          Expirar Cupons
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <DialogTitle>Expire Coupon Codes</DialogTitle>
+          <DialogTitle>Expirar Cupons</DialogTitle>
           <DialogDescription>
-            Use this tool to expire coupon codes or mark refunded coupons as expired. 
-            This will recalculate plans for affected users.
+            Use esta ferramenta para expirar cupons ou marcar cupons reembolsados como expirados.
+            Isso irá recalcular os planos dos usuários afetados.
           </DialogDescription>
         </DialogHeader>
 
@@ -139,58 +139,58 @@ export function ExpireCouponsModal({ onSuccess }: ExpireCouponsModalProps) {
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <label htmlFor="coupon-codes" className="text-sm font-medium">
-                  Coupon Codes
+                  Códigos dos Cupons
                 </label>
                 <Textarea
                   id="coupon-codes"
                   value={couponCodes}
                   onChange={(e) => setCouponCodes(e.target.value)}
-                  placeholder="Enter coupon codes separated by spaces, commas, or new lines"
+                  placeholder="Digite os códigos de cupom separados por espaços, vírgulas ou linhas"
                   className="min-h-[150px] font-mono"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Enter one or more coupon codes to expire. Users using these coupons may be downgraded.
+                  Digite um ou mais códigos de cupom para expirar. Usuários que utilizam esses cupons podem ter seus planos rebaixados.
                 </p>
               </div>
             </div>
             <DialogFooter>
-              <Button 
-                variant="destructive" 
-                onClick={handleSubmit} 
+              <Button
+                variant="destructive"
+                onClick={handleSubmit}
                 disabled={!couponCodes.trim()}
               >
                 <AlertTriangle className="mr-2 h-4 w-4" />
-                Expire Coupons
+                Expirar Cupons
               </Button>
             </DialogFooter>
           </>
         ) : isSubmitting ? (
           <div className="py-6 space-y-4">
-            <p className="text-center font-medium">Processing Coupon Codes...</p>
+            <p className="text-center font-medium">Processando Cupons...</p>
             <Progress value={progress} className="w-full h-2" />
             <p className="text-center text-sm text-muted-foreground">
-              {progress}% Complete
+              {progress}% Concluído
             </p>
           </div>
         ) : report ? (
           <div className="py-6 space-y-4">
             <div className="rounded-lg border p-4">
-              <h3 className="font-medium mb-2">Expiration Report</h3>
+              <h3 className="font-medium mb-2">Relatório de Expiração</h3>
               <dl className="space-y-2">
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Users Downgraded:</dt>
+                  <dt className="text-muted-foreground">Usuários Rebaixados:</dt>
                   <dd className="font-medium">{report.usersDowngraded}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Total Coupons Expired:</dt>
+                  <dt className="text-muted-foreground">Total de Cupons Expirados:</dt>
                   <dd className="font-medium">{report.totalExpired}</dd>
                 </div>
               </dl>
             </div>
-            
+
             {report.errors.length > 0 && (
               <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-                <h3 className="font-medium text-destructive mb-2">Errors</h3>
+                <h3 className="font-medium text-destructive mb-2">Erros</h3>
                 <ul className="text-sm space-y-1 list-disc list-inside">
                   {report.errors.map((error, i) => (
                     <li key={i}>{error}</li>
@@ -198,9 +198,9 @@ export function ExpireCouponsModal({ onSuccess }: ExpireCouponsModalProps) {
                 </ul>
               </div>
             )}
-            
+
             <DialogFooter>
-              <Button onClick={() => setIsOpen(false)}>Close</Button>
+              <Button onClick={() => setIsOpen(false)}>Fechar</Button>
             </DialogFooter>
           </div>
         ) : null}
