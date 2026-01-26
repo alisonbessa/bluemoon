@@ -30,7 +30,7 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
   const validatePrefix = (value: string) => {
     const upperValue = value.toUpperCase();
     if (!/^[A-Z]*$/.test(upperValue)) {
-      setPrefixError("Only letters A-Z are allowed");
+      setPrefixError("Apenas letras A-Z são permitidas");
       return false;
     }
     setPrefixError("");
@@ -97,18 +97,18 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>Generate Coupon Codes</Button>
+        <Button>Gerar Cupons</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Generate Coupon Codes</DialogTitle>
+          <DialogTitle>Gerar Cupons</DialogTitle>
           <DialogDescription>
-            Generate multiple coupon codes with a specific prefix.
+            Gere vários códigos de cupom com um prefixo específico.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <label>Prefix (A-Z only)</label>
+            <label>Prefixo (apenas A-Z)</label>
             <Input
               value={prefix}
               onChange={handlePrefixChange}
@@ -120,7 +120,7 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
             )}
           </div>
           <div className="space-y-2">
-            <label>Number of Coupons</label>
+            <label>Quantidade de Cupons</label>
             <Input
               type="number"
               value={count}
@@ -132,7 +132,7 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
           {generatedCoupons.length > 0 ? (
             <Button onClick={downloadCoupons} className="w-full sm:w-auto">
               <Download className="mr-2 h-4 w-4" />
-              Download {generatedCoupons.length} Coupons
+              Baixar {generatedCoupons.length} Cupons
             </Button>
           ) : (
             <Button
@@ -141,7 +141,7 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
               className="w-full sm:w-auto"
             >
               {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Generate
+              Gerar
             </Button>
           )}
         </DialogFooter>

@@ -101,11 +101,11 @@ export function ExportCouponsModal({ currentFilter, searchQuery }: ExportCoupons
         // Add coupons to CSV data array
         coupons.forEach((coupon) => {
           csvData.push({
-            Code: coupon.code,
-            "Created At": new Date(coupon.createdAt).toLocaleString(),
-            User: coupon.userId || "",
-            "Used On": coupon.usedAt ? new Date(coupon.usedAt).toLocaleString() : "",
-            Status: coupon.expired ? "Expired" : (coupon.usedAt ? "Used" : "Unused")
+            Código: coupon.code,
+            "Criado em": new Date(coupon.createdAt).toLocaleString("pt-BR"),
+            Usuário: coupon.userId || "",
+            "Usado em": coupon.usedAt ? new Date(coupon.usedAt).toLocaleString("pt-BR") : "",
+            Status: coupon.expired ? "Expirado" : (coupon.usedAt ? "Usado" : "Disponível")
           });
         });
         
@@ -138,15 +138,22 @@ export function ExportCouponsModal({ currentFilter, searchQuery }: ExportCoupons
     }
   };
 
+  const filterLabels: Record<StatusFilter, string> = {
+    all: "todos",
+    used: "usados",
+    unused: "disponíveis",
+    expired: "expirados"
+  };
+
   const exportOptions: ExportOption[] = [
     {
-      label: currentFilter !== "all" || searchQuery 
-        ? `Export filtered coupons (${currentFilter}${searchQuery ? ` with search "${searchQuery}"` : ''})`
-        : "Export all coupons",
+      label: currentFilter !== "all" || searchQuery
+        ? `Exportar cupons filtrados (${filterLabels[currentFilter]}${searchQuery ? ` com busca "${searchQuery}"` : ''})`
+        : "Exportar todos os cupons",
       value: "filtered"
     },
     {
-      label: "Export all coupons",
+      label: "Exportar todos os cupons",
       value: "all"
     }
   ];
@@ -161,22 +168,22 @@ export function ExportCouponsModal({ currentFilter, searchQuery }: ExportCoupons
       <DialogTrigger asChild>
         <Button variant="outline">
           <Download className="mr-2 h-4 w-4" />
-          Export
+          Exportar
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Export Coupons</DialogTitle>
+          <DialogTitle>Exportar Cupons</DialogTitle>
           <DialogDescription>
-            Download coupons data as a CSV file. Choose which coupons to include.
+            Baixe os dados dos cupons como arquivo CSV. Escolha quais cupons incluir.
           </DialogDescription>
         </DialogHeader>
 
         {!isExporting ? (
           <>
             <div className="py-4">
-              <RadioGroup 
-                value={exportOption} 
+              <RadioGroup
+                value={exportOption}
                 onValueChange={(value) => setExportOption(value as "filtered" | "all")}
                 className="space-y-3"
               >
@@ -191,16 +198,16 @@ export function ExportCouponsModal({ currentFilter, searchQuery }: ExportCoupons
             <DialogFooter>
               <Button onClick={exportCoupons}>
                 <FileDown className="mr-2 h-4 w-4" />
-                Export Coupons
+                Exportar Cupons
               </Button>
             </DialogFooter>
           </>
         ) : (
           <div className="py-6 space-y-4">
-            <p className="text-center font-medium">Exporting Coupons...</p>
+            <p className="text-center font-medium">Exportando Cupons...</p>
             <Progress value={progress} className="w-full h-2" />
             <p className="text-center text-sm text-muted-foreground">
-              {progress}% Complete {exportedRecords > 0 ? `(${exportedRecords}/${totalRecords} records)` : ''}
+              {progress}% Concluído {exportedRecords > 0 ? `(${exportedRecords}/${totalRecords} registros)` : ''}
             </p>
           </div>
         )}

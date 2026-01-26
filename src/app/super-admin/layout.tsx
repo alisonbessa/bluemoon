@@ -27,16 +27,16 @@ import {
 } from "@/shared/ui/dropdown-menu";
 
 const navigation = [
-  { name: "Dashboard", href: "/super-admin", icon: LayoutDashboard },
-  { name: "Plans", href: "/super-admin/plans", icon: CreditCard },
-  { name: "Users", href: "/super-admin/users", icon: Users },
+  { name: "Painel", href: "/super-admin", icon: LayoutDashboard },
+  { name: "Planos", href: "/super-admin/plans", icon: CreditCard },
+  { name: "Usuários", href: "/super-admin/users", icon: Users },
   { name: "Lifetime Deal", href: "/super-admin/coupons", icon: Ticket },
-  { name: "Access Links", href: "/super-admin/access-links", icon: LinkIcon },
-  { name: "Messages", href: "/super-admin/messages", icon: MessageSquare },
-  { name: "Telegram AI", href: "/super-admin/telegram-ai", icon: Bot },
-  { name: "Waitlist", href: "/super-admin/waitlist", icon: ClipboardList },
-  { name: "Database", href: "/super-admin/database", icon: Database },
-  { name: "Logout", href: "/super-admin/logout", icon: LogOut },
+  { name: "Links de Acesso", href: "/super-admin/access-links", icon: LinkIcon },
+  { name: "Mensagens", href: "/super-admin/messages", icon: MessageSquare },
+  { name: "Telegram IA", href: "/super-admin/telegram-ai", icon: Bot },
+  { name: "Lista de Espera", href: "/super-admin/waitlist", icon: ClipboardList },
+  { name: "Banco de Dados", href: "/super-admin/database", icon: Database },
+  { name: "Sair", href: "/super-admin/logout", icon: LogOut },
 ];
 
 interface SuperAdminLayoutProps {
@@ -53,7 +53,7 @@ function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
             <DropdownMenuTrigger asChild className="md:hidden">
               <Button variant="ghost" size="icon">
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">Abrir menu</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-52">
@@ -75,7 +75,7 @@ function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
           </DropdownMenu>
           <div className="flex flex-1 items-center justify-between">
             <Link href="/super-admin" className="font-semibold">
-              {appConfig.projectName} Admin Dashboard
+              {appConfig.projectName} - Administração
             </Link>
             <div className="flex items-center gap-4">
               <ThemeSwitcher />

@@ -35,6 +35,13 @@ interface PaginationInfo {
   perPage: number;
 }
 
+const ROLE_LABELS: Record<UserRole, string> = {
+  user: "Usuário",
+  beta: "Beta",
+  lifetime: "Vitalício",
+  admin: "Admin",
+};
+
 export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -61,11 +68,11 @@ export default function UsersPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
-        <h1 className="text-2xl font-bold">Users</h1>
+        <h1 className="text-2xl font-bold">Usuários</h1>
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search users..."
+            placeholder="Buscar usuários..."
             className="pl-8"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
@@ -77,10 +84,10 @@ export default function UsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="min-w-[200px]">User</TableHead>
+              <TableHead className="min-w-[200px]">Usuário</TableHead>
               <TableHead className="min-w-[200px]">Email</TableHead>
-              <TableHead className="min-w-[100px]">Role</TableHead>
-              <TableHead className="min-w-[120px]">Created At</TableHead>
+              <TableHead className="min-w-[100px]">Tipo</TableHead>
+              <TableHead className="min-w-[120px]">Criado em</TableHead>
               <TableHead className="min-w-[150px]">ID</TableHead>
             </TableRow>
           </TableHeader>
@@ -88,19 +95,19 @@ export default function UsersPage() {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center">
-                  Loading...
+                  Carregando...
                 </TableCell>
               </TableRow>
             ) : error ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-red-500">
-                  Error loading users
+                  Erro ao carregar usuários
                 </TableCell>
               </TableRow>
             ) : data?.users.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center">
-                  No users found
+                  Nenhum usuário encontrado
                 </TableCell>
               </TableRow>
             ) : (
@@ -114,7 +121,7 @@ export default function UsersPage() {
                           {user.name ? getInitials(user.name) : "?"}
                         </AvatarFallback>
                       </Avatar>
-                      <span>{user.name || "Unnamed"}</span>
+                      <span>{user.name || "Sem nome"}</span>
                     </TableCell>
                   </Link>
                   <TableCell>{user.email}</TableCell>
@@ -130,11 +137,11 @@ export default function UsersPage() {
                               : "outline"
                       }
                     >
-                      {user.role || "user"}
+                      {ROLE_LABELS[user.role] || ROLE_LABELS.user}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {new Date(user.createdAt).toLocaleDateString()}
+                    {new Date(user.createdAt).toLocaleDateString("pt-BR")}
                   </TableCell>
                   <TableCell className="font-mono text-sm">{user.id}</TableCell>
                 </TableRow>
@@ -147,9 +154,9 @@ export default function UsersPage() {
       {data?.pagination && (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-muted-foreground text-center sm:text-left">
-            Showing {(page - 1) * limit + 1} to{" "}
-            {Math.min(page * limit, data.pagination.total)} of{" "}
-            {data.pagination.total} users
+            Exibindo {(page - 1) * limit + 1} a{" "}
+            {Math.min(page * limit, data.pagination.total)} de{" "}
+            {data.pagination.total} usuários
           </div>
           <div className="flex items-center justify-center gap-2">
             <Button
