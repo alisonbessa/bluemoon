@@ -15,6 +15,7 @@ export function useCurrentUser() {
     user: data?.user,
     currentPlan: data?.currentPlan,
     credits: data?.user?.credits,
+    hasPartnerAccess: data?.hasPartnerAccess ?? false,
     isLoading,
     error,
     mutate,
@@ -26,8 +27,8 @@ export function useCurrentUser() {
  * Uses useCurrentUser internally to share the SWR cache
  */
 export function useUser() {
-  const { user, isLoading, error, mutate } = useCurrentUser();
-  return { user, isLoading, error, mutate };
+  const { user, hasPartnerAccess, isLoading, error, mutate } = useCurrentUser();
+  return { user, hasPartnerAccess, isLoading, error, mutate };
 }
 
 /**

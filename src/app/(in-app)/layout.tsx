@@ -81,7 +81,7 @@ const TUTORIAL_STARTED_KEY = "hivebudget_tutorial_started";
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isLoading, error, mutate } = useUser();
+  const { user, hasPartnerAccess, isLoading, error, mutate } = useUser();
   const { isActive: isTutorialActive, currentStep, startTutorial } = useTutorial();
 
   const [showCelebration, setShowCelebration] = useState(false);
@@ -97,7 +97,8 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     // Don't initialize budget for users who haven't subscribed yet
     const hasActiveSubscription = user.stripeSubscriptionId !== null;
     const hasExemptRole = user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role);
-    if (!hasActiveSubscription && !hasExemptRole) return;
+    // Partners with access through owner's subscription can also use the app
+    if (!hasActiveSubscription && !hasExemptRole && !hasPartnerAccess) return;
 
     // Check if budget was already initialized
     const budgetInitialized = localStorage.getItem(BUDGET_INITIALIZED_KEY) === "true";
@@ -219,11 +220,16 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // Skip check for partners who have access through owner's subscription
+    if (hasPartnerAccess) {
+      return;
+    }
+
     // If user doesn't have a Stripe subscription, redirect to choose-plan
     if (!user.stripeSubscriptionId) {
       router.replace("/app/choose-plan");
     }
-  }, [isLoading, user, pathname, router]);
+  }, [isLoading, user, hasPartnerAccess, pathname, router]);
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -239,7 +245,8 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const isOnChoosePlanPage = pathname === "/app/choose-plan";
 
   // Show minimal layout for choose-plan page when user doesn't have a subscription
-  if (isOnChoosePlanPage && !hasActiveSubscription && !hasExemptRole) {
+  // Partners with access through owner's subscription can use full layout
+  if (isOnChoosePlanPage && !hasActiveSubscription && !hasExemptRole && !hasPartnerAccess) {
     return (
       <div className="min-h-screen bg-background">
         <main className="flex-1">

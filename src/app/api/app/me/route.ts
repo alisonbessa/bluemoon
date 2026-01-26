@@ -12,9 +12,10 @@ import {
   successResponse,
   internalError,
 } from "@/shared/lib/api/responses";
+import { checkPartnerAccess } from "@/shared/lib/users/checkPartnerAccess";
 
 export const GET = withAuthRequired(async (req, context) => {
-  const { getCurrentPlan, getUser } = context;
+  const { getCurrentPlan, getUser, session } = context;
 
   // You can also use context.session to get user id and email
   // from the jwt token (no database call is made in that case)
@@ -27,9 +28,14 @@ export const GET = withAuthRequired(async (req, context) => {
   }
 
   const currentPlan = await getCurrentPlan();
+
+  // Check if user has access through a partner relationship
+  const hasPartnerAccess = await checkPartnerAccess(session.user.id);
+
   return NextResponse.json<MeResponse>({
     user: userFromDb,
     currentPlan,
+    hasPartnerAccess,
   });
 });
 

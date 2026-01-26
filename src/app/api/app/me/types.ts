@@ -10,4 +10,6 @@ export interface MeResponse {
     default: (typeof plans.$inferSelect)["default"];
   } | null;
   user: Omit<typeof users.$inferSelect, "password">;
+  /** True if user has access through a partner relationship (owner has active subscription) */
+  hasPartnerAccess: boolean;
 }
