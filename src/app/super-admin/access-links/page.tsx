@@ -36,7 +36,7 @@ import {
   MoreVertical,
   ExternalLink,
   Copy,
-  Link as LinkIcon,
+  Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -54,11 +54,12 @@ interface AccessLink {
   planType: "solo" | "duo" | null;
   userId: string | null;
   usedAt: string | null;
-  createdBy: string | null;
   note: string | null;
   expired: boolean;
   createdAt: string;
   expiresAt: string | null;
+  userName: string | null;
+  userEmail: string | null;
 }
 
 interface AccessLinksResponse {
@@ -256,13 +257,22 @@ export default function AccessLinksPage() {
                   <TableCell>{getStatusBadge(link)}</TableCell>
                   <TableCell>
                     {link.userId ? (
-                      <Link
-                        href={`/super-admin/users/${link.userId}`}
-                        className="flex items-center text-primary hover:underline text-sm"
-                      >
-                        {link.userId.substring(0, 8)}...
-                        <ExternalLink className="ml-1 h-3 w-3" />
-                      </Link>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Link
+                              href={`/super-admin/users/${link.userId}`}
+                              className="flex items-center text-primary hover:underline text-sm max-w-[120px] truncate"
+                            >
+                              {link.userName || link.userEmail?.split("@")[0] || link.userId.substring(0, 8)}
+                              <ExternalLink className="ml-1 h-3 w-3 shrink-0" />
+                            </Link>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {link.userEmail || link.userId}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
@@ -296,8 +306,8 @@ export default function AccessLinksPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => copyRedeemUrl(link.code)}>
-                          <LinkIcon className="mr-2 h-4 w-4" />
-                          Copiar Link
+                          <Copy className="mr-2 h-4 w-4" />
+                          Copiar
                         </DropdownMenuItem>
                         {!link.expired && !link.usedAt && (
                           <DropdownMenuItem
@@ -316,6 +326,7 @@ export default function AccessLinksPage() {
                           }}
                           className="text-destructive"
                         >
+                          <Trash2 className="mr-2 h-4 w-4" />
                           Deletar
                         </DropdownMenuItem>
                       </DropdownMenuContent>
