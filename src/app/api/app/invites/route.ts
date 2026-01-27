@@ -63,7 +63,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
 // POST - Create a new invite
 export const POST = withAuthRequired(async (req, context) => {
-  const { session } = context;
+  const { session, getCurrentPlan } = context;
   const body = await req.json();
 
   const validation = createInviteSchema.safeParse(body);
@@ -77,6 +77,16 @@ export const POST = withAuthRequired(async (req, context) => {
   const ownerBudgetIds = await getOwnerBudgetIds(session.user.id);
   if (!ownerBudgetIds.includes(budgetId)) {
     return forbiddenError("Budget not found or you are not the owner");
+  }
+
+  // Check if user's plan allows partners (Duo plan has maxBudgetMembers >= 2)
+  const currentPlan = await getCurrentPlan();
+  const maxMembers = currentPlan?.quotas?.maxBudgetMembers ?? 1;
+  if (maxMembers < 2) {
+    return errorResponse(
+      "Faça upgrade para o plano Duo para convidar um parceiro",
+      403
+    );
   }
 
   // Check if there's already a connected partner (with userId)
