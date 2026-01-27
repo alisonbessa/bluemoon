@@ -113,7 +113,7 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
           Gerar Links
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-[95vw] sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Gerar Links de Acesso</DialogTitle>
           <DialogDescription>
@@ -176,11 +176,11 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
               </div>
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={handleClose}>
+            <DialogFooter className="flex-col gap-2 sm:flex-row">
+              <Button variant="outline" onClick={handleClose} className="w-full sm:w-auto">
                 Cancelar
               </Button>
-              <Button onClick={handleGenerate} disabled={isLoading}>
+              <Button onClick={handleGenerate} disabled={isLoading} className="w-full sm:w-auto">
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Gerar {quantity} Link{quantity > 1 ? "s" : ""}
               </Button>

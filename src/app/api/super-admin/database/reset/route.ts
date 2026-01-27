@@ -23,7 +23,7 @@ import { sql } from "drizzle-orm";
  * - app_user, credit_transactions, coupon, access_links, account, session, verificationToken, authenticator
  *
  * Tables always preserved:
- * - plans, contact_messages, waitlist
+ * - plans, contact, waitlist
  */
 export const POST = withSuperAdminAuthRequired(async (req) => {
   try {
@@ -76,8 +76,10 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
 
     // Delete tables using TRUNCATE with CASCADE
     // Build dynamic SQL based on selected tables
+    // Wrap table names in double quotes to preserve case sensitivity (e.g., verificationToken)
+    const quotedTables = tablesToDelete.map((t) => `"${t}"`).join(", ");
     await db.execute(sql.raw(`
-      TRUNCATE TABLE ${tablesToDelete.join(", ")}
+      TRUNCATE TABLE ${quotedTables}
       RESTART IDENTITY CASCADE
     `));
 

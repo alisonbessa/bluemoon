@@ -171,7 +171,7 @@ export function ExportCouponsModal({ currentFilter, searchQuery }: ExportCoupons
           Exportar
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="w-[95vw] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Exportar Cupons</DialogTitle>
           <DialogDescription>

@@ -75,20 +75,15 @@ export function Header() {
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="border-t border-border/40 md:hidden">
-            <div className="space-y-1 px-2 pb-3 pt-2">
+            <div className="flex flex-col gap-2 px-4 py-3">
               {signInEnabled && (
-                <Link
-                  href="/sign-in"
-                  className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                >
-                  Entrar
-                </Link>
-              )}
-              <div className="px-3 py-2">
-                <Button className="w-full" asChild>
-                  <Link href={CTAHref}>{CTAText}</Link>
+                <Button variant="outline" className="w-full" asChild>
+                  <Link href="/sign-in">Entrar</Link>
                 </Button>
-              </div>
+              )}
+              <Button className="w-full" asChild>
+                <Link href={CTAHref}>{CTAText}</Link>
+              </Button>
             </div>
           </div>
         )}

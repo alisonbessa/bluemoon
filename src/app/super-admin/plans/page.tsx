@@ -200,7 +200,7 @@ export default function PlansPage() {
               </div>
             </div>
           ) : stripeStatus?.connected ? (
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
               {/* API Key Status */}
               <div className="flex items-start gap-3">
                 <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />

@@ -24,7 +24,7 @@ const testimonials = [
     name: "Fernando",
     role: "Desenvolvedor freelancer",
     location: "Curitiba",
-    avatar: "/images/depoimento3.PNG",
+    avatar: "/images/depoimento3.png",
     quote:
       "Como freela minha renda varia muito né, um mês vem bem, outro vem menos. O HiveBudget me ajudou a parar de torrar tudo quando vem mais e guardar pros meses magros. Parece óbvio mas eu nunca tinha conseguido fazer isso antes.",
   },
@@ -32,7 +32,7 @@ const testimonials = [
     name: "Juliana",
     role: "Analista de marketing",
     location: "Porto Alegre",
-    avatar: "/images/depoimento4.PNG",
+    avatar: "/images/depoimento4.png",
     quote:
       "Eu tinha uns 5 parcelamentos no cartão e nunca sabia quanto ia vir a fatura. Agora eu vejo tudo organizado, sei exatamente quanto já comprometi do meu limite e quanto ainda posso gastar. Acabou a surpresa no fechamento!",
   },

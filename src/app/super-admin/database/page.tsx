@@ -20,39 +20,39 @@ import { toast } from "sonner";
 const CONFIRMATION_CODE = "RESET_ALL_DATA";
 
 const TABLES_TO_DELETE = [
-  { name: "transactions", description: "All financial transactions" },
-  { name: "monthly_allocations", description: "Category budget allocations" },
-  { name: "monthly_income_allocations", description: "Income allocations" },
-  { name: "monthly_budget_status", description: "Monthly status tracking" },
-  { name: "recurring_bills", description: "Recurring bill definitions" },
-  { name: "income_sources", description: "Income source definitions" },
-  { name: "goals", description: "Savings goals" },
-  { name: "categories", description: "Budget categories" },
-  { name: "financial_accounts", description: "Bank accounts and credit cards" },
-  { name: "budget_members", description: "Budget membership" },
-  { name: "invites", description: "Pending invitations" },
-  { name: "budgets", description: "Budget definitions" },
-  { name: "groups", description: "Category groups" },
-  { name: "telegram_users", description: "Telegram connections" },
-  { name: "telegram_ai_logs", description: "AI conversation logs" },
-  { name: "telegram_pending_connections", description: "Pending Telegram links" },
-  { name: "access_links", description: "Lifetime/Beta access links" },
+  { name: "transactions", description: "Transações financeiras" },
+  { name: "monthly_allocations", description: "Alocações de categorias" },
+  { name: "monthly_income_allocations", description: "Alocações de renda" },
+  { name: "monthly_budget_status", description: "Status mensal" },
+  { name: "recurring_bills", description: "Contas recorrentes" },
+  { name: "income_sources", description: "Fontes de renda" },
+  { name: "goals", description: "Metas de economia" },
+  { name: "categories", description: "Categorias" },
+  { name: "financial_accounts", description: "Contas bancárias" },
+  { name: "budget_members", description: "Membros do orçamento" },
+  { name: "invites", description: "Convites pendentes" },
+  { name: "budgets", description: "Orçamentos" },
+  { name: "groups", description: "Grupos de categorias" },
+  { name: "telegram_users", description: "Conexões Telegram" },
+  { name: "telegram_ai_logs", description: "Logs de IA" },
+  { name: "telegram_pending_connections", description: "Conexões pendentes" },
+  { name: "access_links", description: "Links de acesso" },
 ];
 
 const USER_TABLES = [
-  { name: "users", description: "User accounts" },
-  { name: "credits", description: "User credit balances" },
-  { name: "credit_transactions", description: "Credit transaction history" },
-  { name: "coupons", description: "Lifetime deal coupons" },
-  { name: "sessions", description: "Active sessions" },
-  { name: "accounts", description: "OAuth accounts" },
-  { name: "verification_tokens", description: "Email verification tokens" },
+  { name: "users", description: "Contas de usuários" },
+  { name: "credits", description: "Saldo de créditos" },
+  { name: "credit_transactions", description: "Histórico de créditos" },
+  { name: "coupons", description: "Cupons lifetime" },
+  { name: "sessions", description: "Sessões ativas" },
+  { name: "accounts", description: "Contas OAuth" },
+  { name: "verification_tokens", description: "Tokens de verificação" },
 ];
 
 const TABLES_ALWAYS_PRESERVED = [
-  { name: "plans", description: "Subscription plans" },
-  { name: "contact_messages", description: "Contact form messages" },
-  { name: "waitlist", description: "Waitlist entries" },
+  { name: "plans", description: "Planos de assinatura" },
+  { name: "contact_messages", description: "Mensagens de contato" },
+  { name: "waitlist", description: "Lista de espera" },
 ];
 
 export default function DatabasePage() {
@@ -62,7 +62,7 @@ export default function DatabasePage() {
 
   const handleReset = async () => {
     if (confirmation !== CONFIRMATION_CODE) {
-      toast.error("Invalid confirmation code");
+      toast.error("Código de confirmação inválido");
       return;
     }
 
@@ -77,18 +77,18 @@ export default function DatabasePage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to reset database");
+        throw new Error(data.message || "Falha ao resetar banco de dados");
       }
 
       toast.success(
         includeUsers
-          ? "Full database reset completed (including users)"
-          : "Database reset completed (users preserved)"
+          ? "Reset completo realizado (incluindo usuários)"
+          : "Reset realizado (usuários preservados)"
       );
       setConfirmation("");
       setIncludeUsers(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to reset database");
+      toast.error(error instanceof Error ? error.message : "Falha ao resetar banco de dados");
       console.error(error);
     } finally {
       setIsResetting(false);
@@ -96,96 +96,98 @@ export default function DatabasePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       <div className="flex items-center gap-4">
-        <Database className="h-8 w-8" />
-        <div>
-          <h1 className="text-2xl font-bold">Database Management</h1>
-          <p className="text-muted-foreground">
-            Manage and reset application data
+        <Database className="h-8 w-8 shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold">Gerenciamento de Banco</h1>
+          <p className="text-muted-foreground text-sm">
+            Gerenciar e resetar dados da aplicação
           </p>
         </div>
       </div>
 
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Danger Zone</AlertTitle>
+        <AlertTitle>Zona de Perigo</AlertTitle>
         <AlertDescription>
-          Operations on this page are destructive and cannot be undone.
-          Make sure you have a backup before proceeding.
+          Operações nesta página são destrutivas e não podem ser desfeitas.
+          Certifique-se de ter um backup antes de prosseguir.
         </AlertDescription>
       </Alert>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Tables always deleted */}
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Tabelas sempre deletadas */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" />
-              Always Deleted
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-destructive text-base">
+              <Trash2 className="h-5 w-5 shrink-0" />
+              Sempre Deletado
             </CardTitle>
-            <CardDescription>
-              HiveBudget data (budgets, transactions, etc.)
+            <CardDescription className="text-xs">
+              Dados do HiveBudget (orçamentos, transações, etc.)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-1.5 text-sm max-h-64 overflow-y-auto">
+            <ul className="space-y-2 text-sm max-h-64 overflow-y-auto">
               {TABLES_TO_DELETE.map((table) => (
-                <li key={table.name} className="flex justify-between gap-2">
-                  <code className="bg-destructive/10 px-1 rounded text-destructive text-xs">
+                <li key={table.name} className="flex flex-col gap-0.5">
+                  <code className="bg-destructive/10 px-1.5 py-0.5 rounded text-destructive text-xs w-fit">
                     {table.name}
                   </code>
-                  <span className="text-muted-foreground text-xs truncate">{table.description}</span>
+                  <span className="text-muted-foreground text-xs pl-1">{table.description}</span>
                 </li>
               ))}
             </ul>
           </CardContent>
         </Card>
 
-        {/* User tables (optional) */}
+        {/* Tabelas de usuários (opcional) */}
         <Card className={includeUsers ? "border-destructive" : ""}>
-          <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${includeUsers ? "text-destructive" : "text-amber-600"}`}>
-              <Users className="h-5 w-5" />
-              User Data {includeUsers ? "(Will Delete)" : "(Optional)"}
+          <CardHeader className="pb-3">
+            <CardTitle className={`flex items-center gap-2 text-base ${includeUsers ? "text-destructive" : "text-amber-600"}`}>
+              <Users className="h-5 w-5 shrink-0" />
+              <span className="truncate">
+                Dados de Usuários {includeUsers ? "(Será Deletado)" : "(Opcional)"}
+              </span>
             </CardTitle>
-            <CardDescription>
-              {includeUsers ? "Will be deleted with checkbox enabled" : "Enable checkbox to also delete users"}
+            <CardDescription className="text-xs">
+              {includeUsers ? "Será deletado com checkbox ativado" : "Ative checkbox para deletar usuários"}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-1.5 text-sm">
+            <ul className="space-y-2 text-sm">
               {USER_TABLES.map((table) => (
-                <li key={table.name} className="flex justify-between gap-2">
-                  <code className={`px-1 rounded text-xs ${includeUsers ? "bg-destructive/10 text-destructive" : "bg-amber-500/10 text-amber-600"}`}>
+                <li key={table.name} className="flex flex-col gap-0.5">
+                  <code className={`px-1.5 py-0.5 rounded text-xs w-fit ${includeUsers ? "bg-destructive/10 text-destructive" : "bg-amber-500/10 text-amber-600"}`}>
                     {table.name}
                   </code>
-                  <span className="text-muted-foreground text-xs truncate">{table.description}</span>
+                  <span className="text-muted-foreground text-xs pl-1">{table.description}</span>
                 </li>
               ))}
             </ul>
           </CardContent>
         </Card>
 
-        {/* Tables always preserved */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-600">
-              <Database className="h-5 w-5" />
-              Always Preserved
+        {/* Tabelas sempre preservadas */}
+        <Card className="md:col-span-2 lg:col-span-1">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-green-600 text-base">
+              <Database className="h-5 w-5 shrink-0" />
+              Sempre Preservado
             </CardTitle>
-            <CardDescription>
-              System config (plans, waitlist, messages)
+            <CardDescription className="text-xs">
+              Config do sistema (planos, waitlist, mensagens)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-1.5 text-sm">
+            <ul className="space-y-2 text-sm">
               {TABLES_ALWAYS_PRESERVED.map((table) => (
-                <li key={table.name} className="flex justify-between gap-2">
-                  <code className="bg-green-500/10 px-1 rounded text-green-600 text-xs">
+                <li key={table.name} className="flex flex-col gap-0.5">
+                  <code className="bg-green-500/10 px-1.5 py-0.5 rounded text-green-600 text-xs w-fit">
                     {table.name}
                   </code>
-                  <span className="text-muted-foreground text-xs truncate">{table.description}</span>
+                  <span className="text-muted-foreground text-xs pl-1">{table.description}</span>
                 </li>
               ))}
             </ul>
@@ -193,41 +195,41 @@ export default function DatabasePage() {
         </Card>
       </div>
 
-      {/* Reset Form */}
+      {/* Formulário de Reset */}
       <Card className="border-destructive">
         <CardHeader>
-          <CardTitle className="text-destructive">Reset All Data</CardTitle>
+          <CardTitle className="text-destructive">Resetar Todos os Dados</CardTitle>
           <CardDescription>
-            This will delete all HiveBudget data including budgets, transactions,
-            categories, accounts, and more.
+            Isso irá deletar todos os dados do HiveBudget incluindo orçamentos, transações,
+            categorias, contas e mais.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Include Users Checkbox */}
+          {/* Checkbox para incluir usuários */}
           <div className="flex items-start space-x-3 p-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
             <Checkbox
               id="includeUsers"
               checked={includeUsers}
               onCheckedChange={(checked) => setIncludeUsers(checked === true)}
             />
-            <div className="grid gap-1.5 leading-none">
+            <div className="grid gap-1.5 leading-none min-w-0">
               <Label
                 htmlFor="includeUsers"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Also delete user accounts
+                Deletar contas de usuários também
               </Label>
               <p className="text-xs text-muted-foreground">
-                This will remove all users, credits, coupons, and sessions.
-                Only plans and system config will remain.
+                Isso irá remover todos os usuários, créditos, cupons e sessões.
+                Apenas planos e config do sistema permanecerão.
               </p>
             </div>
           </div>
 
-          {/* Confirmation Code */}
+          {/* Código de confirmação */}
           <div>
             <p className="text-sm font-medium mb-2">
-              To confirm, type <code className="bg-muted px-1 rounded">{CONFIRMATION_CODE}</code> below:
+              Para confirmar, digite <code className="bg-muted px-1 rounded">{CONFIRMATION_CODE}</code> abaixo:
             </p>
             <Input
               value={confirmation}
@@ -245,17 +247,17 @@ export default function DatabasePage() {
             className="w-full sm:w-auto"
           >
             {isResetting ? (
-              <>Resetting...</>
+              <>Resetando...</>
             ) : (
               <>
                 <Trash2 className="h-4 w-4 mr-2" />
-                {includeUsers ? "Reset Everything" : "Reset Database"}
+                {includeUsers ? "Resetar Tudo" : "Resetar Banco"}
               </>
             )}
           </Button>
           {includeUsers && (
             <span className="text-xs text-destructive">
-              Warning: This will delete ALL users!
+              Atenção: Isso irá deletar TODOS os usuários!
             </span>
           )}
         </CardFooter>

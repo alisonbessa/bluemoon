@@ -9,8 +9,19 @@ export const metadata: Metadata = {
   description: `Crie sua conta no ${appConfig.projectName}`,
 }
 
-export default function SignUpPage() {
+interface SignUpPageProps {
+  searchParams: Promise<{ plan?: string; billing?: string }>;
+}
+
+export default async function SignUpPage({ searchParams }: SignUpPageProps) {
   const showPasswordAuth = appConfig.auth?.enablePasswordAuth;
+  const params = await searchParams;
+
+  // Build callback URL with plan parameters if present
+  let callbackUrl = "/app";
+  if (params.plan && params.billing) {
+    callbackUrl = `/app/choose-plan?plan=${params.plan}&billing=${params.billing}`;
+  }
 
   return (
     <>
@@ -23,7 +34,7 @@ export default function SignUpPage() {
         </p>
       </div>
 
-      {showPasswordAuth ? <SignUpForm /> : <AuthForm />}
+      {showPasswordAuth ? <SignUpForm /> : <AuthForm callbackUrl={callbackUrl} />}
 
       <div className="mt-6 text-center">
         <Link

@@ -199,32 +199,32 @@ export default function TelegramAIPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Bot className="h-8 w-8" />
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <Bot className="h-6 w-6 sm:h-8 sm:w-8" />
             Telegram AI Analytics
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             Analise e melhore a precisao do bot do Telegram
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowSuggestions(true)}>
-            <Lightbulb className="h-4 w-4 mr-2" />
-            Sugestoes
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowSuggestions(true)}>
+            <Lightbulb className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Sugestoes</span>
           </Button>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Exportar</span>
           </Button>
-          <Button variant="outline" onClick={() => mutate()}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
+          <Button variant="outline" size="sm" onClick={() => mutate()}>
+            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Atualizar</span>
           </Button>
-          <Button variant="destructive" onClick={handleDelete}>
-            <Trash2 className="h-4 w-4 mr-2" />
-            Limpar Antigos
+          <Button variant="destructive" size="sm" onClick={handleDelete}>
+            <Trash2 className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Limpar</span>
           </Button>
         </div>
       </div>
@@ -363,16 +363,16 @@ export default function TelegramAIPage() {
 
       {/* Logs Table */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Mensagem</TableHead>
-                <TableHead>Usuario</TableHead>
-                <TableHead>Intencao AI</TableHead>
-                <TableHead>Confianca</TableHead>
-                <TableHead>Resolucao</TableHead>
-                <TableHead>Data</TableHead>
+                <TableHead className="min-w-[200px]">Mensagem</TableHead>
+                <TableHead className="min-w-[120px]">Usuario</TableHead>
+                <TableHead className="min-w-[100px]">Intencao AI</TableHead>
+                <TableHead className="min-w-[80px]">Confianca</TableHead>
+                <TableHead className="min-w-[100px]">Resolucao</TableHead>
+                <TableHead className="min-w-[90px]">Data</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -450,7 +450,7 @@ export default function TelegramAIPage() {
 
       {/* Log Detail Dialog */}
       <Dialog open={!!selectedLog} onOpenChange={() => setSelectedLog(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalhes do Log</DialogTitle>
             <DialogDescription>
@@ -560,7 +560,7 @@ export default function TelegramAIPage() {
 
       {/* Suggestions Dialog */}
       <Dialog open={showSuggestions} onOpenChange={setShowSuggestions}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Lightbulb className="h-5 w-5 text-yellow-500" />

@@ -328,28 +328,28 @@ export default function UserDetailsPage() {
           </Button>
           <h1 className="text-2xl font-bold">Detalhes do Usuário</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {enableCredits && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsCreditModalOpen(true)}
             >
-              <CreditCard className="h-4 w-4 mr-2" />
-              Gerenciar Créditos
+              <CreditCard className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Gerenciar Créditos</span>
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={handleImpersonate}>
-            <User className="h-4 w-4 mr-2" />
-            Personificar
+            <User className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Personificar</span>
           </Button>
           <Button
             variant="destructive"
             size="sm"
             onClick={() => router.push(`/super-admin/users/${id}/delete`)}
           >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Excluir Usuário
+            <Trash2 className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Excluir Usuário</span>
           </Button>
         </div>
       </div>
@@ -532,7 +532,7 @@ export default function UserDetailsPage() {
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-row gap-6">
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Perfil do Usuário</CardTitle>
@@ -688,8 +688,8 @@ export default function UserDetailsPage() {
         </Card>
       </div>
       {enableCredits && (
-        <div className="flex flex-row gap-6">
-          <Card className="flex-1">
+        <div className="grid gap-6">
+          <Card>
             <CardHeader>
               <CardTitle>Créditos e Histórico</CardTitle>
               <CardDescription>

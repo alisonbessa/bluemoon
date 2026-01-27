@@ -78,7 +78,7 @@ export function ForCouples() {
 
               <div className="mt-8">
                 <Button size="lg" asChild>
-                  <Link href="/sign-in">Começar com meu parceiro(a)</Link>
+                  <Link href="/sign-up?plan=duo&billing=monthly">Começar com meu parceiro(a)</Link>
                 </Button>
                 <p className="mt-3 text-sm text-muted-foreground">
                   Apenas quem cria a conta paga. O parceiro(a) entra grátis.

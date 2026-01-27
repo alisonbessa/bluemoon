@@ -41,7 +41,7 @@ export function TelegramFeature() {
 
               <div className="pt-4">
                 <Button size="lg" asChild>
-                  <Link href="/sign-up">Experimentar 30 dias grátis</Link>
+                  <Link href="#pricing">Experimentar 30 dias grátis</Link>
                 </Button>
               </div>
             </div>

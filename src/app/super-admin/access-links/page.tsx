@@ -156,11 +156,11 @@ export default function AccessLinksPage() {
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-1 w-full sm:w-auto">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
           <Input
             placeholder="Buscar por código ou nota..."
-            className="max-w-sm"
+            className="w-full sm:max-w-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -169,7 +169,7 @@ export default function AccessLinksPage() {
               value={statusFilter}
               onValueChange={(value: StatusFilter) => setStatusFilter(value)}
             >
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="flex-1 sm:w-[130px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -183,7 +183,7 @@ export default function AccessLinksPage() {
               value={typeFilter}
               onValueChange={(value: TypeFilter) => setTypeFilter(value)}
             >
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="flex-1 sm:w-[130px]">
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -194,20 +194,22 @@ export default function AccessLinksPage() {
             </Select>
           </div>
         </div>
-        <GenerateModal onSuccess={() => mutate()} />
+        <div className="w-full sm:w-auto">
+          <GenerateModal onSuccess={() => mutate()} />
+        </div>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Código</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Plano</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Usado por</TableHead>
-              <TableHead>Nota</TableHead>
-              <TableHead>Criado em</TableHead>
+              <TableHead className="min-w-[140px]">Código</TableHead>
+              <TableHead className="min-w-[80px]">Tipo</TableHead>
+              <TableHead className="min-w-[70px]">Plano</TableHead>
+              <TableHead className="min-w-[80px]">Status</TableHead>
+              <TableHead className="min-w-[100px]">Usado por</TableHead>
+              <TableHead className="min-w-[120px]">Nota</TableHead>
+              <TableHead className="min-w-[100px]">Criado em</TableHead>
               <TableHead className="w-[70px]">Ações</TableHead>
             </TableRow>
           </TableHeader>

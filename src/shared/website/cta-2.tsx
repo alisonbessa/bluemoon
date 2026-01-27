@@ -24,7 +24,7 @@ export function CTA2() {
           </div>
           <div className="mt-8">
             <Button size="lg" asChild>
-              <Link href="/sign-in">Começar Grátis</Link>
+              <Link href="#pricing">Começar Grátis</Link>
             </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
