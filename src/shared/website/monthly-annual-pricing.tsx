@@ -209,7 +209,7 @@ const MonthlyAnnualPricing = () => {
                     </div>
 
                     <Button size="lg" className="mt-8 w-full" asChild>
-                      <Link href="/sign-in">
+                      <Link href={`/sign-up?plan=${key}&billing=${isAnnually ? "yearly" : "monthly"}`}>
                         Começar 30 dias grátis
                       </Link>
                     </Button>

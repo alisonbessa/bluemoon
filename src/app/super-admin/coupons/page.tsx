@@ -102,11 +102,11 @@ export default function CouponsPage() {
         </p>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
           <Input
             placeholder="Buscar cupons..."
-            className="max-w-sm"
+            className="w-full sm:max-w-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -114,7 +114,7 @@ export default function CouponsPage() {
             value={statusFilter}
             onValueChange={(value: StatusFilter) => setStatusFilter(value)}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filtrar por status" />
             </SelectTrigger>
             <SelectContent>
@@ -125,22 +125,22 @@ export default function CouponsPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <ExportCouponsModal currentFilter={statusFilter} searchQuery={debouncedSearch} />
           <ExpireCouponsModal onSuccess={() => mutate()} />
           <GenerateModal onSuccess={() => mutate()} />
         </div>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Código</TableHead>
-              <TableHead>Criado em</TableHead>
-              <TableHead>Usado por</TableHead>
-              <TableHead>Usado em</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="min-w-[120px]">Código</TableHead>
+              <TableHead className="min-w-[140px]">Criado em</TableHead>
+              <TableHead className="min-w-[100px]">Usado por</TableHead>
+              <TableHead className="min-w-[140px]">Usado em</TableHead>
+              <TableHead className="min-w-[80px]">Status</TableHead>
               <TableHead className="w-[70px]">Ações</TableHead>
             </TableRow>
           </TableHeader>

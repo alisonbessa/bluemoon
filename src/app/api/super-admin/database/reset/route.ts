@@ -20,10 +20,10 @@ import { sql } from "drizzle-orm";
  * - telegram_users, telegram_ai_logs, telegram_pending_connections
  *
  * Tables deleted when includeUsers=true:
- * - users, credits, credit_transactions, coupons, accounts, sessions, verification_tokens
+ * - app_user, credit_transactions, coupon, access_links, account, session, verificationToken, authenticator
  *
  * Tables always preserved:
- * - plans, contact_messages, waitlist
+ * - plans, contact, waitlist
  */
 export const POST = withSuperAdminAuthRequired(async (req) => {
   try {
@@ -60,13 +60,14 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
     ];
 
     const userTables = [
-      "credits",
       "credit_transactions",
-      "coupons",
-      "sessions",
-      "accounts",
-      "verification_tokens",
-      "users",
+      "coupon",
+      "access_links",
+      "session",
+      "account",
+      "verificationToken",
+      "authenticator",
+      "app_user",
     ];
 
     const tablesToDelete = includeUsers
@@ -75,8 +76,10 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
 
     // Delete tables using TRUNCATE with CASCADE
     // Build dynamic SQL based on selected tables
+    // Wrap table names in double quotes to preserve case sensitivity (e.g., verificationToken)
+    const quotedTables = tablesToDelete.map((t) => `"${t}"`).join(", ");
     await db.execute(sql.raw(`
-      TRUNCATE TABLE ${tablesToDelete.join(", ")}
+      TRUNCATE TABLE ${quotedTables}
       RESTART IDENTITY CASCADE
     `));
 

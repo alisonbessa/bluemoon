@@ -39,19 +39,19 @@ export default function SuperAdminDashboard() {
   const totalUsers = planStats?.data.reduce((acc, curr) => acc + curr.count, 0) || 0;
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Painel Administrativo</h1>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
+        <h1 className="text-2xl sm:text-3xl font-bold">Painel Administrativo</h1>
         <UnreadMessagesBell />
       </div>
 
-      <div className="grid gap-8">
+      <div className="grid gap-6">
         {/* Daily Stats Chart */}
         <Card>
-          <CardHeader>
-            <CardTitle>Crescimento de Usuários (Últimos 30 Dias)</CardTitle>
+          <CardHeader className="pb-2 sm:pb-6">
+            <CardTitle className="text-base sm:text-lg">Crescimento de Usuários (Últimos 30 Dias)</CardTitle>
           </CardHeader>
-          <CardContent className="h-[400px]">
+          <CardContent className="h-[250px] sm:h-[400px] px-2 sm:px-6">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={dailyStats?.data || []}>
                 <CartesianGrid strokeDasharray="3 3" />

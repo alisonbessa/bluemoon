@@ -46,7 +46,7 @@ const Hero2 = () => {
 
         <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
           <Button size="lg" asChild>
-            <Link href="/sign-in">Começar Grátis</Link>
+            <Link href="#pricing">Começar Grátis</Link>
           </Button>
           <Button size="lg" variant="outline" asChild>
             <Link href="#features">Ver Funcionalidades</Link>

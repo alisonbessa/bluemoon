@@ -25,7 +25,7 @@ const CTA1 = () => {
                 className="bg-background text-primary hover:bg-background/90"
                 asChild
               >
-                <Link href="/sign-in">Começar Agora</Link>
+                <Link href="#pricing">Começar Agora</Link>
               </Button>
               <Button
                 size="lg"

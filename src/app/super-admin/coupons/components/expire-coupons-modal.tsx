@@ -125,7 +125,7 @@ export function ExpireCouponsModal({ onSuccess }: ExpireCouponsModalProps) {
           Expirar Cupons
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="w-[95vw] sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>Expirar Cupons</DialogTitle>
           <DialogDescription>

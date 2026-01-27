@@ -96,7 +96,7 @@ function SidebarUserMenu() {
   const isCollapsed = state === "collapsed";
 
   return (
-    <div className={cn("flex items-center", isCollapsed ? "justify-center" : "px-2")}>
+    <div className={cn("flex items-center", isCollapsed ? "justify-center" : "")}>
       <UserButton compact={isCollapsed} />
     </div>
   );

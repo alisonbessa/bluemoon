@@ -34,6 +34,8 @@ import {
   Sparkles,
   Clock,
   AlertTriangle,
+  ArrowUpDown,
+  Users,
 } from "lucide-react";
 import { TelegramConnectionCard } from "@/integrations/telegram/TelegramConnectionCard";
 import { MembersManagement } from "@/shared/settings/members-management";
@@ -53,6 +55,8 @@ export default function SettingsPage() {
   const [showOnboardingConfirm, setShowOnboardingConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCancelTrialConfirm, setShowCancelTrialConfirm] = useState(false);
+  const [showChangePlanConfirm, setShowChangePlanConfirm] = useState(false);
+  const [isChangingPlan, setIsChangingPlan] = useState(false);
   const [budgetId, setBudgetId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -204,6 +208,33 @@ export default function SettingsPage() {
     } finally {
       setIsCancellingTrial(false);
       setShowCancelTrialConfirm(false);
+    }
+  };
+
+  const handleChangePlan = async () => {
+    const newPlanCodename = currentPlan?.codename === "solo" ? "duo" : "solo";
+    setIsChangingPlan(true);
+    try {
+      const response = await fetch("/api/app/subscription/change-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPlanCodename }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(data.message || "Plano alterado com sucesso!");
+        mutateUser();
+      } else {
+        toast.error(data.error || "Erro ao alterar plano");
+      }
+    } catch (error) {
+      console.error("Error changing plan:", error);
+      toast.error("Erro ao alterar plano");
+    } finally {
+      setIsChangingPlan(false);
+      setShowChangePlanConfirm(false);
     }
   };
 
@@ -470,20 +501,38 @@ export default function SettingsPage() {
                 // Active paid subscription
                 <div className="rounded-lg border bg-muted/50 p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold">{currentPlan.name}</span>
+                    <div className="flex items-center gap-2">
+                      {currentPlan.codename === "duo" ? (
+                        <Users className="h-4 w-4 text-primary" />
+                      ) : (
+                        <User className="h-4 w-4 text-primary" />
+                      )}
+                      <span className="font-semibold">{currentPlan.name}</span>
+                    </div>
                     <Badge>Ativo</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mb-3">
                     Sua assinatura está ativa.
                   </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full text-destructive hover:text-destructive"
-                    onClick={() => setShowCancelTrialConfirm(true)}
-                  >
-                    Cancelar assinatura
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setShowChangePlanConfirm(true)}
+                    >
+                      <ArrowUpDown className="mr-2 h-4 w-4" />
+                      Mudar para {currentPlan.codename === "solo" ? "Duo" : "Solo"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-destructive hover:text-destructive"
+                      onClick={() => setShowCancelTrialConfirm(true)}
+                    >
+                      Cancelar assinatura
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 // Free/default plan
@@ -624,6 +673,51 @@ export default function SettingsPage() {
                 </>
               ) : (
                 "Cancelar assinatura"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Change Plan Confirmation Dialog */}
+      <AlertDialog open={showChangePlanConfirm} onOpenChange={setShowChangePlanConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Mudar para o plano {currentPlan?.codename === "solo" ? "Duo" : "Solo"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {currentPlan?.codename === "solo" ? (
+                <>
+                  O plano <strong>Duo</strong> permite convidar seu parceiro(a) para compartilhar o orçamento.
+                  O valor será ajustado proporcionalmente na sua próxima fatura.
+                </>
+              ) : (
+                <>
+                  O plano <strong>Solo</strong> é individual.
+                  {" "}
+                  <span className="text-amber-600 dark:text-amber-400">
+                    Se você tem um parceiro conectado, remova-o antes de fazer o downgrade.
+                  </span>
+                  {" "}
+                  O valor será ajustado proporcionalmente na sua próxima fatura.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isChangingPlan}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleChangePlan}
+              disabled={isChangingPlan}
+            >
+              {isChangingPlan ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Alterando...
+                </>
+              ) : (
+                `Mudar para ${currentPlan?.codename === "solo" ? "Duo" : "Solo"}`
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

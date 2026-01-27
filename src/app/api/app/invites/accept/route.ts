@@ -1,6 +1,6 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { invites, budgetMembers, groups, categories } from "@/db/schema";
+import { invites, budgetMembers, groups, categories, users, plans } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { capitalizeWords } from "@/shared/lib/utils";
@@ -54,6 +54,39 @@ export const POST = withAuthRequired(async (req, context) => {
   // If invite has a specific email, check if user's email matches
   if (invite.email && user?.email?.toLowerCase() !== invite.email.toLowerCase()) {
     return forbiddenError("This invite was sent to a different email address");
+  }
+
+  // Check if owner's plan allows partners (Duo plan has maxBudgetMembers >= 2)
+  const [owner] = await db
+    .select({
+      planId: users.planId,
+    })
+    .from(users)
+    .where(eq(users.id, invite.invitedByUserId))
+    .limit(1);
+
+  if (owner?.planId) {
+    const [ownerPlan] = await db
+      .select({
+        quotas: plans.quotas,
+      })
+      .from(plans)
+      .where(eq(plans.id, owner.planId))
+      .limit(1);
+
+    const maxMembers = ownerPlan?.quotas?.maxBudgetMembers ?? 1;
+    if (maxMembers < 2) {
+      return errorResponse(
+        "O plano do dono do orçamento não permite parceiros. Peça para fazer upgrade para o plano Duo.",
+        403
+      );
+    }
+  } else {
+    // Owner doesn't have a plan assigned, block partner acceptance
+    return errorResponse(
+      "O dono do orçamento não possui um plano ativo. Peça para assinar um plano.",
+      403
+    );
   }
 
   // Check if user is already a member of this budget

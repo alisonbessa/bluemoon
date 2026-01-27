@@ -99,7 +99,7 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
       <DialogTrigger asChild>
         <Button>Gerar Cupons</Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="w-[95vw] sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Gerar Cupons</DialogTitle>
           <DialogDescription>

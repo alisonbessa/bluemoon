@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/shared/ui/button";
 import {
   Card,
@@ -15,7 +15,7 @@ import { Badge } from "@/shared/ui/badge";
 import { Switch } from "@/shared/ui/switch";
 import { Label } from "@/shared/ui/label";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { Check, Users, User, Sparkles } from "lucide-react";
+import { Check, Users, User, Sparkles, Loader2 } from "lucide-react";
 import getSubscribeUrl, {
   PlanProvider,
   PlanType,
@@ -52,10 +52,16 @@ interface PlansResponse {
 
 export default function ChoosePlanPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isYearly, setIsYearly] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [trialDays, setTrialDays] = useState(DEFAULT_TRIAL_PERIOD_DAYS);
+
+  // Get pre-selected plan from URL params
+  const preSelectedPlan = searchParams.get("plan");
+  const preSelectedBilling = searchParams.get("billing");
+  const [isYearly, setIsYearly] = useState(preSelectedBilling === "yearly");
 
   useEffect(() => {
     async function fetchPlans() {
@@ -65,6 +71,23 @@ export default function ChoosePlanPage() {
         const data: PlansResponse = await response.json();
         setPlans(data.plans);
         setTrialDays(data.trialDays);
+
+        // If plan was pre-selected from landing page, auto-redirect to Stripe
+        if (preSelectedPlan && preSelectedBilling) {
+          const validPlans = ["solo", "duo"];
+          const validBilling = ["monthly", "yearly"];
+
+          if (validPlans.includes(preSelectedPlan) && validBilling.includes(preSelectedBilling)) {
+            setIsRedirecting(true);
+            const url = getSubscribeUrl({
+              codename: preSelectedPlan,
+              type: preSelectedBilling === "yearly" ? PlanType.YEARLY : PlanType.MONTHLY,
+              provider: PlanProvider.STRIPE,
+              trialPeriodDays: data.trialDays,
+            });
+            router.push(url);
+          }
+        }
       } catch (error) {
         console.error("Error fetching plans:", error);
       } finally {
@@ -72,7 +95,7 @@ export default function ChoosePlanPage() {
       }
     }
     fetchPlans();
-  }, []);
+  }, [preSelectedPlan, preSelectedBilling, router]);
 
   const handleSelectPlan = (codename: string) => {
     const url = getSubscribeUrl({
@@ -95,18 +118,30 @@ export default function ChoosePlanPage() {
     return savings > 0 ? Math.round((savings / yearlyCostIfMonthly) * 100) : null;
   };
 
-  if (isLoading) {
+  if (isLoading || isRedirecting) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="w-full max-w-4xl py-10">
-          <div className="text-center mb-10">
-            <Skeleton className="h-10 w-64 mx-auto mb-4" />
-            <Skeleton className="h-6 w-96 mx-auto" />
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <Skeleton className="h-[500px]" />
-            <Skeleton className="h-[500px]" />
-          </div>
+          {isRedirecting ? (
+            <div className="text-center">
+              <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+              <h2 className="text-2xl font-bold mb-2">Preparando seu trial...</h2>
+              <p className="text-muted-foreground">
+                Você será redirecionado para completar seu cadastro.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="text-center mb-10">
+                <Skeleton className="h-10 w-64 mx-auto mb-4" />
+                <Skeleton className="h-6 w-96 mx-auto" />
+              </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                <Skeleton className="h-[500px]" />
+                <Skeleton className="h-[500px]" />
+              </div>
+            </>
+          )}
         </div>
       </div>
     );

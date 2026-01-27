@@ -14,8 +14,8 @@ export async function GET(
   try {
     const { code } = await params;
 
-    // Normalize code: uppercase and remove dashes for lookup
-    const normalizedCode = code.toUpperCase().replace(/-/g, "");
+    // Normalize code: uppercase only (codes are stored with dashes)
+    const normalizedCode = code.toUpperCase().trim();
 
     // Find the access link
     const [link] = await db
