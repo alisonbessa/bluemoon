@@ -20,7 +20,7 @@ import { sql } from "drizzle-orm";
  * - telegram_users, telegram_ai_logs, telegram_pending_connections
  *
  * Tables deleted when includeUsers=true:
- * - users, credit_transactions, coupon, access_links, accounts, sessions, verification_tokens
+ * - app_user, credit_transactions, coupon, access_links, account, session, verificationToken, authenticator
  *
  * Tables always preserved:
  * - plans, contact_messages, waitlist
@@ -63,10 +63,11 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
       "credit_transactions",
       "coupon",
       "access_links",
-      "sessions",
-      "accounts",
-      "verification_tokens",
-      "users",
+      "session",
+      "account",
+      "verificationToken",
+      "authenticator",
+      "app_user",
     ];
 
     const tablesToDelete = includeUsers
