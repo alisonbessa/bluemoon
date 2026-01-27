@@ -7,7 +7,7 @@ import { sql } from "drizzle-orm";
 import { subDays, startOfDay, format } from "date-fns";
 
 export const GET = withSuperAdminAuthRequired(async () => {
-  const thirtyDaysAgo = startOfDay(subDays(new Date(), 30));
+  const thirtyDaysAgo = startOfDay(subDays(new Date(), 30)).toISOString();
 
   // Get user signups per day
   const userSignups = await db
@@ -16,7 +16,7 @@ export const GET = withSuperAdminAuthRequired(async () => {
       count: sql<number>`COUNT(*)`,
     })
     .from(users)
-    .where(sql`${users.createdAt} >= ${thirtyDaysAgo}`)
+    .where(sql`${users.createdAt} >= ${thirtyDaysAgo}::timestamp`)
     .groupBy(sql`DATE(${users.createdAt})`)
     .orderBy(sql`DATE(${users.createdAt})`);
 
@@ -27,7 +27,7 @@ export const GET = withSuperAdminAuthRequired(async () => {
       count: sql<number>`COUNT(*)`,
     })
     .from(waitlist)
-    .where(sql`${waitlist.createdAt} >= ${thirtyDaysAgo}`)
+    .where(sql`${waitlist.createdAt} >= ${thirtyDaysAgo}::timestamp`)
     .groupBy(sql`DATE(${waitlist.createdAt})`)
     .orderBy(sql`DATE(${waitlist.createdAt})`);
 
