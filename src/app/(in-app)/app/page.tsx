@@ -35,7 +35,7 @@ import { PageContent } from "@/shared/molecules";
 import Link from "next/link";
 import { useUser } from "@/shared/hooks/use-current-user";
 import { formatCurrency } from "@/shared/lib/formatters";
-import { PageTitle, MutedText } from "@/shared/ui/typography";
+import { PageTitle } from "@/shared/ui/typography";
 
 function DashboardSkeleton() {
   return (
@@ -105,21 +105,17 @@ function AppHomepage() {
     );
   }
 
-  const firstName = user?.name?.split(" ")[0] || "Usuário";
-
   return (
     <PageContent>
       {/* Header with Month Navigation */}
-      <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-0.5 sm:gap-1">
-          <PageTitle>Olá, {firstName}!</PageTitle>
-          <MutedText>Visão geral das suas finanças</MutedText>
-        </div>
+      <div className="flex items-center justify-between gap-2">
+        <PageTitle className="text-xl sm:text-2xl">Visão geral</PageTitle>
 
         <MonthSelector
           year={currentYear}
           month={currentMonth}
           onChange={handleMonthChange}
+          className="shrink-0"
         />
       </div>
 
