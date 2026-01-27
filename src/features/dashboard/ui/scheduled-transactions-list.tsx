@@ -15,10 +15,13 @@ import {
   CheckCircle2,
   Clock,
   ArrowRightIcon,
+  Check,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { formatCurrencyCompact } from "@/shared/lib/formatters";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface ScheduledTransaction {
   id: string;
@@ -29,8 +32,17 @@ interface ScheduledTransaction {
   dueDay: number;
   dueDate: string;
   isPaid: boolean;
-  sourceType: "category" | "income_source" | "goal";
+  sourceType: "recurring_bill" | "income_source" | "goal";
   sourceId: string;
+  categoryId?: string;
+  incomeSourceId?: string;
+  goalId?: string;
+  recurringBillId?: string;
+}
+
+interface Account {
+  id: string;
+  name: string;
 }
 
 interface ScheduledTransactionsListProps {
@@ -48,6 +60,8 @@ export function ScheduledTransactionsList({
 }: ScheduledTransactionsListProps) {
   const [scheduled, setScheduled] = useState<ScheduledTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const fetchScheduled = useCallback(async () => {
     if (!budgetId) return;
@@ -68,9 +82,70 @@ export function ScheduledTransactionsList({
     }
   }, [budgetId, year, month]);
 
+  // Fetch accounts for the budget
+  const fetchAccounts = useCallback(async () => {
+    if (!budgetId) return;
+
+    try {
+      const response = await fetch(`/api/app/accounts?budgetId=${budgetId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setAccounts(data.accounts || []);
+      }
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+    }
+  }, [budgetId]);
+
   useEffect(() => {
     fetchScheduled();
-  }, [fetchScheduled, refreshKey]);
+    fetchAccounts();
+  }, [fetchScheduled, fetchAccounts, refreshKey]);
+
+  // Confirm a scheduled transaction
+  const handleConfirm = async (item: ScheduledTransaction) => {
+    if (accounts.length === 0) {
+      toast.error("Nenhuma conta encontrada. Crie uma conta primeiro.");
+      return;
+    }
+
+    // Use the first account as default
+    const defaultAccount = accounts[0];
+
+    setConfirmingId(item.id);
+
+    try {
+      const response = await fetch("/api/app/transactions/confirm-scheduled", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          budgetId,
+          type: item.type,
+          amount: item.amount,
+          description: item.name,
+          accountId: defaultAccount.id,
+          categoryId: item.categoryId,
+          incomeSourceId: item.incomeSourceId,
+          recurringBillId: item.recurringBillId,
+          date: item.dueDate,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Transação confirmada!");
+        // Refresh the list
+        fetchScheduled();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || "Erro ao confirmar transação");
+      }
+    } catch (error) {
+      console.error("Error confirming transaction:", error);
+      toast.error("Erro ao confirmar transação");
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   const today = new Date();
   const currentDay = today.getDate();
@@ -104,6 +179,7 @@ export function ScheduledTransactionsList({
               {unpaidTransactions.map((item) => {
                 const isOverdue = isCurrentMonth && !item.isPaid && item.dueDay < currentDay;
                 const isToday = isCurrentMonth && item.dueDay === currentDay;
+                const isConfirming = confirmingId === item.id;
 
                 return (
                   <div
@@ -113,26 +189,42 @@ export function ScheduledTransactionsList({
                       isOverdue && "text-red-600 dark:text-red-400"
                     )}
                   >
-                    <div className="flex justify-between text-sm">
-                      <span className="flex items-center gap-1.5">
+                    <div className="flex justify-between items-center text-sm gap-2">
+                      <span className="flex items-center gap-1.5 min-w-0 flex-1">
                         {isOverdue ? (
-                          <Clock className="h-4 w-4 text-red-500" />
+                          <Clock className="h-4 w-4 text-red-500 shrink-0" />
                         ) : (
-                          <span>{item.icon || (item.type === "income" ? "💰" : "📋")}</span>
+                          <span className="shrink-0">{item.icon || (item.type === "income" ? "💰" : "📋")}</span>
                         )}
-                        <span className="font-medium">{item.name}</span>
+                        <span className="font-medium truncate">{item.name}</span>
                         {isToday && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded">
+                          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 rounded shrink-0">
                             HOJE
                           </span>
                         )}
                       </span>
-                      <span className={cn(
-                        "font-medium tabular-nums",
-                        item.type === "income" ? "text-green-600" : "text-red-600"
-                      )}>
-                        {item.type === "income" ? "+" : "-"}{formatCurrencyCompact(item.amount)}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={cn(
+                          "font-medium tabular-nums",
+                          item.type === "income" ? "text-green-600" : "text-red-600"
+                        )}>
+                          {item.type === "income" ? "+" : "-"}{formatCurrencyCompact(item.amount)}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                          onClick={() => handleConfirm(item)}
+                          disabled={isConfirming}
+                          title="Confirmar transação"
+                        >
+                          {isConfirming ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Dia {item.dueDay} • {item.type === "income" ? "Receita" : "Despesa"}
