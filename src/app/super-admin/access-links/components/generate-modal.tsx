@@ -43,14 +43,22 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
   const handleGenerate = async () => {
     setIsLoading(true);
     try {
+      // Calculate expiresAt datetime if expiresInDays is set
+      let expiresAt: string | undefined;
+      if (expiresInDays) {
+        const expDate = new Date();
+        expDate.setDate(expDate.getDate() + expiresInDays);
+        expiresAt = expDate.toISOString();
+      }
+
       const response = await fetch("/api/super-admin/access-links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          quantity,
+          count: quantity,
           type,
           note: note.trim() || undefined,
-          expiresInDays: expiresInDays || undefined,
+          expiresAt,
         }),
       });
 
@@ -60,8 +68,10 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
       }
 
       const data = await response.json();
-      setGeneratedCodes(data.codes);
-      toast.success(`${data.codes.length} link(s) gerado(s) com sucesso`);
+      // Backend returns links array with link objects, extract codes
+      const codes = data.links.map((link: { code: string }) => link.code);
+      setGeneratedCodes(codes);
+      toast.success(`${codes.length} link(s) gerado(s) com sucesso`);
       onSuccess();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao gerar links");
