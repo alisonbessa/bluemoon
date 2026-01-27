@@ -188,6 +188,7 @@ export function DashboardCharts({
               data={transformedDailyData}
               margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
               stackOffset="sign"
+              barGap={0}
             >
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis
@@ -226,29 +227,29 @@ export function DashboardCharts({
                 dataKey="income"
                 fill="var(--color-income)"
                 radius={[4, 4, 0, 0]}
-                stackId="stack"
+                stackId="a"
               />
               {showPending && (
                 <Bar
                   dataKey="pendingIncome"
                   fill="var(--color-pendingIncome)"
                   radius={[4, 4, 0, 0]}
-                  stackId="stack"
+                  stackId="a"
                   fillOpacity={0.3}
                 />
               )}
               <Bar
                 dataKey="expenseNegative"
                 fill="var(--color-expenseNegative)"
-                radius={[0, 0, 4, 4]}
-                stackId="stack"
+                radius={[4, 4, 0, 0]}
+                stackId="a"
               />
               {showPending && (
                 <Bar
                   dataKey="pendingExpenseNegative"
                   fill="var(--color-pendingExpenseNegative)"
-                  radius={[0, 0, 4, 4]}
-                  stackId="stack"
+                  radius={[4, 4, 0, 0]}
+                  stackId="a"
                   fillOpacity={0.3}
                 />
               )}
@@ -302,7 +303,6 @@ export function DashboardCharts({
             <BarChart
               data={transformedMonthlyData}
               margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-              stackOffset="sign"
             >
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis
@@ -340,13 +340,11 @@ export function DashboardCharts({
                 dataKey="income"
                 fill="var(--color-income)"
                 radius={[4, 4, 0, 0]}
-                stackId="stack"
               />
               <Bar
                 dataKey="expenseNegative"
                 fill="var(--color-expenseNegative)"
-                radius={[0, 0, 4, 4]}
-                stackId="stack"
+                radius={[4, 4, 0, 0]}
               />
             </BarChart>
           </ChartContainer>

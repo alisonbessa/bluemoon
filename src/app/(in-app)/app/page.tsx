@@ -155,7 +155,7 @@ function AppHomepage() {
       />
 
       {/* Main Content */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2">
         {/* Goals Card */}
         <Card className="flex flex-col">
           <CardHeader>
@@ -164,7 +164,7 @@ function AppHomepage() {
               Metas
             </CardTitle>
             <CardDescription>
-              Acompanhe o progresso das suas metas financeiras
+              Suas metas financeiras
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col flex-1">
@@ -181,7 +181,7 @@ function AppHomepage() {
                     .filter((g) => !g.isCompleted)
                     .slice(0, 5)
                     .map((goal) => (
-                      <div key={goal.id} className="py-3 space-y-1.5">
+                      <div key={goal.id} className="h-[52px] flex flex-col justify-center">
                         <div className="flex justify-between text-sm">
                           <span className="flex items-center gap-1.5">
                             <span>{goal.icon}</span>
@@ -191,7 +191,7 @@ function AppHomepage() {
                         </div>
                         <Progress
                           value={goal.progress}
-                          className="h-2"
+                          className="h-2 mt-1"
                           style={
                             {
                               "--progress-background": goal.color,

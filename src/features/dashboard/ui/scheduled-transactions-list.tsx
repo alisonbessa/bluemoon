@@ -185,7 +185,7 @@ export function ScheduledTransactionsList({
                   <div
                     key={item.id}
                     className={cn(
-                      "py-3 space-y-1",
+                      "h-[52px] flex flex-col justify-center",
                       isOverdue && "text-red-600 dark:text-red-400"
                     )}
                   >
@@ -226,7 +226,7 @@ export function ScheduledTransactionsList({
                         </Button>
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       Dia {item.dueDay} • {item.type === "income" ? "Receita" : "Despesa"}
                     </div>
                   </div>

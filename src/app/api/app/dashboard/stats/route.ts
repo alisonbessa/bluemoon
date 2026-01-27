@@ -40,12 +40,12 @@ export const GET = withAuthRequired(async (req, context) => {
       day: sql<number>`EXTRACT(DAY FROM ${transactions.date})::integer`,
       // Realized income (cleared/reconciled)
       income: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'income' AND ${transactions.status} IN ('cleared', 'reconciled') THEN ${transactions.amount} ELSE 0 END), 0)`,
-      // Realized expense (cleared/reconciled)
-      expense: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'expense' AND ${transactions.status} IN ('cleared', 'reconciled') THEN ${transactions.amount} ELSE 0 END), 0)`,
+      // Realized expense (cleared/reconciled) - use ABS since expenses are stored as negative
+      expense: sql<number>`COALESCE(ABS(SUM(CASE WHEN ${transactions.type} = 'expense' AND ${transactions.status} IN ('cleared', 'reconciled') THEN ${transactions.amount} ELSE 0 END)), 0)`,
       // Pending income
       pendingIncome: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'income' AND ${transactions.status} = 'pending' THEN ${transactions.amount} ELSE 0 END), 0)`,
-      // Pending expense
-      pendingExpense: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'expense' AND ${transactions.status} = 'pending' THEN ${transactions.amount} ELSE 0 END), 0)`,
+      // Pending expense - use ABS since expenses are stored as negative
+      pendingExpense: sql<number>`COALESCE(ABS(SUM(CASE WHEN ${transactions.type} = 'expense' AND ${transactions.status} = 'pending' THEN ${transactions.amount} ELSE 0 END)), 0)`,
     })
     .from(transactions)
     .where(
@@ -130,7 +130,7 @@ export const GET = withAuthRequired(async (req, context) => {
       accountName: financialAccounts.name,
       accountIcon: financialAccounts.icon,
       creditLimit: financialAccounts.creditLimit,
-      spent: sql<number>`COALESCE(SUM(${transactions.amount}), 0)`,
+      spent: sql<number>`COALESCE(ABS(SUM(${transactions.amount})), 0)`,
     })
     .from(financialAccounts)
     .leftJoin(

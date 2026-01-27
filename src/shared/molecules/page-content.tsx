@@ -27,7 +27,7 @@ interface PageContentProps {
  */
 export function PageContent({ children, className }: PageContentProps) {
   return (
-    <div className={cn('flex flex-col gap-4 sm:gap-6 p-4 sm:p-6', className)}>
+    <div className={cn('flex flex-col gap-4 sm:gap-6 p-5 sm:p-6', className)}>
       {children}
     </div>
   );
