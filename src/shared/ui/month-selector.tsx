@@ -77,8 +77,8 @@ export function MonthSelector({
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <div className="flex flex-col items-center min-w-[120px]">
-        <span className="text-lg font-semibold">{MONTH_NAMES[month - 1]}</span>
+      <div className="flex flex-col items-center min-w-25 sm:min-w-30">
+        <span className="text-base sm:text-lg font-semibold">{MONTH_NAMES[month - 1]}</span>
         <span className="text-xs text-muted-foreground">{year}</span>
       </div>
       <Button

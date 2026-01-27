@@ -35,6 +35,7 @@ import { PageContent } from "@/shared/molecules";
 import Link from "next/link";
 import { useUser } from "@/shared/hooks/use-current-user";
 import { formatCurrency } from "@/shared/lib/formatters";
+import { PageTitle, MutedText } from "@/shared/ui/typography";
 
 function DashboardSkeleton() {
   return (
@@ -109,14 +110,10 @@ function AppHomepage() {
   return (
     <PageContent>
       {/* Header with Month Navigation */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold tracking-tight">
-            Olá, {firstName}!
-          </h1>
-          <p className="text-muted-foreground">
-            Visão geral das suas finanças
-          </p>
+      <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-0.5 sm:gap-1">
+          <PageTitle>Olá, {firstName}!</PageTitle>
+          <MutedText>Visão geral das suas finanças</MutedText>
         </div>
 
         <MonthSelector
@@ -262,15 +259,15 @@ function AppHomepage() {
       )}
 
       {/* Navigation Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
         <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
           <Link href="/app/budget">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <LayoutGridIcon className="h-5 w-5 text-primary" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <LayoutGridIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 Orçamento
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs sm:text-sm hidden sm:block">
                 Visualize e edite suas categorias e valores planejados
               </CardDescription>
             </CardHeader>
@@ -279,26 +276,26 @@ function AppHomepage() {
 
         <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
           <Link href="/app/transactions">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <ReceiptIcon className="h-5 w-5 text-primary" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <ReceiptIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 Transações
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs sm:text-sm hidden sm:block">
                 Registre e visualize todas as suas movimentações
               </CardDescription>
             </CardHeader>
           </Link>
         </Card>
 
-        <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+        <Card className="hover:bg-muted/50 transition-colors cursor-pointer col-span-2 lg:col-span-1">
           <Link href="/app/settings">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <SettingsIcon className="h-5 w-5 text-primary" />
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <SettingsIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                 Configurações
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs sm:text-sm hidden sm:block">
                 Gerencie membros, convites e preferências
               </CardDescription>
             </CardHeader>
