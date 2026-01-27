@@ -144,7 +144,7 @@ export function CategoryWithBills({
       {/* Category Row */}
       <div
         className={cn(
-          'group/row grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 items-center border-b hover:bg-muted/20 text-sm cursor-pointer',
+          'group/row grid grid-cols-[24px_1fr_80px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center border-b hover:bg-muted/20 text-sm cursor-pointer',
           isSelected && 'bg-primary/5'
         )}
         onClick={handleCategoryClick}
@@ -156,7 +156,7 @@ export function CategoryWithBills({
           onCheckedChange={onToggleSelection}
           onClick={(e) => e.stopPropagation()}
         />
-        <div className="flex items-center gap-1.5 pl-5">
+        <div className="flex items-center gap-1.5 pl-3 sm:pl-5 min-w-0">
           {/* Expand/Collapse chevron for categories with bills */}
           {isExpandable && (
             <ChevronDown
@@ -166,20 +166,20 @@ export function CategoryWithBills({
               )}
             />
           )}
-          {!isExpandable && <div className="w-3" />}
+          {!isExpandable && <div className="w-3 shrink-0" />}
 
-          <span>{item.category.icon || '📌'}</span>
+          <span className="shrink-0">{item.category.icon || '📌'}</span>
           <span className="truncate">{item.category.name}</span>
 
           {/* Bill count badge */}
           {hasBills && (
-            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full ml-1">
+            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full ml-1 shrink-0">
               {item.recurringBills!.length}
             </span>
           )}
 
-          {/* Actions */}
-          <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+          {/* Actions - hidden on mobile, visible on hover for desktop */}
+          <div className="hidden sm:flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -212,10 +212,10 @@ export function CategoryWithBills({
             </button>
           </div>
         </div>
-        <div className="text-right text-xs tabular-nums">
+        <div className="hidden sm:block text-right text-xs tabular-nums">
           {formatCurrency(item.allocated)}
         </div>
-        <div className="text-right text-xs tabular-nums">
+        <div className="hidden sm:block text-right text-xs tabular-nums">
           {formatCurrency(item.spent)}
         </div>
         <div

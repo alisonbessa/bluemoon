@@ -55,7 +55,7 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6">
       {/* Header */}
       <PageHeader
         title="Categorias"
@@ -88,7 +88,7 @@ export default function CategoriesPage() {
 
       {/* Compact Categories Table */}
       {groups.length > 0 ? (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-lg border bg-card overflow-x-auto">
           {/* Table Header */}
           <div
             className={COMPACT_TABLE_STYLES.header}

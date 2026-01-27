@@ -74,7 +74,7 @@ export function IncomeSectionAccordion({
     <div className="border-b-4 border-green-200 dark:border-green-900">
       {/* Income Section Header - Clickable Toggle */}
       <div
-        className="group grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b items-center cursor-pointer hover:bg-green-200/50 dark:hover:bg-green-950/70 transition-colors"
+        className="group grid grid-cols-[24px_1fr_80px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b items-center cursor-pointer hover:bg-green-200/50 dark:hover:bg-green-950/70 transition-colors"
         onClick={onToggle}
       >
         <ChevronDown
@@ -89,7 +89,7 @@ export function IncomeSectionAccordion({
             RECEITAS
           </span>
           <button
-            className="ml-1 p-0.5 rounded hover:bg-green-200 dark:hover:bg-green-800 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="ml-1 p-0.5 rounded hover:bg-green-200 dark:hover:bg-green-800 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
             onClick={(e) => {
               e.stopPropagation();
               onAddIncomeSource();
@@ -99,10 +99,10 @@ export function IncomeSectionAccordion({
             <Plus className="h-3.5 w-3.5 text-green-700 dark:text-green-300" />
           </button>
         </div>
-        <div className="text-right text-sm font-bold text-green-800 dark:text-green-200">
+        <div className="hidden sm:block text-right text-sm font-bold text-green-800 dark:text-green-200">
           {formatCurrency(incomeData.totals.planned)}
         </div>
-        <div className="text-right text-sm font-bold text-green-600 dark:text-green-400">
+        <div className="hidden sm:block text-right text-sm font-bold text-green-600 dark:text-green-400">
           {formatCurrency(incomeData.totals.received)}
         </div>
         <div
@@ -120,15 +120,15 @@ export function IncomeSectionAccordion({
       </div>
 
       {isExpanded && (
-        <div className="overflow-x-auto">
-          <div className="min-w-[550px]">
+        <div>
+          <div>
             {/* Income Table Header */}
-            <div className="grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
+            <div className="grid grid-cols-[24px_1fr_80px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
               <div />
               <div>Fonte</div>
-              <div className="text-right">Planejado</div>
-              <div className="text-right">Realizado</div>
-              <div className="text-right">Disponivel</div>
+              <div className="hidden sm:block text-right">Planejado</div>
+              <div className="hidden sm:block text-right">Realizado</div>
+              <div className="text-right">Disp.</div>
             </div>
 
             {/* If only one member (or no member), show sources directly */}
@@ -195,33 +195,33 @@ function IncomeMemberSection({
     <div>
       {/* Member Row */}
       <div
-        className="group grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 items-center bg-green-50/50 dark:bg-green-950/20 border-b cursor-pointer hover:bg-green-100/50 dark:hover:bg-green-950/40 text-sm"
+        className="group grid grid-cols-[24px_1fr_80px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center bg-green-50/50 dark:bg-green-950/20 border-b cursor-pointer hover:bg-green-100/50 dark:hover:bg-green-950/40 text-sm"
         onClick={onToggle}
       >
         <div />
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 min-w-0">
           <ChevronDown
             className={cn(
-              'h-3.5 w-3.5 transition-transform',
+              'h-3.5 w-3.5 shrink-0 transition-transform',
               !isExpanded && '-rotate-90'
             )}
           />
           {memberGroup.member && (
             <span
-              className="h-3 w-3 rounded-full"
+              className="h-3 w-3 rounded-full shrink-0"
               style={{
                 backgroundColor: memberGroup.member.color || '#6366f1',
               }}
             />
           )}
-          <span className="font-semibold">
+          <span className="font-semibold truncate">
             {memberGroup.member?.name || 'Sem responsavel'}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground shrink-0">
             ({memberGroup.sources.length})
           </span>
           <button
-            className="ml-1 p-0.5 rounded hover:bg-green-200 dark:hover:bg-green-800 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="ml-1 p-0.5 rounded hover:bg-green-200 dark:hover:bg-green-800 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
             onClick={(e) => {
               e.stopPropagation();
               onAddSource();
@@ -231,10 +231,10 @@ function IncomeMemberSection({
             <Plus className="h-3.5 w-3.5 text-green-700 dark:text-green-300" />
           </button>
         </div>
-        <div className="text-right text-xs tabular-nums font-bold">
+        <div className="hidden sm:block text-right text-xs tabular-nums font-bold">
           {formatCurrency(memberGroup.totals.planned)}
         </div>
-        <div className="text-right text-xs tabular-nums font-bold text-green-600 dark:text-green-400">
+        <div className="hidden sm:block text-right text-xs tabular-nums font-bold text-green-600 dark:text-green-400">
           {formatCurrency(memberGroup.totals.received)}
         </div>
         <div
@@ -285,24 +285,24 @@ function IncomeSourceRow({
 
   return (
     <div
-      className="group/row grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm cursor-pointer"
+      className="group/row grid grid-cols-[24px_1fr_80px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm cursor-pointer"
       onClick={onEditIncome}
     >
       <div />
-      <div className={cn('flex items-center gap-1.5', indent ? 'pl-10' : 'pl-5')}>
-        <span>
+      <div className={cn('flex items-center gap-1.5 min-w-0', indent ? 'pl-6 sm:pl-10' : 'pl-3 sm:pl-5')}>
+        <span className="shrink-0">
           {INCOME_TYPE_CONFIG[item.incomeSource.type]?.icon || '💵'}
         </span>
-        <span>{item.incomeSource.name}</span>
-        <span className="text-[10px] text-muted-foreground bg-muted px-1 rounded">
+        <span className="truncate">{item.incomeSource.name}</span>
+        <span className="hidden sm:inline text-[10px] text-muted-foreground bg-muted px-1 rounded shrink-0">
           {FREQUENCY_LABELS[item.incomeSource.frequency] || 'Mensal'}
         </span>
         {isEdited && (
-          <span className="text-[10px] text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1 rounded">
+          <span className="hidden sm:inline text-[10px] text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1 rounded shrink-0">
             editado
           </span>
         )}
-        <div className="flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+        <div className="hidden sm:flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -325,10 +325,10 @@ function IncomeSourceRow({
           </button>
         </div>
       </div>
-      <div className="text-right text-xs tabular-nums">
+      <div className="hidden sm:block text-right text-xs tabular-nums">
         {formatCurrency(item.planned)}
       </div>
-      <div className="text-right text-xs tabular-nums text-green-600 dark:text-green-400">
+      <div className="hidden sm:block text-right text-xs tabular-nums text-green-600 dark:text-green-400">
         {formatCurrency(item.received)}
       </div>
       <div

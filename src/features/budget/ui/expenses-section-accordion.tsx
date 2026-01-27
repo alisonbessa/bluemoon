@@ -128,7 +128,7 @@ export function ExpensesSectionAccordion({
     <>
       {/* Expenses Section Header - Clickable Toggle */}
       <div
-        className="grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b items-center cursor-pointer hover:bg-red-200/50 dark:hover:bg-red-950/70 transition-colors"
+        className="grid grid-cols-[24px_1fr_80px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b items-center cursor-pointer hover:bg-red-200/50 dark:hover:bg-red-950/70 transition-colors"
         onClick={onToggle}
       >
         <ChevronDown
@@ -143,10 +143,10 @@ export function ExpensesSectionAccordion({
             DESPESAS
           </span>
         </div>
-        <div className="text-right text-sm font-bold text-red-800 dark:text-red-200">
+        <div className="hidden sm:block text-right text-sm font-bold text-red-800 dark:text-red-200">
           {formatCurrency(totals.allocated)}
         </div>
-        <div className="text-right text-sm font-bold text-red-600 dark:text-red-400">
+        <div className="hidden sm:block text-right text-sm font-bold text-red-600 dark:text-red-400">
           {formatCurrency(totals.spent)}
         </div>
         <div
@@ -160,23 +160,21 @@ export function ExpensesSectionAccordion({
       </div>
 
       {isExpanded && (
-        <div className="overflow-x-auto">
-          <div className="min-w-[550px]">
-            {/* Expenses Table Header */}
-            <div className="grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
-              <div />
-              <div>Categoria</div>
-              <div className="text-right">Planejado</div>
-              <div className="text-right">Realizado</div>
-              <div className="text-right">Disponivel</div>
-            </div>
+        <div>
+          {/* Expenses Table Header */}
+          <div className="grid grid-cols-[24px_1fr_80px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
+            <div />
+            <div>Categoria</div>
+            <div className="hidden sm:block text-right">Planejado</div>
+            <div className="hidden sm:block text-right">Realizado</div>
+            <div className="text-right">Disp.</div>
           </div>
         </div>
       )}
 
       {isExpanded && (
-        <div className="overflow-x-auto">
-          <div className="min-w-[550px]">
+        <div>
+          <div>
             {groupsData.map(({ group, categories, totals: groupTotals }) => {
               const isGroupExpanded = expandedGroups.includes(group.id);
               const filteredCategories = filterCategories(categories);
@@ -196,7 +194,7 @@ export function ExpensesSectionAccordion({
                 <div key={group.id}>
                   {/* Group Row */}
                   <div
-                    className="group grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 items-center bg-muted/40 border-b cursor-pointer hover:bg-muted/60 text-sm"
+                    className="group grid grid-cols-[24px_1fr_80px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center bg-muted/40 border-b cursor-pointer hover:bg-muted/60 text-sm"
                     onClick={() => onToggleGroup(group.id)}
                   >
                     <Checkbox
@@ -208,17 +206,17 @@ export function ExpensesSectionAccordion({
                       onCheckedChange={() => onToggleGroupSelection(group.id)}
                       onClick={(e) => e.stopPropagation()}
                     />
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
                       <ChevronDown
                         className={cn(
-                          'h-3.5 w-3.5 transition-transform',
+                          'h-3.5 w-3.5 shrink-0 transition-transform',
                           !isGroupExpanded && '-rotate-90'
                         )}
                       />
-                      <span>{group.icon}</span>
-                      <span className="font-bold">{group.name}</span>
+                      <span className="shrink-0">{group.icon}</span>
+                      <span className="font-bold truncate">{group.name}</span>
                       <button
-                        className="ml-1 p-0.5 rounded hover:bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="ml-1 p-0.5 rounded hover:bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                         onClick={(e) => {
                           e.stopPropagation();
                           onAddCategory(group.id, group.code);
@@ -228,10 +226,10 @@ export function ExpensesSectionAccordion({
                         <Plus className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                    <div className="text-right text-xs tabular-nums font-bold">
+                    <div className="hidden sm:block text-right text-xs tabular-nums font-bold">
                       {formatCurrency(groupTotals.allocated)}
                     </div>
-                    <div className="text-right text-xs tabular-nums font-bold">
+                    <div className="hidden sm:block text-right text-xs tabular-nums font-bold">
                       {formatCurrency(groupTotals.spent)}
                     </div>
                     <div
@@ -255,18 +253,18 @@ export function ExpensesSectionAccordion({
                         return (
                           <div
                             key={item.category.id}
-                            className="grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 items-center border-b text-sm opacity-75 cursor-default"
+                            className="grid grid-cols-[24px_1fr_80px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center border-b text-sm opacity-75 cursor-default"
                             data-tutorial="category-row"
                           >
                             <div className="h-3.5 w-3.5" />
-                            <div className="flex items-center gap-1.5 pl-5">
-                              <span>{item.category.icon || '📌'}</span>
-                              <span>{item.category.name}</span>
+                            <div className="flex items-center gap-1.5 pl-5 min-w-0">
+                              <span className="shrink-0">{item.category.icon || '📌'}</span>
+                              <span className="truncate">{item.category.name}</span>
                             </div>
-                            <div className="text-right text-xs tabular-nums">
+                            <div className="hidden sm:block text-right text-xs tabular-nums">
                               {formatCurrency(item.allocated)}
                             </div>
-                            <div className="text-right text-xs tabular-nums">
+                            <div className="hidden sm:block text-right text-xs tabular-nums">
                               {formatCurrency(item.spent)}
                             </div>
                             <div
