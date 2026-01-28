@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { parseLocalDate } from "@/shared/lib/formatters";
 import { PageHeader, PageContent, ResponsiveButton } from "@/shared/molecules";
+import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 import {
   TransactionSummary,
   TransactionFiltersBar,
@@ -21,6 +22,9 @@ import {
 } from "@/features/transactions";
 
 export default function TransactionsPage() {
+  // ============== TUTORIAL ==============
+  const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
+
   // ============== DATA HOOK ==============
   const {
     transactions,
@@ -70,6 +74,10 @@ export default function TransactionsPage() {
     onSuccess: () => {
       fetchData();
       triggerWidgetRefresh();
+      // Notify tutorial that user created a transaction
+      if (isTutorialActive) {
+        notifyActionCompleted("hasTransactions");
+      }
     },
   });
 
@@ -316,7 +324,12 @@ export default function TransactionsPage() {
         title="Transações"
         description="Gerencie todas as suas movimentações financeiras"
         actions={
-          <ResponsiveButton icon={<Plus className="h-4 w-4" />} size="sm" onClick={openCreate}>
+          <ResponsiveButton
+            icon={<Plus className="h-4 w-4" />}
+            size="sm"
+            onClick={openCreate}
+            data-tutorial="add-transaction-button"
+          >
             Nova Transação
           </ResponsiveButton>
         }

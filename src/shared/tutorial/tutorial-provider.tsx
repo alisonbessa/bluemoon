@@ -23,8 +23,10 @@ import {
 export type TutorialValidationKey =
   | "hasAccounts"
   | "hasIncome"
+  | "hasEditedCategory"
+  | "hasGoals"
   | "hasAllocations"
-  | "hasGoals";
+  | "hasTransactions";
 
 interface TutorialContextValue {
   isActive: boolean;

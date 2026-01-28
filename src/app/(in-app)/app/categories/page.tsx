@@ -24,12 +24,14 @@ import {
   CategoryWizard,
   CategoryPageFormModal,
 } from "@/features/categories";
+import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 
 const GRID_COLS = "24px 1fr 120px";
 
 export default function CategoriesPage() {
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const { isExpanded, toggleGroup, setExpandedGroups } = useExpandedGroups([]);
+  const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
 
   const {
     groups,
@@ -42,7 +44,13 @@ export default function CategoriesPage() {
   const form = useCategoryPageForm({
     budgetId: budgets[0]?.id,
     groups,
-    onSuccess: refresh,
+    onSuccess: () => {
+      refresh();
+      // Notify tutorial that user created/edited a category
+      if (isTutorialActive) {
+        notifyActionCompleted("hasEditedCategory");
+      }
+    },
   });
 
   // Expand all groups by default when data loads
@@ -124,6 +132,7 @@ export default function CategoriesPage() {
                         e.stopPropagation();
                         form.openCreate(group.id);
                       }}
+                      data-tutorial={index === 0 ? "add-category-button" : undefined}
                     >
                       <Plus className="h-3 w-3 mr-1" />
                       Add
