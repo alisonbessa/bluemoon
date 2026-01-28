@@ -131,6 +131,7 @@ function normalizeIntent(intent: string | undefined): Intent {
     "QUERY_BALANCE",
     "QUERY_CATEGORY",
     "QUERY_GOAL",
+    "QUERY_ACCOUNT",
     "TRANSFER",
     "UNKNOWN",
   ];
@@ -174,10 +175,12 @@ function normalizeExtractedData(
     case "QUERY_BALANCE":
     case "QUERY_CATEGORY":
     case "QUERY_GOAL":
+    case "QUERY_ACCOUNT":
       return {
         queryType: normalizeQueryType(data.queryType as string),
         categoryName: data.categoryName as string | undefined,
         goalName: data.goalName as string | undefined,
+        accountName: data.accountName as string | undefined,
         period: normalizePeriod(data.period as string),
       };
 
@@ -468,6 +471,53 @@ export function matchGoal<
   });
   if (wordMatch) {
     return { goal: wordMatch, confidence: 0.6 };
+  }
+
+  return null;
+}
+
+/**
+ * Match account from hint text
+ */
+export function matchAccount(
+  hint: string | undefined,
+  accounts: Array<{ id: string; name: string; type: string }>
+): { account: (typeof accounts)[number]; confidence: number } | null {
+  if (!hint || accounts.length === 0) return null;
+
+  const normalized = normalizeText(hint);
+
+  // Try exact match
+  const exactMatch = accounts.find((a) => normalizeText(a.name) === normalized);
+  if (exactMatch) {
+    return { account: exactMatch, confidence: 1.0 };
+  }
+
+  // Try partial match
+  const partialMatch = accounts.find(
+    (a) =>
+      normalizeText(a.name).includes(normalized) ||
+      normalized.includes(normalizeText(a.name))
+  );
+  if (partialMatch) {
+    return { account: partialMatch, confidence: 0.8 };
+  }
+
+  // Try type aliases
+  const typeAliases: Record<string, string[]> = {
+    checking: ["conta corrente", "conta", "debito", "bb", "itau", "bradesco", "santander", "caixa"],
+    savings: ["poupanca", "reserva"],
+    credit_card: ["cartao", "credito", "nubank", "roxinho", "inter", "c6", "xp"],
+    cash: ["dinheiro", "carteira", "especie"],
+    investment: ["investimento", "aplicacao", "cdb", "tesouro"],
+    benefit: ["vr", "va", "flash", "alelo", "sodexo", "ticket", "beneficio"],
+  };
+
+  for (const account of accounts) {
+    const aliases = typeAliases[account.type] || [];
+    if (aliases.some((a) => normalized.includes(a))) {
+      return { account, confidence: 0.7 };
+    }
   }
 
   return null;

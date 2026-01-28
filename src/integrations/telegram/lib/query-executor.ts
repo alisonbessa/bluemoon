@@ -1,9 +1,9 @@
 import { db } from "@/db";
-import { transactions, categories, goals, groups, monthlyAllocations } from "@/db/schema";
+import { transactions, categories, goals, groups, monthlyAllocations, financialAccounts } from "@/db/schema";
 import { eq, and, gte, lte, sql, sum } from "drizzle-orm";
 import type { UserContext, ExtractedQueryData, Intent } from "./types";
 import { sendMessage, formatCurrency } from "./bot";
-import { matchCategory, matchGoal } from "./gemini";
+import { matchCategory, matchGoal, matchAccount } from "./gemini";
 
 interface CategorySummary {
   categoryId: string;
@@ -43,6 +43,10 @@ export async function handleQueryIntent(
 
     case "goal":
       await handleGoalQuery(chatId, data.goalName, userContext);
+      break;
+
+    case "account":
+      await handleAccountQuery(chatId, data.accountName, userContext);
       break;
 
     default:
@@ -207,6 +211,109 @@ async function handleGoalQuery(
   message += `Falta: ${formatCurrency(remaining)}\n`;
 
   await sendMessage(chatId, message);
+}
+
+/**
+ * Handle account query - show specific account balance
+ */
+async function handleAccountQuery(
+  chatId: number,
+  accountName: string | undefined,
+  userContext: UserContext
+): Promise<void> {
+  if (!accountName && userContext.accounts.length === 0) {
+    await sendMessage(chatId, "Você ainda não tem contas cadastradas.");
+    return;
+  }
+
+  // If no specific account mentioned, show all accounts
+  if (!accountName) {
+    const accountsList = await db
+      .select()
+      .from(financialAccounts)
+      .where(eq(financialAccounts.budgetId, userContext.budgetId));
+
+    let message = "<b>Suas Contas</b>\n\n";
+
+    for (const account of accountsList) {
+      const icon = getAccountIcon(account.type);
+      const balanceEmoji = account.balance >= 0 ? "" : "🔴 ";
+      message += `${icon} <b>${account.name}</b>\n`;
+      message += `${balanceEmoji}Saldo: ${formatCurrency(account.balance)}\n`;
+      if (account.type === "credit_card" && account.creditLimit) {
+        const available = account.creditLimit - account.balance;
+        message += `Limite disponível: ${formatCurrency(available)}\n`;
+      }
+      message += "\n";
+    }
+
+    await sendMessage(chatId, message);
+    return;
+  }
+
+  // Try to match the account
+  const match = matchAccount(accountName, userContext.accounts);
+
+  if (!match) {
+    await sendMessage(
+      chatId,
+      `Não encontrei a conta "${accountName}".\n\n` +
+        `Suas contas:\n` +
+        userContext.accounts.map((a) => `- ${a.name}`).join("\n")
+    );
+    return;
+  }
+
+  // Get full account details
+  const [account] = await db
+    .select()
+    .from(financialAccounts)
+    .where(eq(financialAccounts.id, match.account.id));
+
+  if (!account) {
+    await sendMessage(chatId, "Conta não encontrada.");
+    return;
+  }
+
+  const icon = getAccountIcon(account.type);
+  const balanceEmoji = account.balance >= 0 ? "✅" : "🔴";
+
+  let message = `${icon} <b>${account.name}</b>\n\n`;
+  message += `${balanceEmoji} Saldo: ${formatCurrency(account.balance)}\n`;
+
+  if (account.type === "credit_card") {
+    if (account.creditLimit) {
+      const used = account.balance;
+      const available = account.creditLimit - used;
+      const percentUsed = Math.round((used / account.creditLimit) * 100);
+      message += `\nLimite: ${formatCurrency(account.creditLimit)}\n`;
+      message += `Usado: ${formatCurrency(used)} (${percentUsed}%)\n`;
+      message += `Disponível: ${formatCurrency(available)}\n`;
+    }
+    if (account.closingDay) {
+      message += `\nFechamento: dia ${account.closingDay}`;
+    }
+    if (account.dueDay) {
+      message += `\nVencimento: dia ${account.dueDay}`;
+    }
+  }
+
+  await sendMessage(chatId, message);
+}
+
+/**
+ * Get icon for account type
+ */
+function getAccountIcon(type: string): string {
+  const icons: Record<string, string> = {
+    checking: "🏦",
+    savings: "🐷",
+    credit_card: "💳",
+    cash: "💵",
+    investment: "📈",
+    benefit: "🍽️",
+  };
+  return icons[type] || "💰";
 }
 
 /**

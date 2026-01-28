@@ -63,6 +63,7 @@ INTENÇÕES VÁLIDAS:
 - QUERY_BALANCE: Consultar saldo geral (quanto gastei, saldo, sobrou)
 - QUERY_CATEGORY: Consultar categoria específica (quanto em alimentação)
 - QUERY_GOAL: Consultar meta (como está minha meta)
+- QUERY_ACCOUNT: Consultar saldo de conta específica (quanto tenho na poupança, saldo do nubank)
 - TRANSFER: Transferir entre contas (transferi, movi)
 - UNKNOWN: Não conseguiu identificar
 
@@ -137,6 +138,10 @@ Responda APENAS com JSON válido no formato:
     "queryType": "goal",
     "goalName": "nome da meta mencionada"
 
+    // Para QUERY_ACCOUNT:
+    "queryType": "account",
+    "accountName": "nome da conta mencionada"
+
     // Para TRANSFER:
     "amount": numero em reais,
     "fromAccountHint": "conta de origem",
@@ -190,6 +195,12 @@ Resposta: {"intent": "QUERY_CATEGORY", "confidence": 0.90, "data": {"queryType":
 
 Entrada: "como tá minha meta da viagem?"
 Resposta: {"intent": "QUERY_GOAL", "confidence": 0.88, "data": {"queryType": "goal", "goalName": "viagem"}}
+
+Entrada: "quanto tenho na poupança?"
+Resposta: {"intent": "QUERY_ACCOUNT", "confidence": 0.90, "data": {"queryType": "account", "accountName": "poupança"}}
+
+Entrada: "qual o saldo do nubank?"
+Resposta: {"intent": "QUERY_ACCOUNT", "confidence": 0.88, "data": {"queryType": "account", "accountName": "nubank"}}
 
 Entrada: "transferi 500 da conta corrente pra poupança"
 Resposta: {"intent": "TRANSFER", "confidence": 0.90, "data": {"amount": 500.00, "fromAccountHint": "conta corrente", "toAccountHint": "poupança"}}

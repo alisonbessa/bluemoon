@@ -201,17 +201,28 @@ export async function handleHelp(chatId: number) {
   await sendMessage(
     chatId,
     `📚 <b>Comandos disponíveis:</b>\n\n` +
-      `<b>Registrar gastos:</b>\n` +
-      `• Envie apenas o valor: <code>50</code>\n` +
-      `• Com descrição: <code>50 mercado</code>\n` +
-      `• Com vírgula: <code>35,90</code>\n\n` +
-      `<b>Comandos:</b>\n` +
+      `<b>💸 Registrar gastos:</b>\n` +
+      `• <code>50</code> ou <code>50,90</code>\n` +
+      `• <code>50 mercado</code> (com descrição)\n` +
+      `• <code>200 em 3x</code> (parcelado)\n` +
+      `• <code>35 almoço no flash</code> (com conta)\n\n` +
+      `<b>💰 Registrar receitas:</b>\n` +
+      `• <code>recebi 5000 de salário</code>\n` +
+      `• <code>entrou o VR</code>\n\n` +
+      `<b>📊 Consultas:</b>\n` +
+      `• <code>quanto gastei esse mês?</code>\n` +
+      `• <code>quanto sobrou em alimentação?</code>\n` +
+      `• <code>como está minha meta de viagem?</code>\n` +
+      `• <code>quanto tenho na poupança?</code>\n\n` +
+      `<b>🔄 Transferências:</b>\n` +
+      `• <code>transferi 500 pra poupança</code>\n\n` +
+      `<b>⚙️ Comandos:</b>\n` +
       `/ajuda - Esta mensagem\n` +
       `/desfazer - Desfazer último registro\n` +
       `/cancelar - Cancelar operação atual\n\n` +
-      `<b>Dicas:</b>\n` +
-      `• O bot irá perguntar a categoria\n` +
-      `• Você pode confirmar ou cancelar antes de salvar`
+      `<b>💡 Dicas:</b>\n` +
+      `• Você também pode enviar áudios!\n` +
+      `• O bot confirma antes de salvar`
   );
 }
 
