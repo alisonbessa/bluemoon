@@ -1,6 +1,6 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { invites, budgetMembers, budgets, groups, categories } from "@/db/schema";
+import { invites, budgetMembers, budgets, users } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -9,9 +9,15 @@ import {
   successResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
+import sendMail from "@/shared/lib/email/sendMail";
+import { render } from "@react-email/components";
+import PartnerInviteEmail from "@/emails/PartnerInviteEmail";
+import { appConfig } from "@/shared/lib/config";
 
 const createInviteSchema = z.object({
   budgetId: z.string().uuid(),
+  email: z.string().email().optional(),
+  name: z.string().min(1).max(100).optional(),
 });
 
 // Helper to get user's budget IDs where they are owner
@@ -71,13 +77,27 @@ export const POST = withAuthRequired(async (req, context) => {
     return validationError(validation.error);
   }
 
-  const { budgetId } = validation.data;
+  const { budgetId, email, name } = validation.data;
 
   // Check user is owner of the budget
   const ownerBudgetIds = await getOwnerBudgetIds(session.user.id);
   if (!ownerBudgetIds.includes(budgetId)) {
     return forbiddenError("Budget not found or you are not the owner");
   }
+
+  // Get budget details for the email
+  const [budget] = await db
+    .select({ name: budgets.name })
+    .from(budgets)
+    .where(eq(budgets.id, budgetId))
+    .limit(1);
+
+  // Get inviter details
+  const [inviter] = await db
+    .select({ name: users.name })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
 
   // Check if user's plan allows partners (Duo plan has maxBudgetMembers >= 2)
   const currentPlan = await getCurrentPlan();
@@ -132,15 +152,41 @@ export const POST = withAuthRequired(async (req, context) => {
     .values({
       budgetId,
       invitedByUserId: session.user.id,
+      email: email?.toLowerCase(),
+      name,
       token,
       expiresAt,
     })
     .returning();
 
-  // TODO: Send invite email via Inngest/Resend
+  const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`;
+
+  // Send invite email if email was provided
+  if (email) {
+    try {
+      const html = await render(
+        PartnerInviteEmail({
+          inviterName: inviter?.name || "Seu parceiro(a)",
+          budgetName: budget?.name || "Orçamento Compartilhado",
+          inviteUrl: inviteLink,
+          expiresAt,
+        })
+      );
+
+      await sendMail(
+        email,
+        `${inviter?.name || "Alguém"} te convidou para o ${appConfig.projectName}!`,
+        html
+      );
+    } catch (error) {
+      console.error("Failed to send invite email:", error);
+      // Don't fail the request if email fails - invite was still created
+    }
+  }
 
   return successResponse({
     invite: newInvite,
-    inviteLink: `${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`,
+    inviteLink,
+    emailSent: !!email,
   }, 201);
 });
