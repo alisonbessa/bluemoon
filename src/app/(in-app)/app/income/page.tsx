@@ -27,9 +27,10 @@ import {
 } from "@/features/income";
 import { IncomeSourcePageFormModal } from "@/features/income";
 
-// Grid columns: icon, name, member, day, value
+// Grid columns: icon, name, member (optional), day, value
 // Member and Day columns hidden on mobile
-const GRID_COLS_DESKTOP = "24px 1fr 100px 80px 100px";
+const GRID_COLS_WITH_MEMBER = "24px 1fr 100px 80px 100px";
+const GRID_COLS_NO_MEMBER = "24px 1fr 80px 100px";
 
 export default function IncomePage() {
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
@@ -60,6 +61,10 @@ export default function IncomePage() {
     onSuccess: refresh,
     onTutorialAction: isTutorialActive ? () => notifyActionCompleted("hasIncome") : undefined,
   });
+
+  // Only show member column if there's more than one member
+  const showMemberColumn = members.length > 1;
+  const gridCols = showMemberColumn ? GRID_COLS_WITH_MEMBER : GRID_COLS_NO_MEMBER;
 
   if (isLoading) {
     return <LoadingState fullHeight />;
@@ -105,11 +110,11 @@ export default function IncomePage() {
           <div className="min-w-[400px]">
             <div
               className={COMPACT_TABLE_STYLES.header}
-              style={{ gridTemplateColumns: GRID_COLS_DESKTOP }}
+              style={{ gridTemplateColumns: gridCols }}
             >
               <div></div>
               <div>Fonte</div>
-              <div className="hidden sm:block">Quem Recebe</div>
+              {showMemberColumn && <div className="hidden sm:block">Quem Recebe</div>}
               <div className="hidden sm:block">Dia</div>
               <div className="text-right">Valor</div>
             </div>
@@ -128,8 +133,8 @@ export default function IncomePage() {
                   icon={config.icon}
                   label={config.label}
                   count={sources.length}
-                  gridCols={GRID_COLS_DESKTOP}
-                  emptyColsCount={2}
+                  gridCols={gridCols}
+                  emptyColsCount={showMemberColumn ? 2 : 1}
                   summary={`+${formatCentsToDisplay(typeTotal)}`}
                   summaryClassName="text-green-600"
                 />
@@ -140,7 +145,7 @@ export default function IncomePage() {
                     <div
                       key={source.id}
                       className={COMPACT_TABLE_STYLES.itemRow}
-                      style={{ gridTemplateColumns: GRID_COLS_DESKTOP }}
+                      style={{ gridTemplateColumns: gridCols }}
                     >
                       <div className="flex items-center justify-center">
                         <span className="text-base">{config.icon}</span>
@@ -157,23 +162,25 @@ export default function IncomePage() {
                           deleteTitle="Excluir fonte de renda"
                         />
                       </div>
-                      <div className="hidden sm:flex items-center gap-1.5 text-muted-foreground">
-                        {source.member ? (
-                          <>
-                            <span
-                              className="h-2 w-2 rounded-full flex-shrink-0"
-                              style={{
-                                backgroundColor: source.member.color || "#6366f1",
-                              }}
-                            />
-                            <span className="truncate text-xs">
-                              {source.member.name}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-xs">-</span>
-                        )}
-                      </div>
+                      {showMemberColumn && (
+                        <div className="hidden sm:flex items-center gap-1.5 text-muted-foreground">
+                          {source.member ? (
+                            <>
+                              <span
+                                className="h-2 w-2 rounded-full flex-shrink-0"
+                                style={{
+                                  backgroundColor: source.member.color || "#6366f1",
+                                }}
+                              />
+                              <span className="truncate text-xs">
+                                {source.member.name}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-xs">-</span>
+                          )}
+                        </div>
+                      )}
                       <div className="hidden sm:block text-muted-foreground">
                         {source.dayOfMonth ? (
                           <span className="text-xs">Dia {source.dayOfMonth}</span>

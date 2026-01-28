@@ -426,8 +426,10 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Members Management */}
-          {budgetId && <MembersManagement budgetId={budgetId} />}
+          {/* Members Management - Only show for Duo plans (maxBudgetMembers >= 2) */}
+          {budgetId && (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2 && (
+            <MembersManagement budgetId={budgetId} />
+          )}
         </div>
 
         {/* Sidebar */}
@@ -513,28 +515,66 @@ export default function SettingsPage() {
                     </div>
                     <Badge>Ativo</Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Sua assinatura está ativa.
-                  </p>
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => setShowChangePlanConfirm(true)}
-                    >
-                      <ArrowUpDown className="mr-2 h-4 w-4" />
-                      Mudar para {currentPlan.codename === "solo" ? "Duo" : "Solo"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-destructive hover:text-destructive"
-                      onClick={() => setShowCancelTrialConfirm(true)}
-                    >
-                      Cancelar assinatura
-                    </Button>
-                  </div>
+                  {currentPlan.codename === "solo" ? (
+                    // Solo user - encourage upgrade
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Sua assinatura está ativa.
+                      </p>
+                      <div className="rounded-md bg-primary/5 border border-primary/20 p-3">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Users className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium">Gerencie a dois!</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Compartilhe o controle financeiro com seu parceiro(a). Cada um com sua visão, tudo sincronizado.
+                        </p>
+                      </div>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setShowChangePlanConfirm(true)}
+                      >
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Fazer upgrade para Duo
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-destructive hover:text-destructive"
+                        onClick={() => setShowCancelTrialConfirm(true)}
+                      >
+                        Cancelar assinatura
+                      </Button>
+                    </div>
+                  ) : (
+                    // Duo user - standard view
+                    <>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Sua assinatura está ativa.
+                      </p>
+                      <div className="space-y-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setShowChangePlanConfirm(true)}
+                        >
+                          <ArrowUpDown className="mr-2 h-4 w-4" />
+                          Mudar para Solo
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full text-destructive hover:text-destructive"
+                          onClick={() => setShowCancelTrialConfirm(true)}
+                        >
+                          Cancelar assinatura
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : (
                 // Free/default plan
