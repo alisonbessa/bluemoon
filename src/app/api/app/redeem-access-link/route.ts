@@ -19,8 +19,14 @@ const redeemSchema = z.object({
  */
 export const POST = withAuthRequired(async (req, { session }) => {
   try {
+    console.log("[redeem-access-link] Starting redemption");
+    console.log("[redeem-access-link] Session:", JSON.stringify(session, null, 2));
+
     const body = await req.json();
+    console.log("[redeem-access-link] Body:", body);
+
     const { code, planType } = redeemSchema.parse(body);
+    console.log("[redeem-access-link] Parsed - code:", code, "planType:", planType);
 
     // Normalize code (uppercase, remove extra spaces)
     const normalizedCode = code.toUpperCase().trim();
@@ -37,6 +43,8 @@ export const POST = withAuthRequired(async (req, { session }) => {
         )
       )
       .limit(1);
+
+    console.log("[redeem-access-link] Link found:", link ? { id: link.id, code: link.code, type: link.type } : null);
 
     if (!link) {
       return NextResponse.json(
@@ -61,6 +69,8 @@ export const POST = withAuthRequired(async (req, { session }) => {
       .where(eq(plans.codename, planCodename))
       .limit(1);
 
+    console.log("[redeem-access-link] Plan found:", plan ? { id: plan.id, name: plan.name, codename: plan.codename } : null);
+
     if (!plan) {
       return NextResponse.json(
         { error: "Plano não encontrado" },
@@ -70,18 +80,34 @@ export const POST = withAuthRequired(async (req, { session }) => {
 
     // Determine user role based on link type
     const newRole = link.type === "lifetime" ? "lifetime" : "beta";
+    console.log("[redeem-access-link] New role:", newRole);
+
+    // Get the user ID from session
+    const userId = session.user?.id;
+    console.log("[redeem-access-link] User ID from session:", userId);
+
+    if (!userId) {
+      console.error("[redeem-access-link] No user ID in session!");
+      return NextResponse.json(
+        { error: "Usuário não identificado na sessão" },
+        { status: 401 }
+      );
+    }
 
     // Update the access link as used
+    console.log("[redeem-access-link] Updating access link...");
     await db
       .update(accessLinks)
       .set({
-        userId: session.user.id,
+        userId: userId,
         usedAt: new Date(),
         planType,
       })
       .where(eq(accessLinks.id, link.id));
+    console.log("[redeem-access-link] Access link updated!");
 
     // Update the user with the new plan and role
+    console.log("[redeem-access-link] Updating user...");
     await db
       .update(users)
       .set({
@@ -90,7 +116,8 @@ export const POST = withAuthRequired(async (req, { session }) => {
         accessLinkId: link.id,
         trialEndsAt: null, // Clear any trial period
       })
-      .where(eq(users.id, session.user.id));
+      .where(eq(users.id, userId));
+    console.log("[redeem-access-link] User updated!");
 
     return NextResponse.json({
       success: true,
@@ -104,12 +131,15 @@ export const POST = withAuthRequired(async (req, { session }) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error("[redeem-access-link] Zod validation error:", error.errors);
       return NextResponse.json(
         { error: "Dados inválidos", details: error.errors },
         { status: 400 }
       );
     }
-    console.error("Error redeeming access link:", error);
+    console.error("[redeem-access-link] Error:", error);
+    console.error("[redeem-access-link] Error message:", error instanceof Error ? error.message : "Unknown error");
+    console.error("[redeem-access-link] Error stack:", error instanceof Error ? error.stack : "No stack");
     return NextResponse.json(
       { error: "Falha ao resgatar código" },
       { status: 500 }

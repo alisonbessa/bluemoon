@@ -26,8 +26,7 @@ export function Pagination({
   return (
     <div className="flex items-center justify-between">
       <div className="text-sm text-muted-foreground">
-        Showing {Math.min((page - 1) * pageSize + 1, total)} to{" "}
-        {Math.min(page * pageSize, total)} of {total} results
+        {total} {total === 1 ? "resultado" : "resultados"}
       </div>
       <div className="flex items-center space-x-2">
         <Button
@@ -37,7 +36,7 @@ export function Pagination({
           disabled={page === 1}
         >
           <ChevronsLeft className="h-4 w-4" />
-          <span className="sr-only">First page</span>
+          <span className="sr-only">Primeira página</span>
         </Button>
         <Button
           variant="outline"
@@ -46,10 +45,10 @@ export function Pagination({
           disabled={page === 1}
         >
           <ChevronLeft className="h-4 w-4" />
-          <span className="sr-only">Previous page</span>
+          <span className="sr-only">Página anterior</span>
         </Button>
         <div className="text-sm font-medium">
-          Page {page} of {totalPages}
+          {page}-{totalPages}
         </div>
         <Button
           variant="outline"
@@ -58,7 +57,7 @@ export function Pagination({
           disabled={page === totalPages}
         >
           <ChevronRight className="h-4 w-4" />
-          <span className="sr-only">Next page</span>
+          <span className="sr-only">Próxima página</span>
         </Button>
         <Button
           variant="outline"
@@ -67,7 +66,7 @@ export function Pagination({
           disabled={page === totalPages}
         >
           <ChevronsRight className="h-4 w-4" />
-          <span className="sr-only">Last page</span>
+          <span className="sr-only">Última página</span>
         </Button>
       </div>
     </div>

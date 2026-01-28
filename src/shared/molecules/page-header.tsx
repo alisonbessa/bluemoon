@@ -22,14 +22,16 @@ export function PageHeader({
         className
       )}
     >
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+      <div className="min-w-0">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{title}</h1>
         {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">{description}</p>
         )}
       </div>
       {actions && (
-        <div className="flex items-center gap-2 sm:gap-4">{actions}</div>
+        <div className="flex w-full sm:w-auto items-center gap-2 sm:gap-4 *:flex-1 sm:*:flex-none">
+          {actions}
+        </div>
       )}
     </div>
   );

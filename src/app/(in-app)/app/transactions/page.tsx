@@ -5,7 +5,7 @@ import { Loader2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { parseLocalDate } from "@/shared/lib/formatters";
-import { PageHeader, ResponsiveButton } from "@/shared/molecules";
+import { PageHeader, PageContent, ResponsiveButton } from "@/shared/molecules";
 import {
   TransactionSummary,
   TransactionFiltersBar,
@@ -310,7 +310,7 @@ export default function TransactionsPage() {
 
   // ============== RENDER ==============
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <PageContent>
       {/* Header */}
       <PageHeader
         title="Transações"
@@ -409,6 +409,6 @@ export default function TransactionsPage() {
         onClose={() => setDeletingTransaction(null)}
         onConfirm={handleDelete}
       />
-    </div>
+    </PageContent>
   );
 }

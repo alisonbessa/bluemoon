@@ -5,7 +5,7 @@ import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Checkbox } from "@/shared/ui/checkbox";
 import { Label } from "@/shared/ui/label";
-import { Database, AlertTriangle, Trash2, Users } from "lucide-react";
+import { Database, AlertTriangle, Trash2, Users, Wand2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -59,6 +59,37 @@ export default function DatabasePage() {
   const [confirmation, setConfirmation] = useState("");
   const [includeUsers, setIncludeUsers] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [mockDataEmail, setMockDataEmail] = useState("alisonbessa@gmail.com");
+  const [isPopulating, setIsPopulating] = useState(false);
+
+  const handlePopulateMockData = async () => {
+    if (!mockDataEmail) {
+      toast.error("Digite um email válido");
+      return;
+    }
+
+    setIsPopulating(true);
+    try {
+      const response = await fetch("/api/super-admin/mock-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: mockDataEmail }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Falha ao popular dados");
+      }
+
+      toast.success(data.message || "Dados de teste criados com sucesso!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Falha ao popular dados");
+      console.error(error);
+    } finally {
+      setIsPopulating(false);
+    }
+  };
 
   const handleReset = async () => {
     if (confirmation !== CONFIRMATION_CODE) {
@@ -194,6 +225,60 @@ export default function DatabasePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Popular Dados de Teste */}
+      <Card className="border-primary">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Wand2 className="h-5 w-5" />
+            Popular Dados de Teste
+          </CardTitle>
+          <CardDescription>
+            Cria um orçamento completo com contas, categorias, transações e metas para o usuário especificado.
+            O usuário receberá o plano Duo com role &quot;lifetime&quot;.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-sm font-medium mb-2">Email do usuário:</p>
+            <Input
+              type="email"
+              value={mockDataEmail}
+              onChange={(e) => setMockDataEmail(e.target.value)}
+              placeholder="email@exemplo.com"
+              className="max-w-md"
+            />
+          </div>
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p>Serão criados:</p>
+            <ul className="list-disc list-inside pl-2 space-y-0.5">
+              <li>1 orçamento com 2 membros (owner + parceiro)</li>
+              <li>7 contas (Nubank, Inter, Poupança, 2 cartões, Dinheiro, VR)</li>
+              <li>4 fontes de renda (2 salários, freelance, VR)</li>
+              <li>17 categorias em todos os grupos</li>
+              <li>3 metas de economia</li>
+              <li>Transações dos últimos 3 meses</li>
+              <li>Alocações mensais para categorias e rendas</li>
+            </ul>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button
+            onClick={handlePopulateMockData}
+            disabled={isPopulating || !mockDataEmail}
+            className="w-full sm:w-auto"
+          >
+            {isPopulating ? (
+              <>Criando dados...</>
+            ) : (
+              <>
+                <Wand2 className="h-4 w-4 mr-2" />
+                Popular Dados de Teste
+              </>
+            )}
+          </Button>
+        </CardFooter>
+      </Card>
 
       {/* Formulário de Reset */}
       <Card className="border-destructive">

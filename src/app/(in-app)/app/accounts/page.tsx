@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/shared/ui/button";
 import {
   PageHeader,
+  PageContent,
   EmptyState,
   DeleteConfirmDialog,
   LoadingState,
@@ -29,7 +30,7 @@ import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
 import { formatCurrency, formatCurrencyCompact } from "@/shared/lib/formatters";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
-import { useAccounts, useBudgets, useMembers } from "@/shared/hooks";
+import { useAccounts, useBudgets, useMembers, useUser } from "@/shared/hooks";
 
 const GRID_COLS = "24px 1fr 100px 100px 120px";
 
@@ -47,8 +48,9 @@ export default function AccountsPage() {
   const { accounts, isLoading: accountsLoading, mutate: mutateAccounts } = useAccounts();
   const { budgets, isLoading: budgetsLoading } = useBudgets();
   const { members, isLoading: membersLoading } = useMembers();
+  const { user, isLoading: userLoading } = useUser();
 
-  const isLoading = accountsLoading || budgetsLoading || membersLoading;
+  const isLoading = accountsLoading || budgetsLoading || membersLoading || userLoading;
 
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -56,13 +58,11 @@ export default function AccountsPage() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const [includeInvestments, setIncludeInvestments] = useState(false);
-  const { isExpanded, toggleGroup } = useExpandedGroups([
-    "checking",
-    "savings",
-    "credit_card",
-    "cash",
-    "benefit",
-  ]);
+  const [ownershipFilter, setOwnershipFilter] = useState<'all' | 'mine' | 'shared'>('all');
+  const { isExpanded, toggleGroup } = useExpandedGroups([], { accordion: true });
+
+  // Get current user's member id by matching member.userId with current user's id
+  const currentUserMemberId = members.find(m => m.userId === user?.id)?.id;
 
   const handleCreateAccount = async (data: AccountFormData) => {
     if (budgets.length === 0) {
@@ -131,17 +131,27 @@ export default function AccountsPage() {
     }
   };
 
-  // Group accounts by type
-  const accountsByType = {
-    checking: accounts.filter((a) => a.type === "checking"),
-    savings: accounts.filter((a) => a.type === "savings"),
-    credit_card: accounts.filter((a) => a.type === "credit_card"),
-    cash: accounts.filter((a) => a.type === "cash"),
-    investment: accounts.filter((a) => a.type === "investment"),
-    benefit: accounts.filter((a) => a.type === "benefit"),
+  // Filter accounts by ownership
+  const filterByOwnership = (account: Account) => {
+    if (ownershipFilter === 'all') return true;
+    if (ownershipFilter === 'mine') return account.ownerId === currentUserMemberId;
+    if (ownershipFilter === 'shared') return !account.ownerId;
+    return true;
   };
 
-  const totalBalance = accounts
+  const filteredAccounts = accounts.filter(filterByOwnership);
+
+  // Group accounts by type
+  const accountsByType = {
+    checking: filteredAccounts.filter((a) => a.type === "checking"),
+    savings: filteredAccounts.filter((a) => a.type === "savings"),
+    credit_card: filteredAccounts.filter((a) => a.type === "credit_card"),
+    cash: filteredAccounts.filter((a) => a.type === "cash"),
+    investment: filteredAccounts.filter((a) => a.type === "investment"),
+    benefit: filteredAccounts.filter((a) => a.type === "benefit"),
+  };
+
+  const totalBalance = filteredAccounts
     .filter((a) => {
       if (a.type === "credit_card") return false;
       if (a.type === "investment" && !includeInvestments) return false;
@@ -149,9 +159,16 @@ export default function AccountsPage() {
     })
     .reduce((sum, a) => sum + a.balance, 0);
 
-  const totalDebt = accounts
+  const totalDebt = filteredAccounts
     .filter((a) => a.type === "credit_card")
     .reduce((sum, a) => sum + a.balance, 0);
+
+  // Check if we have investments (unfiltered) to show toggle
+  const hasInvestments = accounts.some((a) => a.type === "investment");
+
+  // Check if we have mixed ownership to show filter
+  const hasMixedOwnership = accounts.some(a => a.ownerId === currentUserMemberId) &&
+    accounts.some(a => !a.ownerId || a.ownerId !== currentUserMemberId);
 
   const typesWithAccounts = Object.entries(accountsByType).filter(
     ([_, accts]) => accts.length > 0
@@ -162,42 +179,88 @@ export default function AccountsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <PageContent>
       {/* Header */}
       <PageHeader
         title="Contas"
         description="Gerencie suas contas bancárias, cartões e investimentos"
         actions={
-          <div className="flex items-center gap-4">
-            {accountsByType.investment.length > 0 && (
-              <button
-                onClick={() => setIncludeInvestments(!includeInvestments)}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                title={
-                  includeInvestments
-                    ? "Ocultar investimentos do patrimônio"
-                    : "Incluir investimentos no patrimônio"
-                }
-              >
-                {includeInvestments ? (
-                  <Eye className="h-4 w-4" />
-                ) : (
-                  <EyeOff className="h-4 w-4" />
-                )}
-                <span className="hidden sm:inline">Investimentos</span>
-              </button>
-            )}
-            <ResponsiveButton
-              onClick={() => setIsFormOpen(true)}
-              size="sm"
-              icon={<Plus />}
-              data-tutorial="add-account-button"
-            >
-              Nova Conta
-            </ResponsiveButton>
-          </div>
+          <ResponsiveButton
+            onClick={() => setIsFormOpen(true)}
+            size="sm"
+            icon={<Plus />}
+            data-tutorial="add-account-button"
+          >
+            Nova Conta
+          </ResponsiveButton>
         }
       />
+
+      {/* Filters Bar */}
+      {(hasInvestments || hasMixedOwnership) && (
+        <div className="flex items-center justify-between px-1 py-2 text-xs gap-2">
+          {/* Left: Investment toggle */}
+          {hasInvestments ? (
+            <button
+              onClick={() => setIncludeInvestments(!includeInvestments)}
+              className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              title={
+                includeInvestments
+                  ? "Ocultar investimentos do patrimônio"
+                  : "Incluir investimentos no patrimônio"
+              }
+            >
+              {includeInvestments ? (
+                <Eye className="h-3.5 w-3.5" />
+              ) : (
+                <EyeOff className="h-3.5 w-3.5" />
+              )}
+              <span>Investimentos</span>
+            </button>
+          ) : (
+            <div />
+          )}
+
+          {/* Right: Ownership filter */}
+          {hasMixedOwnership && (
+            <div className="flex items-center gap-0.5 bg-muted rounded-md p-0.5">
+              <button
+                onClick={() => setOwnershipFilter('all')}
+                className={cn(
+                  'px-2 py-0.5 rounded text-xs font-medium transition-colors',
+                  ownershipFilter === 'all'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Todos
+              </button>
+              <button
+                onClick={() => setOwnershipFilter('mine')}
+                className={cn(
+                  'px-2 py-0.5 rounded text-xs font-medium transition-colors',
+                  ownershipFilter === 'mine'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Minhas
+              </button>
+              <button
+                onClick={() => setOwnershipFilter('shared')}
+                className={cn(
+                  'px-2 py-0.5 rounded text-xs font-medium transition-colors',
+                  ownershipFilter === 'shared'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Compartilhadas
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Summary */}
       <SummaryCardGrid
@@ -468,6 +531,6 @@ export default function AccountsPage() {
         title="Excluir conta?"
         description={`Tem certeza que deseja excluir a conta "${deletingAccount?.name}"? Esta ação não pode ser desfeita.`}
       />
-    </div>
+    </PageContent>
   );
 }

@@ -10,13 +10,13 @@ export function AppHeader() {
   const { toggleSidebar } = useSidebar();
 
   return (
-    <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 border-b bg-background px-4">
+    <header className="sticky top-0 z-50 flex h-12 sm:h-14 shrink-0 items-center gap-2 border-b bg-background px-3 sm:px-4">
       {/* Logo and Name */}
-      <Link href="/app" className="flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <HexagonIcon className="size-5" />
+      <Link href="/app" className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex size-7 sm:size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <HexagonIcon className="size-4 sm:size-5" />
         </div>
-        <span className="text-lg font-bold">
+        <span className="text-sm sm:text-lg font-bold">
           {appConfig.projectName}
         </span>
       </Link>

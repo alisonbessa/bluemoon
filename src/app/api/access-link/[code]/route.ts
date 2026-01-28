@@ -17,7 +17,24 @@ export async function GET(
     // Normalize code: uppercase only (codes are stored with dashes)
     const normalizedCode = code.toUpperCase().trim();
 
-    // Find the access link
+    console.log("[access-link] Searching for code:", normalizedCode);
+
+    // First, check if link exists at all (without filters)
+    const [anyLink] = await db
+      .select()
+      .from(accessLinks)
+      .where(eq(accessLinks.code, normalizedCode))
+      .limit(1);
+
+    console.log("[access-link] Found link (no filters):", anyLink ? {
+      id: anyLink.id,
+      code: anyLink.code,
+      expired: anyLink.expired,
+      usedAt: anyLink.usedAt,
+      expiresAt: anyLink.expiresAt,
+    } : null);
+
+    // Find the access link with all filters
     const [link] = await db
       .select()
       .from(accessLinks)
@@ -34,9 +51,36 @@ export async function GET(
       )
       .limit(1);
 
+    console.log("[access-link] Found link (with filters):", link ? "valid" : "not found");
+
     if (!link) {
+      // Provide more specific error message
+      if (anyLink) {
+        if (anyLink.usedAt) {
+          console.log("[access-link] Link already used");
+          return NextResponse.json(
+            { error: "Este código já foi utilizado" },
+            { status: 404 }
+          );
+        }
+        if (anyLink.expired) {
+          console.log("[access-link] Link expired (manual)");
+          return NextResponse.json(
+            { error: "Este código foi expirado" },
+            { status: 404 }
+          );
+        }
+        if (anyLink.expiresAt && anyLink.expiresAt < new Date()) {
+          console.log("[access-link] Link expired (date)");
+          return NextResponse.json(
+            { error: "Este código expirou" },
+            { status: 404 }
+          );
+        }
+      }
+      console.log("[access-link] Link not found");
       return NextResponse.json(
-        { error: "Código inválido ou já utilizado" },
+        { error: "Código inválido" },
         { status: 404 }
       );
     }

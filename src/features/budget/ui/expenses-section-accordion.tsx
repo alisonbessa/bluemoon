@@ -1,14 +1,19 @@
 'use client';
 
-import { ChevronDown, Plus } from 'lucide-react';
-import { Checkbox } from '@/shared/ui/checkbox';
+import { ChevronDown, Plus, MoreVertical } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/shared/ui/dropdown-menu';
 import { cn } from '@/shared/lib/utils';
+import { AccordionContent } from '@/shared/ui/accordion-content';
 import { CategoryWithBills } from './category-with-bills';
 import { formatCurrency } from '../types';
+import type { MobileViewMode } from '../hooks';
 
 // Local types that match what the budget page provides
-type FilterType = 'all' | 'underfunded' | 'overfunded' | 'money_available';
-
 interface CategoryLocal {
   id: string;
   name: string;
@@ -73,15 +78,33 @@ interface ExpensesSectionAccordionProps {
   onToggle: () => void;
   expandedGroups: string[];
   onToggleGroup: (groupId: string) => void;
-  activeFilter: FilterType;
-  selectedCategories: string[];
-  onToggleCategorySelection: (categoryId: string) => void;
-  onToggleGroupSelection: (groupId: string) => void;
   onEditAllocation: (category: CategoryLocal, allocated: number) => void;
   onEditCategory: (category: CategoryLocal) => void;
   onDeleteCategory: (category: CategoryLocal) => void;
   onAddCategory: (groupId: string, groupCode: string) => void;
   onBillsChange: () => void;
+  mobileViewMode?: MobileViewMode;
+}
+
+// Helper to get the value based on view mode for expenses
+function getExpenseDisplayValue(
+  allocated: number,
+  spent: number,
+  mode: MobileViewMode
+): { value: number; colorClass: string } {
+  switch (mode) {
+    case 'planned':
+      return { value: allocated, colorClass: 'text-red-800 dark:text-red-200' };
+    case 'actual':
+      return { value: spent, colorClass: 'text-red-600 dark:text-red-400' };
+    case 'available':
+    default:
+      const available = allocated - spent;
+      return {
+        value: available,
+        colorClass: available >= 0 ? 'text-green-600' : 'text-red-600',
+      };
+  }
 }
 
 export function ExpensesSectionAccordion({
@@ -93,33 +116,13 @@ export function ExpensesSectionAccordion({
   onToggle,
   expandedGroups,
   onToggleGroup,
-  activeFilter,
-  selectedCategories,
-  onToggleCategorySelection,
-  onToggleGroupSelection,
   onEditAllocation,
   onEditCategory,
   onDeleteCategory,
   onAddCategory,
   onBillsChange,
+  mobileViewMode = 'available',
 }: ExpensesSectionAccordionProps) {
-  const filterCategories = (categories: CategoryAllocationLocal[]): CategoryAllocationLocal[] => {
-    switch (activeFilter) {
-      case 'underfunded':
-        return categories.filter(
-          (c) =>
-            c.allocated === 0 ||
-            (c.category.plannedAmount > 0 && c.allocated < c.category.plannedAmount)
-        );
-      case 'overfunded':
-        return categories.filter((c) => c.available > c.allocated && c.allocated > 0);
-      case 'money_available':
-        return categories.filter((c) => c.available > 0);
-      default:
-        return categories;
-    }
-  };
-
   if (groupsData.length === 0) {
     return null;
   }
@@ -128,12 +131,12 @@ export function ExpensesSectionAccordion({
     <>
       {/* Expenses Section Header - Clickable Toggle */}
       <div
-        className="grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b items-center cursor-pointer hover:bg-red-200/50 dark:hover:bg-red-950/70 transition-colors"
+        className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b items-center cursor-pointer hover:bg-red-200/50 dark:hover:bg-red-950/70 transition-colors"
         onClick={onToggle}
       >
         <ChevronDown
           className={cn(
-            'h-4 w-4 text-red-700 dark:text-red-300 transition-transform',
+            'h-4 w-4 text-red-700 dark:text-red-300 transition-transform duration-200',
             !isExpanded && '-rotate-90'
           )}
         />
@@ -143,172 +146,200 @@ export function ExpensesSectionAccordion({
             DESPESAS
           </span>
         </div>
-        <div className="text-right text-sm font-bold text-red-800 dark:text-red-200">
+        <div className="hidden sm:block text-sm font-bold tabular-nums text-red-800 dark:text-red-200">
           {formatCurrency(totals.allocated)}
         </div>
-        <div className="text-right text-sm font-bold text-red-600 dark:text-red-400">
+        <div className="hidden sm:block text-sm font-bold tabular-nums text-red-600 dark:text-red-400">
           {formatCurrency(totals.spent)}
         </div>
+        {/* Desktop: always show available */}
         <div
           className={cn(
-            'text-right text-sm font-bold',
+            'hidden sm:block text-sm font-bold tabular-nums',
             totals.allocated - totals.spent >= 0 ? '' : 'text-red-600'
           )}
         >
           {formatCurrency(totals.allocated - totals.spent)}
         </div>
+        {/* Mobile: show based on view mode */}
+        {(() => {
+          const display = getExpenseDisplayValue(totals.allocated, totals.spent, mobileViewMode);
+          return (
+            <div className={cn('sm:hidden text-xs font-bold tabular-nums pr-2 whitespace-nowrap', display.colorClass)}>
+              {formatCurrency(display.value)}
+            </div>
+          );
+        })()}
+        {/* Empty column for alignment with rows that have menu */}
+        <div className="sm:hidden" />
       </div>
 
-      {isExpanded && (
-        <div className="overflow-x-auto">
-          <div className="min-w-[550px]">
-            {/* Expenses Table Header */}
-            <div className="grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
-              <div />
-              <div>Categoria</div>
-              <div className="text-right">Planejado</div>
-              <div className="text-right">Realizado</div>
-              <div className="text-right">Disponivel</div>
-            </div>
+      <AccordionContent isOpen={isExpanded}>
+        {/* Expenses Table Header */}
+        <div className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
+          <div />
+          <div>Categoria</div>
+          <div className="hidden sm:block">Planejado</div>
+          <div className="hidden sm:block">Realizado</div>
+          {/* Desktop: always show Disp. */}
+          <div className="hidden sm:block">Disp.</div>
+          {/* Mobile: show based on view mode */}
+          <div className="sm:hidden">
+            {mobileViewMode === 'planned' ? 'Plan.' : mobileViewMode === 'actual' ? 'Real.' : 'Disp.'}
           </div>
+          <div className="sm:hidden" />
         </div>
-      )}
 
-      {isExpanded && (
-        <div className="overflow-x-auto">
-          <div className="min-w-[550px]">
-            {groupsData.map(({ group, categories, totals: groupTotals }) => {
-              const isGroupExpanded = expandedGroups.includes(group.id);
-              const filteredCategories = filterCategories(categories);
-              const categoryIds = categories.map((c) => c.category.id);
-              const allSelected =
-                categoryIds.length > 0 &&
-                categoryIds.every((id) => selectedCategories.includes(id));
-              const someSelected = categoryIds.some((id) =>
-                selectedCategories.includes(id)
-              );
+        {groupsData.map(({ group, categories, totals: groupTotals }) => {
+          const isGroupExpanded = expandedGroups.includes(group.id);
 
-              if (activeFilter !== 'all' && filteredCategories.length === 0) {
-                return null;
-              }
-
-              return (
-                <div key={group.id}>
-                  {/* Group Row */}
-                  <div
-                    className="group grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 items-center bg-muted/40 border-b cursor-pointer hover:bg-muted/60 text-sm"
-                    onClick={() => onToggleGroup(group.id)}
+          return (
+            <div key={group.id}>
+              {/* Group Row */}
+              <div
+                className="group grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center bg-muted/40 border-b cursor-pointer hover:bg-muted/60 text-sm"
+                onClick={() => onToggleGroup(group.id)}
+              >
+                <ChevronDown
+                  className={cn(
+                    'h-3.5 w-3.5 shrink-0 transition-transform duration-200',
+                    !isGroupExpanded && '-rotate-90'
+                  )}
+                />
+                <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                  <span className="shrink-0">{group.icon}</span>
+                  <span className="font-bold truncate">{group.name}</span>
+                  {/* Desktop: hover to show add button */}
+                  <button
+                    className="hidden sm:block ml-1 p-0.5 rounded hover:bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddCategory(group.id, group.code);
+                    }}
+                    title="Adicionar categoria"
                   >
-                    <Checkbox
-                      checked={allSelected}
-                      className={cn(
-                        'h-3.5 w-3.5',
-                        someSelected && !allSelected && 'opacity-50'
-                      )}
-                      onCheckedChange={() => onToggleGroupSelection(group.id)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <div className="flex items-center gap-1.5">
-                      <ChevronDown
-                        className={cn(
-                          'h-3.5 w-3.5 transition-transform',
-                          !isGroupExpanded && '-rotate-90'
-                        )}
-                      />
-                      <span>{group.icon}</span>
-                      <span className="font-bold">{group.name}</span>
-                      <button
-                        className="ml-1 p-0.5 rounded hover:bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAddCategory(group.id, group.code);
-                        }}
-                        title="Adicionar categoria"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    <div className="text-right text-xs tabular-nums font-bold">
-                      {formatCurrency(groupTotals.allocated)}
-                    </div>
-                    <div className="text-right text-xs tabular-nums font-bold">
-                      {formatCurrency(groupTotals.spent)}
-                    </div>
-                    <div
-                      className={cn(
-                        'text-right text-xs tabular-nums font-bold',
-                        groupTotals.available >= 0 ? 'text-green-600' : 'text-red-600'
-                      )}
-                    >
-                      {formatCurrency(groupTotals.available)}
-                    </div>
-                  </div>
-
-                  {/* Categories */}
-                  {isGroupExpanded &&
-                    filteredCategories.map((item) => {
-                      const isSelected = selectedCategories.includes(item.category.id);
-                      const isOtherMember = item.isOtherMemberCategory;
-
-                      // For other member categories, show simple read-only row
-                      if (isOtherMember) {
-                        return (
-                          <div
-                            key={item.category.id}
-                            className="grid grid-cols-[24px_1fr_100px_100px_100px] px-4 py-1.5 items-center border-b text-sm opacity-75 cursor-default"
-                            data-tutorial="category-row"
-                          >
-                            <div className="h-3.5 w-3.5" />
-                            <div className="flex items-center gap-1.5 pl-5">
-                              <span>{item.category.icon || '📌'}</span>
-                              <span>{item.category.name}</span>
-                            </div>
-                            <div className="text-right text-xs tabular-nums">
-                              {formatCurrency(item.allocated)}
-                            </div>
-                            <div className="text-right text-xs tabular-nums">
-                              {formatCurrency(item.spent)}
-                            </div>
-                            <div
-                              className={cn(
-                                'text-right text-xs tabular-nums font-medium px-1',
-                                item.available > 0
-                                  ? 'text-green-600'
-                                  : item.available < 0
-                                    ? 'text-red-600 bg-red-100 dark:bg-red-900/30 rounded'
-                                    : ''
-                              )}
-                            >
-                              {formatCurrency(item.available)}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      // For own categories, use CategoryWithBills component
-                      return (
-                        <CategoryWithBills
-                          key={item.category.id}
-                          item={item}
-                          budgetId={budgetId}
-                          accounts={accounts}
-                          isSelected={isSelected}
-                          onToggleSelection={() =>
-                            onToggleCategorySelection(item.category.id)
-                          }
-                          onEditAllocation={onEditAllocation}
-                          onEditCategory={onEditCategory}
-                          onDeleteCategory={onDeleteCategory}
-                          onBillsChange={onBillsChange}
-                        />
-                      );
-                    })}
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                <div className="hidden sm:block text-xs tabular-nums font-bold">
+                  {formatCurrency(groupTotals.allocated)}
+                </div>
+                <div className="hidden sm:block text-xs tabular-nums font-bold">
+                  {formatCurrency(groupTotals.spent)}
+                </div>
+                {/* Desktop: always show available */}
+                <div
+                  className={cn(
+                    'hidden sm:block text-xs tabular-nums font-bold',
+                    groupTotals.available >= 0 ? 'text-green-600' : 'text-red-600'
+                  )}
+                >
+                  {formatCurrency(groupTotals.available)}
+                </div>
+                {/* Mobile: show based on view mode */}
+                {(() => {
+                  const display = getExpenseDisplayValue(groupTotals.allocated, groupTotals.spent, mobileViewMode);
+                  return (
+                    <div className={cn('sm:hidden text-xs tabular-nums font-bold pr-2', display.colorClass)}>
+                      {formatCurrency(display.value)}
+                    </div>
+                  );
+                })()}
+                {/* Mobile: menu at far right */}
+                <div className="sm:hidden flex items-center justify-center">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="p-1 rounded hover:bg-muted/80"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => onAddCategory(group.id, group.code)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar categoria
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+
+              {/* Categories */}
+              <AccordionContent isOpen={isGroupExpanded}>
+                {categories.map((item) => {
+                  const isOtherMember = item.isOtherMemberCategory;
+
+                  // For other member categories, show simple read-only row
+                  if (isOtherMember) {
+                    return (
+                      <div
+                        key={item.category.id}
+                        className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center border-b text-sm opacity-75 cursor-default"
+                        data-tutorial="category-row"
+                      >
+                        <div className="h-3.5 w-3.5" />
+                        <div className="flex items-center gap-1 sm:gap-1.5 pl-1 sm:pl-3 min-w-0">
+                          <span className="shrink-0">{item.category.icon || '📌'}</span>
+                          <span className="truncate">{item.category.name}</span>
+                        </div>
+                        <div className="hidden sm:block text-xs tabular-nums">
+                          {formatCurrency(item.allocated)}
+                        </div>
+                        <div className="hidden sm:block text-xs tabular-nums">
+                          {formatCurrency(item.spent)}
+                        </div>
+                        {/* Desktop: always show available */}
+                        <div
+                          className={cn(
+                            'hidden sm:block text-xs tabular-nums font-medium',
+                            item.available > 0
+                              ? 'text-green-600'
+                              : item.available < 0
+                                ? 'text-red-600'
+                                : ''
+                          )}
+                        >
+                          {formatCurrency(item.available)}
+                        </div>
+                        {/* Mobile: show based on view mode */}
+                        {(() => {
+                          const display = getExpenseDisplayValue(item.allocated, item.spent, mobileViewMode);
+                          return (
+                            <div className={cn('sm:hidden text-xs tabular-nums font-medium pr-2', display.colorClass)}>
+                              {formatCurrency(display.value)}
+                            </div>
+                          );
+                        })()}
+                        {/* Empty column for alignment */}
+                        <div className="sm:hidden" />
+                      </div>
+                    );
+                  }
+
+                  // For own categories, use CategoryWithBills component
+                  return (
+                    <CategoryWithBills
+                      key={item.category.id}
+                      item={item}
+                      budgetId={budgetId}
+                      accounts={accounts}
+                      onEditAllocation={onEditAllocation}
+                      onEditCategory={onEditCategory}
+                      onDeleteCategory={onDeleteCategory}
+                      onBillsChange={onBillsChange}
+                      mobileViewMode={mobileViewMode}
+                    />
+                  );
+                })}
+              </AccordionContent>
+            </div>
+          );
+        })}
+      </AccordionContent>
     </>
   );
 }

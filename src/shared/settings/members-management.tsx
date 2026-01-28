@@ -14,7 +14,6 @@ import { Label } from "@/shared/ui/label";
 import { Badge } from "@/shared/ui/badge";
 import { Separator } from "@/shared/ui/separator";
 import { Skeleton } from "@/shared/ui/skeleton";
-import { formatCurrency } from "@/shared/lib/formatters";
 import {
   Dialog,
   DialogContent,
@@ -257,24 +256,23 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              <CardTitle>Membros do Orçamento</CardTitle>
-            </div>
-            {!hasConnectedPartner && pendingInvites.length === 0 && (
-              <Button
-                size="sm"
-                onClick={handleOpenPreInvite}
-              >
-                <UserPlus className="mr-2 h-4 w-4" />
-                Criar link de convite
-              </Button>
-            )}
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-muted-foreground" />
+            <CardTitle>Membros do Orçamento</CardTitle>
           </div>
           <CardDescription>
             Gerencie quem tem acesso ao seu orçamento
           </CardDescription>
+          {!hasConnectedPartner && pendingInvites.length === 0 && (
+            <Button
+              size="sm"
+              className="w-full sm:w-auto mt-2"
+              onClick={handleOpenPreInvite}
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Criar link de convite
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Members List */}
@@ -316,24 +314,9 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
                         <Badge variant="secondary" className="text-xs">
                           {memberTypeLabels[member.type]}
                         </Badge>
-                        {member.monthlyPleasureBudget > 0 && (
-                          <span>
-                            Prazeres: {formatCurrency(member.monthlyPleasureBudget)}/mês
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
-                  {isPlaceholder && pendingInvites.length === 0 && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleOpenPreInvite}
-                    >
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Convidar
-                    </Button>
-                  )}
                 </div>
               );
             })}

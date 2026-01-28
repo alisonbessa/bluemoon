@@ -25,7 +25,7 @@ const BEHAVIOR_CONFIG: Record<BehaviorType, { label: string; description: string
   set_aside: {
     label: 'Acumula',
     description: 'Passa pro próximo',
-    tip: 'Ideal para prazeres, viagens e metas de economia',
+    tip: 'Ideal para gastos pessoais, viagens e metas de economia',
   },
 };
 

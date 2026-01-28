@@ -39,14 +39,14 @@ export function SummaryCard({
       </div>
       <div
         className={cn(
-          "mt-1 text-base sm:text-xl font-bold",
+          "mt-1 text-2xl font-bold text-center",
           valueColorClasses[valueColor]
         )}
       >
         {value}
       </div>
       {subtitle && (
-        <p className="text-xs text-muted-foreground">{subtitle}</p>
+        <p className="text-xs text-muted-foreground text-center">{subtitle}</p>
       )}
     </div>
   );

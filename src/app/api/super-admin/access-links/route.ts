@@ -3,7 +3,7 @@ import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequ
 import { db } from "@/db";
 import { accessLinks, accessLinkTypeEnum } from "@/db/schema/access-links";
 import { users } from "@/db/schema/user";
-import { eq, desc, isNull, and } from "drizzle-orm";
+import { eq, desc, isNull, and, or, sql, ilike, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import crypto from "crypto";
 
@@ -12,8 +12,54 @@ import crypto from "crypto";
  *
  * List all access links with user information
  */
-export const GET = withSuperAdminAuthRequired(async () => {
+export const GET = withSuperAdminAuthRequired(async (req) => {
   try {
+    const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const limit = parseInt(url.searchParams.get("limit") || "20");
+    const search = url.searchParams.get("search") || "";
+    const status = url.searchParams.get("status") || "all";
+    const type = url.searchParams.get("type") || "all";
+
+    // Build where conditions
+    const conditions = [];
+
+    // Search filter
+    if (search) {
+      conditions.push(
+        or(
+          ilike(accessLinks.code, `%${search}%`),
+          ilike(accessLinks.note, `%${search}%`)
+        )
+      );
+    }
+
+    // Status filter
+    if (status === "used") {
+      conditions.push(isNotNull(accessLinks.usedAt));
+    } else if (status === "unused") {
+      conditions.push(isNull(accessLinks.usedAt));
+      conditions.push(eq(accessLinks.expired, false));
+    } else if (status === "expired") {
+      conditions.push(eq(accessLinks.expired, true));
+    }
+
+    // Type filter
+    if (type === "lifetime" || type === "beta") {
+      conditions.push(eq(accessLinks.type, type));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Get total count
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(accessLinks)
+      .where(whereClause);
+
+    const totalItems = Number(count);
+
+    // Get paginated links
     const links = await db
       .select({
         id: accessLinks.id,
@@ -31,21 +77,16 @@ export const GET = withSuperAdminAuthRequired(async () => {
       })
       .from(accessLinks)
       .leftJoin(users, eq(accessLinks.userId, users.id))
-      .orderBy(desc(accessLinks.createdAt));
-
-    // Group by status
-    const available = links.filter((l) => !l.usedAt && !l.expired);
-    const used = links.filter((l) => l.usedAt);
-    const expiredLinks = links.filter((l) => l.expired && !l.usedAt);
+      .where(whereClause)
+      .orderBy(desc(accessLinks.createdAt))
+      .limit(limit)
+      .offset((page - 1) * limit);
 
     return NextResponse.json({
       links,
-      stats: {
-        total: links.length,
-        available: available.length,
-        used: used.length,
-        expired: expiredLinks.length,
-      },
+      totalItems,
+      page,
+      limit,
     });
   } catch (error) {
     console.error("Error fetching access links:", error);

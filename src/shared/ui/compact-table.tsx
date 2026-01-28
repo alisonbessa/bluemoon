@@ -55,7 +55,7 @@ export function GroupToggleRow({
         </div>
         <div className="flex items-center gap-2">
           <span className="text-lg">{icon}</span>
-          <span className="font-semibold text-sm">{label}</span>
+          <span className="font-semibold text-sm whitespace-nowrap">{label}</span>
           {count !== undefined && (
             <span className="text-xs text-muted-foreground">({count})</span>
           )}
@@ -134,15 +134,27 @@ export function HoverActions({
 }
 
 // Hook to manage expanded state
-export function useExpandedGroups(initialGroups: string[]) {
+interface UseExpandedGroupsOptions {
+  /** If true, only one group can be expanded at a time (accordion behavior) */
+  accordion?: boolean;
+}
+
+export function useExpandedGroups(
+  initialGroups: string[] = [],
+  options: UseExpandedGroupsOptions = {}
+) {
+  const { accordion = false } = options;
   const [expandedGroups, setExpandedGroups] = useState<string[]>(initialGroups);
 
   const toggleGroup = (groupId: string) => {
-    setExpandedGroups((prev) =>
-      prev.includes(groupId)
-        ? prev.filter((id) => id !== groupId)
-        : [...prev, groupId]
-    );
+    setExpandedGroups((prev) => {
+      if (prev.includes(groupId)) {
+        // Close if already open
+        return accordion ? [] : prev.filter((id) => id !== groupId);
+      }
+      // Open - in accordion mode, only this one; otherwise add to list
+      return accordion ? [groupId] : [...prev, groupId];
+    });
   };
 
   const isExpanded = (groupId: string) => expandedGroups.includes(groupId);

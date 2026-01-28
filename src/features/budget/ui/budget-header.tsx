@@ -10,6 +10,7 @@ interface BudgetHeaderProps {
   onMonthChange: (year: number, month: number) => void;
   totalIncome: number;
   totalAllocated: number;
+  totalGoals?: number;
 }
 
 /**
@@ -28,8 +29,11 @@ export function BudgetHeader({
   onMonthChange,
   totalIncome,
   totalAllocated,
+  totalGoals = 0,
 }: BudgetHeaderProps) {
-  const unallocated = totalIncome - totalAllocated;
+  // Goals are included in the total allocated for balance calculation
+  const totalAllocatedWithGoals = totalAllocated + totalGoals;
+  const unallocated = totalIncome - totalAllocatedWithGoals;
 
   const getSummaryStyles = () => {
     if (unallocated === 0 && totalIncome > 0) {
@@ -52,14 +56,7 @@ export function BudgetHeader({
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b">
-      {/* Month Navigation */}
-      <MonthSelector
-        year={year}
-        month={month}
-        onChange={onMonthChange}
-      />
-
+    <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b">
       {/* Summary Badge */}
       <div
         data-tutorial="budget-available"
@@ -71,6 +68,13 @@ export function BudgetHeader({
         <span className="font-bold">{formatCurrency(Math.abs(unallocated))}</span>
         <span className="text-xs">{getSummaryLabel()}</span>
       </div>
+
+      {/* Month Navigation */}
+      <MonthSelector
+        year={year}
+        month={month}
+        onChange={onMonthChange}
+      />
     </div>
   );
 }

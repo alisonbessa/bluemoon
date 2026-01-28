@@ -20,6 +20,7 @@ import { useGoals, useBudgets, useAccounts } from "@/shared/hooks";
 import type { Goal } from "@/types";
 import {
   PageHeader,
+  PageContent,
   EmptyState,
   DeleteConfirmDialog,
   LoadingState,
@@ -155,7 +156,7 @@ export default function GoalsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <PageContent>
       {/* Header */}
       <PageHeader
         title="Metas"
@@ -354,6 +355,6 @@ export default function GoalsPage() {
         description={`Tem certeza que deseja arquivar a meta "${deletingGoal?.name}"? A meta será removida da sua lista, mas você pode restaurá-la depois.`}
         confirmLabel="Arquivar"
       />
-    </div>
+    </PageContent>
   );
 }

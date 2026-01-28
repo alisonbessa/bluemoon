@@ -3,6 +3,7 @@
 import { Plus, Wallet } from "lucide-react";
 import {
   PageHeader,
+  PageContent,
   EmptyState,
   DeleteConfirmDialog,
   LoadingState,
@@ -26,7 +27,9 @@ import {
 } from "@/features/income";
 import { IncomeSourcePageFormModal } from "@/features/income";
 
-const GRID_COLS = "24px 1fr 100px 80px 100px";
+// Grid columns: icon, name, member, day, value
+// Member and Day columns hidden on mobile
+const GRID_COLS_DESKTOP = "24px 1fr 100px 80px 100px";
 
 export default function IncomePage() {
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
@@ -63,7 +66,7 @@ export default function IncomePage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <PageContent>
       {/* Header */}
       <PageHeader
         title="Rendas"
@@ -81,7 +84,7 @@ export default function IncomePage() {
       />
 
       {/* Summary */}
-      <div className="grid grid-cols-2 gap-4" data-tutorial="income-summary">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4" data-tutorial="income-summary">
         <SummaryCard
           icon={<Wallet className="h-4 w-4 text-green-500" />}
           label="Renda Mensal Total"
@@ -97,18 +100,19 @@ export default function IncomePage() {
 
       {/* Compact Income Table */}
       {incomeSources.length > 0 ? (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-lg border bg-card overflow-x-auto">
           {/* Table Header */}
-          <div
-            className={COMPACT_TABLE_STYLES.header}
-            style={{ gridTemplateColumns: GRID_COLS }}
-          >
-            <div></div>
-            <div>Fonte</div>
-            <div>Quem Recebe</div>
-            <div>Dia</div>
-            <div className="text-right">Valor</div>
-          </div>
+          <div className="min-w-[400px]">
+            <div
+              className={COMPACT_TABLE_STYLES.header}
+              style={{ gridTemplateColumns: GRID_COLS_DESKTOP }}
+            >
+              <div></div>
+              <div>Fonte</div>
+              <div className="hidden sm:block">Quem Recebe</div>
+              <div className="hidden sm:block">Dia</div>
+              <div className="text-right">Valor</div>
+            </div>
 
           {/* Grouped by Type */}
           {typesWithIncome.map(([type, sources]) => {
@@ -124,7 +128,7 @@ export default function IncomePage() {
                   icon={config.icon}
                   label={config.label}
                   count={sources.length}
-                  gridCols={GRID_COLS}
+                  gridCols={GRID_COLS_DESKTOP}
                   emptyColsCount={2}
                   summary={`+${formatCentsToDisplay(typeTotal)}`}
                   summaryClassName="text-green-600"
@@ -136,14 +140,14 @@ export default function IncomePage() {
                     <div
                       key={source.id}
                       className={COMPACT_TABLE_STYLES.itemRow}
-                      style={{ gridTemplateColumns: GRID_COLS }}
+                      style={{ gridTemplateColumns: GRID_COLS_DESKTOP }}
                     >
                       <div className="flex items-center justify-center">
                         <span className="text-base">{config.icon}</span>
                       </div>
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="truncate font-medium">{source.name}</span>
-                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        <span className="hidden sm:inline text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                           {FREQUENCY_LABELS[source.frequency]}
                         </span>
                         <HoverActions
@@ -153,7 +157,7 @@ export default function IncomePage() {
                           deleteTitle="Excluir fonte de renda"
                         />
                       </div>
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <div className="hidden sm:flex items-center gap-1.5 text-muted-foreground">
                         {source.member ? (
                           <>
                             <span
@@ -170,7 +174,7 @@ export default function IncomePage() {
                           <span className="text-xs">-</span>
                         )}
                       </div>
-                      <div className="text-muted-foreground">
+                      <div className="hidden sm:block text-muted-foreground">
                         {source.dayOfMonth ? (
                           <span className="text-xs">Dia {source.dayOfMonth}</span>
                         ) : (
@@ -185,6 +189,7 @@ export default function IncomePage() {
               </div>
             );
           })}
+          </div>
         </div>
       ) : (
         <EmptyState
@@ -221,6 +226,6 @@ export default function IncomePage() {
         title="Excluir fonte de renda?"
         description={`Tem certeza que deseja excluir "${form.deletingSource?.name}"? Esta ação não pode ser desfeita.`}
       />
-    </div>
+    </PageContent>
   );
 }

@@ -11,10 +11,12 @@ import {
 import { Plus, FolderOpen, Wand2 } from "lucide-react";
 import {
   PageHeader,
+  PageContent,
   EmptyState,
   DeleteConfirmDialog,
   LoadingState,
   SummaryCard,
+  ResponsiveButton,
 } from "@/shared/molecules";
 import {
   useCategoriesPageData,
@@ -55,20 +57,20 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <PageContent>
       {/* Header */}
       <PageHeader
         title="Categorias"
         description="Organize suas despesas e receitas em categorias"
         actions={
-          <Button
+          <ResponsiveButton
             variant="outline"
             size="sm"
+            icon={<Wand2 />}
             onClick={() => setIsWizardOpen(true)}
           >
-            <Wand2 className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Assistente</span>
-          </Button>
+            Assistente
+          </ResponsiveButton>
         }
       />
 
@@ -88,7 +90,7 @@ export default function CategoriesPage() {
 
       {/* Compact Categories Table */}
       {groups.length > 0 ? (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-lg border bg-card overflow-x-auto">
           {/* Table Header */}
           <div
             className={COMPACT_TABLE_STYLES.header}
@@ -235,6 +237,6 @@ export default function CategoriesPage() {
         groups={groups.map((g) => ({ id: g.id, code: g.code }))}
         budgetId={budgets[0]?.id || ""}
       />
-    </div>
+    </PageContent>
   );
 }

@@ -58,13 +58,13 @@ export function MonthSelector({
   };
 
   return (
-    <div className={`flex items-center gap-2 ${className || ""}`}>
+    <div className={`flex items-center gap-1 sm:gap-2 ${className || ""}`}>
       {showTodayButton && !isCurrentMonth && (
         <Button
           variant="outline"
           size="sm"
           onClick={goToCurrentMonth}
-          className="mr-1"
+          className="mr-1 text-xs sm:text-sm h-8 px-2 sm:px-3"
         >
           Hoje
         </Button>
@@ -77,8 +77,8 @@ export function MonthSelector({
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <div className="flex flex-col items-center min-w-[120px]">
-        <span className="text-lg font-semibold">{MONTH_NAMES[month - 1]}</span>
+      <div className="flex flex-col items-center min-w-22 sm:min-w-28">
+        <span className="text-base sm:text-lg font-semibold">{MONTH_NAMES[month - 1]}</span>
         <span className="text-xs text-muted-foreground">{year}</span>
       </div>
       <Button

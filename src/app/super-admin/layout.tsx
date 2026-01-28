@@ -84,9 +84,9 @@ function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
         </div>
       </header>
 
-      <div className="flex">
-        {/* Side Navigation - Desktop Only */}
-        <aside className="hidden md:block w-64 border-r border-border/40 bg-background">
+      <div className="flex h-[calc(100vh-3.5rem)]">
+        {/* Side Navigation - Desktop Only (Fixed) */}
+        <aside className="hidden md:block w-64 border-r border-border/40 bg-background overflow-y-auto shrink-0">
           <nav className="space-y-1 p-4">
             {navigation.map((item) => {
               const Icon = item.icon;
@@ -107,8 +107,8 @@ function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
           </nav>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 w-full">
+        {/* Main Content (Scrollable) */}
+        <main className="flex-1 w-full overflow-y-auto">
           <div className="px-4 py-6">{children}</div>
         </main>
       </div>
