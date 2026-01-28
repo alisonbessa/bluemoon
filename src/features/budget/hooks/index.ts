@@ -1,7 +1,7 @@
 export { useBudgets, usePrimaryBudget } from './use-budgets';
 export { useBudgetPageData } from './use-budget-page-data';
 export { useBudgetPeriod } from './use-budget-period';
-export { useBudgetUIState } from './use-budget-ui-state';
+export { useBudgetUIState, type MobileViewMode } from './use-budget-ui-state';
 export { useAllocationForm } from './use-allocation-form';
 export { useCategoryForm } from './use-category-form';
 export { useIncomeAllocationForm } from './use-income-allocation-form';

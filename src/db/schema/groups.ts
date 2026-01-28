@@ -54,9 +54,9 @@ export const defaultGroups: Array<{
   },
   {
     code: "pleasures",
-    name: "Prazeres",
-    description: "Diversão pessoal de cada membro. Cada pessoa tem sua própria subcategoria.",
-    icon: "🎉",
+    name: "Gastos Pessoais",
+    description: "Gastos individuais de cada membro. Cada pessoa tem sua própria categoria.",
+    icon: "👤",
     displayOrder: 3,
   },
   {
