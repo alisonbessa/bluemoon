@@ -48,6 +48,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTheme } from "next-themes";
 import { signOut } from "next-auth/react";
+import { PageContent } from "@/shared/molecules";
 
 export default function SettingsPage() {
   const { user, currentPlan, isLoading: isUserLoading, mutate: mutateUser } = useCurrentUser();
@@ -250,7 +251,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6">
+    <PageContent>
       {/* Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Configurações</h1>
@@ -723,6 +724,6 @@ export default function SettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageContent>
   );
 }

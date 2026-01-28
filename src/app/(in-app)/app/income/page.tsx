@@ -3,6 +3,7 @@
 import { Plus, Wallet } from "lucide-react";
 import {
   PageHeader,
+  PageContent,
   EmptyState,
   DeleteConfirmDialog,
   LoadingState,
@@ -65,7 +66,7 @@ export default function IncomePage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6">
+    <PageContent>
       {/* Header */}
       <PageHeader
         title="Rendas"
@@ -225,6 +226,6 @@ export default function IncomePage() {
         title="Excluir fonte de renda?"
         description={`Tem certeza que deseja excluir "${form.deletingSource?.name}"? Esta ação não pode ser desfeita.`}
       />
-    </div>
+    </PageContent>
   );
 }

@@ -29,7 +29,9 @@ export function PageHeader({
         )}
       </div>
       {actions && (
-        <div className="flex items-center gap-2 sm:gap-4">{actions}</div>
+        <div className="flex w-full sm:w-auto items-center gap-2 sm:gap-4 *:flex-1 sm:*:flex-none">
+          {actions}
+        </div>
       )}
     </div>
   );

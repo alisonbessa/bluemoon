@@ -15,6 +15,7 @@ import {
   transactions,
   goals,
   plans,
+  monthlyBudgetStatus,
 } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
@@ -69,22 +70,25 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
         await db.delete(monthlyAllocations).where(eq(monthlyAllocations.budgetId, budgetId));
         await db.delete(monthlyIncomeAllocations).where(eq(monthlyIncomeAllocations.budgetId, budgetId));
 
-        // 3. Goals
+        // 3. Monthly budget status
+        await db.delete(monthlyBudgetStatus).where(eq(monthlyBudgetStatus.budgetId, budgetId));
+
+        // 4. Goals
         await db.delete(goals).where(eq(goals.budgetId, budgetId));
 
-        // 4. Income sources
+        // 5. Income sources
         await db.delete(incomeSources).where(eq(incomeSources.budgetId, budgetId));
 
-        // 5. Categories
+        // 6. Categories
         await db.delete(categories).where(eq(categories.budgetId, budgetId));
 
-        // 6. Accounts
+        // 7. Accounts
         await db.delete(financialAccounts).where(eq(financialAccounts.budgetId, budgetId));
 
-        // 7. Budget members
+        // 8. Budget members
         await db.delete(budgetMembers).where(eq(budgetMembers.budgetId, budgetId));
 
-        // 8. Budget itself
+        // 9. Budget itself
         await db.delete(budgets).where(eq(budgets.id, budgetId));
       }
 
@@ -197,6 +201,7 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
           budgetId: budget.id,
           ...inc,
           frequency: "monthly",
+          isActive: true,
         })
         .returning();
       createdIncomeSources[inc.name] = source.id;
@@ -220,9 +225,9 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
       { name: "Vestuário", icon: "👕", groupCode: "lifestyle", plannedAmount: 20000, behavior: "set_aside" as const },
       { name: "Pets", icon: "🐕", groupCode: "lifestyle", plannedAmount: 25000, behavior: "refill_up" as const },
 
-      // Pleasures (personal for each member)
-      { name: "Prazeres - Alison", icon: "🎮", groupCode: "pleasures", plannedAmount: 50000, behavior: "set_aside" as const, memberId: owner.id },
-      { name: "Prazeres - Parceiro(a)", icon: "💅", groupCode: "pleasures", plannedAmount: 50000, behavior: "set_aside" as const, memberId: partner.id },
+      // Personal expenses (one category per member)
+      { name: "Alison", icon: "🎮", groupCode: "pleasures", plannedAmount: 50000, behavior: "set_aside" as const, memberId: owner.id },
+      { name: "Parceiro(a)", icon: "💅", groupCode: "pleasures", plannedAmount: 50000, behavior: "set_aside" as const, memberId: partner.id },
 
       // Investments
       { name: "Reserva de Emergência", icon: "🛡️", groupCode: "investments", plannedAmount: 100000, behavior: "set_aside" as const },
@@ -271,6 +276,15 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
     ];
 
     for (const { year, month } of months) {
+      // Create monthly budget status (mark as active since we have data)
+      await db.insert(monthlyBudgetStatus).values({
+        budgetId: budget.id,
+        year,
+        month,
+        status: "active",
+        startedAt: new Date(year, month - 1, 1),
+      });
+
       // Create monthly allocations for each category
       for (const [catName, catId] of Object.entries(createdCategories)) {
         const catData = categoriesData.find((c) => c.name === catName);
@@ -432,8 +446,8 @@ function generateMonthTransactions(
     { category: "Streaming", amount: 3490, day: 1, account: "Cartão Nubank", member: ownerId, description: "Spotify" },
     { category: "Academia", amount: 14990, day: 5, account: "Cartão Inter", member: partnerId, description: "Mensalidade academia" },
     { category: "Pets", amount: 18000, day: 20, account: "Cartão Nubank", member: ownerId, description: "Ração e petiscos" },
-    { category: "Prazeres - Alison", amount: 15000 + Math.floor(Math.random() * 20000), day: 12, account: "Cartão Nubank", member: ownerId, description: "Games" },
-    { category: "Prazeres - Parceiro(a)", amount: 18000 + Math.floor(Math.random() * 15000), day: 16, account: "Cartão Inter", member: partnerId, description: "Autocuidado" },
+    { category: "Alison", amount: 15000 + Math.floor(Math.random() * 20000), day: 12, account: "Cartão Nubank", member: ownerId, description: "Games" },
+    { category: "Parceiro(a)", amount: 18000 + Math.floor(Math.random() * 15000), day: 16, account: "Cartão Inter", member: partnerId, description: "Autocuidado" },
   ];
 
   for (const template of expenseTemplates) {

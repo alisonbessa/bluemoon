@@ -91,6 +91,12 @@ export function useBudgetPageData(year: number, month: number) {
     [goalsData?.goals]
   );
 
+  // Calculate total monthly goals allocation
+  const totalGoals = useMemo(
+    () => goals.reduce((sum, goal) => sum + (goal.monthlyTarget || 0), 0),
+    [goals]
+  );
+
   const isLoading = budgetsLoading || membersLoading || accountsLoading || allocationsLoading || goalsLoading;
 
   // Refresh all data
@@ -111,6 +117,7 @@ export function useBudgetPageData(year: number, month: number) {
     totals,
     incomeData,
     totalIncome,
+    totalGoals,
     hasPreviousMonthData,
     goals,
     // Loading state

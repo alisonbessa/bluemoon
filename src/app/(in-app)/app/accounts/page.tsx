@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/shared/ui/button";
 import {
   PageHeader,
+  PageContent,
   EmptyState,
   DeleteConfirmDialog,
   LoadingState,
@@ -162,17 +163,17 @@ export default function AccountsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6">
+    <PageContent>
       {/* Header */}
       <PageHeader
         title="Contas"
         description="Gerencie suas contas bancárias, cartões e investimentos"
         actions={
-          <div className="flex items-center gap-4">
+          <>
             {accountsByType.investment.length > 0 && (
               <button
                 onClick={() => setIncludeInvestments(!includeInvestments)}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 title={
                   includeInvestments
                     ? "Ocultar investimentos do patrimônio"
@@ -195,7 +196,7 @@ export default function AccountsPage() {
             >
               Nova Conta
             </ResponsiveButton>
-          </div>
+          </>
         }
       />
 
@@ -468,6 +469,6 @@ export default function AccountsPage() {
         title="Excluir conta?"
         description={`Tem certeza que deseja excluir a conta "${deletingAccount?.name}"? Esta ação não pode ser desfeita.`}
       />
-    </div>
+    </PageContent>
   );
 }

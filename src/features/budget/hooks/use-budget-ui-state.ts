@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from 'react';
 
-type FilterType = 'all' | 'underfunded' | 'overfunded' | 'money_available';
+/** View mode for mobile - which column to show */
+export type MobileViewMode = 'planned' | 'actual' | 'available';
 
 interface UseBudgetUIStateReturn {
   // Section expansion
@@ -21,21 +22,16 @@ interface UseBudgetUIStateReturn {
   setExpandedGroups: (groups: string[]) => void;
   setExpandedIncomeMembers: (members: string[]) => void;
 
-  // Category selection
-  selectedCategories: string[];
-  toggleCategorySelection: (categoryId: string) => void;
-  toggleGroupSelection: (categoryIds: string[]) => void;
-  clearSelection: () => void;
-  setSelectedCategories: (categories: string[]) => void;
-
-  // Filters
-  activeFilter: FilterType;
-  setActiveFilter: (filter: FilterType) => void;
+  // Mobile view mode
+  mobileViewMode: MobileViewMode;
+  setMobileViewMode: (mode: MobileViewMode) => void;
 }
 
 interface UseBudgetUIStateOptions {
   /** Default section to expand. Defaults to 'income' */
   defaultExpandedSection?: 'income' | 'expenses' | 'goals' | 'none';
+  /** Default mobile view mode. Defaults to 'available' */
+  defaultMobileViewMode?: MobileViewMode;
 }
 
 /**
@@ -44,23 +40,19 @@ interface UseBudgetUIStateOptions {
  * Handles:
  * - Section accordion state (income/expenses/goals)
  * - Group and member expansion
- * - Category selection for bulk actions
- * - Filter state
  *
  * @example
  * ```tsx
  * const {
  *   isIncomeExpanded,
  *   toggleIncomeSection,
- *   selectedCategories,
- *   toggleCategorySelection,
- *   activeFilter,
- *   setActiveFilter,
+ *   expandedGroups,
+ *   toggleGroup,
  * } = useBudgetUIState();
  * ```
  */
 export function useBudgetUIState(options: UseBudgetUIStateOptions = {}): UseBudgetUIStateReturn {
-  const { defaultExpandedSection = 'income' } = options;
+  const { defaultExpandedSection = 'income', defaultMobileViewMode = 'available' } = options;
 
   // Section expansion state
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(defaultExpandedSection === 'income');
@@ -71,11 +63,8 @@ export function useBudgetUIState(options: UseBudgetUIStateOptions = {}): UseBudg
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [expandedIncomeMembers, setExpandedIncomeMembers] = useState<string[]>([]);
 
-  // Category selection
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-
-  // Filter state
-  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  // Mobile view mode
+  const [mobileViewMode, setMobileViewMode] = useState<MobileViewMode>(defaultMobileViewMode);
 
   // Accordion toggle functions - close others when opening one
   const toggleIncomeSection = useCallback(() => {
@@ -105,48 +94,22 @@ export function useBudgetUIState(options: UseBudgetUIStateOptions = {}): UseBudg
     }
   }, [isGoalsExpanded]);
 
-  // Group toggle
+  // Group toggle - accordion behavior (only one open at a time)
   const toggleGroup = useCallback((groupId: string) => {
     setExpandedGroups((prev) =>
       prev.includes(groupId)
-        ? prev.filter((id) => id !== groupId)
-        : [...prev, groupId]
+        ? [] // Close if already open
+        : [groupId] // Open only this one (close others)
     );
   }, []);
 
-  // Income member toggle
+  // Income member toggle - accordion behavior (only one open at a time)
   const toggleIncomeMember = useCallback((memberId: string) => {
     setExpandedIncomeMembers((prev) =>
       prev.includes(memberId)
-        ? prev.filter((id) => id !== memberId)
-        : [...prev, memberId]
+        ? [] // Close if already open
+        : [memberId] // Open only this one (close others)
     );
-  }, []);
-
-  // Category selection
-  const toggleCategorySelection = useCallback((categoryId: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(categoryId)
-        ? prev.filter((id) => id !== categoryId)
-        : [...prev, categoryId]
-    );
-  }, []);
-
-  const toggleGroupSelection = useCallback((categoryIds: string[]) => {
-    setSelectedCategories((prev) => {
-      const allSelected = categoryIds.every((id) => prev.includes(id));
-      if (allSelected) {
-        // Deselect all categories in this group
-        return prev.filter((id) => !categoryIds.includes(id));
-      } else {
-        // Select all categories in this group
-        return [...new Set([...prev, ...categoryIds])];
-      }
-    });
-  }, []);
-
-  const clearSelection = useCallback(() => {
-    setSelectedCategories([]);
   }, []);
 
   return {
@@ -166,15 +129,8 @@ export function useBudgetUIState(options: UseBudgetUIStateOptions = {}): UseBudg
     setExpandedGroups,
     setExpandedIncomeMembers,
 
-    // Category selection
-    selectedCategories,
-    toggleCategorySelection,
-    toggleGroupSelection,
-    clearSelection,
-    setSelectedCategories,
-
-    // Filters
-    activeFilter,
-    setActiveFilter,
+    // Mobile view mode
+    mobileViewMode,
+    setMobileViewMode,
   };
 }

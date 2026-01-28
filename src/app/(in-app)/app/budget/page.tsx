@@ -6,6 +6,7 @@ import { Button } from '@/shared/ui/button';
 import { Loader2, PiggyBank } from 'lucide-react';
 import { GoalFormModal } from '@/features/goals';
 import { useTutorial } from '@/shared/tutorial/tutorial-provider';
+import { PageHeader } from '@/shared/molecules';
 
 import {
   useBudgetPeriod,
@@ -66,6 +67,7 @@ export default function BudgetPage() {
     totals,
     incomeData,
     totalIncome,
+    totalGoals,
     hasPreviousMonthData,
     goals,
     isLoading,
@@ -173,15 +175,6 @@ export default function BudgetPage() {
     }
   };
 
-  // Handle group selection - converts groupId to categoryIds
-  const handleToggleGroupSelection = (groupId: string) => {
-    const group = groupsData.find((g) => g.group.id === groupId);
-    if (group) {
-      const categoryIds = group.categories.map((c) => c.category.id);
-      uiState.toggleGroupSelection(categoryIds);
-    }
-  };
-
   // Loading state
   if (isLoading) {
     return (
@@ -207,22 +200,29 @@ export default function BudgetPage() {
     <div className="flex flex-col h-full">
       {/* Sticky Header */}
       <div className="sticky top-0 z-20 bg-background">
+        <div className="px-3 sm:px-4 pt-4 pb-2">
+          <PageHeader
+            title="Planejamento"
+            description="Distribua sua renda entre despesas e metas"
+          />
+        </div>
+
         <BudgetHeader
           year={currentYear}
           month={currentMonth}
           onMonthChange={handleMonthChange}
           totalIncome={totalIncome}
           totalAllocated={totals.allocated}
+          totalGoals={totalGoals}
         />
 
         <BudgetFilters
-          activeFilter={uiState.activeFilter}
-          onFilterChange={uiState.setActiveFilter}
           hasPreviousMonthData={hasPreviousMonthData}
           previousMonthName={budgetActions.previousMonthName}
-          hasExistingAllocations={totals.allocated > 0}
           onCopyClick={handleCopyClick}
           isCopying={budgetActions.isCopying}
+          mobileViewMode={uiState.mobileViewMode}
+          onViewModeChange={uiState.setMobileViewMode}
         />
       </div>
 
@@ -240,6 +240,7 @@ export default function BudgetPage() {
             onEditIncomeSource={(source: IncomeSource) => incomeSourceForm.openEdit(source)}
             onDeleteIncomeSource={(source: IncomeSource) => incomeSourceForm.setDeletingSource(source)}
             onAddIncomeSource={(memberId?: string) => incomeSourceForm.openCreate(memberId)}
+            mobileViewMode={uiState.mobileViewMode}
           />
         )}
 
@@ -254,15 +255,12 @@ export default function BudgetPage() {
             onToggle={uiState.toggleExpensesSection}
             expandedGroups={uiState.expandedGroups}
             onToggleGroup={uiState.toggleGroup}
-            activeFilter={uiState.activeFilter}
-            selectedCategories={uiState.selectedCategories}
-            onToggleCategorySelection={uiState.toggleCategorySelection}
-            onToggleGroupSelection={handleToggleGroupSelection}
             onEditAllocation={(category, allocated) => allocationForm.open(category, allocated)}
             onEditCategory={(category) => categoryForm.openEdit(category)}
             onDeleteCategory={(category) => categoryForm.setDeletingCategory(category)}
             onAddCategory={(groupId, groupCode) => categoryForm.openCreate(groupId, groupCode)}
             onBillsChange={refreshData}
+            mobileViewMode={uiState.mobileViewMode}
           />
         ) : (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
@@ -277,6 +275,7 @@ export default function BudgetPage() {
         {/* Goals Section */}
         <GoalsSectionAccordion
           goals={goals}
+          totalGoals={totalGoals}
           isExpanded={uiState.isGoalsExpanded}
           onToggle={uiState.toggleGoalsSection}
           onAddGoal={() => setIsGoalFormOpen(true)}
