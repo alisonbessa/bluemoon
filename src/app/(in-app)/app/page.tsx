@@ -121,6 +121,7 @@ function AppHomepage() {
 
       {/* Quick Stats */}
       <SummaryCardGrid
+        data-tutorial="dashboard-summary"
         items={[
           {
             id: "balance",
@@ -157,7 +158,7 @@ function AppHomepage() {
       {/* Main Content */}
       <div className="grid gap-6 sm:grid-cols-2">
         {/* Goals Card */}
-        <Card className="flex flex-col">
+        <Card className="flex flex-col" data-tutorial="dashboard-goals">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TargetIcon className="h-5 w-5" />
@@ -231,11 +232,13 @@ function AppHomepage() {
 
         {/* Scheduled Transactions (Pending Accounts) */}
         {budgets.length > 0 && (
-          <ScheduledTransactionsList
-            budgetId={budgets[0].id}
-            year={currentYear}
-            month={currentMonth}
-          />
+          <div data-tutorial="dashboard-scheduled">
+            <ScheduledTransactionsList
+              budgetId={budgets[0].id}
+              year={currentYear}
+              month={currentMonth}
+            />
+          </div>
         )}
       </div>
 

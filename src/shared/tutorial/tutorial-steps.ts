@@ -24,14 +24,15 @@ export interface TutorialFlow {
 
 export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
   // =====================================================
-  // INITIAL SETUP FLOW - Replaces onboarding modal
+  // INITIAL SETUP FLOW - Complete onboarding
   // User learns using the REAL interface with spotlight
+  // Pattern: Demo + "Agora é sua vez" for each page
   // =====================================================
   "initial-setup": {
     id: "initial-setup",
     name: "Configuração Inicial",
     steps: [
-      // ===== ACCOUNTS PAGE =====
+      // ===== 1. ACCOUNTS PAGE =====
       {
         id: "accounts-intro",
         route: "/app/accounts",
@@ -54,13 +55,13 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/accounts",
         title: "Agora é sua vez!",
         content:
-          "Adicione pelo menos uma conta para continuar. Quando terminar, clique em \"Próximo\" para configurar suas rendas.",
+          "Adicione pelo menos uma conta para continuar. Quando terminar, clique em \"Próxima Etapa\" para configurar suas rendas.",
         placement: "center",
         requiresAction: true,
         validationKey: "hasAccounts",
       },
 
-      // ===== INCOME PAGE =====
+      // ===== 2. INCOME PAGE =====
       {
         id: "income-intro",
         route: "/app/income",
@@ -83,7 +84,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/income",
         title: "Dica: Benefícios",
         content:
-          "Para VR e VA, adicione como tipo \"Benefício\" e selecione a conta de benefício correspondente. Assim sabemos quando e quanto você recebe.",
+          "Para VR e VA, adicione como tipo \"Benefício\" e selecione a conta correspondente. Assim o sistema sabe quando e quanto você recebe.",
         placement: "center",
       },
       {
@@ -91,19 +92,19 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/income",
         title: "Agora é sua vez!",
         content:
-          "Adicione pelo menos uma fonte de renda. Quando terminar, vamos para as categorias.",
+          "Adicione pelo menos uma fonte de renda. Quando terminar, vamos ver as categorias.",
         placement: "center",
         requiresAction: true,
         validationKey: "hasIncome",
       },
 
-      // ===== CATEGORIES PAGE =====
+      // ===== 3. CATEGORIES PAGE =====
       {
         id: "categories-intro",
         route: "/app/categories",
         title: "Suas Categorias",
         content:
-          "Já criamos categorias organizadas em grupos para facilitar seu controle financeiro. Veja como está organizado!",
+          "Já criamos categorias organizadas em grupos para facilitar seu controle financeiro. Você pode personalizar como quiser!",
         placement: "center",
       },
       {
@@ -111,34 +112,37 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/categories",
         title: "Grupos de Categorias",
         content:
-          "Suas despesas são organizadas em: Essencial (moradia, contas, mercado), Estilo de Vida (restaurantes, compras), Prazeres (seus gastos pessoais) e Investimentos.",
+          "Suas despesas são organizadas em: Essencial (moradia, contas), Estilo de Vida (restaurantes, compras), Prazeres (gastos pessoais) e Investimentos.",
         targetSelector: '[data-tutorial="category-groups"]',
         placement: "bottom",
       },
       {
-        id: "categories-personal",
+        id: "categories-add",
         route: "/app/categories",
-        title: "Gastos Pessoais",
+        title: "Criar Categoria",
         content:
-          "No grupo \"Prazeres\" você encontra sua categoria pessoal com seu nome. Use para gastos que são só seus, sem precisar justificar!",
-        placement: "center",
+          "Clique em um grupo e depois em \"+\" para adicionar uma nova categoria. Você também pode clicar em uma categoria existente para editar.",
+        targetSelector: '[data-tutorial="add-category-button"]',
+        placement: "bottom",
       },
       {
         id: "categories-action",
         route: "/app/categories",
-        title: "Personalize como quiser",
+        title: "Agora é sua vez!",
         content:
-          "Adicione, edite ou remova categorias clicando nelas. Você pode ajustar tudo a qualquer momento. Vamos ver as metas!",
+          "Crie ou edite uma categoria para personalizar seu orçamento. Quando terminar, vamos definir suas metas!",
         placement: "center",
+        requiresAction: true,
+        validationKey: "hasEditedCategory",
       },
 
-      // ===== GOALS PAGE =====
+      // ===== 4. GOALS PAGE =====
       {
         id: "goals-intro",
         route: "/app/goals",
         title: "Metas Financeiras",
         content:
-          "Defina objetivos como reserva de emergência, viagem ou carro novo. O sistema calcula quanto guardar por mês.",
+          "Defina objetivos como reserva de emergência, viagem ou carro novo. O sistema calcula quanto guardar por mês para alcançar cada meta.",
         placement: "center",
       },
       {
@@ -146,7 +150,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/goals",
         title: "Criar uma Meta",
         content:
-          "Clique aqui para criar sua primeira meta. Defina o valor e prazo desejado.",
+          "Clique aqui para criar sua primeira meta. Defina o valor total e a data alvo.",
         targetSelector: '[data-tutorial="add-goal-button"]',
         placement: "bottom",
       },
@@ -161,13 +165,15 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "goals-action",
         route: "/app/goals",
-        title: "Crie uma meta (opcional)",
+        title: "Agora é sua vez!",
         content:
-          "Metas são opcionais, mas ajudam muito a manter o foco. Quando estiver pronto, vamos para o orçamento!",
+          "Crie pelo menos uma meta financeira. Pode ser uma reserva de emergência, viagem dos sonhos ou qualquer objetivo!",
         placement: "center",
+        requiresAction: true,
+        validationKey: "hasGoals",
       },
 
-      // ===== BUDGET PAGE =====
+      // ===== 5. BUDGET PAGE =====
       {
         id: "budget-intro",
         route: "/app/budget",
@@ -214,13 +220,85 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         validationKey: "hasAllocations",
       },
 
-      // ===== COMPLETION - DASHBOARD =====
+      // ===== 6. TRANSACTIONS PAGE =====
+      {
+        id: "transactions-intro",
+        route: "/app/transactions",
+        title: "Suas Transações",
+        content:
+          "Aqui você registra tudo que entra e sai. Cada gasto é descontado da categoria correspondente no orçamento.",
+        placement: "center",
+      },
+      {
+        id: "transactions-add",
+        route: "/app/transactions",
+        title: "Registrar Transação",
+        content:
+          "Clique aqui para registrar uma nova transação. Pode ser uma despesa, receita ou transferência.",
+        targetSelector: '[data-tutorial="add-transaction-button"]',
+        placement: "bottom",
+      },
+      {
+        id: "transactions-tip",
+        route: "/app/transactions",
+        title: "Dica: Categorize Tudo",
+        content:
+          "Sempre escolha a categoria correta. Assim você sabe exatamente para onde vai seu dinheiro e se está dentro do planejado.",
+        placement: "center",
+      },
+      {
+        id: "transactions-action",
+        route: "/app/transactions",
+        title: "Agora é sua vez!",
+        content:
+          "Registre pelo menos uma transação para praticar. Quando terminar, vamos ver o painel geral!",
+        placement: "center",
+        requiresAction: true,
+        validationKey: "hasTransactions",
+      },
+
+      // ===== 7. DASHBOARD - COMPLETION =====
+      {
+        id: "dashboard-intro",
+        route: "/app",
+        title: "Parabéns! Configuração completa!",
+        content:
+          "Você configurou tudo! Este é seu painel principal onde você acompanha suas finanças de forma resumida.",
+        placement: "center",
+      },
+      {
+        id: "dashboard-summary",
+        route: "/app",
+        title: "Resumo do Mês",
+        content:
+          "Aqui você vê seu saldo, receitas e despesas do mês atual. Os valores são atualizados conforme você registra transações.",
+        targetSelector: '[data-tutorial="dashboard-summary"]',
+        placement: "bottom",
+      },
+      {
+        id: "dashboard-goals",
+        route: "/app",
+        title: "Progresso das Metas",
+        content:
+          "Acompanhe o progresso das suas metas financeiras. A barra mostra quanto falta para atingir cada objetivo.",
+        targetSelector: '[data-tutorial="dashboard-goals"]',
+        placement: "bottom",
+      },
+      {
+        id: "dashboard-scheduled",
+        route: "/app",
+        title: "Contas a Pagar/Receber",
+        content:
+          "Veja as próximas contas e rendas previstas. Você pode confirmar recebimentos e pagamentos diretamente daqui.",
+        targetSelector: '[data-tutorial="dashboard-scheduled"]',
+        placement: "bottom",
+      },
       {
         id: "setup-complete",
         route: "/app",
-        title: "Parabéns! 🎉",
+        title: "Tudo pronto!",
         content:
-          "Sua plataforma está configurada! Use o menu para navegar entre as seções. Bom planejamento financeiro!",
+          "Sua plataforma está configurada! Use o menu lateral para navegar entre as seções. Bom planejamento financeiro!",
         placement: "center",
       },
     ],
@@ -416,7 +494,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "tutorial-complete",
         route: "/app",
-        title: "Tutorial Completo! 🎉",
+        title: "Tutorial Completo!",
         content:
           "Parabéns! Você conheceu as principais funcionalidades do HiveBudget. Agora é hora de organizar suas finanças!",
         placement: "center",

@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
     await sendMail(
       email,
-      `Complete your ${appConfig.projectName} account setup`,
+      `Complete seu cadastro no ${appConfig.projectName}`,
       html
     );
 

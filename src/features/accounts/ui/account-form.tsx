@@ -30,6 +30,12 @@ interface AccountFormProps {
   initialData?: Partial<AccountFormData>;
   mode?: "create" | "edit";
   members?: AccountOwner[];
+  /**
+   * Show owner selector with "Compartilhado" option.
+   * Defaults to true if members.length > 1.
+   * Set explicitly to true for Duo plans even before partner joins.
+   */
+  allowSharedOwnership?: boolean;
 }
 
 const ACCOUNT_TYPES: { value: AccountType; label: string; icon: string }[] = [
@@ -50,7 +56,10 @@ export function AccountForm({
   initialData,
   mode = "create",
   members = [],
+  allowSharedOwnership,
 }: AccountFormProps) {
+  // Show owner selector if explicitly allowed or if there are multiple members
+  const showOwnerSelector = allowSharedOwnership ?? members.length > 1;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState<AccountFormData>({
@@ -241,7 +250,8 @@ export function AccountForm({
               />
             </div>
 
-            {members.length > 0 && (
+            {/* Owner selector - Show for Duo plans or multi-member budgets */}
+            {showOwnerSelector && (
               <div className="grid gap-2">
                 <Label htmlFor="owner">Proprietário</Label>
                 <Select

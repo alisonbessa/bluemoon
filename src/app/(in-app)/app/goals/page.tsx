@@ -26,6 +26,7 @@ import {
   LoadingState,
   ResponsiveButton,
 } from "@/shared/molecules";
+import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
@@ -46,6 +47,7 @@ export default function GoalsPage() {
   const { goals, isLoading: goalsLoading, mutate: mutateGoals } = useGoals();
   const { budgets, isLoading: budgetsLoading } = useBudgets();
   const { accounts, isLoading: accountsLoading, mutate: mutateAccounts } = useAccounts();
+  const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
 
   const isLoading = goalsLoading || budgetsLoading || accountsLoading;
 
@@ -70,6 +72,10 @@ export default function GoalsPage() {
     setIsFormOpen(false);
     setEditingGoal(null);
     mutateGoals();
+    // Notify tutorial that user created a goal
+    if (isTutorialActive) {
+      notifyActionCompleted("hasGoals");
+    }
   };
 
   const handleDelete = async () => {

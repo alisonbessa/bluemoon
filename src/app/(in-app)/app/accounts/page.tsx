@@ -31,6 +31,7 @@ import { cn } from "@/shared/lib/utils";
 import { formatCurrency, formatCurrencyCompact } from "@/shared/lib/formatters";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 import { useAccounts, useBudgets, useMembers, useUser } from "@/shared/hooks";
+import { useCurrentUser } from "@/shared/hooks/use-current-user";
 
 const GRID_COLS = "24px 1fr 100px 100px 120px";
 
@@ -49,8 +50,12 @@ export default function AccountsPage() {
   const { budgets, isLoading: budgetsLoading } = useBudgets();
   const { members, isLoading: membersLoading } = useMembers();
   const { user, isLoading: userLoading } = useUser();
+  const { currentPlan } = useCurrentUser();
 
   const isLoading = accountsLoading || budgetsLoading || membersLoading || userLoading;
+
+  // Check if user has a Duo plan (can have shared ownership even before partner joins)
+  const isDuoPlan = (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2;
 
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -166,8 +171,9 @@ export default function AccountsPage() {
   // Check if we have investments (unfiltered) to show toggle
   const hasInvestments = accounts.some((a) => a.type === "investment");
 
-  // Check if we have mixed ownership to show filter
-  const hasMixedOwnership = accounts.some(a => a.ownerId === currentUserMemberId) &&
+  // Check if we have mixed ownership to show filter (for Duo plans or multi-member budgets)
+  const hasMixedOwnership = isDuoPlan &&
+    accounts.some(a => a.ownerId === currentUserMemberId) &&
     accounts.some(a => !a.ownerId || a.ownerId !== currentUserMemberId);
 
   const typesWithAccounts = Object.entries(accountsByType).filter(
@@ -500,6 +506,7 @@ export default function AccountsPage() {
         onSubmit={handleCreateAccount}
         mode="create"
         members={members}
+        allowSharedOwnership={isDuoPlan}
         initialData={preselectedType ? { type: preselectedType as "checking" | "savings" | "credit_card" | "cash" | "investment" | "benefit" } : undefined}
       />
 
@@ -521,6 +528,7 @@ export default function AccountsPage() {
           }}
           mode="edit"
           members={members}
+          allowSharedOwnership={isDuoPlan}
         />
       )}
 

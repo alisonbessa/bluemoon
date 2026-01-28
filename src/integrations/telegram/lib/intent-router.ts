@@ -45,6 +45,7 @@ export async function routeIntent(
     case "QUERY_BALANCE":
     case "QUERY_CATEGORY":
     case "QUERY_GOAL":
+    case "QUERY_ACCOUNT":
       await handleQueryIntent(
         chatId,
         intent,

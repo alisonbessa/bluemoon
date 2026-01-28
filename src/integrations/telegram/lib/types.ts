@@ -90,6 +90,7 @@ export type Intent =
   | "QUERY_BALANCE"
   | "QUERY_CATEGORY"
   | "QUERY_GOAL"
+  | "QUERY_ACCOUNT"
   | "TRANSFER"
   | "UNKNOWN";
 
@@ -116,6 +117,7 @@ export interface ExtractedQueryData {
   queryType: "balance" | "category" | "goal" | "account";
   categoryName?: string;
   goalName?: string;
+  accountName?: string;
   period?: "day" | "week" | "month" | "year";
 }
 

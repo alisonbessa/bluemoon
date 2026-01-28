@@ -33,6 +33,8 @@ interface MemberSelectorProps {
   defaultColor?: string;
   disabled?: boolean;
   className?: string;
+  /** Hide the selector if there's only one member (Solo plan). Defaults to true */
+  hideIfSingleMember?: boolean;
 }
 
 /**
@@ -66,7 +68,13 @@ export function MemberSelector({
   defaultColor = '#6366f1',
   disabled = false,
   className,
+  hideIfSingleMember = true,
 }: MemberSelectorProps) {
+  // Hide selector for Solo plans (single member)
+  if (hideIfSingleMember && members.length <= 1) {
+    return null;
+  }
+
   return (
     <div className={className}>
       {showLabel && (
