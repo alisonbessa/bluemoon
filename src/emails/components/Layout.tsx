@@ -33,13 +33,12 @@ export const Layout = ({ children, previewText }: LayoutProps) => {
           theme: {
             extend: {
               colors: {
-                // TODO: Change this to the correct color
-                primary: "#f97316",
+                primary: "#22c55e", // Green - HiveBudget brand color
                 background: "#f9fafb",
                 foreground: "#111827",
                 border: "#e5e7eb",
-                muted: "#9ca3af",
-                ["primary-foreground"]: "#f8fafc",
+                muted: "#6b7280",
+                ["primary-foreground"]: "#ffffff",
               },
             },
           },
@@ -67,23 +66,23 @@ export const Layout = ({ children, previewText }: LayoutProps) => {
               className="my-0 mx-0"
             />
             <Text className="text-muted text-[11px] leading-[24px]">
-              This email was sent to you by {appConfig.projectName}.
+              Este email foi enviado pelo {appConfig.projectName}.
               <br />
-              Registered Office: {appConfig.legal.address.street},{" "}
+              Endereço: {appConfig.legal.address.street},{" "}
               {appConfig.legal.address.city}, {appConfig.legal.address.state},{" "}
               {appConfig.legal.address.postalCode},{" "}
               {appConfig.legal.address.country}
               <br />
-              If you have any questions, feel free to reach out to us at{" "}
+              Dúvidas? Entre em contato pelo{" "}
               <Link
-                className="text-primary-400"
+                className="text-primary underline"
                 href={`mailto:${appConfig.legal.email}`}
               >
                 {appConfig.legal.email}
               </Link>{" "}
-              or{" "}
-              <Link className="text-primary-400" href={`${baseUrl}/contact`}>
-                Contact Us
+              ou{" "}
+              <Link className="text-primary underline" href={`${baseUrl}/contact`}>
+                Fale Conosco
               </Link>
               .
             </Text>

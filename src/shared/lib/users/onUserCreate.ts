@@ -49,15 +49,16 @@ const onUserCreate = async (newUser: {
     }
   }
 
-  // TIP: Send welcome email to user
+  // Envia email de boas-vindas
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
   const html = await render(
     Welcome({
-      userName: newUser.name || "User",
-      dashboardUrl: `${appConfig.projectName}/dashboard`,
+      userName: newUser.name || "Usuário",
+      dashboardUrl: `${baseUrl}/app`,
     })
   );
-  await sendMail(newUser.email!, `Welcome to ${appConfig.projectName}`, html);
+  await sendMail(newUser.email!, `Bem-vindo ao ${appConfig.projectName}!`, html);
 };
 
 export default onUserCreate;

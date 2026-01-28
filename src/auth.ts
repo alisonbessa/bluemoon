@@ -53,7 +53,7 @@ const emailProvider: EmailConfig = {
 
     await sendMail(
       params.identifier,
-      `Sign in to ${appConfig.projectName}`,
+      `Entrar no ${appConfig.projectName}`,
       html
     );
   },

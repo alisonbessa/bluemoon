@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
       await sendMail(
         email,
-        `Reset your ${appConfig.projectName} password`,
+        `Redefinir sua senha do ${appConfig.projectName}`,
         html
       );
     }
