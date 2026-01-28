@@ -3,8 +3,17 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/dialog";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import { Textarea } from "@/shared/ui/textarea";
 import { Separator } from "@/shared/ui/separator";
 import { Badge } from "@/shared/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
@@ -36,6 +45,9 @@ import {
   AlertTriangle,
   ArrowUpDown,
   Users,
+  HelpCircle,
+  MessageSquare,
+  Bug,
 } from "lucide-react";
 import { TelegramConnectionCard } from "@/integrations/telegram/TelegramConnectionCard";
 import { MembersManagement } from "@/shared/settings/members-management";
@@ -48,7 +60,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useTheme } from "next-themes";
 import { signOut } from "next-auth/react";
-import { PageContent } from "@/shared/molecules";
+import { PageContent, PageHeader } from "@/shared/molecules";
 
 export default function SettingsPage() {
   const { user, currentPlan, isLoading: isUserLoading, mutate: mutateUser } = useCurrentUser();
@@ -64,6 +76,10 @@ export default function SettingsPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCancellingTrial, setIsCancellingTrial] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackType, setFeedbackType] = useState<"question" | "bug" | "feedback">("question");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [isSendingFeedback, setIsSendingFeedback] = useState(false);
   const { startTutorial } = useTutorial();
   const router = useRouter();
 
@@ -239,6 +255,51 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSendFeedback = async () => {
+    if (!feedbackMessage.trim()) {
+      toast.error("Digite uma mensagem");
+      return;
+    }
+
+    setIsSendingFeedback(true);
+    try {
+      const typeLabels = {
+        question: "Dúvida",
+        bug: "Bug",
+        feedback: "Sugestão",
+      };
+
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: user?.displayName || user?.name || "Usuário",
+          email: user?.email || "sem-email@hivebudget.com",
+          message: `[${typeLabels[feedbackType]}] ${feedbackMessage}`,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Mensagem enviada! Responderemos em breve.");
+        setFeedbackMessage("");
+        setShowFeedbackModal(false);
+      } else {
+        toast.error("Erro ao enviar mensagem");
+      }
+    } catch (error) {
+      console.error("Error sending feedback:", error);
+      toast.error("Erro ao enviar mensagem");
+    } finally {
+      setIsSendingFeedback(false);
+    }
+  };
+
+  const openFeedbackModal = (type: "question" | "bug" | "feedback") => {
+    setFeedbackType(type);
+    setFeedbackMessage("");
+    setShowFeedbackModal(true);
+  };
+
   // Get user initials for avatar fallback
   const getInitials = () => {
     if (user?.displayName) {
@@ -253,16 +314,14 @@ export default function SettingsPage() {
   return (
     <PageContent>
       {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Configurações</h1>
-        <p className="text-muted-foreground">
-          Gerencie suas preferências e configurações da conta
-        </p>
-      </div>
+      <PageHeader
+        title="Configurações"
+        description="Gerencie suas preferências e configurações da conta"
+      />
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3 min-w-0">
         {/* Main Settings */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className="space-y-6 lg:col-span-2 min-w-0">
           {/* Profile */}
           <Card>
             <CardHeader>
@@ -282,15 +341,15 @@ export default function SettingsPage() {
               ) : (
                 <>
                   <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16">
+                    <Avatar className="h-16 w-16 shrink-0">
                       <AvatarImage src={user?.image || undefined} alt={user?.name || "Usuário"} />
                       <AvatarFallback className="text-2xl font-bold">
                         {getInitials()}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                      <p className="font-medium">{user?.name}</p>
-                      <p className="text-sm text-muted-foreground">{user?.email}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{user?.name}</p>
+                      <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
                     </div>
                   </div>
                   <Separator />
@@ -343,84 +402,26 @@ export default function SettingsPage() {
                     className="w-full"
                     onClick={() => setTheme("light")}
                   >
-                    <Sun className="mr-2 h-4 w-4" />
-                    Claro
+                    <Sun className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Claro</span>
                   </Button>
                   <Button
                     variant={theme === "dark" ? "default" : "outline"}
                     className="w-full"
                     onClick={() => setTheme("dark")}
                   >
-                    <Moon className="mr-2 h-4 w-4" />
-                    Escuro
+                    <Moon className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Escuro</span>
                   </Button>
                   <Button
                     variant={theme === "system" ? "default" : "outline"}
                     className="w-full"
                     onClick={() => setTheme("system")}
                   >
-                    <Monitor className="mr-2 h-4 w-4" />
-                    Sistema
+                    <Monitor className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Sistema</span>
                   </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Data */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Download className="h-5 w-5 text-muted-foreground" />
-                <CardTitle>Dados</CardTitle>
-              </div>
-              <CardDescription>
-                Exporte ou exclua seus dados
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Exportar dados</p>
-                  <p className="text-sm text-muted-foreground">
-                    Baixe todas as suas transações em CSV
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportData}
-                  disabled={isExporting}
-                >
-                  {isExporting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Exportando...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="mr-2 h-4 w-4" />
-                      Exportar
-                    </>
-                  )}
-                </Button>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-destructive">Excluir conta</p>
-                  <p className="text-sm text-muted-foreground">
-                    Remove permanentemente todos os seus dados
-                  </p>
-                </div>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Excluir
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -430,7 +431,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-6 min-w-0">
           {/* Telegram Connection */}
           <TelegramConnectionCard />
 
@@ -556,12 +557,39 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Restart Onboarding */}
+          {/* Support */}
           <Card>
-            <CardContent className="pt-6">
+            <CardHeader>
+              <CardTitle className="text-lg">Suporte</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
               <Button
                 variant="outline"
-                className="w-full"
+                className="w-full justify-start"
+                onClick={() => openFeedbackModal("question")}
+              >
+                <HelpCircle className="mr-2 h-4 w-4" />
+                Tirar dúvidas
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => openFeedbackModal("feedback")}
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Enviar sugestão
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => openFeedbackModal("bug")}
+              >
+                <Bug className="mr-2 h-4 w-4" />
+                Reportar bug
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
                 onClick={() => setShowOnboardingConfirm(true)}
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
@@ -570,20 +598,40 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Support */}
+          {/* Data */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Suporte</CardTitle>
+              <div className="flex items-center gap-2">
+                <Download className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="text-lg">Dados</CardTitle>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
-                Central de ajuda
+            <CardContent className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={handleExportData}
+                disabled={isExporting}
+              >
+                {isExporting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Exportando...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Exportar transações (CSV)
+                  </>
+                )}
               </Button>
-              <Button variant="outline" className="w-full justify-start">
-                Fale conosco
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                Reportar bug
+              <Button
+                variant="outline"
+                className="w-full justify-start text-destructive hover:text-destructive"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Excluir minha conta
               </Button>
             </CardContent>
           </Card>
@@ -724,6 +772,60 @@ export default function SettingsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Feedback Modal */}
+      <Dialog open={showFeedbackModal} onOpenChange={setShowFeedbackModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {feedbackType === "question" && "Tirar dúvidas"}
+              {feedbackType === "bug" && "Reportar bug"}
+              {feedbackType === "feedback" && "Enviar sugestão"}
+            </DialogTitle>
+            <DialogDescription>
+              {feedbackType === "question" && "Descreva sua dúvida e responderemos por email."}
+              {feedbackType === "bug" && "Descreva o problema encontrado com o máximo de detalhes."}
+              {feedbackType === "feedback" && "Compartilhe suas ideias para melhorar o app."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="feedback-message">Mensagem</Label>
+              <Textarea
+                id="feedback-message"
+                placeholder={
+                  feedbackType === "question"
+                    ? "Qual é a sua dúvida?"
+                    : feedbackType === "bug"
+                    ? "O que aconteceu? Descreva os passos para reproduzir..."
+                    : "O que você gostaria de ver no app?"
+                }
+                value={feedbackMessage}
+                onChange={(e) => setFeedbackMessage(e.target.value)}
+                rows={5}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Responderemos para {user?.email}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFeedbackModal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSendFeedback} disabled={isSendingFeedback}>
+              {isSendingFeedback ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                "Enviar"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContent>
   );
 }

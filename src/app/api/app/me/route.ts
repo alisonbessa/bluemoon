@@ -13,6 +13,7 @@ import {
   internalError,
 } from "@/shared/lib/api/responses";
 import { checkPartnerAccess } from "@/shared/lib/users/checkPartnerAccess";
+import stripe from "@/integrations/stripe";
 
 export const GET = withAuthRequired(async (req, context) => {
   const { getCurrentPlan, getUser, session } = context;
@@ -83,7 +84,28 @@ export const PATCH = withAuthRequired(async (req, context) => {
 
 export const DELETE = withAuthRequired(async (req, context) => {
   try {
-    const { session } = context;
+    const { session, getUser } = context;
+
+    // Get user to check for Stripe subscription
+    const user = await getUser();
+
+    // Cancel Stripe subscription if exists
+    if (user?.stripeSubscriptionId) {
+      try {
+        const subscription = await stripe.subscriptions.retrieve(
+          user.stripeSubscriptionId
+        );
+
+        // Only cancel if not already canceled
+        if (subscription.status !== "canceled") {
+          await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+          console.log(`Cancelled Stripe subscription ${user.stripeSubscriptionId} for user ${session.user.id}`);
+        }
+      } catch (stripeError) {
+        // Log but don't fail - user still wants to delete account
+        console.error("Error cancelling Stripe subscription:", stripeError);
+      }
+    }
 
     // Delete the user - cascade will handle related data
     await db.delete(users).where(eq(users.id, session.user.id));
