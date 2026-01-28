@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { Loader2, PiggyBank } from 'lucide-react';
@@ -36,8 +36,6 @@ import {
 } from '@/features/budget/ui';
 
 import type {
-  GroupData,
-  IncomeMemberGroup,
   IncomeSource,
   IncomeSourceData,
 } from '@/features/budget/types';
@@ -77,30 +75,8 @@ export default function BudgetPage() {
   // Local UI state
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
   const [showCopyHintModal, setShowCopyHintModal] = useState(false);
-  const hasInitializedUI = useRef(false);
 
-  // Initialize expanded groups/members when data loads
-  useEffect(() => {
-    if (isLoading || hasInitializedUI.current) return;
-
-    if (groupsData.length > 0) {
-      uiState.setExpandedGroups(groupsData.map((g: GroupData) => g.group.id));
-    }
-
-    if (incomeData?.byMember) {
-      const memberIds = incomeData.byMember
-        .map((m: IncomeMemberGroup) => m.member?.id || 'no-member')
-        .filter(Boolean);
-      uiState.setExpandedIncomeMembers(memberIds);
-    }
-
-    hasInitializedUI.current = true;
-  }, [isLoading, groupsData, incomeData, uiState]);
-
-  // Reset initialization flag when period changes
-  useEffect(() => {
-    hasInitializedUI.current = false;
-  }, [currentYear, currentMonth]);
+  // All accordion sections (income members, expense groups) start collapsed by default
 
   // Show copy hint modal when no allocations exist for current month
   useEffect(() => {
