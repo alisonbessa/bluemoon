@@ -1,12 +1,16 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { invites, budgetMembers } from "@/db/schema";
+import { invites, budgetMembers, budgets, users } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import {
   notFoundError,
   errorResponse,
   successResponse,
 } from "@/shared/lib/api/responses";
+import sendMail from "@/shared/lib/email/sendMail";
+import { render } from "@react-email/components";
+import PartnerInviteEmail from "@/emails/PartnerInviteEmail";
+import { appConfig } from "@/shared/lib/config";
 
 // Helper to get user's budget IDs where they are owner
 async function getOwnerBudgetIds(userId: string) {
@@ -123,10 +127,46 @@ export const POST = withAuthRequired(async (req, context) => {
     .where(eq(invites.id, inviteId))
     .returning();
 
-  // TODO: Resend invite email via Inngest/Resend
+  const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL}/invite/${newToken}`;
+
+  // Send email if the invite has an email address
+  if (existingInvite.email) {
+    try {
+      // Get budget and inviter details for the email
+      const [budget] = await db
+        .select({ name: budgets.name })
+        .from(budgets)
+        .where(eq(budgets.id, existingInvite.budgetId))
+        .limit(1);
+
+      const [inviter] = await db
+        .select({ name: users.name })
+        .from(users)
+        .where(eq(users.id, session.user.id))
+        .limit(1);
+
+      const html = await render(
+        PartnerInviteEmail({
+          inviterName: inviter?.name || "Seu parceiro(a)",
+          budgetName: budget?.name || "Orçamento Compartilhado",
+          inviteUrl: inviteLink,
+          expiresAt: newExpiresAt,
+        })
+      );
+
+      await sendMail(
+        existingInvite.email,
+        `${inviter?.name || "Alguém"} te convidou para o ${appConfig.projectName}!`,
+        html
+      );
+    } catch (error) {
+      console.error("Failed to resend invite email:", error);
+    }
+  }
 
   return successResponse({
     invite: updatedInvite,
-    inviteLink: `${process.env.NEXT_PUBLIC_APP_URL}/invite/${newToken}`,
+    inviteLink,
+    emailSent: !!existingInvite.email,
   });
 });
