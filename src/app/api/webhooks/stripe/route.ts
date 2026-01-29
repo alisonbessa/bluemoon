@@ -247,24 +247,35 @@ class StripeWebhookHandler {
   async onSubscriptionCreated() {
     // @ts-expect-error Stripe types are not fully compatible with Next.js
     const object: Stripe.Subscription = this.data.object;
+    console.log(`[Stripe Webhook] onSubscriptionCreated - Subscription ID: ${object.id}`);
+
     const price = object.items.data[0].price;
 
     if (!price) {
+      console.error("[Stripe Webhook] No price found in subscription");
       throw new APIError("No price found in subscription");
     }
+    console.log(`[Stripe Webhook] Price ID: ${price.id}`);
 
     const customer = await this._getStripeCustomer(object.customer);
     if (!customer || !customer.email) {
+      console.error("[Stripe Webhook] No customer found in subscription");
       throw new APIError("No customer found in subscription");
     }
+    console.log(`[Stripe Webhook] Customer email: ${customer.email}`);
+
     const { user } = await getOrCreateUser({
       emailId: customer.email,
       name: customer.name,
     });
+    console.log(`[Stripe Webhook] User ID: ${user.id}`);
+
     const dbPlan = await this._getPlanFromStripePriceId(price.id);
+    console.log(`[Stripe Webhook] DB Plan found: ${dbPlan ? dbPlan.name : 'NOT FOUND'}`);
 
     if (!dbPlan) {
       // TIP: Handle outside plan management subscription
+      console.error(`[Stripe Webhook] Plan not found for price ID: ${price.id}`);
       throw new APIError("Plan not found");
     }
 
@@ -282,8 +293,10 @@ class StripeWebhookHandler {
       .update(users)
       .set(updateData)
       .where(eq(users.id, user.id));
+    console.log(`[Stripe Webhook] Updated user ${user.id} with stripeSubscriptionId: ${object.id}`);
 
     await updatePlan({ userId: user.id, newPlanId: dbPlan.id });
+    console.log(`[Stripe Webhook] Updated user plan to: ${dbPlan.name}`);
 
     // Allocate plan-based credits
     await allocatePlanCredits({
@@ -296,6 +309,7 @@ class StripeWebhookHandler {
         customerId: customer.id,
       }
     });
+    console.log(`[Stripe Webhook] ✅ onSubscriptionCreated completed successfully`);
   }
 
   /**
@@ -461,8 +475,10 @@ async function handler(req: NextRequest) {
     try {
       const body = await req.text();
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      console.log(`[Stripe Webhook] ✅ Event received: ${event.type}`);
     } catch (err) {
-      console.error(`Webhook signature verification failed.`, err);
+      console.error(`[Stripe Webhook] ❌ Signature verification failed.`, err);
+      console.error(`[Stripe Webhook] Secret starts with: ${webhookSecret.substring(0, 15)}...`);
       return NextResponse.json(
         { error: "Webhook signature verification failed" },
         { status: 400 }
@@ -473,41 +489,48 @@ async function handler(req: NextRequest) {
     data = event.data;
     eventType = event.type;
 
-    const handler = new StripeWebhookHandler(data, eventType);
+    const webhookHandler = new StripeWebhookHandler(data, eventType);
     try {
+      console.log(`[Stripe Webhook] Processing event: ${eventType}`);
       switch (eventType) {
         case "invoice.paid":
-          await handler.onInvoicePaid();
+          await webhookHandler.onInvoicePaid();
           break;
         case "checkout.session.completed":
-          await handler.onCheckoutSessionCompleted();
+          await webhookHandler.onCheckoutSessionCompleted();
           break;
         case "customer.created":
-          await handler.onCustomerCreated();
+          await webhookHandler.onCustomerCreated();
           break;
         case "customer.subscription.created":
-          await handler.onSubscriptionCreated();
+          await webhookHandler.onSubscriptionCreated();
           break;
         case "customer.subscription.updated":
-          await handler.onSubscriptionUpdated();
+          await webhookHandler.onSubscriptionUpdated();
           break;
         case "customer.subscription.deleted":
-          await handler.onSubscriptionDeleted();
+          await webhookHandler.onSubscriptionDeleted();
           break;
         case "customer.subscription.trial_will_end":
-          await handler.onSubscriptionTrialWillEnd();
+          await webhookHandler.onSubscriptionTrialWillEnd();
           break;
         default:
           // Unhandled event type
           break;
       }
     } catch (error) {
+      console.error(`[Stripe Webhook] ❌ Error processing ${eventType}:`, error);
       if (error instanceof APIError) {
         return NextResponse.json({
           received: true,
           message: error.message,
         });
       }
+      // Log non-APIError exceptions
+      return NextResponse.json({
+        received: true,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
     }
     // Return a response to acknowledge receipt of the event.
     return NextResponse.json({ received: true });

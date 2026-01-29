@@ -104,6 +104,7 @@ export default function PlansPage() {
   const [isSeeding, setIsSeeding] = useState(false);
   const [syncModalOpen, setSyncModalOpen] = useState(false);
   const [selectedPlanForSync, setSelectedPlanForSync] = useState<Plan | null>(null);
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
   const limit = 10;
 
   const { data, error, isLoading, mutate } = useSWR<{
@@ -145,6 +146,37 @@ export default function PlansPage() {
   const handleOpenSyncModal = (plan: Plan) => {
     setSelectedPlanForSync(plan);
     setSyncModalOpen(true);
+  };
+
+  const handleDeletePlan = async (plan: Plan) => {
+    if (plan.default) {
+      toast.error("Não é possível excluir o plano padrão");
+      return;
+    }
+
+    if (!confirm(`Tem certeza que deseja excluir o plano "${plan.name}"?`)) {
+      return;
+    }
+
+    setDeletingPlanId(plan.id);
+    try {
+      const response = await fetch(`/api/super-admin/plans/${plan.id}`, {
+        method: "DELETE",
+      });
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success(result.message || "Plano excluído com sucesso!");
+        mutate();
+      } else {
+        toast.error(result.error || "Erro ao excluir plano");
+      }
+    } catch (error) {
+      console.error("Error deleting plan:", error);
+      toast.error("Erro ao excluir plano");
+    } finally {
+      setDeletingPlanId(null);
+    }
   };
 
   const formatPrice = (price: number) => {
@@ -429,12 +461,15 @@ export default function PlansPage() {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           className="text-red-600"
-                          onClick={() => {
-                            // TODO: Add delete confirmation
-                          }}
+                          disabled={deletingPlanId === plan.id || plan.default}
+                          onClick={() => handleDeletePlan(plan)}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
+                          {deletingPlanId === plan.id ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 mr-2" />
+                          )}
+                          {plan.default ? "Plano Padrão" : "Excluir"}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
