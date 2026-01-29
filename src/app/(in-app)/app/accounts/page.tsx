@@ -70,15 +70,28 @@ export default function AccountsPage() {
   const currentUserMemberId = members.find(m => m.userId === user?.id)?.id;
 
   const handleCreateAccount = async (data: AccountFormData) => {
-    if (budgets.length === 0) {
-      toast.error("Nenhum orçamento encontrado");
+    // Get budgetId - try from cached data first, fallback to fetching fresh
+    let budgetId = budgets[0]?.id;
+
+    if (!budgetId) {
+      // Try fetching fresh budgets data
+      try {
+        const freshBudgets = await fetch("/api/app/budgets").then(r => r.json());
+        budgetId = freshBudgets.budgets?.[0]?.id;
+      } catch (e) {
+        console.error("Error fetching budgets:", e);
+      }
+    }
+
+    if (!budgetId) {
+      toast.error("Nenhum orçamento encontrado. Por favor, recarregue a página.");
       return;
     }
 
     const response = await fetch("/api/app/accounts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...data, budgetId: budgets[0].id }),
+      body: JSON.stringify({ ...data, budgetId }),
     });
 
     if (!response.ok) {

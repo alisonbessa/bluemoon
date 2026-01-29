@@ -12,6 +12,7 @@ import {
 import React, { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useUser } from "@/shared/hooks/use-current-user";
+import { mutate as swrMutate } from "swr";
 
 const BUDGET_INITIALIZED_KEY = "hivebudget_budget_initialized";
 
@@ -128,6 +129,8 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         if (response.ok) {
           localStorage.setItem(BUDGET_INITIALIZED_KEY, "true");
           await mutate();
+          // Also revalidate budgets cache so other pages can access the new budget
+          await swrMutate("/api/app/budgets");
 
           // Auto-start tutorial for new users (only once)
           const tutorialAlreadyStarted = localStorage.getItem(TUTORIAL_STARTED_KEY) === "true";
