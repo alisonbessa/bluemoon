@@ -20,7 +20,7 @@ interface SignUpToken {
 }
 
 export async function POST(request: NextRequest) {
-  const rateLimitResponse = checkRateLimit(request, rateLimits.auth, "signup");
+  const rateLimitResponse = await checkRateLimit(request, rateLimits.auth, "signup");
   if (rateLimitResponse) return rateLimitResponse;
 
   try {

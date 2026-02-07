@@ -19,7 +19,7 @@ interface ResetPasswordToken {
 }
 
 export async function POST(request: NextRequest) {
-  const rateLimitResponse = checkRateLimit(request, rateLimits.auth, "reset-password");
+  const rateLimitResponse = await checkRateLimit(request, rateLimits.auth, "reset-password");
   if (rateLimitResponse) return rateLimitResponse;
 
   try {

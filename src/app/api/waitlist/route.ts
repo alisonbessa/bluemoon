@@ -11,7 +11,7 @@ const waitlistSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const rateLimitResponse = checkRateLimit(request, rateLimits.contact, "waitlist");
+  const rateLimitResponse = await checkRateLimit(request, rateLimits.contact, "waitlist");
   if (rateLimitResponse) return rateLimitResponse;
 
   try {

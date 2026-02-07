@@ -21,7 +21,7 @@ export default function SetPasswordPage() {
 
   React.useEffect(() => {
     if (!token) {
-      setTokenError("Invalid or missing token. Please request a new signup link.");
+      setTokenError("Token inválido ou ausente. Solicite um novo link de cadastro.");
     }
   }, [token]);
 
@@ -35,7 +35,7 @@ export default function SetPasswordPage() {
 
   const onSubmit = async (data: SetPasswordInput) => {
     if (!token) {
-      toast.error("Invalid token");
+      toast.error("Token inválido");
       return;
     }
 
@@ -57,15 +57,15 @@ export default function SetPasswordPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        toast.error(result.error || "Failed to create account");
+        toast.error(result.error || "Falha ao criar conta");
         return;
       }
 
-      toast.success("Account created successfully! Please sign in.");
+      toast.success("Conta criada com sucesso! Faça login.");
       router.push("/sign-in");
     } catch (error) {
       console.error("Set password error:", error);
-      toast.error("Something went wrong");
+      toast.error("Algo deu errado");
     } finally {
       setIsLoading(false);
     }
@@ -76,14 +76,14 @@ export default function SetPasswordPage() {
       <div className="flex flex-col gap-6">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight mb-2">
-            Invalid Link
+            Link Inválido
           </h1>
           <p className="text-sm text-muted-foreground">
             {tokenError}
           </p>
         </div>
         <Button onClick={() => router.push("/sign-up")} className="w-full py-6">
-          Go to Sign Up
+          Ir para Cadastro
         </Button>
       </div>
     );
@@ -93,19 +93,19 @@ export default function SetPasswordPage() {
     <>
       <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight mb-2">
-          Set Your Password
+          Defina sua Senha
         </h1>
         <p className="text-sm text-muted-foreground">
-          Create a secure password for your {appConfig.projectName} account
+          Crie uma senha segura para sua conta {appConfig.projectName}
         </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">Senha</Label>
           <Input
             id="password"
-            placeholder="Enter your password"
+            placeholder="Digite sua senha"
             type="password"
             autoComplete="new-password"
             disabled={isLoading}
@@ -118,10 +118,10 @@ export default function SetPasswordPage() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
+          <Label htmlFor="confirmPassword">Confirmar Senha</Label>
           <Input
             id="confirmPassword"
-            placeholder="Confirm your password"
+            placeholder="Confirme sua senha"
             type="password"
             autoComplete="new-password"
             disabled={isLoading}
@@ -135,7 +135,7 @@ export default function SetPasswordPage() {
 
         <Button type="submit" disabled={isLoading} className="w-full py-6">
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Create Account
+          Criar Conta
         </Button>
       </form>
     </>

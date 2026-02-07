@@ -96,6 +96,9 @@ const withAuthRequired = (handler: WithManagerHandler) => {
           role: users.role,
           trialEndsAt: users.trialEndsAt,
           accessLinkId: users.accessLinkId,
+          deletedAt: users.deletedAt,
+          deletionRequestedAt: users.deletionRequestedAt,
+          deletionReason: users.deletionReason,
         })
         .from(users)
         .where(eq(users.id, userId))

@@ -77,17 +77,17 @@ export default function ProfilePage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update profile");
+        throw new Error(errorData.error || "Falha ao atualizar perfil");
       }
 
       // Update the user data in SWR cache
       await mutate();
 
-      toast.success("Profile updated successfully!");
+      toast.success("Perfil atualizado com sucesso!");
     } catch (error) {
       console.error("Profile update error:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to update profile"
+        error instanceof Error ? error.message : "Falha ao atualizar perfil"
       );
     } finally {
       setIsSubmitting(false);
@@ -113,24 +113,24 @@ export default function ProfilePage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Profile Settings</h1>
+        <h1 className="text-3xl font-bold">Configurações do Perfil</h1>
         <p className="text-muted-foreground">
-          Manage your profile information and avatar.
+          Gerencie suas informações de perfil e avatar.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
+          <CardTitle>Informações do Perfil</CardTitle>
           <CardDescription>
-            Update your personal information and profile picture.
+            Atualize suas informações pessoais e foto de perfil.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="flex flex-col gap-4">
-                <FormLabel>Profile Picture</FormLabel>
+                <FormLabel>Foto de Perfil</FormLabel>
                 <div className="flex items-center gap-4">
                   <Avatar className="h-20 w-20">
                     <AvatarImage
@@ -147,13 +147,13 @@ export default function ProfilePage() {
                       onUpload={handleAvatarUpload}
                       accept="image/*"
                       maxSize={5 * 1024 * 1024} // 5MB
-                      buttonText="Change Avatar"
+                      buttonText="Alterar Avatar"
                       buttonVariant="outline"
                       buttonSize="sm"
                       className="w-fit"
                     />
                     <p className="text-xs text-muted-foreground">
-                      JPG, PNG or GIF. Max size 5MB.
+                      JPG, PNG ou GIF. Tamanho máximo 5MB.
                     </p>
                   </div>
                 </div>
@@ -165,10 +165,10 @@ export default function ProfilePage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>Nome Completo</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Enter your full name"
+                        placeholder="Digite seu nome completo"
                         {...field}
                         value={field.value || ""}
                       />
@@ -180,14 +180,14 @@ export default function ProfilePage() {
 
               {/* Email (Read-only) */}
               <div className="space-y-2">
-                <FormLabel>Email Address</FormLabel>
+                <FormLabel>Endereço de Email</FormLabel>
                 <Input
                   value={user?.email || ""}
                   disabled
                   className="bg-muted"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Email cannot be changed. Contact support if needed.
+                  O email não pode ser alterado. Entre em contato com o suporte se necessário.
                 </p>
               </div>
 
@@ -197,12 +197,12 @@ export default function ProfilePage() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Updating...
+                      Atualizando...
                     </>
                   ) : (
                     <>
                       <User className="mr-2 h-4 w-4" />
-                      Update Profile
+                      Atualizar Perfil
                     </>
                   )}
                 </Button>
@@ -215,14 +215,14 @@ export default function ProfilePage() {
       {/* Account Information Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Account Information</CardTitle>
+          <CardTitle>Informações da Conta</CardTitle>
           <CardDescription>
-            Your account details and membership information.
+            Detalhes da sua conta e informações de assinatura.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">Member Since</span>
+            <span className="text-sm font-medium">Membro desde</span>
             <span className="text-sm text-muted-foreground">
               {user?.createdAt
                 ? new Date(user.createdAt).toLocaleDateString()
@@ -230,7 +230,7 @@ export default function ProfilePage() {
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">Account ID</span>
+            <span className="text-sm font-medium">ID da Conta</span>
             <span className="text-sm text-muted-foreground font-mono">
               {user?.id || "N/A"}
             </span>

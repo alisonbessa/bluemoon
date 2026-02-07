@@ -12,7 +12,7 @@ const contactSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const rateLimitResponse = checkRateLimit(request, rateLimits.contact, "contact");
+  const rateLimitResponse = await checkRateLimit(request, rateLimits.contact, "contact");
   if (rateLimitResponse) return rateLimitResponse;
 
   try {

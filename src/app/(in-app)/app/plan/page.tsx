@@ -10,20 +10,17 @@ import {
   CardTitle,
 } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
-import { ArrowUpRight, HelpCircle, TicketCheck, History, CreditCard } from "lucide-react";
+import { ArrowUpRight, HelpCircle, TicketCheck } from "lucide-react";
 import { Skeleton } from "@/shared/ui/skeleton";
 import Link from "next/link";
-import { useCurrentPlan, useUser, useCredits } from "@/shared/hooks/use-current-user";
+import { useCurrentPlan, useUser } from "@/shared/hooks/use-current-user";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { enableCredits, creditsConfig } from "@/shared/lib/credits/config";
-import { type CreditType } from "@/shared/lib/credits/credits";
 
 export default function BillingSettingsPage() {
   const { currentPlan, isLoading, error } = useCurrentPlan();
   const { user } = useUser();
-  const { credits, isLoading: creditsLoading } = useCredits();
   const router = useRouter();
   // Check if organization has a plan with quotas
   const plan = currentPlan;
@@ -35,7 +32,7 @@ export default function BillingSettingsPage() {
   useEffect(() => {
     if (isLoading) return;
     if (!currentPlan) {
-      toast.info("You need to subscribe to a plan to continue");
+      toast.info("Você precisa assinar um plano para continuar");
       router.push("/#pricing");
     }
   }, [currentPlan, router, isLoading]);
@@ -55,7 +52,7 @@ export default function BillingSettingsPage() {
       let displayValue;
       if (typeof value === "boolean") {
         // Show true/false values as Yes/No
-        displayValue = value ? "Yes" : "No";
+        displayValue = value ? "Sim" : "Não";
       } else if (typeof value === "number") {
         // Show numbers as-is
         displayValue = value.toLocaleString();
@@ -79,71 +76,8 @@ export default function BillingSettingsPage() {
       <div className="space-y-0 divide-y">{quotaItems}</div>
     ) : (
       <p className="text-sm text-muted-foreground">
-        No features information available.
+        Nenhuma informação de funcionalidades disponível.
       </p>
-    );
-  };
-
-  // Function to render credits section
-  const renderCreditsSection = () => {
-    if (!enableCredits) return null;
-
-    const creditTypes = Object.keys(creditsConfig) as CreditType[];
-    const currentCredits = credits || {};
-
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Your Credits
-          </CardTitle>
-          <CardDescription>
-            Current credit balances for your account.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {creditsLoading ? (
-            <div className="flex flex-col gap-3">
-              <Skeleton className="h-6 w-full" />
-              <Skeleton className="h-6 w-full" />
-              <Skeleton className="h-6 w-full" />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {creditTypes.map((creditType) => {
-                const balance = currentCredits[creditType] || 0;
-                const config = creditsConfig[creditType];
-
-                return (
-                  <div
-                    key={creditType}
-                    className="flex items-center justify-between py-2 border-b last:border-0"
-                  >
-                    <div className="font-medium text-sm">{config.name}</div>
-                    <Badge variant="outline" className="px-3 py-1">
-                      {balance.toLocaleString()}
-                    </Badge>
-                  </div>
-                );
-              })}
-              {creditTypes.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  No credit types configured.
-                </p>
-              )}
-            </div>
-          )}
-        </CardContent>
-        <CardFooter>
-          <Button variant="outline" asChild className="w-full">
-            <Link href="/app/credits/history">
-              <History className="mr-2 h-4 w-4" />
-              View Credits History
-            </Link>
-          </Button>
-        </CardFooter>
-      </Card>
     );
   };
 
@@ -152,10 +86,10 @@ export default function BillingSettingsPage() {
   const customerIdSection = (
     <div className="mt-4 pt-4 border-t">
       <p className="text-xs text-muted-foreground">
-        Need help with your subscription? Please contact support and mention
-        your user ID:
+        Precisa de ajuda com sua assinatura? Entre em contato com o suporte e mencione
+        seu ID de usuário:
         <span className="font-mono ml-1 bg-muted px-1 py-0.5 rounded-sm text-xs">
-          {user?.id || "Not available"}
+          {user?.id || "Não disponível"}
         </span>
       </p>
     </div>
@@ -164,18 +98,18 @@ export default function BillingSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium">Billing & Usage</h3>
+        <h3 className="text-lg font-medium">Assinatura e Uso</h3>
         <p className="text-sm text-muted-foreground">
-          Manage your subscription and monitor resource usage.
+          Gerencie sua assinatura e monitore o uso de recursos.
         </p>
       </div>
 
-      <div className={`grid gap-6 ${enableCredits ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2'}`}>
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Current Plan</CardTitle>
+            <CardTitle>Plano Atual</CardTitle>
             <CardDescription>
-              Your subscription plan and billing details.
+              Seu plano de assinatura e detalhes de cobrança.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -186,18 +120,18 @@ export default function BillingSettingsPage() {
               </div>
             ) : error ? (
               <p className="text-sm text-destructive">
-                Error loading plan details. Please refresh the page.
+                Erro ao carregar detalhes do plano. Atualize a página.
               </p>
             ) : (
               <>
                 <div className="flex items-baseline justify-between">
                   <div>
                     <div className="text-2xl font-bold">
-                      {plan?.name || "Free Plan"}
+                      {plan?.name || "Plano Gratuito"}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {!hasSubscription && (
-                        <span>Limited features and capabilities</span>
+                        <span>Funcionalidades e recursos limitados</span>
                       )}
                     </div>
                   </div>
@@ -205,7 +139,7 @@ export default function BillingSettingsPage() {
                     variant={hasSubscription ? "default" : "outline"}
                     className="capitalize"
                   >
-                    {hasSubscription ? "active" : "free"}
+                    {hasSubscription ? "ativo" : "gratuito"}
                   </Badge>
                 </div>
                 {customerIdSection}
@@ -215,19 +149,19 @@ export default function BillingSettingsPage() {
           <CardFooter className="flex flex-wrap gap-2">
             <Button variant="outline" asChild>
               <Link href="/app/billing">
-                Manage Subscription
+                Gerenciar Assinatura
                 <ArrowUpRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
             <Button variant="ghost" asChild>
               <Link href="/contact">
-                Get Help
+                Obter Ajuda
                 <HelpCircle className="ml-2 h-4 w-4" />
               </Link>
             </Button>
             <Button variant="ghost" asChild>
               <Link href="/app/redeem-ltd">
-                Redeem LTD Code
+                Resgatar Código LTD
                 <TicketCheck className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -236,9 +170,9 @@ export default function BillingSettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Your Plan Includes</CardTitle>
+            <CardTitle>Seu Plano Inclui</CardTitle>
             <CardDescription>
-              Features and capabilities included in your current plan.
+              Funcionalidades e recursos incluídos no seu plano atual.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -250,15 +184,13 @@ export default function BillingSettingsPage() {
               </div>
             ) : error ? (
               <p className="text-sm text-destructive">
-                Error loading plan features. Please refresh the page.
+                Erro ao carregar funcionalidades do plano. Atualize a página.
               </p>
             ) : (
               renderQuotaFeatures()
             )}
           </CardContent>
         </Card>
-
-        {renderCreditsSection()}
       </div>
     </div>
   );

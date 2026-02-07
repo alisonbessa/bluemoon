@@ -458,7 +458,7 @@ class StripeWebhookHandler {
 }
 
 async function handler(req: NextRequest) {
-  const rateLimitResponse = checkRateLimit(req, rateLimits.webhook, "stripe-webhook");
+  const rateLimitResponse = await checkRateLimit(req, rateLimits.webhook, "stripe-webhook");
   if (rateLimitResponse) return rateLimitResponse;
 
   if (req.method === "POST") {

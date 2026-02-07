@@ -1,5 +1,18 @@
 // /home/user/bluemoon/src/shared/lib/security/rate-limit.ts
+//
+// In-memory rate limiter (works for single-instance deployments).
+//
+// To upgrade to distributed rate limiting with Upstash Redis:
+//   1. Install: pnpm add @upstash/ratelimit @upstash/redis
+//   2. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN env vars
+//   3. Replace the checkInMemory logic with Upstash's Ratelimit.slidingWindow()
+//      See: https://github.com/upstash/ratelimit-js
+
 import { NextRequest, NextResponse } from "next/server";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface RateLimitConfig {
   /** Max number of requests in the window */
@@ -13,15 +26,16 @@ interface RateLimitEntry {
   resetAt: number;
 }
 
-// In-memory store - works for single instance
-// For multi-instance, replace with Redis (Upstash)
+// ---------------------------------------------------------------------------
+// In-memory store
+// ---------------------------------------------------------------------------
+
 const store = new Map<string, RateLimitEntry>();
 
-// Cleanup old entries every 5 minutes to prevent memory leaks
 const CLEANUP_INTERVAL = 5 * 60 * 1000;
 let lastCleanup = Date.now();
 
-function cleanup() {
+function cleanup(): void {
   const now = Date.now();
   if (now - lastCleanup < CLEANUP_INTERVAL) return;
   lastCleanup = now;
@@ -32,25 +46,57 @@ function cleanup() {
   }
 }
 
-/**
- * Get a unique identifier for the request
- */
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 function getIdentifier(req: NextRequest): string {
-  // Use IP address as identifier
   const forwarded = req.headers.get("x-forwarded-for");
-  const ip = forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
+  const ip =
+    forwarded?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
   return ip;
 }
 
+function buildRateLimitResponse(params: {
+  retryAfter: number;
+  limit: number;
+  remaining: number;
+  resetEpochSeconds: number;
+}): NextResponse {
+  const { retryAfter, limit, remaining, resetEpochSeconds } = params;
+  return NextResponse.json(
+    {
+      error: "Too many requests",
+      code: "RATE_LIMITED",
+      retryAfter,
+    },
+    {
+      status: 429,
+      headers: {
+        "Retry-After": String(retryAfter),
+        "X-RateLimit-Limit": String(limit),
+        "X-RateLimit-Remaining": String(remaining),
+        "X-RateLimit-Reset": String(resetEpochSeconds),
+      },
+    }
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
 /**
- * Check rate limit for a request
- * Returns null if allowed, or a NextResponse if rate limited
+ * Check rate limit for a request.
+ * Returns `null` if allowed, or a 429 `NextResponse` if rate limited.
  */
-export function checkRateLimit(
+export async function checkRateLimit(
   req: NextRequest,
   config: RateLimitConfig,
   keyPrefix: string = ""
-): NextResponse | null {
+): Promise<NextResponse | null> {
   cleanup();
 
   const identifier = getIdentifier(req);
@@ -60,38 +106,25 @@ export function checkRateLimit(
   const entry = store.get(key);
 
   if (!entry || entry.resetAt < now) {
-    // First request or window expired
     store.set(key, {
       count: 1,
       resetAt: now + config.windowSizeInSeconds * 1000,
     });
-    return null; // Allowed
+    return null;
   }
 
   if (entry.count >= config.maxRequests) {
-    // Rate limited
     const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
-    return NextResponse.json(
-      {
-        error: "Too many requests",
-        code: "RATE_LIMITED",
-        retryAfter,
-      },
-      {
-        status: 429,
-        headers: {
-          "Retry-After": String(retryAfter),
-          "X-RateLimit-Limit": String(config.maxRequests),
-          "X-RateLimit-Remaining": "0",
-          "X-RateLimit-Reset": String(Math.ceil(entry.resetAt / 1000)),
-        },
-      }
-    );
+    return buildRateLimitResponse({
+      retryAfter,
+      limit: config.maxRequests,
+      remaining: 0,
+      resetEpochSeconds: Math.ceil(entry.resetAt / 1000),
+    });
   }
 
-  // Increment counter
   entry.count++;
-  return null; // Allowed
+  return null;
 }
 
 // Pre-configured rate limiters for common use cases
@@ -111,7 +144,7 @@ export const rateLimits = {
 } as const;
 
 /**
- * Higher-order function to add rate limiting to an API route handler
+ * Higher-order function to add rate limiting to an API route handler.
  * @example
  * export const POST = withRateLimit(handler, rateLimits.contact, "contact");
  */
@@ -121,7 +154,7 @@ export function withRateLimit(
   keyPrefix: string
 ) {
   return async (req: NextRequest, context: { params: Promise<Record<string, unknown>> }) => {
-    const rateLimitResponse = checkRateLimit(req, config, keyPrefix);
+    const rateLimitResponse = await checkRateLimit(req, config, keyPrefix);
     if (rateLimitResponse) return rateLimitResponse;
     return handler(req, context);
   };

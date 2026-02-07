@@ -21,7 +21,7 @@ export default function ResetPasswordConfirmPage() {
 
   React.useEffect(() => {
     if (!token) {
-      setTokenError("Invalid or missing token. Please request a new password reset link.");
+      setTokenError("Token inválido ou ausente. Solicite um novo link de redefinição de senha.");
     }
   }, [token]);
 
@@ -35,7 +35,7 @@ export default function ResetPasswordConfirmPage() {
 
   const onSubmit = async (data: ResetPasswordConfirmInput) => {
     if (!token) {
-      toast.error("Invalid token");
+      toast.error("Token inválido");
       return;
     }
 
@@ -57,15 +57,15 @@ export default function ResetPasswordConfirmPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        toast.error(result.error || "Failed to reset password");
+        toast.error(result.error || "Falha ao redefinir senha");
         return;
       }
 
-      toast.success("Password reset successfully! Please sign in.");
+      toast.success("Senha redefinida com sucesso! Faça login.");
       router.push("/sign-in");
     } catch (error) {
       console.error("Reset password error:", error);
-      toast.error("Something went wrong");
+      toast.error("Algo deu errado");
     } finally {
       setIsLoading(false);
     }
@@ -76,14 +76,14 @@ export default function ResetPasswordConfirmPage() {
       <div className="flex flex-col gap-6">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight mb-2">
-            Invalid Link
+            Link Inválido
           </h1>
           <p className="text-sm text-muted-foreground">
             {tokenError}
           </p>
         </div>
         <Button onClick={() => router.push("/reset-password")} className="w-full py-6">
-          Request New Link
+          Solicitar Novo Link
         </Button>
       </div>
     );
@@ -93,19 +93,19 @@ export default function ResetPasswordConfirmPage() {
     <>
       <div className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight mb-2">
-          Reset Your Password
+          Redefinir sua Senha
         </h1>
         <p className="text-sm text-muted-foreground">
-          Enter your new password for your {appConfig.projectName} account
+          Digite sua nova senha para sua conta {appConfig.projectName}
         </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="password">New Password</Label>
+          <Label htmlFor="password">Nova Senha</Label>
           <Input
             id="password"
-            placeholder="Enter your new password"
+            placeholder="Digite sua nova senha"
             type="password"
             autoComplete="new-password"
             disabled={isLoading}
@@ -118,10 +118,10 @@ export default function ResetPasswordConfirmPage() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="confirmPassword">Confirm New Password</Label>
+          <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
           <Input
             id="confirmPassword"
-            placeholder="Confirm your new password"
+            placeholder="Confirme sua nova senha"
             type="password"
             autoComplete="new-password"
             disabled={isLoading}
@@ -135,7 +135,7 @@ export default function ResetPasswordConfirmPage() {
 
         <Button type="submit" disabled={isLoading} className="w-full py-6">
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Reset Password
+          Redefinir Senha
         </Button>
       </form>
     </>

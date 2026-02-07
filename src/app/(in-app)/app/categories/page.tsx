@@ -135,7 +135,7 @@ export default function CategoriesPage() {
                       data-tutorial={index === 0 ? "add-category-button" : undefined}
                     >
                       <Plus className="h-3 w-3 mr-1" />
-                      Add
+                      Adicionar
                     </Button>
                   }
                 />
