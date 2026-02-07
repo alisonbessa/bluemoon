@@ -1,13 +1,16 @@
 import { Resend } from "resend";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("email");
 
 const sendMail = async (to: string, subject: string, html: string) => {
   if (!process.env.RESEND_API_KEY) {
-    console.error("RESEND_API_KEY is not set");
+    logger.error("RESEND_API_KEY is not set");
     return;
   }
 
   if (!process.env.RESEND_FROM_EMAIL) {
-    console.error("RESEND_FROM_EMAIL is not set");
+    logger.error("RESEND_FROM_EMAIL is not set");
     return;
   }
 
@@ -23,13 +26,13 @@ const sendMail = async (to: string, subject: string, html: string) => {
     });
 
     if (error) {
-      console.error("Error sending email:", error);
+      logger.error("Error sending email", error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error("Failed to send email:", error);
+    logger.error("Failed to send email", error);
     throw error;
   }
 };

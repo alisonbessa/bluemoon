@@ -8,13 +8,13 @@ import { BorderBeam } from "@/shared/ui/border-beam";
 
 const plans = [
   {
-    name: "Indie Kit",
+    name: "HiveBudget",
     description: "Perfect for building B2C products",
     price: 79,
     anchorPrice: 349,
     showBorderBeam: true,
     paymentLink:
-      "https://checkout.dodopayments.com/buy/pdt_ICnsTbAPy8VERlAgVo9QJ?quantity=1&redirect_url=https://indiekit.pro%2Fpayment-success",
+      "https://checkout.dodopayments.com/buy/pdt_ICnsTbAPy8VERlAgVo9QJ?quantity=1&redirect_url=https://hivebudget.com%2Fpayment-success",
     features: [
       "NextJS boilerplate",
       "SEO & Blog",
@@ -120,7 +120,7 @@ export function WebsitePricing() {
               </div>
               {plan.paymentLink && (
                 <Button className="w-full" asChild>
-                  <Link href={plan.paymentLink}>Get Indie Kit Pro</Link>
+                  <Link href={plan.paymentLink}>Get HiveBudget</Link>
                 </Button>
               )}
               <ul className="mt-8 space-y-3 text-sm">
@@ -162,7 +162,7 @@ export function WebsitePricing() {
         <div className="mt-16 max-w-2xl mx-auto">
           <div className="rounded-3xl bg-muted/40 p-8 shadow-xs ring-1 ring-border/60">
             <div className="mb-8">
-              <h3 className="text-xl font-bold">B2B Indie Kit</h3>
+              <h3 className="text-xl font-bold">B2B HiveBudget</h3>
               <p className="mt-2 text-sm text-muted-foreground">
                 Perfect for building B2B SaaS with team & workspace features
               </p>

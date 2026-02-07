@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("api:subscription:change-plan");
 import stripe from "@/integrations/stripe";
 import { db } from "@/db";
 import { plans } from "@/db/schema/plans";
@@ -161,7 +164,7 @@ export const POST = withAuthRequired(async (req, { getUser, getCurrentPlan }) =>
       proration: true,
     });
   } catch (error) {
-    console.error("Error changing plan:", error);
+    logger.error("Error changing plan:", error);
 
     if (error instanceof Error && error.message.includes("No such subscription")) {
       return errorResponse(

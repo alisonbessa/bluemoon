@@ -1,5 +1,8 @@
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import { coupons } from "@/db/schema/coupons";
+
+const logger = createLogger("api:redeem-ltd");
 import { eq, and, isNull } from "drizzle-orm";
 import { updateLTDPlan } from "@/shared/lib/users/updateLTDPlan";
 import { z } from "zod";
@@ -68,7 +71,7 @@ export const POST = withAuthRequired(async (req, context) => {
       couponCount: result.couponCount,
     });
   } catch (error) {
-    console.error("Error redeeming coupon:", error);
+    logger.error("Error redeeming coupon:", error);
     return internalError("Failed to redeem coupon");
   }
 });

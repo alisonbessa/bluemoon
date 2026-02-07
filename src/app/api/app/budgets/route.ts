@@ -9,6 +9,7 @@ import {
   cachedResponse,
 } from "@/shared/lib/api/responses";
 import { createBudgetSchema } from "@/shared/lib/validations";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get user's budgets (where they are a member)
 export const GET = withAuthRequired(async (req, context) => {
@@ -113,6 +114,14 @@ export const POST = withAuthRequired(async (req, context) => {
   });
 
   await db.insert(categories).values(categoryInserts);
+
+  void recordAuditLog({
+    userId: session.user.id,
+    action: "budget.create",
+    resource: "budget",
+    resourceId: newBudget.id,
+    req,
+  });
 
   return successResponse({ budget: newBudget }, 201);
 });

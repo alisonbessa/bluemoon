@@ -6,6 +6,9 @@ import { users } from "@/db/schema/user";
 import { plans } from "@/db/schema/plans";
 import { eq, and, isNull } from "drizzle-orm";
 import { z } from "zod";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("api:redeem-access-link");
 
 const redeemSchema = z.object({
   code: z.string().min(1),
@@ -19,14 +22,11 @@ const redeemSchema = z.object({
  */
 export const POST = withAuthRequired(async (req, { session }) => {
   try {
-    console.log("[redeem-access-link] Starting redemption");
-    console.log("[redeem-access-link] Session:", JSON.stringify(session, null, 2));
+    logger.info("Starting redemption");
 
     const body = await req.json();
-    console.log("[redeem-access-link] Body:", body);
-
     const { code, planType } = redeemSchema.parse(body);
-    console.log("[redeem-access-link] Parsed - code:", code, "planType:", planType);
+    logger.info("Parsed redemption request", { code, planType });
 
     // Normalize code (uppercase, remove extra spaces)
     const normalizedCode = code.toUpperCase().trim();
@@ -44,7 +44,7 @@ export const POST = withAuthRequired(async (req, { session }) => {
       )
       .limit(1);
 
-    console.log("[redeem-access-link] Link found:", link ? { id: link.id, code: link.code, type: link.type } : null);
+    logger.info("Link lookup result", { found: !!link, id: link?.id });
 
     if (!link) {
       return NextResponse.json(
@@ -69,7 +69,7 @@ export const POST = withAuthRequired(async (req, { session }) => {
       .where(eq(plans.codename, planCodename))
       .limit(1);
 
-    console.log("[redeem-access-link] Plan found:", plan ? { id: plan.id, name: plan.name, codename: plan.codename } : null);
+    logger.info("Plan lookup result", { found: !!plan, codename: plan?.codename });
 
     if (!plan) {
       return NextResponse.json(
@@ -80,14 +80,13 @@ export const POST = withAuthRequired(async (req, { session }) => {
 
     // Determine user role based on link type
     const newRole = link.type === "lifetime" ? "lifetime" : "beta";
-    console.log("[redeem-access-link] New role:", newRole);
+    logger.info("Determined new role", { newRole });
 
     // Get the user ID from session
     const userId = session.user?.id;
-    console.log("[redeem-access-link] User ID from session:", userId);
 
     if (!userId) {
-      console.error("[redeem-access-link] No user ID in session!");
+      logger.error("No user ID in session");
       return NextResponse.json(
         { error: "Usuário não identificado na sessão" },
         { status: 401 }
@@ -95,7 +94,6 @@ export const POST = withAuthRequired(async (req, { session }) => {
     }
 
     // Update the access link as used
-    console.log("[redeem-access-link] Updating access link...");
     await db
       .update(accessLinks)
       .set({
@@ -104,10 +102,9 @@ export const POST = withAuthRequired(async (req, { session }) => {
         planType,
       })
       .where(eq(accessLinks.id, link.id));
-    console.log("[redeem-access-link] Access link updated!");
+    logger.info("Access link updated");
 
     // Update the user with the new plan and role
-    console.log("[redeem-access-link] Updating user...");
     await db
       .update(users)
       .set({
@@ -117,7 +114,7 @@ export const POST = withAuthRequired(async (req, { session }) => {
         trialEndsAt: null, // Clear any trial period
       })
       .where(eq(users.id, userId));
-    console.log("[redeem-access-link] User updated!");
+    logger.info("User updated", { userId, newRole, planId: plan.id });
 
     return NextResponse.json({
       success: true,
@@ -131,15 +128,13 @@ export const POST = withAuthRequired(async (req, { session }) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("[redeem-access-link] Zod validation error:", error.errors);
+      logger.error("Zod validation error", error);
       return NextResponse.json(
         { error: "Dados inválidos", details: error.errors },
         { status: 400 }
       );
     }
-    console.error("[redeem-access-link] Error:", error);
-    console.error("[redeem-access-link] Error message:", error instanceof Error ? error.message : "Unknown error");
-    console.error("[redeem-access-link] Error stack:", error instanceof Error ? error.stack : "No stack");
+    logger.error("Error redeeming access link", error);
     return NextResponse.json(
       { error: "Falha ao resgatar código" },
       { status: 500 }

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("api:trial:status");
 import stripe from "@/integrations/stripe";
 
 /**
@@ -58,7 +61,7 @@ export const GET = withAuthRequired(async (_req, { getUser }) => {
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
     });
   } catch (error) {
-    console.error("Error fetching trial status:", error);
+    logger.error("Error fetching trial status:", error);
     return NextResponse.json(
       { error: "Failed to fetch trial status" },
       { status: 500 }

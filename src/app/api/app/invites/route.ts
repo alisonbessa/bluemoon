@@ -1,5 +1,8 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:invites");
 import { invites, budgetMembers, budgets, users } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -13,6 +16,7 @@ import sendMail from "@/shared/lib/email/sendMail";
 import { render } from "@react-email/components";
 import PartnerInviteEmail from "@/emails/PartnerInviteEmail";
 import { appConfig } from "@/shared/lib/config";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 const createInviteSchema = z.object({
   budgetId: z.string().uuid(),
@@ -179,10 +183,18 @@ export const POST = withAuthRequired(async (req, context) => {
         html
       );
     } catch (error) {
-      console.error("Failed to send invite email:", error);
+      logger.error("Failed to send invite email:", error);
       // Don't fail the request if email fails - invite was still created
     }
   }
+
+  void recordAuditLog({
+    userId: session.user.id,
+    action: "budget.invite",
+    resource: "invite",
+    details: { budgetId },
+    req,
+  });
 
   return successResponse({
     invite: newInvite,

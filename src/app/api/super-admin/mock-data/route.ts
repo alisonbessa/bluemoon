@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:admin:mock-data");
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 import {
   users,
   budgets,
@@ -29,7 +33,7 @@ const requestSchema = z.object({
  *
  * Populate the database with mock data for a specific user
  */
-export const POST = withSuperAdminAuthRequired(async (req) => {
+export const POST = withSuperAdminAuthRequired(async (req, { session }) => {
   try {
     const body = await req.json();
     const { email } = requestSchema.parse(body);
@@ -56,7 +60,7 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
       .limit(1);
 
     if (existingMembership.length > 0) {
-      console.log("[mock-data] Deleting existing budget data for user:", user.email);
+      logger.info("Deleting existing budget data for user", { email: user.email });
 
       // Get all budgets the user is a member of
       const userBudgetIds = existingMembership.map(m => m.budgetId);
@@ -92,7 +96,7 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
         await db.delete(budgets).where(eq(budgets.id, budgetId));
       }
 
-      console.log("[mock-data] Existing data deleted successfully");
+      logger.info("[mock-data] Existing data deleted successfully");
     }
 
     // Get Duo plan for user
@@ -116,16 +120,16 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
     let allGroups = await db.select().from(groups);
 
     if (allGroups.length === 0) {
-      console.log("[mock-data] Seeding groups...");
+      logger.info("[mock-data] Seeding groups...");
       for (const group of defaultGroups) {
         await db.insert(groups).values(group);
       }
       allGroups = await db.select().from(groups);
-      console.log("[mock-data] Groups seeded:", allGroups.length);
+      logger.info("Groups seeded", { count: allGroups.length });
     }
 
     const groupMap = Object.fromEntries(allGroups.map((g) => [g.code, g.id]));
-    console.log("[mock-data] Group map:", groupMap);
+    logger.info("Group map loaded", { groups: Object.keys(groupMap) });
 
     // Create budget
     const [budget] = await db
@@ -327,6 +331,14 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
       }
     }
 
+    void recordAuditLog({
+      userId: session.user.id!,
+      action: "admin.mock_data",
+      resource: "database",
+      details: { email },
+      req,
+    });
+
     return NextResponse.json({
       success: true,
       message: "Dados de teste criados com sucesso!",
@@ -340,7 +352,7 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
       },
     });
   } catch (error) {
-    console.error("Error creating mock data:", error);
+    logger.error("Error creating mock data:", error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Dados inválidos", details: error.errors },

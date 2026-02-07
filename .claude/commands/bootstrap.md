@@ -3,7 +3,7 @@ description: Bootstrap the project with custom configuration, database schemas, 
 argument-hint: [project name]
 ---
 
-# Indie Kit Project Bootstrapper
+# HiveBudget Project Bootstrapper
 
 You are an expert software architect and developer. Your task is to bootstrap a new SaaS project from this boilerplate based on the user's requirements.
 

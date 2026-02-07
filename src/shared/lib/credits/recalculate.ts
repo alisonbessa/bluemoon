@@ -3,6 +3,9 @@ import { CreditTransaction, creditTransactions } from "@/db/schema/credits";
 import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
 import { type CreditType } from "./credits";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("credits:recalculate");
 
 type CreditRecord = {
   [K in CreditType]?: number;
@@ -58,7 +61,7 @@ export async function recalculateUserCredits(userId: string): Promise<CreditReco
 
     return creditBalances;
   } catch (error) {
-    console.error("Error recalculating user credits:", error);
+    logger.error("Error recalculating user credits:", error);
     throw new Error(`Failed to recalculate credits for user ${userId}`);
   }
 }
@@ -172,7 +175,7 @@ export async function addCreditTransaction(
 
     return updatedCredits;
   } catch (error) {
-    console.error("Error adding credit transaction:", error);
+    logger.error("Error adding credit transaction:", error);
     throw new Error(`Failed to add credit transaction for user ${userId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
@@ -192,7 +195,7 @@ export async function getUserCredits(userId: string): Promise<CreditRecord> {
 
     return user[0]?.credits || {};
   } catch (error) {
-    console.error("Error getting user credits:", error);
+    logger.error("Error getting user credits:", error);
     throw new Error(`Failed to get credits for user ${userId}`);
   }
 }

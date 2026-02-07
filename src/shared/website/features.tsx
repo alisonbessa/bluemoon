@@ -317,7 +317,7 @@ export const WebsiteFeatures = () => {
           <p className="text-center text-lg text-muted-foreground md:text-xl">
             Login users, process payments, send emails at lightspeed. Spend your
             time building your startup, not integrating APIs.{" "}
-            <span className="text-primary">Indie Kit</span> provides you with
+            <span className="text-primary">HiveBudget</span> provides you with
             the boilerplate code you need to launch,{" "}
             <HyperText startOnView delay={2500} as="span" className="text-sm">
               Faster than ever.

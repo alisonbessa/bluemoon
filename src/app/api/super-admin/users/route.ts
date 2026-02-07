@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:admin:users");
 import { users } from "@/db/schema/user";
 import { desc, sql } from "drizzle-orm";
 
@@ -55,7 +58,7 @@ export const GET = withSuperAdminAuthRequired(async (req) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching users:", error);
+    logger.error("Error fetching users:", error);
     return NextResponse.json(
       { error: "Failed to fetch users" },
       { status: 500 }

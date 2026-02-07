@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("api:trial:cancel");
 import stripe from "@/integrations/stripe";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
@@ -76,7 +79,7 @@ export const POST = withAuthRequired(async (_req, { getUser, session }) => {
       });
     }
   } catch (error) {
-    console.error("Error cancelling trial/subscription:", error);
+    logger.error("Error cancelling trial/subscription:", error);
     return NextResponse.json(
       { error: "Failed to cancel subscription" },
       { status: 500 }

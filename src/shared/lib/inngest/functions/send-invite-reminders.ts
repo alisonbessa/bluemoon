@@ -9,8 +9,15 @@ import { render } from "@react-email/render";
 import InviteReminder from "@/emails/InviteReminder";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { createLogger } from "@/shared/lib/logger";
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const logger = createLogger("inngest:invite-reminders");
+
+const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+if (!appUrl) {
+  logger.warn("NEXT_PUBLIC_APP_URL not set, using localhost fallback");
+}
+const baseUrl = appUrl || "http://localhost:3000";
 
 /**
  * Sends reminders to users who have pending invites that haven't been accepted
@@ -101,7 +108,7 @@ export const sendInviteReminders = inngest.createFunction(
 
         sent++;
       } catch (error) {
-        console.error(`Failed to send invite reminder for ${invite.inviteId}:`, error);
+        logger.error(`Failed to send invite reminder for ${invite.inviteId}`, error);
         errors++;
       }
     }

@@ -1,6 +1,9 @@
 import type { TelegramVoice } from "./types";
 import { getFile, downloadFile, sendMessage } from "./bot";
 import { transcribeAudio } from "./gemini";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("telegram:voice-handler");
 
 export interface VoiceHandlerResult {
   transcription: string | null;
@@ -54,7 +57,7 @@ export async function handleVoiceMessage(
 
     return { transcription, messagesToDelete };
   } catch (error) {
-    console.error("[Voice Handler] Error processing voice message:", error);
+    logger.error("[Voice Handler] Error processing voice message:", error);
     await sendMessage(
       chatId,
       "❌ Erro ao processar o áudio. Tente enviar uma mensagem de texto."

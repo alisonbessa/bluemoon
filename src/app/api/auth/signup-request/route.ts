@@ -1,5 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { createLogger } from "@/shared/lib/logger";
 import { signUpRequestSchema } from "@/shared/lib/validations/auth.schema";
+
+const logger = createLogger("api:auth:signup-request");
 import { encryptJson } from "@/shared/lib/encryption/edge-jwt";
 import { render } from "@react-email/components";
 import SignUpEmail from "@/emails/SignUpEmail";
@@ -8,6 +11,7 @@ import { appConfig } from "@/shared/lib/config";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
+import { checkRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 
 interface SignUpToken {
   name: string;
@@ -15,7 +19,10 @@ interface SignUpToken {
   expiry: string;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const rateLimitResponse = checkRateLimit(request, rateLimits.auth, "signup");
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await request.json();
     const validation = signUpRequestSchema.safeParse(body);
@@ -76,7 +83,7 @@ export async function POST(request: Request) {
       message: "Check your email to complete account setup" 
     });
   } catch (error) {
-    console.error("Error in signup request:", error);
+    logger.error("Error in signup request:", error);
     return NextResponse.json(
       { error: "Failed to process signup request" },
       { status: 500 }

@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("cron-auth");
 
 interface CronHandler {
   (
@@ -22,7 +25,7 @@ const cronAuthRequired = (handler: CronHandler) => {
 
     // SECURITY: Credentials are required - fail if not configured
     if (!CRON_USERNAME || !CRON_PASSWORD) {
-      console.error("SECURITY: CRON_USERNAME or CRON_PASSWORD not configured");
+      logger.error("SECURITY: CRON_USERNAME or CRON_PASSWORD not configured");
       return NextResponse.json(
         {
           success: false,
@@ -68,7 +71,7 @@ const cronAuthRequired = (handler: CronHandler) => {
       // Authentication successful, proceed to handler
       return await handler(req, context);
     } catch (error) {
-      console.error("Error during cron authentication:", error);
+      logger.error("Error during cron authentication", error);
       return NextResponse.json(
         {
           success: false,

@@ -3,6 +3,9 @@ import type {
   TelegramInlineKeyboardMarkup,
   TelegramFile,
 } from "./types";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("telegram:bot");
 
 // Re-export formatCurrency for convenience in telegram handlers
 export { formatCurrency } from "@/shared/lib/formatters";
@@ -31,7 +34,7 @@ async function callTelegramApi<T>(method: string, body: object): Promise<T> {
   const data = await response.json();
 
   if (!data.ok) {
-    console.error(`Telegram API error: ${method}`, data);
+    logger.error(`Telegram API error: ${method}`, data);
     throw new Error(data.description || "Telegram API error");
   }
 
@@ -78,7 +81,7 @@ export async function deleteMessage(chatId: number, messageId: number): Promise<
     return true;
   } catch (error) {
     // Message might already be deleted or too old (>48h)
-    console.warn(`[Telegram] Failed to delete message ${messageId}:`, error);
+    logger.info(`Failed to delete message ${messageId}`, { error: String(error) });
     return false;
   }
 }

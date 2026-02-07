@@ -1,6 +1,9 @@
 import fs from "fs";
 import path from "path";
 import compile from "./compile";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("mdx:blogs");
 
 const blogsDirectory = path.join(process.cwd(), "src/content/blog");
 
@@ -55,7 +58,7 @@ export async function getBlogBySlug(slug: string): Promise<Blog | null> {
       headings,
     };
   } catch (error) {
-    console.error("Error reading use case:", error);
+    logger.error("Error reading use case:", error);
     return null;
   }
 }

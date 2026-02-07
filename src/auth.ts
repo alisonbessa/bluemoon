@@ -17,6 +17,9 @@ import sendMail from "./shared/lib/email/sendMail";
 import { appConfig } from "./shared/lib/config";
 import { decryptJson } from "./shared/lib/encryption/edge-jwt";
 import { eq } from "drizzle-orm";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("auth");
 
 // Overrides default session type
 declare module "next-auth" {
@@ -43,7 +46,7 @@ const emailProvider: EmailConfig = {
   name: "Email",
   async sendVerificationRequest(params) {
     if (process.env.NODE_ENV === "development") {
-      console.log(
+      logger.debug(
         `Magic link for ${params.identifier}: ${params.url} expires at ${params.expires}`
       );
     }
@@ -192,7 +195,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   name: user.name,
                 };
               } catch (error) {
-                console.error("Error during password authentication:", error);
+                logger.error("Error during password authentication", error);
                 return null;
               }
             },
@@ -234,7 +237,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             impersonatedBy: impersonationToken.impersonator,
           };
         } catch (error) {
-          console.error("Error during impersonation:", error);
+          logger.error("Error during impersonation", error);
           return null;
         }
       },

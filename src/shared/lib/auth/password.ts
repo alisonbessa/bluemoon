@@ -10,6 +10,9 @@
  */
 
 import bcrypt from "bcryptjs";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("auth:password");
 
 /**
  * Hashes a password using bcrypt
@@ -28,7 +31,7 @@ export async function hashPassword(password: string): Promise<string> {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     return hashedPassword;
   } catch (error) {
-    console.error("Error hashing password:", error);
+    logger.error("Error hashing password:", error);
     throw new Error("Failed to hash password");
   }
 }
@@ -47,7 +50,7 @@ export async function verifyPassword(
   try {
     return await bcrypt.compare(password, storedHash);
   } catch (error) {
-    console.error("Error verifying password:", error);
+    logger.error("Error verifying password:", error);
     return false;
   }
 }

@@ -1,5 +1,8 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:invites:detail");
 import { invites, budgetMembers, budgets, users } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import {
@@ -160,7 +163,7 @@ export const POST = withAuthRequired(async (req, context) => {
         html
       );
     } catch (error) {
-      console.error("Failed to resend invite email:", error);
+      logger.error("Failed to resend invite email:", error);
     }
   }
 

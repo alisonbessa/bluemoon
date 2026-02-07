@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { z } from "zod";
 import updatePlan from "@/shared/lib/plans/updatePlan";
+
+const logger = createLogger("api:admin:users:plan");
 
 const updatePlanSchema = z.object({
   planId: z.string().min(1, "Plan ID is required"),
@@ -22,7 +25,7 @@ export const PATCH = withSuperAdminAuthRequired(async (req, context) => {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error updating user plan:", error);
+    logger.error("Error updating user plan:", error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid request data", details: error.errors },

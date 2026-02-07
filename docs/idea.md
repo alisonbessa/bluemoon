@@ -238,7 +238,7 @@ Processamento de linguagem natural para:
 
 ### Fase 1 - MVP Core
 
-- Criar novo projeto com IndieKit template
+- Criar novo projeto com HiveBudget template
 - Implementar schema simplificado (budgets, members, groups, categories)
 - Auth com criação automática de budget
 - Onboarding básico

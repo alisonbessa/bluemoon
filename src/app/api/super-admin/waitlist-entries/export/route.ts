@@ -3,6 +3,9 @@ import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequ
 import { db } from "@/db";
 import { waitlist } from "@/db/schema/waitlist";
 import { desc } from "drizzle-orm";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("api:sa:waitlist-export");
 
 export const GET = withSuperAdminAuthRequired(async () => {
   try {
@@ -33,7 +36,7 @@ export const GET = withSuperAdminAuthRequired(async () => {
       },
     });
   } catch (error) {
-    console.error("Error exporting waitlist:", error);
+    logger.error("Error exporting waitlist", error);
     return NextResponse.json(
       { error: "Failed to export waitlist" },
       { status: 500 }

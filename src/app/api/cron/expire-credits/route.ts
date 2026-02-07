@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:cron:expire-credits");
 import { creditTransactions } from "@/db/schema/credits";
 import { and, eq, lte, isNotNull } from "drizzle-orm";
 import { enableCredits } from "@/shared/lib/credits/config";
@@ -87,7 +90,7 @@ const handleExpireCredits = async () => {
 
           return { status: "processed", transactionId: transaction.id };
         } catch (error) {
-          console.error(
+          logger.error(
             `Failed to expire credits for transaction ${transaction.id}:`,
             error
           );
@@ -129,7 +132,7 @@ const handleExpireCredits = async () => {
       expirationCutoff: expirationCutoff.toISOString(),
     });
   } catch (error) {
-    console.error("Credit expiration cron job failed:", error);
+    logger.error("Credit expiration cron job failed:", error);
     return NextResponse.json(
       {
         success: false,

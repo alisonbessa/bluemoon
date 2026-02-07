@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:plans");
 import { plans } from "@/db/schema/plans";
 import { inArray } from "drizzle-orm";
 
@@ -65,7 +68,7 @@ export async function GET() {
       trialDays: 30,
     });
   } catch (error) {
-    console.error("Error fetching plans:", error);
+    logger.error("Error fetching plans:", error);
     return NextResponse.json(
       { error: "Failed to fetch plans" },
       { status: 500 }

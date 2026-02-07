@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { stripe } from "@/integrations/stripe/client";
+
+const logger = createLogger("api:admin:stripe-status");
 
 interface StripeStatusResponse {
   connected: boolean;
@@ -86,7 +89,7 @@ export const GET = withSuperAdminAuthRequired(async () => {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Error checking Stripe status:", error);
+    logger.error("Error checking Stripe status:", error);
     response.error =
       error instanceof Error ? error.message : "Falha ao conectar com Stripe";
     return NextResponse.json(response, { status: 500 });

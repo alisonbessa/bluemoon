@@ -3,6 +3,9 @@ import { db } from "@/db";
 import { telegramUsers } from "@/db/schema";
 import { isNotNull } from "drizzle-orm";
 import { sendMessage } from "@/integrations/telegram/lib/bot";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("inngest:monthly-reminder");
 
 /**
  * Sends a reminder to plan the next month's budget
@@ -65,7 +68,7 @@ Você já planejou seu orçamento para o próximo mês?
 
         sent++;
       } catch (error) {
-        console.error(`Failed to send reminder to ${user.chatId}:`, error);
+        logger.error(`Failed to send reminder to ${user.chatId}`, error);
         errors++;
       }
     }

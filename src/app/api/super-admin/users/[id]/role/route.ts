@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import { users, userRoleEnum } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
+
+const logger = createLogger("api:admin:users:role");
 
 /**
  * PATCH /api/super-admin/users/[id]/role
@@ -51,7 +54,7 @@ export const PATCH = withSuperAdminAuthRequired(async (req, { params }) => {
       newRole: role,
     });
   } catch (error) {
-    console.error("Error updating user role:", error);
+    logger.error("Error updating user role:", error);
     return NextResponse.json(
       { error: "Falha ao atualizar role" },
       { status: 500 }

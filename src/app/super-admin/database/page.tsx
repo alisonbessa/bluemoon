@@ -59,7 +59,7 @@ export default function DatabasePage() {
   const [confirmation, setConfirmation] = useState("");
   const [includeUsers, setIncludeUsers] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [mockDataEmail, setMockDataEmail] = useState("alisonbessa@gmail.com");
+  const [mockDataEmail, setMockDataEmail] = useState("");
   const [isPopulating, setIsPopulating] = useState(false);
 
   const handlePopulateMockData = async () => {

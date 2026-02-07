@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:admin:messages");
 import { contacts } from "@/db/schema/contact";
 import { desc, sql, eq } from "drizzle-orm";
 
@@ -48,7 +51,7 @@ export const GET = withSuperAdminAuthRequired(async (req) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching messages:", error);
+    logger.error("Error fetching messages:", error);
     return NextResponse.json(
       { error: "Failed to fetch messages" },
       { status: 500 }
@@ -71,7 +74,7 @@ export const PATCH = withSuperAdminAuthRequired(async (req) => {
 
     return NextResponse.json(updatedMessage[0]);
   } catch (error) {
-    console.error("Error updating message:", error);
+    logger.error("Error updating message:", error);
     return NextResponse.json(
       { error: "Failed to update message" },
       { status: 500 }
@@ -96,7 +99,7 @@ export const DELETE = withSuperAdminAuthRequired(async (req) => {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting message:", error);
+    logger.error("Error deleting message:", error);
     return NextResponse.json(
       { error: "Failed to delete message" },
       { status: 500 }

@@ -4,6 +4,9 @@ import { telegramUsers, transactions, recurringBills, budgetMembers } from "@/db
 import { eq, and, gte, lte, isNotNull, inArray } from "drizzle-orm";
 import { sendMessage } from "@/integrations/telegram/lib/bot";
 import { formatCurrency, parseLocalDate } from "@/shared/lib/formatters";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("inngest:weekly-bills");
 
 /**
  * Sends weekly bills summary to connected Telegram users
@@ -139,7 +142,7 @@ ${lines.join("\n")}
 
         sent++;
       } catch (error) {
-        console.error(`Failed to send summary to ${user.chatId}:`, error);
+        logger.error(`Failed to send summary to ${user.chatId}`, error);
         errors++;
       }
     }

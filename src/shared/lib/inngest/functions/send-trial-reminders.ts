@@ -7,8 +7,15 @@ import sendMail from "@/shared/lib/email/sendMail";
 import { render } from "@react-email/render";
 import TrialReminder7Days from "@/emails/TrialReminder7Days";
 import TrialReminder2Days from "@/emails/TrialReminder2Days";
+import { createLogger } from "@/shared/lib/logger";
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const logger = createLogger("inngest:trial-reminders");
+
+const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+if (!appUrl) {
+  logger.warn("NEXT_PUBLIC_APP_URL not set, using localhost fallback");
+}
+const baseUrl = appUrl || "http://localhost:3000";
 
 /**
  * Sends trial reminder emails to users whose trial is ending
@@ -114,7 +121,7 @@ export const sendTrialReminders = inngest.createFunction(
 
         sent7Days++;
       } catch (error) {
-        console.error(`Failed to send D-7 reminder to ${user.email}:`, error);
+        logger.error(`Failed to send D-7 reminder to ${user.email}`, error);
         errors++;
       }
     }
@@ -167,7 +174,7 @@ export const sendTrialReminders = inngest.createFunction(
 
         sent2Days++;
       } catch (error) {
-        console.error(`Failed to send D-2 reminder to ${user.email}:`, error);
+        logger.error(`Failed to send D-2 reminder to ${user.email}`, error);
         errors++;
       }
     }

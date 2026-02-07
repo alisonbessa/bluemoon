@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import {
   getUserCredits,
   addCreditTransaction,
 } from "@/shared/lib/credits/recalculate";
+
+const logger = createLogger("api:admin:users:credits");
 import { creditTypeSchema } from "@/shared/lib/credits/config";
 import { z } from "zod";
 import { db } from "@/db";
@@ -58,7 +61,7 @@ export const GET = withSuperAdminAuthRequired(async (req, context) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching user credits:", error);
+    logger.error("Error fetching user credits:", error);
     return NextResponse.json(
       { error: "Failed to fetch user credits" },
       { status: 500 }
@@ -101,7 +104,7 @@ export const POST = withSuperAdminAuthRequired(async (req, context) => {
       message: `Successfully ${action === "add" ? "added" : "deducted"} ${amount} ${creditType} credits`,
     });
   } catch (error) {
-    console.error("Error managing user credits:", error);
+    logger.error("Error managing user credits:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:admin:plans:sync-stripe");
 import { plans } from "@/db/schema/plans";
 import { eq } from "drizzle-orm";
 import { stripe } from "@/integrations/stripe/client";
@@ -119,7 +122,7 @@ export const POST = withSuperAdminAuthRequired(
       result.success = true;
       return NextResponse.json(result);
     } catch (error) {
-      console.error("Error syncing plan to Stripe:", error);
+      logger.error("Error syncing plan to Stripe:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       return NextResponse.json(
         { error: `Failed to sync plan to Stripe: ${errorMessage}` },

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+import { createLogger } from "@/shared/lib/logger";
 import { resetPasswordConfirmSchema } from "@/shared/lib/validations/auth.schema";
+
+const logger = createLogger("api:auth:reset-password-confirm");
 import { decryptJson } from "@/shared/lib/encryption/edge-jwt";
 import { hashPassword } from "@/shared/lib/auth/password";
 import { db } from "@/db";
@@ -78,7 +81,7 @@ export async function POST(request: Request) {
       message: "Password reset successfully",
     });
   } catch (error) {
-    console.error("Error resetting password:", error);
+    logger.error("Error resetting password:", error);
     return NextResponse.json(
       { error: "Failed to reset password. Token may be invalid or expired." },
       { status: 500 }

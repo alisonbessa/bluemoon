@@ -26,7 +26,7 @@ export default function CreditsErrorRedirector() {
       case "UNSUPPORTED_PROVIDER":
         return "The selected payment provider is not supported.";
       case "CREDITS_DISABLED":
-        return "Credits are disabled for this application. Check https://docs.indiekit.pro/payments/credits-system to see how to enable them.";
+        return "Credits are disabled for this application. Please contact support to see how to enable them.";
       default:
         return message || "An error occurred during your credit purchase.";
     }

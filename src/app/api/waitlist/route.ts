@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
 import { waitlist } from "@/db/schema/waitlist";
+import { checkRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 
 const waitlistSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -9,7 +10,10 @@ const waitlistSchema = z.object({
   twitterAccount: z.string().optional(),
 });
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const rateLimitResponse = checkRateLimit(request, rateLimits.contact, "waitlist");
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const json = await request.json();
     const body = waitlistSchema.parse(json);

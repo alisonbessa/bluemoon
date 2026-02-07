@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import { plans } from "@/db/schema/plans";
 import { users } from "@/db/schema/user";
 import { eq, count } from "drizzle-orm";
+
+const logger = createLogger("api:admin:plans:detail");
 
 export const GET = withSuperAdminAuthRequired(async (req, context) => {
   const { id } = await context.params as { id: string };
@@ -20,7 +23,7 @@ export const GET = withSuperAdminAuthRequired(async (req, context) => {
 
     return NextResponse.json(plan[0]);
   } catch (error) {
-    console.error("Error fetching plan:", error);
+    logger.error("Error fetching plan:", error);
     return NextResponse.json(
       { error: "Failed to fetch plan" },
       { status: 500 }
@@ -69,7 +72,7 @@ export const DELETE = withSuperAdminAuthRequired(async (req, context) => {
 
     return NextResponse.json({ success: true, message: "Plano excluído com sucesso" });
   } catch (error) {
-    console.error("Error deleting plan:", error);
+    logger.error("Error deleting plan:", error);
     return NextResponse.json(
       { error: "Erro ao excluir plano" },
       { status: 500 }

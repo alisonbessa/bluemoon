@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import { coupons } from "@/db/schema/coupons";
 import { eq } from "drizzle-orm";
+
+const logger = createLogger("api:admin:coupons:detail");
 
 export const PATCH = withSuperAdminAuthRequired(async (req, context) => {
   const id = (await context.params).id as string;
@@ -21,7 +24,7 @@ export const PATCH = withSuperAdminAuthRequired(async (req, context) => {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error expiring coupon:", error);
+    logger.error("Error expiring coupon:", error);
     return NextResponse.json(
       { error: "Failed to expire coupon" },
       { status: 500 }
@@ -45,7 +48,7 @@ export const DELETE = withSuperAdminAuthRequired(async (req, context) => {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting coupon:", error);
+    logger.error("Error deleting coupon:", error);
     return NextResponse.json(
       { error: "Failed to delete coupon" },
       { status: 500 }

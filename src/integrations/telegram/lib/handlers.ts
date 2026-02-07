@@ -1,3 +1,4 @@
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import {
   telegramUsers,
@@ -31,6 +32,8 @@ import { routeIntent } from "./intent-router";
 import { handleVoiceMessage, isValidAudioDuration, isValidAudioSize } from "./voice-handler";
 import { markTransactionAsPaid } from "./transaction-matcher";
 import { getTodayNoonUTC } from "./telegram-utils";
+
+const logger = createLogger("telegram:handlers");
 
 // Get or create telegram user state
 async function getOrCreateTelegramUser(chatId: number, telegramUserId?: number, username?: string, firstName?: string) {
@@ -944,7 +947,7 @@ async function handleAIMessage(chatId: number, text: string, userId: string, mes
     // Route to appropriate handler
     await routeIntent(chatId, aiResponse, userContext, text, messagesToDelete);
   } catch (error) {
-    console.error("[Telegram] AI processing error:", error);
+    logger.error("[Telegram] AI processing error:", error);
     // Delete pending messages before fallback
     if (messagesToDelete.length > 0) {
       await deleteMessages(chatId, messagesToDelete);
