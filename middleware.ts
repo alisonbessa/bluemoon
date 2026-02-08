@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { v4 as uuidv4 } from "uuid";
 
 // Suspicious patterns to block
 const SUSPICIOUS_PATTERNS = [
@@ -51,7 +50,7 @@ function checkRequestForSuspiciousPatterns(request: NextRequest): boolean {
 }
 
 export function middleware(request: NextRequest) {
-  const requestId = uuidv4();
+  const requestId = crypto.randomUUID();
   const requestStart = Date.now();
   const { pathname } = request.nextUrl;
 
