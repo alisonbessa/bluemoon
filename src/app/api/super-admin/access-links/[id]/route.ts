@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import { accessLinks } from "@/db/schema/access-links";
 import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
+
+const logger = createLogger("api:admin:access-links:detail");
 
 /**
  * GET /api/super-admin/access-links/[id]
@@ -43,7 +46,7 @@ export const GET = withSuperAdminAuthRequired(async (_req, { params }) => {
 
     return NextResponse.json({ link });
   } catch (error) {
-    console.error("Error fetching access link:", error);
+    logger.error("Error fetching access link:", error);
     return NextResponse.json(
       { error: "Failed to fetch access link" },
       { status: 500 }
@@ -109,7 +112,7 @@ export const PATCH = withSuperAdminAuthRequired(async (req, { params }) => {
       message: "Access link updated successfully",
     });
   } catch (error) {
-    console.error("Error updating access link:", error);
+    logger.error("Error updating access link:", error);
     return NextResponse.json(
       { error: "Failed to update access link" },
       { status: 500 }
@@ -150,7 +153,7 @@ export const DELETE = withSuperAdminAuthRequired(async (_req, { params }) => {
       message: "Access link deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting access link:", error);
+    logger.error("Error deleting access link:", error);
     return NextResponse.json(
       { error: "Failed to delete access link" },
       { status: 500 }

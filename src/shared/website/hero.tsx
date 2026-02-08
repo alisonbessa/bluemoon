@@ -79,7 +79,7 @@ export function WebsiteHero() {
               </p>
               <div className="mt-8 flex flex-col gap-4 sm:mt-10 sm:flex-row sm:gap-6 lg:mt-12">
                 <Button size="lg" asChild>
-                  <Link href="/#pricing">Get Indie Kit Pro</Link>
+                  <Link href="/#pricing">Get HiveBudget</Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
                   <Link href="/#features">Tech Stack</Link>

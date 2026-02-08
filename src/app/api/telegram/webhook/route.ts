@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { TelegramUpdate } from "@/integrations/telegram/lib/types";
 import { handleMessage, handleCallbackQuery } from "@/integrations/telegram/lib/handlers";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("api:telegram-webhook");
 
 // Verify the request is from Telegram (required for security)
 function verifyTelegramRequest(request: NextRequest): boolean {
@@ -9,7 +12,7 @@ function verifyTelegramRequest(request: NextRequest): boolean {
 
   // SECURITY: Webhook secret is required in production
   if (!expectedToken) {
-    console.error("SECURITY: TELEGRAM_WEBHOOK_SECRET not configured");
+    logger.error("SECURITY: TELEGRAM_WEBHOOK_SECRET not configured");
     return false;
   }
 
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     // Log update ID only (not full payload) for debugging
     if (process.env.NODE_ENV === "development") {
-      console.log("[Telegram Webhook] Received update ID:", update.update_id);
+      logger.info("Received update", { updateId: update.update_id });
     }
 
     // Handle different update types
@@ -41,7 +44,7 @@ export async function POST(request: NextRequest) {
     // Always return 200 to Telegram to acknowledge receipt
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("[Telegram Webhook] Error processing update:", error);
+    logger.error("Error processing update", error);
     // Still return 200 to prevent Telegram from retrying
     return NextResponse.json({ ok: true, error: "Internal error" });
   }

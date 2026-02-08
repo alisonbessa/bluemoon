@@ -1,4 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("encryption:edge-jwt");
 
 /**
  * Encrypts data into a JWT token and URL encodes it for safe transport (Edge-compatible)
@@ -43,7 +46,7 @@ export const decryptJson = async <T = Record<string, unknown>>(token: string): P
     const { payload } = await jwtVerify(decodedToken, secret);
     return payload as unknown as T;
   } catch (error) {
-    console.error('Error decrypting JWT token:', error);
+    logger.error('Error decrypting JWT token:', error);
     throw new Error('Failed to decrypt token');
   }
 }; 

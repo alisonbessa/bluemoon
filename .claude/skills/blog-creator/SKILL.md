@@ -58,11 +58,11 @@ File: `src/content/blog/getting-started.mdx`
 
 ```markdown
 ---
-title: "Getting Started with Indie Kit"
-tags: ["guide", "tutorial", "indie-kit"]
+title: "Getting Started with HiveBudget"
+tags: ["guide", "tutorial", "hivebudget"]
 featuredImage: "/assets/images/og.png"
 createdDate: "2024-03-20"
-description: "A complete guide to setting up your new SaaS project with Indie Kit in under 10 minutes."
+description: "A complete guide to setting up your new SaaS project with HiveBudget in under 10 minutes."
 ---
 
 # Getting Started

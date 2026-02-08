@@ -1,5 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { createLogger } from "@/shared/lib/logger";
 import { resetPasswordRequestSchema } from "@/shared/lib/validations/auth.schema";
+
+const logger = createLogger("api:auth:reset-password-request");
 import { encryptJson } from "@/shared/lib/encryption/edge-jwt";
 import { render } from "@react-email/components";
 import ResetPasswordEmail from "@/emails/ResetPasswordEmail";
@@ -8,13 +11,17 @@ import { appConfig } from "@/shared/lib/config";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
+import { checkRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 
 interface ResetPasswordToken {
   email: string;
   expiry: string;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const rateLimitResponse = await checkRateLimit(request, rateLimits.auth, "reset-password");
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await request.json();
     const validation = resetPasswordRequestSchema.safeParse(body);
@@ -73,7 +80,7 @@ export async function POST(request: Request) {
       message: "If an account exists with this email, you will receive a password reset link",
     });
   } catch (error) {
-    console.error("Error in reset password request:", error);
+    logger.error("Error in reset password request:", error);
     return NextResponse.json(
       { error: "Failed to process reset password request" },
       { status: 500 }

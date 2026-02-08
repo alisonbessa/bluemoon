@@ -3,6 +3,9 @@ import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequ
 import { db } from "@/db";
 import { waitlist } from "@/db/schema/waitlist";
 import { desc, sql, eq } from "drizzle-orm";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("api:sa:waitlist-entries");
 
 export const GET = withSuperAdminAuthRequired(async (req) => {
   try {
@@ -48,7 +51,7 @@ export const GET = withSuperAdminAuthRequired(async (req) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching waitlist entries:", error);
+    logger.error("Error fetching waitlist entries", error);
     return NextResponse.json(
       { error: "Failed to fetch waitlist entries" },
       { status: 500 }
@@ -72,7 +75,7 @@ export const DELETE = withSuperAdminAuthRequired(async (req) => {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting waitlist entry:", error);
+    logger.error("Error deleting waitlist entry", error);
     return NextResponse.json(
       { error: "Failed to delete waitlist entry" },
       { status: 500 }

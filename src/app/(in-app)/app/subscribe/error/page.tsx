@@ -17,15 +17,15 @@ type ErrorMessages = {
 
 const errorMessages: ErrorMessages = {
   STRIPE_CANCEL_BEFORE_SUBSCRIBING:
-    "Please cancel your current subscription before subscribing to a new onetime plan.",
+    "Cancele sua assinatura atual antes de assinar um novo plano.",
   LEMON_SQUEEZY_CANCEL_BEFORE_SUBSCRIBING:
-    "Please cancel your current subscription before subscribing to a new onetime plan.",
+    "Cancele sua assinatura atual antes de assinar um novo plano.",
   DODO_CANCEL_BEFORE_SUBSCRIBING:
-    "Please cancel your current subscription before subscribing to a new onetime plan.",
+    "Cancele sua assinatura atual antes de assinar um novo plano.",
   DODO_MISSING_BILLING_INFO:
-    "Billing information is required to complete your DodoPayments subscription.",
-  PAYPAL_CANCELLED: "PayPal subscription cancelled.",
-  INVALID_PARAMS: "Invalid parameters.",
+    "Informações de pagamento são necessárias para completar sua assinatura.",
+  PAYPAL_CANCELLED: "Assinatura PayPal cancelada.",
+  INVALID_PARAMS: "Parâmetros inválidos.",
 };
 
 export default async function SubscribeErrorPage({
@@ -36,72 +36,69 @@ export default async function SubscribeErrorPage({
   const { code, message: errorMessage } = await searchParams;
   const message = code
     ? errorMessages[code as ErrorCodeType] || errorMessage
-    : errorMessage || "An error occurred during subscription.";
+    : errorMessage || "Ocorreu um erro durante a assinatura.";
 
   return (
     <div className="container max-w-lg mx-auto py-12">
       <Card className="p-6">
         <div className="flex flex-col items-center text-center space-y-4">
           <XCircle className="h-12 w-12 text-destructive" />
-          <h1 className="text-2xl font-bold">Subscription Error</h1>
+          <h1 className="text-2xl font-bold">Erro na Assinatura</h1>
           <p className="text-muted-foreground">{message}</p>
           {code === "STRIPE_CANCEL_BEFORE_SUBSCRIBING" && (
             <div className="flex flex-col gap-2 items-center">
               <p>
-                If you want to cancel your current subscription, please go to
-                your billing page.
+                Se deseja cancelar sua assinatura atual, acesse a página de cobrança.
               </p>
               <Button asChild>
-                <Link href="/app/billing">Go to Billing</Link>
+                <Link href="/app/billing">Ir para Cobrança</Link>
               </Button>
             </div>
           )}
           {code === "LEMON_SQUEEZY_CANCEL_BEFORE_SUBSCRIBING" && (
             <div className="flex flex-col gap-2 items-center">
               <p>
-                If you want to cancel your current subscription, please go to
-                your billing page.
+                Se deseja cancelar sua assinatura atual, acesse a página de cobrança.
               </p>
               <Button asChild>
-                <Link href="/app/billing">Go to Billing</Link>
+                <Link href="/app/billing">Ir para Cobrança</Link>
               </Button>
             </div>
           )}
           {code === "DODO_CANCEL_BEFORE_SUBSCRIBING" && (
             <div className="flex flex-col gap-2 items-center">
               <p>
-                If you want to cancel your current subscription, please go to
-                your billing page.
+                Se deseja cancelar sua assinatura atual, acesse a página de cobrança.
               </p>
               <Button asChild>
-                <Link href="/app/billing">Go to Billing</Link>
+                <Link href="/app/billing">Ir para Cobrança</Link>
               </Button>
             </div>
           )}
           {code === "DODO_MISSING_BILLING_INFO" && (
             <div className="flex flex-col gap-2 items-center">
               <p>
-                Please provide your billing information to complete your subscription.
+                Forneça suas informações de pagamento para completar a assinatura.
               </p>
               <Button asChild>
-                <Link href="/app/subscribe">Try Again</Link>
+                <Link href="/app/subscribe">Tentar Novamente</Link>
               </Button>
             </div>
           )}
           {code === "PAYPAL_CANCELLED" && (
             <div className="flex flex-col gap-2 items-center">
               <p>
-                 PayPal subscription cancelled. Please try again.
+                 Assinatura PayPal cancelada. Tente novamente.
               </p>
             </div>
           )}
           {/* Contact Support */}
           <div className="flex flex-row gap-2 items-center">
             <Button variant="outline" asChild>
-              <Link href="/contact">Contact Support</Link>
+              <Link href="/contact">Fale com o Suporte</Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/">Back to Home</Link>
+              <Link href="/">Voltar ao Início</Link>
             </Button>
           </div>
         </div>

@@ -1,5 +1,8 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { profileUpdateSchema } from "@/shared/lib/validations/profile.schema";
+
+const logger = createLogger("api:me");
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
@@ -77,7 +80,7 @@ export const PATCH = withAuthRequired(async (req, context) => {
       message: "Profile updated successfully",
     });
   } catch (error) {
-    console.error("Error updating profile:", error);
+    logger.error("Error updating profile:", error);
     return internalError("Failed to update profile");
   }
 });
@@ -99,11 +102,11 @@ export const DELETE = withAuthRequired(async (req, context) => {
         // Only cancel if not already canceled
         if (subscription.status !== "canceled") {
           await stripe.subscriptions.cancel(user.stripeSubscriptionId);
-          console.log(`Cancelled Stripe subscription ${user.stripeSubscriptionId} for user ${session.user.id}`);
+          logger.info(`Cancelled Stripe subscription ${user.stripeSubscriptionId} for user ${session.user.id}`);
         }
       } catch (stripeError) {
         // Log but don't fail - user still wants to delete account
-        console.error("Error cancelling Stripe subscription:", stripeError);
+        logger.error("Error cancelling Stripe subscription:", stripeError);
       }
     }
 
@@ -115,7 +118,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
       message: "Account deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting account:", error);
+    logger.error("Error deleting account:", error);
     return internalError("Failed to delete account");
   }
 });

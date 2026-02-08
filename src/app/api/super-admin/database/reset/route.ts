@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:admin:database-reset");
 import { sql } from "drizzle-orm";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 /**
  * POST /api/super-admin/database/reset
@@ -25,7 +29,7 @@ import { sql } from "drizzle-orm";
  * Tables always preserved:
  * - plans, contact, waitlist
  */
-export const POST = withSuperAdminAuthRequired(async (req) => {
+export const POST = withSuperAdminAuthRequired(async (req, { session }) => {
   try {
     const body = await req.json();
     const { confirmationCode, includeUsers = false } = body;
@@ -83,6 +87,14 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
       RESTART IDENTITY CASCADE
     `));
 
+    void recordAuditLog({
+      userId: session.user.id!,
+      action: "admin.database_reset",
+      resource: "database",
+      details: { includeUsers },
+      req,
+    });
+
     return NextResponse.json({
       success: true,
       message: includeUsers
@@ -92,7 +104,7 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
       includeUsers,
     });
   } catch (error) {
-    console.error("Error resetting database:", error);
+    logger.error("Error resetting database:", error);
     return NextResponse.json(
       {
         error: "Failed to reset database",

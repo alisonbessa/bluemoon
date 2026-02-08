@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:admin:coupons");
 import { coupons } from "@/db/schema/coupons";
 import { desc, eq, like, sql, and, isNull, isNotNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 export const GET = withSuperAdminAuthRequired(async (req) => {
   try {
@@ -53,7 +57,7 @@ export const GET = withSuperAdminAuthRequired(async (req) => {
       limit,
     });
   } catch (error) {
-    console.error("Error fetching coupons:", error);
+    logger.error("Error fetching coupons:", error);
     return NextResponse.json(
       { error: "Failed to fetch coupons" },
       { status: 500 }
@@ -61,7 +65,7 @@ export const GET = withSuperAdminAuthRequired(async (req) => {
   }
 });
 
-export const POST = withSuperAdminAuthRequired(async (req) => {
+export const POST = withSuperAdminAuthRequired(async (req, { session }) => {
   try {
     const { prefix, count } = await req.json();
 
@@ -84,9 +88,17 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
 
     await db.insert(coupons).values(couponsToInsert);
 
+    void recordAuditLog({
+      userId: session.user.id!,
+      action: "admin.coupon_create",
+      resource: "coupon",
+      details: { count, type: prefix },
+      req,
+    });
+
     return NextResponse.json({ codes });
   } catch (error) {
-    console.error("Error generating coupons:", error);
+    logger.error("Error generating coupons:", error);
     return NextResponse.json(
       { error: "Failed to generate coupons" },
       { status: 500 }

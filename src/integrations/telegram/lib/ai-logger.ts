@@ -4,6 +4,9 @@ import { eq } from "drizzle-orm";
 import type { AIResponse, UserContext } from "./types";
 import type { AILogResolution, StoredAIResponse, StoredUserContext } from "@/db/schema/telegram-ai-logs";
 import { CONFIDENCE_THRESHOLDS } from "./gemini";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("telegram:ai-logger");
 
 /**
  * Log an AI response for analysis and model improvement
@@ -55,7 +58,7 @@ export async function logAIResponse(
 
     return log.id;
   } catch (error) {
-    console.error("[AILogger] Failed to log AI response:", error);
+    logger.error("[AILogger] Failed to log AI response:", error);
     return null;
   }
 }
@@ -84,7 +87,7 @@ export async function updateAILogResolution(
       })
       .where(eq(telegramAILogs.id, logId));
   } catch (error) {
-    console.error("[AILogger] Failed to update resolution:", error);
+    logger.error("[AILogger] Failed to update resolution:", error);
   }
 }
 

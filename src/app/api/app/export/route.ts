@@ -1,5 +1,8 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:export");
 import { transactions, financialAccounts, categories, incomeSources } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -8,6 +11,7 @@ import {
   notFoundError,
   internalError,
 } from "@/shared/lib/api/responses";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // Convert cents to currency format
 function formatAmount(cents: number): string {
@@ -116,6 +120,14 @@ export const GET = withAuthRequired(async (req, context) => {
 
     const csvContent = [headers.join(";"), ...rows].join("\n");
 
+    void recordAuditLog({
+      userId: session.user.id,
+      action: "export.data",
+      resource: "budget",
+      resourceId: budgetIds[0],
+      req,
+    });
+
     // Return CSV file
     return new NextResponse(csvContent, {
       status: 200,
@@ -125,7 +137,7 @@ export const GET = withAuthRequired(async (req, context) => {
       },
     });
   } catch (error) {
-    console.error("Error exporting data:", error);
+    logger.error("Error exporting data:", error);
     return internalError("Failed to export data");
   }
 });

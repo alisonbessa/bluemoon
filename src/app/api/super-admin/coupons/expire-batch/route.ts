@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:admin:coupons:expire-batch");
 import { coupons } from "@/db/schema/coupons";
 import { eq, and, inArray } from "drizzle-orm";
 import { updateLTDPlan } from "@/shared/lib/users/updateLTDPlan";
@@ -96,7 +99,7 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
       errors,
     });
   } catch (error) {
-    console.error("Error processing coupon batch:", error);
+    logger.error("Error processing coupon batch:", error);
     return NextResponse.json(
       {
         error: "Failed to process coupons",

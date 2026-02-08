@@ -1,5 +1,8 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:onboarding:welcome");
 import { users, budgets, budgetMembers, groups, categories, incomeSources, financialAccounts } from "@/db/schema";
 import { defaultGroups } from "@/db/schema/groups";
 import { eq } from "drizzle-orm";
@@ -250,7 +253,7 @@ export const POST = withAuthRequired(async (request, context) => {
 
     return successResponse({ success: true, budgetId: result.budgetId });
   } catch (error) {
-    console.error("Error in welcome endpoint:", error);
+    logger.error("Error in welcome endpoint:", error);
 
     if (error instanceof z.ZodError) {
       return validationError(error);

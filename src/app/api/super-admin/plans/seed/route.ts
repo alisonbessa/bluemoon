@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import { plans } from "@/db/schema/plans";
 import { eq } from "drizzle-orm";
+
+const logger = createLogger("api:admin:plans:seed");
 
 // Default plans configuration for HiveBudget
 const DEFAULT_PLANS = [
@@ -78,7 +81,7 @@ export const POST = withSuperAdminAuthRequired(async () => {
         await db.insert(plans).values(planData);
         results.created.push(planData.codename);
       } catch (error) {
-        console.error(`Error creating plan ${planData.codename}:`, error);
+        logger.error(`Error creating plan ${planData.codename}:`, error);
         results.errors.push(planData.codename);
       }
     }
@@ -89,7 +92,7 @@ export const POST = withSuperAdminAuthRequired(async () => {
       results,
     });
   } catch (error) {
-    console.error("Error seeding plans:", error);
+    logger.error("Error seeding plans:", error);
     return NextResponse.json(
       { error: "Failed to seed plans" },
       { status: 500 }

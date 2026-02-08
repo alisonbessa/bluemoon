@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import { plans } from "@/db/schema/plans";
 import { desc, sql, eq } from "drizzle-orm";
 import { planFormSchema } from "@/shared/lib/validations/plan.schema";
+
+const logger = createLogger("api:admin:plans");
 
 export const GET = withSuperAdminAuthRequired(async (req) => {
   try {
@@ -49,7 +52,7 @@ export const GET = withSuperAdminAuthRequired(async (req) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching plans:", error);
+    logger.error("Error fetching plans:", error);
     return NextResponse.json(
       { error: "Failed to fetch plans" },
       { status: 500 }
@@ -66,7 +69,7 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
 
     return NextResponse.json(newPlan[0]);
   } catch (error) {
-    console.error("Error creating plan:", error);
+    logger.error("Error creating plan:", error);
     return NextResponse.json(
       { error: "Failed to create plan" },
       { status: 500 }
@@ -88,7 +91,7 @@ export const PATCH = withSuperAdminAuthRequired(async (req) => {
 
     return NextResponse.json(updatedPlan[0]);
   } catch (error) {
-    console.error("Error updating plan:", error);
+    logger.error("Error updating plan:", error);
     return NextResponse.json(
       { error: "Failed to update plan" },
       { status: 500 }
@@ -112,7 +115,7 @@ export const DELETE = withSuperAdminAuthRequired(async (req) => {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting plan:", error);
+    logger.error("Error deleting plan:", error);
     return NextResponse.json(
       { error: "Failed to delete plan" },
       { status: 500 }

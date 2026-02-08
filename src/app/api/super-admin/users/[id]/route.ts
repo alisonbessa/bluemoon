@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
 import { plans } from "@/db/schema/plans";
+
+const logger = createLogger("api:admin:users:detail");
 
 export const GET = withSuperAdminAuthRequired(async (req, context) => {
   const { id } = await context.params as { id: string };
@@ -41,7 +44,7 @@ export const GET = withSuperAdminAuthRequired(async (req, context) => {
       currentPlan
     });
   } catch (error) {
-    console.error("Error fetching user:", error);
+    logger.error("Error fetching user:", error);
     return NextResponse.json(
       { error: "Failed to fetch user" },
       { status: 500 }
@@ -73,7 +76,7 @@ export const DELETE = withSuperAdminAuthRequired(async (req, context) => {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting user:", error);
+    logger.error("Error deleting user:", error);
     return NextResponse.json(
       { error: "Failed to delete user" },
       { status: 500 }

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:admin:users:impersonate");
 import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
 import { encryptJson } from "@/shared/lib/encryption/edge-jwt";
@@ -45,7 +48,7 @@ export const POST = withSuperAdminAuthRequired(async (req, context) => {
 
     return NextResponse.json({ url: signInUrl.toString() });
   } catch (error) {
-    console.error("Error creating impersonation token:", error);
+    logger.error("Error creating impersonation token:", error);
     return NextResponse.json(
       { error: "Failed to create impersonation token" },
       { status: 500 }

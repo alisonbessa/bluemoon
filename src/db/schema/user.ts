@@ -51,12 +51,19 @@ export const users = pgTable("app_user", {
 
   // Access link used to redeem lifetime/beta access
   accessLinkId: text("access_link_id"),
+
+  // LGPD soft delete fields
+  deletedAt: timestamp("deleted_at", { mode: "date" }),
+  deletionRequestedAt: timestamp("deletion_requested_at", { mode: "date" }),
+  deletionReason: text("deletion_reason"),
 }, (table) => [
   // PERFORMANCE: Index for Stripe webhook lookups
   index("idx_users_stripe_customer_id").on(table.stripeCustomerId),
   index("idx_users_stripe_subscription_id").on(table.stripeSubscriptionId),
   // PERFORMANCE: Index for role-based queries
   index("idx_users_role").on(table.role),
+  // PERFORMANCE: Index for filtering active (non-deleted) users
+  index("idx_users_deleted_at").on(table.deletedAt),
 ]);
 
 export const accounts = pgTable(

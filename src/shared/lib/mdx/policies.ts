@@ -1,6 +1,9 @@
 import fs from "fs";
 import path from "path";
 import compile from "./compile";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("mdx:policies");
 
 const policiesDirectory = path.join(process.cwd(), "src/content/policies");
 
@@ -30,7 +33,7 @@ export async function getPolicyBySlug(slug: string): Promise<Policy | null> {
       content: mdx,
     };
   } catch (error) {
-    console.error("Error reading policy:", error);
+    logger.error("Error reading policy:", error);
     return null;
   }
 } 

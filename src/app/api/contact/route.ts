@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
 import { contacts } from "@/db/schema/contact";
+import { checkRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 
 const contactSchema = z.object({
   name: z.string().min(2),
@@ -10,7 +11,10 @@ const contactSchema = z.object({
   message: z.string().min(10),
 });
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const rateLimitResponse = await checkRateLimit(request, rateLimits.contact, "contact");
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const json = await request.json();
     const body = contactSchema.parse(json);

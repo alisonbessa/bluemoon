@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:admin:access-links");
 import { accessLinks, accessLinkTypeEnum } from "@/db/schema/access-links";
 import { users } from "@/db/schema/user";
 import { eq, desc, isNull, and, or, sql, ilike, isNotNull } from "drizzle-orm";
@@ -89,7 +92,7 @@ export const GET = withSuperAdminAuthRequired(async (req) => {
       limit,
     });
   } catch (error) {
-    console.error("Error fetching access links:", error);
+    logger.error("Error fetching access links:", error);
     return NextResponse.json(
       { error: "Failed to fetch access links" },
       { status: 500 }
@@ -154,7 +157,7 @@ export const POST = withSuperAdminAuthRequired(async (req, { session }) => {
         { status: 400 }
       );
     }
-    console.error("Error creating access link:", error);
+    logger.error("Error creating access link:", error);
     return NextResponse.json(
       { error: "Failed to create access link" },
       { status: 500 }

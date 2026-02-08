@@ -6,6 +6,9 @@ import { enableCredits, onPlanChangeCredits } from "./config";
 import { type CreditType } from "./credits";
 import { CreditTransaction } from "@/db/schema/credits";
 import { addDays } from "date-fns";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("credits:allocate");
 
 export interface AllocatePlanCreditsParams {
   userId: string;
@@ -94,7 +97,7 @@ export async function allocatePlanCredits(
           // Already processed, continue
         } else {
           // Log error but don't throw - we want to continue with other credit types
-          console.error(
+          logger.error(
             `Failed to allocate ${creditType} credits for plan ${planCodename}:`,
             error
           );
@@ -102,7 +105,7 @@ export async function allocatePlanCredits(
       }
     }
   } catch (error) {
-    console.error("Error in allocatePlanCredits:", error);
+    logger.error("Error in allocatePlanCredits:", error);
     throw new Error(
       `Failed to allocate plan credits: ${error instanceof Error ? error.message : "Unknown error"}`
     );

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+import { createLogger } from "@/shared/lib/logger";
 import { setPasswordSchema } from "@/shared/lib/validations/auth.schema";
+
+const logger = createLogger("api:auth:complete-signup");
 import { decryptJson } from "@/shared/lib/encryption/edge-jwt";
 import { hashPassword } from "@/shared/lib/auth/password";
 import { db } from "@/db";
@@ -85,7 +88,7 @@ export async function POST(request: Request) {
       message: "Account created successfully",
     });
   } catch (error) {
-    console.error("Error completing signup:", error);
+    logger.error("Error completing signup:", error);
     return NextResponse.json(
       { error: "Failed to complete signup. Token may be invalid or expired." },
       { status: 500 }

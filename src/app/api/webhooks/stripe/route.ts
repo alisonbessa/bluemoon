@@ -13,6 +13,10 @@ import { addCredits } from "@/shared/lib/credits/recalculate";
 import { type CreditType } from "@/shared/lib/credits/credits";
 import { creditTypeSchema } from "@/shared/lib/credits/config";
 import { allocatePlanCredits } from "@/shared/lib/credits/allocatePlanCredits";
+import { createLogger } from "@/shared/lib/logger";
+import { checkRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
+
+const logger = createLogger("stripe-webhook");
 
 class StripeWebhookHandler {
   private data: Stripe.Event.Data;
@@ -247,35 +251,35 @@ class StripeWebhookHandler {
   async onSubscriptionCreated() {
     // @ts-expect-error Stripe types are not fully compatible with Next.js
     const object: Stripe.Subscription = this.data.object;
-    console.log(`[Stripe Webhook] onSubscriptionCreated - Subscription ID: ${object.id}`);
+    logger.info("onSubscriptionCreated", { subscriptionId: object.id });
 
     const price = object.items.data[0].price;
 
     if (!price) {
-      console.error("[Stripe Webhook] No price found in subscription");
+      logger.error("No price found in subscription");
       throw new APIError("No price found in subscription");
     }
-    console.log(`[Stripe Webhook] Price ID: ${price.id}`);
+    logger.info("Price found", { priceId: price.id });
 
     const customer = await this._getStripeCustomer(object.customer);
     if (!customer || !customer.email) {
-      console.error("[Stripe Webhook] No customer found in subscription");
+      logger.error("No customer found in subscription");
       throw new APIError("No customer found in subscription");
     }
-    console.log(`[Stripe Webhook] Customer email: ${customer.email}`);
+    logger.info("Customer found", { customerEmail: customer.email });
 
     const { user } = await getOrCreateUser({
       emailId: customer.email,
       name: customer.name,
     });
-    console.log(`[Stripe Webhook] User ID: ${user.id}`);
+    logger.info("User resolved", { userId: user.id });
 
     const dbPlan = await this._getPlanFromStripePriceId(price.id);
-    console.log(`[Stripe Webhook] DB Plan found: ${dbPlan ? dbPlan.name : 'NOT FOUND'}`);
+    logger.info("Plan lookup result", { planName: dbPlan ? dbPlan.name : "NOT FOUND" });
 
     if (!dbPlan) {
       // TIP: Handle outside plan management subscription
-      console.error(`[Stripe Webhook] Plan not found for price ID: ${price.id}`);
+      logger.error("Plan not found for price ID", { priceId: price.id });
       throw new APIError("Plan not found");
     }
 
@@ -293,10 +297,10 @@ class StripeWebhookHandler {
       .update(users)
       .set(updateData)
       .where(eq(users.id, user.id));
-    console.log(`[Stripe Webhook] Updated user ${user.id} with stripeSubscriptionId: ${object.id}`);
+    logger.info("Updated user subscription", { userId: user.id, stripeSubscriptionId: object.id });
 
     await updatePlan({ userId: user.id, newPlanId: dbPlan.id });
-    console.log(`[Stripe Webhook] Updated user plan to: ${dbPlan.name}`);
+    logger.info("Updated user plan", { planName: dbPlan.name });
 
     // Allocate plan-based credits
     await allocatePlanCredits({
@@ -309,7 +313,7 @@ class StripeWebhookHandler {
         customerId: customer.id,
       }
     });
-    console.log(`[Stripe Webhook] ✅ onSubscriptionCreated completed successfully`);
+    logger.info("onSubscriptionCreated completed successfully");
   }
 
   /**
@@ -454,6 +458,9 @@ class StripeWebhookHandler {
 }
 
 async function handler(req: NextRequest) {
+  const rateLimitResponse = await checkRateLimit(req, rateLimits.webhook, "stripe-webhook");
+  if (rateLimitResponse) return rateLimitResponse;
+
   if (req.method === "POST") {
     let data;
     let eventType;
@@ -461,7 +468,7 @@ async function handler(req: NextRequest) {
     // SECURITY: Webhook secret is required
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      console.error("SECURITY: STRIPE_WEBHOOK_SECRET not configured");
+      logger.error("SECURITY: STRIPE_WEBHOOK_SECRET not configured");
       return NextResponse.json(
         { error: "Webhook not properly configured" },
         { status: 500 }
@@ -475,10 +482,9 @@ async function handler(req: NextRequest) {
     try {
       const body = await req.text();
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-      console.log(`[Stripe Webhook] ✅ Event received: ${event.type}`);
+      logger.info("Event received", { eventType: event.type });
     } catch (err) {
-      console.error(`[Stripe Webhook] ❌ Signature verification failed.`, err);
-      console.error(`[Stripe Webhook] Secret starts with: ${webhookSecret.substring(0, 15)}...`);
+      logger.error("Stripe signature verification failed", err);
       return NextResponse.json(
         { error: "Webhook signature verification failed" },
         { status: 400 }
@@ -491,7 +497,7 @@ async function handler(req: NextRequest) {
 
     const webhookHandler = new StripeWebhookHandler(data, eventType);
     try {
-      console.log(`[Stripe Webhook] Processing event: ${eventType}`);
+      logger.info("Processing event", { eventType });
       switch (eventType) {
         case "invoice.paid":
           await webhookHandler.onInvoicePaid();
@@ -519,7 +525,7 @@ async function handler(req: NextRequest) {
           break;
       }
     } catch (error) {
-      console.error(`[Stripe Webhook] ❌ Error processing ${eventType}:`, error);
+      logger.error(`Error processing ${eventType}`, error);
       if (error instanceof APIError) {
         return NextResponse.json({
           received: true,

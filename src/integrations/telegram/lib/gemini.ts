@@ -1,6 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { buildParsePrompt, buildTranscriptionPrompt } from "./prompts";
 import type { AIResponse, UserContext, Intent, ExtractedData } from "./types";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("telegram:gemini");
 
 // Initialize Gemini client
 function getGeminiClient() {
@@ -42,7 +45,7 @@ export async function parseUserMessage(
     // Parse JSON response
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("[Gemini] No JSON found in response:", responseText);
+      logger.error("[Gemini] No JSON found in response:", responseText);
       return createUnknownResponse();
     }
 
@@ -51,10 +54,10 @@ export async function parseUserMessage(
     // Validate and normalize response
     return normalizeAIResponse(parsed);
   } catch (error) {
-    console.error("[Gemini] Error parsing message:", error);
+    logger.error("[Gemini] Error parsing message:", error);
     // Log more details for debugging
     if (error instanceof Error) {
-      console.error("[Gemini] Error details:", {
+      logger.error("[Gemini] Error details:", {
         message: error.message,
         name: error.name,
         stack: error.stack?.split("\n").slice(0, 3).join("\n"),
@@ -93,7 +96,7 @@ export async function transcribeAudio(
 
     return result.response.text().trim();
   } catch (error) {
-    console.error("[Gemini] Error transcribing audio:", error);
+    logger.error("[Gemini] Error transcribing audio:", error);
     throw new Error("Failed to transcribe audio");
   }
 }

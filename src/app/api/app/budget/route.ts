@@ -1,5 +1,8 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
+
+const logger = createLogger("api:budget");
 import { budgets, budgetMembers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
@@ -56,7 +59,7 @@ export const GET = withAuthRequired(async (request, context) => {
 
     return successResponse({ budget });
   } catch (error) {
-    console.error("Error fetching budget:", error);
+    logger.error("Error fetching budget:", error);
     return internalError("Failed to fetch budget");
   }
 });
@@ -104,7 +107,7 @@ export const PATCH = withAuthRequired(async (request, context) => {
 
     return successResponse({ budget: updated });
   } catch (error) {
-    console.error("Error updating budget:", error);
+    logger.error("Error updating budget:", error);
     return internalError("Failed to update budget");
   }
 });
