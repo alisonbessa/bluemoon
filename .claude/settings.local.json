@@ -44,7 +44,21 @@
       "Bash(npm run build:*)",
       "Bash(git status:*)",
       "Bash(head:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(npm install:*)",
+      "Bash(tac:*)",
+      "Bash(pnpm db:seed-plans:*)",
+      "Bash(psql:*)",
+      "Bash(pnpm db:push:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm eslint:*)",
+      "Bash(git diff:*)",
+      "Bash(gpg:*)",
+      "Bash(sudo tee:*)",
+      "Bash( sudo apt update)",
+      "Bash(sudo apt install:*)",
+      "Bash(sudo gpg:*)",
+      "Bash(npm run lint:*)"
     ],
     "deny": [],
     "ask": []
