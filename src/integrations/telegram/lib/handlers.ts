@@ -32,6 +32,7 @@ import { routeIntent } from "./intent-router";
 import { handleVoiceMessage, isValidAudioDuration, isValidAudioSize } from "./voice-handler";
 import { markTransactionAsPaid } from "./transaction-matcher";
 import { getTodayNoonUTC } from "./telegram-utils";
+import { calculateInstallmentDates } from "@/shared/lib/credit-card-dates";
 
 const logger = createLogger("telegram:handlers");
 
@@ -811,11 +812,21 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
     // Use account from context if specified, otherwise default
     const transactionAccountId = context.pendingExpense.accountId || budgetInfo.defaultAccount.id;
 
+    // Fetch account for credit card closing day and balance update
+    const [txAccount] = await db
+      .select()
+      .from(financialAccounts)
+      .where(eq(financialAccounts.id, transactionAccountId));
+
     // Handle installments
     if (context.pendingExpense.isInstallment && context.pendingExpense.totalInstallments && context.pendingExpense.totalInstallments > 1) {
       const totalInstallments = context.pendingExpense.totalInstallments;
       const installmentAmount = Math.round(context.pendingExpense.amount / totalInstallments);
       const transactionDate = getTodayNoonUTC();
+
+      // Calculate installment dates based on credit card closing day
+      const closingDay = txAccount?.type === "credit_card" ? txAccount.closingDay : null;
+      const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments, closingDay);
 
       // Create parent transaction (first installment)
       const [parentTransaction] = await db
@@ -829,7 +840,7 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
           status: "cleared",
           amount: installmentAmount,
           description: capitalizedDescription,
-          date: transactionDate,
+          date: installmentDates[0],
           isInstallment: true,
           installmentNumber: 1,
           totalInstallments,
@@ -838,30 +849,37 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
         .returning();
 
       // Batch insert remaining installments
-      const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => {
-        const installmentDate = new Date(transactionDate);
-        installmentDate.setMonth(installmentDate.getMonth() + (i + 1));
-
-        return {
-          budgetId: budgetInfo.budget.id,
-          accountId: transactionAccountId,
-          categoryId: context.pendingExpense!.categoryId,
-          memberId: budgetInfo.member.id,
-          type: "expense" as const,
-          status: "cleared" as const,
-          amount: installmentAmount,
-          description: capitalizedDescription,
-          date: installmentDate,
-          isInstallment: true,
-          installmentNumber: i + 2,
-          totalInstallments,
-          parentTransactionId: parentTransaction.id,
-          source: "telegram" as const,
-        };
-      });
+      const installmentValues = installmentDates.slice(1).map((installmentDate, i) => ({
+        budgetId: budgetInfo.budget.id,
+        accountId: transactionAccountId,
+        categoryId: context.pendingExpense!.categoryId,
+        memberId: budgetInfo.member.id,
+        type: "expense" as const,
+        status: "cleared" as const,
+        amount: installmentAmount,
+        description: capitalizedDescription,
+        date: installmentDate,
+        isInstallment: true,
+        installmentNumber: i + 2,
+        totalInstallments,
+        parentTransactionId: parentTransaction.id,
+        source: "telegram" as const,
+      }));
 
       if (installmentValues.length > 0) {
         await db.insert(transactions).values(installmentValues);
+      }
+
+      // Update account balance for ALL installments
+      if (txAccount) {
+        const totalBalanceChange = -Math.abs(installmentAmount) * totalInstallments;
+        await db
+          .update(financialAccounts)
+          .set({
+            balance: txAccount.balance + totalBalanceChange,
+            updatedAt: new Date(),
+          })
+          .where(eq(financialAccounts.id, transactionAccountId));
       }
 
       transactionId = parentTransaction.id;
@@ -898,6 +916,17 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
           source: "telegram",
         })
         .returning();
+
+      // Update account balance
+      if (txAccount) {
+        await db
+          .update(financialAccounts)
+          .set({
+            balance: txAccount.balance - Math.abs(context.pendingExpense.amount),
+            updatedAt: new Date(),
+          })
+          .where(eq(financialAccounts.id, transactionAccountId));
+      }
 
       transactionId = newTransaction.id;
 
@@ -1184,6 +1213,22 @@ async function handleIncomeConfirmation(chatId: number, confirmed: boolean, call
       })
       .returning();
 
+    // Update account balance
+    const [incomeAcct] = await db
+      .select()
+      .from(financialAccounts)
+      .where(eq(financialAccounts.id, budgetInfo.defaultAccount.id));
+
+    if (incomeAcct) {
+      await db
+        .update(financialAccounts)
+        .set({
+          balance: incomeAcct.balance + context.pendingIncome.amount,
+          updatedAt: new Date(),
+        })
+        .where(eq(financialAccounts.id, budgetInfo.defaultAccount.id));
+    }
+
     transactionId = newTransaction.id;
 
     await updateTelegramUser(chatId, "IDLE", {
@@ -1257,6 +1302,37 @@ async function handleTransferConfirmation(chatId: number, confirmed: boolean, ca
       source: "telegram",
     })
     .returning();
+
+  // Update account balances for both accounts
+  const [fromAcct] = await db
+    .select()
+    .from(financialAccounts)
+    .where(eq(financialAccounts.id, context.pendingTransfer.fromAccountId));
+
+  if (fromAcct) {
+    await db
+      .update(financialAccounts)
+      .set({
+        balance: fromAcct.balance - Math.abs(context.pendingTransfer.amount),
+        updatedAt: new Date(),
+      })
+      .where(eq(financialAccounts.id, context.pendingTransfer.fromAccountId));
+  }
+
+  const [toAcct] = await db
+    .select()
+    .from(financialAccounts)
+    .where(eq(financialAccounts.id, context.pendingTransfer.toAccountId));
+
+  if (toAcct) {
+    await db
+      .update(financialAccounts)
+      .set({
+        balance: toAcct.balance + Math.abs(context.pendingTransfer.amount),
+        updatedAt: new Date(),
+      })
+      .where(eq(financialAccounts.id, context.pendingTransfer.toAccountId));
+  }
 
   await updateTelegramUser(chatId, "IDLE", {
     lastTransactionId: newTransaction.id,

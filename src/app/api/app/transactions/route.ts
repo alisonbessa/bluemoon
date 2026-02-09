@@ -4,6 +4,7 @@ import { transactions, financialAccounts, categories, incomeSources } from "@/db
 import { eq, and, inArray, desc, gte, lte } from "drizzle-orm";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import { createTransactionSchema } from "@/shared/lib/validations/transaction.schema";
+import { calculateInstallmentDates } from "@/shared/lib/credit-card-dates";
 import {
   validationError,
   forbiddenError,
@@ -121,35 +122,42 @@ export const POST = withAuthRequired(async (req, context) => {
 
   // Handle installments with batch insert for better performance
   if (isInstallment && totalInstallments && totalInstallments > 1) {
-    const installmentAmount = Math.round(amount / totalInstallments);
+    const createdTransactions = await db.transaction(async (tx) => {
+      const installmentAmount = Math.round(amount / totalInstallments);
 
-    // Create parent transaction (first installment)
-    const [parentTransaction] = await db
-      .insert(transactions)
-      .values({
-        budgetId,
-        accountId,
-        categoryId: type === "expense" ? categoryId : undefined,
-        incomeSourceId: type === "income" ? incomeSourceId : undefined,
-        memberId,
-        type,
-        amount: installmentAmount,
-        description,
-        notes,
-        date: transactionDate,
-        isInstallment: true,
-        installmentNumber: 1,
-        totalInstallments,
-        source: "web",
-      })
-      .returning();
+      // Fetch account to get credit card closing day
+      const [account] = await tx
+        .select()
+        .from(financialAccounts)
+        .where(eq(financialAccounts.id, accountId));
 
-    // PERFORMANCE: Batch insert remaining installments instead of N individual inserts
-    const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => {
-      const installmentDate = new Date(transactionDate);
-      installmentDate.setMonth(installmentDate.getMonth() + (i + 1));
+      // Calculate installment dates based on credit card closing day
+      const closingDay = account?.type === "credit_card" ? account.closingDay : null;
+      const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments, closingDay);
 
-      return {
+      // Create parent transaction (first installment)
+      const [parentTransaction] = await tx
+        .insert(transactions)
+        .values({
+          budgetId,
+          accountId,
+          categoryId: type === "expense" ? categoryId : undefined,
+          incomeSourceId: type === "income" ? incomeSourceId : undefined,
+          memberId,
+          type,
+          amount: installmentAmount,
+          description,
+          notes,
+          date: installmentDates[0],
+          isInstallment: true,
+          installmentNumber: 1,
+          totalInstallments,
+          source: "web",
+        })
+        .returning();
+
+      // Batch insert remaining installments
+      const installmentValues = installmentDates.slice(1).map((installmentDate, i) => ({
         budgetId,
         accountId,
         categoryId: type === "expense" ? categoryId : undefined,
@@ -165,34 +173,29 @@ export const POST = withAuthRequired(async (req, context) => {
         totalInstallments,
         parentTransactionId: parentTransaction.id,
         source: "web" as const,
-      };
+      }));
+
+      const remainingInstallments = installmentValues.length > 0
+        ? await tx.insert(transactions).values(installmentValues).returning()
+        : [];
+
+      // Update account balance for ALL installments (total purchase amount)
+      if (account) {
+        const totalBalanceChange = type === "income"
+          ? installmentAmount * totalInstallments
+          : -Math.abs(installmentAmount) * totalInstallments;
+
+        await tx
+          .update(financialAccounts)
+          .set({
+            balance: account.balance + totalBalanceChange,
+            updatedAt: new Date(),
+          })
+          .where(eq(financialAccounts.id, accountId));
+      }
+
+      return [parentTransaction, ...remainingInstallments];
     });
-
-    const remainingInstallments = installmentValues.length > 0
-      ? await db.insert(transactions).values(installmentValues).returning()
-      : [];
-
-    const createdTransactions = [parentTransaction, ...remainingInstallments];
-
-    // Update account balance for installments
-    // Note: Only the first installment affects balance immediately (it's due now)
-    // Future installments will affect balance when they're confirmed
-    const [currentAccount] = await db
-      .select()
-      .from(financialAccounts)
-      .where(eq(financialAccounts.id, accountId));
-
-    if (currentAccount) {
-      const balanceChange = type === "income" ? installmentAmount : -Math.abs(installmentAmount);
-
-      await db
-        .update(financialAccounts)
-        .set({
-          balance: currentAccount.balance + balanceChange,
-          updatedAt: new Date(),
-        })
-        .where(eq(financialAccounts.id, accountId));
-    }
 
     return successResponse({ transactions: createdTransactions }, 201);
   }

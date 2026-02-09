@@ -177,17 +177,40 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
   // Use transaction for atomic delete and balance update
   await db.transaction(async (tx) => {
-    // Reverse the balance change for source account
     const [account] = await tx
       .select()
       .from(financialAccounts)
       .where(eq(financialAccounts.id, existingTransaction.accountId));
 
+    // Determine total amount to reverse
+    let totalAmountToReverse = existingTransaction.amount;
+
+    // If this is a parent installment, count ALL installments for balance reversal
+    const isParentInstallment = existingTransaction.isInstallment && !existingTransaction.parentTransactionId;
+    if (isParentInstallment) {
+      const childInstallments = await tx
+        .select({ amount: transactions.amount })
+        .from(transactions)
+        .where(eq(transactions.parentTransactionId, transactionId));
+
+      // Total = parent amount + sum of all child amounts
+      totalAmountToReverse += childInstallments.reduce((sum, c) => sum + c.amount, 0);
+
+      // Delete child installments
+      await tx
+        .delete(transactions)
+        .where(eq(transactions.parentTransactionId, transactionId));
+    }
+
+    // If this is a child installment, only reverse THIS installment's amount
+    // (totalAmountToReverse is already set to existingTransaction.amount)
+
+    // Reverse the balance change for source account
     if (account) {
       const balanceChange =
         existingTransaction.type === "income"
-          ? -existingTransaction.amount
-          : Math.abs(existingTransaction.amount);
+          ? -totalAmountToReverse
+          : Math.abs(totalAmountToReverse);
 
       await tx
         .update(financialAccounts)
@@ -206,7 +229,6 @@ export const DELETE = withAuthRequired(async (req, context) => {
         .where(eq(financialAccounts.id, existingTransaction.toAccountId));
 
       if (toAccount) {
-        // Reverse the transfer: destination loses the amount it received
         await tx
           .update(financialAccounts)
           .set({
@@ -217,14 +239,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
       }
     }
 
-    // If this is a parent installment, delete child installments first
-    if (existingTransaction.isInstallment && !existingTransaction.parentTransactionId) {
-      await tx
-        .delete(transactions)
-        .where(eq(transactions.parentTransactionId, transactionId));
-    }
-
-    // Delete the transaction
+    // Delete the transaction itself
     await tx.delete(transactions).where(eq(transactions.id, transactionId));
   });
 

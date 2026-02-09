@@ -50,7 +50,7 @@ export function TransactionFormModal({
   // Check if selected account is a credit card (for installment option)
   const selectedAccount = accounts.find(a => a.id === formData.accountId);
   const isCreditCard = selectedAccount?.type === 'credit_card';
-  const showInstallmentOption = formData.type === 'expense' && isCreditCard && !isEditing;
+  const showInstallmentOption = formData.type === 'expense' && isCreditCard;
 
   return (
     <FormModalWrapper
@@ -286,7 +286,7 @@ export function TransactionFormModal({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 23 }, (_, i) => i + 2).map((num) => (
+                      {Array.from({ length: 47 }, (_, i) => i + 2).map((num) => (
                         <SelectItem key={num} value={String(num)}>
                           {num}x {parseCurrency(formData.amount) > 0 && (
                             <span className="text-muted-foreground ml-1">

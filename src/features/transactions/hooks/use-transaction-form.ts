@@ -67,8 +67,8 @@ export function useTransactionForm(
       incomeSourceId: transaction.incomeSourceId || "",
       toAccountId: transaction.toAccountId || "",
       date: format(parseLocalDate(transaction.date), "yyyy-MM-dd"),
-      isInstallment: false, // Editing doesn't allow changing installment
-      totalInstallments: 2,
+      isInstallment: transaction.isInstallment || false,
+      totalInstallments: transaction.totalInstallments || 2,
     });
     setEditingTransaction(transaction);
     setIsOpen(true);
@@ -95,8 +95,7 @@ export function useTransactionForm(
       // Check if this is an installment purchase
       const selectedAccount = accounts.find((a) => a.id === formData.accountId);
       const isCreditCard = selectedAccount?.type === "credit_card";
-      const canBeInstallment =
-        formData.type === "expense" && isCreditCard && !editingTransaction;
+      const canBeInstallment = formData.type === "expense" && isCreditCard;
 
       const payload = {
         budgetId: budgets[0].id,
@@ -112,7 +111,7 @@ export function useTransactionForm(
           formData.type === "transfer" ? formData.toAccountId || undefined : undefined,
         date: new Date(formData.date).toISOString(),
         status: "cleared", // Manual transactions are confirmed by default
-        // Installment fields (only for new credit card expenses)
+        // Installment fields (for credit card expenses)
         ...(canBeInstallment && formData.isInstallment
           ? {
               isInstallment: true,

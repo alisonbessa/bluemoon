@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { transactions, telegramUsers } from "@/db/schema";
+import { transactions, telegramUsers, financialAccounts } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import type { UserContext, ExtractedExpenseData, ExtractedIncomeData, ExtractedTransferData } from "./types";
 import type { TelegramConversationContext, TelegramConversationStep } from "@/db/schema/telegram-users";
@@ -13,6 +13,7 @@ import {
 } from "./transaction-matcher";
 import { getTodayNoonUTC } from "./telegram-utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
+import { calculateInstallmentDates } from "@/shared/lib/credit-card-dates";
 import {
   sendMessage,
   formatCurrency,
@@ -135,6 +136,15 @@ export async function handleExpenseIntent(
       const installmentAmount = Math.round(data.amount / data.totalInstallments);
       const transactionDate = data.date || getTodayNoonUTC();
 
+      // Fetch account to get credit card closing day
+      const [account] = await db
+        .select()
+        .from(financialAccounts)
+        .where(eq(financialAccounts.id, accountId));
+
+      const closingDay = account?.type === "credit_card" ? account.closingDay : null;
+      const installmentDates = calculateInstallmentDates(transactionDate, data.totalInstallments, closingDay);
+
       // Create parent transaction (first installment)
       const [parentTransaction] = await db
         .insert(transactions)
@@ -147,7 +157,7 @@ export async function handleExpenseIntent(
           status: "cleared",
           amount: installmentAmount,
           description: capitalizedDescription,
-          date: transactionDate,
+          date: installmentDates[0],
           isInstallment: true,
           installmentNumber: 1,
           totalInstallments: data.totalInstallments,
@@ -156,30 +166,37 @@ export async function handleExpenseIntent(
         .returning();
 
       // Batch insert remaining installments
-      const installmentValues = Array.from({ length: data.totalInstallments - 1 }, (_, i) => {
-        const installmentDate = new Date(transactionDate);
-        installmentDate.setMonth(installmentDate.getMonth() + (i + 1));
-
-        return {
-          budgetId,
-          accountId,
-          categoryId,
-          memberId,
-          type: "expense" as const,
-          status: "cleared" as const,
-          amount: installmentAmount,
-          description: capitalizedDescription,
-          date: installmentDate,
-          isInstallment: true,
-          installmentNumber: i + 2,
-          totalInstallments: data.totalInstallments,
-          parentTransactionId: parentTransaction.id,
-          source: "telegram" as const,
-        };
-      });
+      const installmentValues = installmentDates.slice(1).map((installmentDate, i) => ({
+        budgetId,
+        accountId,
+        categoryId,
+        memberId,
+        type: "expense" as const,
+        status: "cleared" as const,
+        amount: installmentAmount,
+        description: capitalizedDescription,
+        date: installmentDate,
+        isInstallment: true,
+        installmentNumber: i + 2,
+        totalInstallments: data.totalInstallments,
+        parentTransactionId: parentTransaction.id,
+        source: "telegram" as const,
+      }));
 
       if (installmentValues.length > 0) {
         await db.insert(transactions).values(installmentValues);
+      }
+
+      // Update account balance for ALL installments
+      if (account) {
+        const totalBalanceChange = -Math.abs(installmentAmount) * data.totalInstallments;
+        await db
+          .update(financialAccounts)
+          .set({
+            balance: account.balance + totalBalanceChange,
+            updatedAt: new Date(),
+          })
+          .where(eq(financialAccounts.id, accountId));
       }
 
       await updateTelegramContext(chatId, "IDLE", {
@@ -215,6 +232,22 @@ export async function handleExpenseIntent(
         source: "telegram",
       })
       .returning();
+
+    // Update account balance
+    const [expenseAccount] = await db
+      .select()
+      .from(financialAccounts)
+      .where(eq(financialAccounts.id, accountId));
+
+    if (expenseAccount) {
+      await db
+        .update(financialAccounts)
+        .set({
+          balance: expenseAccount.balance - Math.abs(data.amount),
+          updatedAt: new Date(),
+        })
+        .where(eq(financialAccounts.id, accountId));
+    }
 
     await updateTelegramContext(chatId, "IDLE", {
       lastTransactionId: newTransaction.id,
@@ -500,6 +533,22 @@ export async function handleIncomeIntent(
         source: "telegram",
       })
       .returning();
+
+    // Update account balance
+    const [incomeAccount] = await db
+      .select()
+      .from(financialAccounts)
+      .where(eq(financialAccounts.id, defaultAccountId));
+
+    if (incomeAccount) {
+      await db
+        .update(financialAccounts)
+        .set({
+          balance: incomeAccount.balance + data.amount,
+          updatedAt: new Date(),
+        })
+        .where(eq(financialAccounts.id, defaultAccountId));
+    }
 
     await updateTelegramContext(chatId, "IDLE", {
       lastTransactionId: newTransaction.id,
