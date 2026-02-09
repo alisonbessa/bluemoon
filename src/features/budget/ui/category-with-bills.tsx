@@ -73,6 +73,8 @@ interface CategoryWithBillsProps {
   onDeleteCategory: (category: Category) => void;
   onBillsChange: () => void;
   mobileViewMode?: MobileViewMode;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 // Helper to get the value based on view mode for expenses
@@ -105,8 +107,11 @@ export function CategoryWithBills({
   onDeleteCategory,
   onBillsChange,
   mobileViewMode = 'available',
+  isExpanded: controlledExpanded,
+  onToggleExpand,
 }: CategoryWithBillsProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const isExpanded = controlledExpanded ?? localExpanded;
   const [isBillFormOpen, setIsBillFormOpen] = useState(false);
   const [editingBill, setEditingBill] = useState<RecurringBillSummary | null>(null);
   const [deletingBill, setDeletingBill] = useState<RecurringBillSummary | null>(null);
@@ -160,7 +165,11 @@ export function CategoryWithBills({
 
   const handleCategoryClick = () => {
     if (isExpandable) {
-      setIsExpanded(!isExpanded);
+      if (onToggleExpand) {
+        onToggleExpand();
+      } else {
+        setLocalExpanded(!localExpanded);
+      }
     } else {
       onEditAllocation(item.category, item.allocated);
     }

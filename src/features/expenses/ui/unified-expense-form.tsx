@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '@/shared/ui/select';
 import { CurrencyInput } from '@/shared/ui/currency-input';
-import { AccountSelector, WEEKDAYS, MONTH_NAMES_FULL } from '@/shared/molecules';
+import { AccountSelector, DayOfMonthInput, WEEKDAYS, MONTH_NAMES_FULL } from '@/shared/molecules';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -68,8 +68,6 @@ const FREQUENCY_OPTIONS = [
   { value: 'weekly', label: 'Semanal' },
   { value: 'yearly', label: 'Anual' },
 ];
-
-const DAYS_OF_MONTH = Array.from({ length: 31 }, (_, i) => i + 1);
 
 export function UnifiedExpenseForm({
   isOpen,
@@ -233,13 +231,13 @@ export function UnifiedExpenseForm({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 py-4 overflow-y-auto flex-1 -mx-6 px-6">
           {/* Nome */}
           <div className="grid gap-2">
             <Label htmlFor="expense-name">Nome *</Label>
@@ -348,24 +346,12 @@ export function UnifiedExpenseForm({
                 </div>
               ) : (
                 <div className={frequency === 'yearly' ? 'grid grid-cols-2 gap-4' : ''}>
-                  <div className="grid gap-2">
-                    <Label>Dia do vencimento</Label>
-                    <Select
-                      value={dueDay?.toString() || ''}
-                      onValueChange={(v) => setDueDay(parseInt(v))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o dia" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DAYS_OF_MONTH.map((day) => (
-                          <SelectItem key={day} value={day.toString()}>
-                            Dia {day}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <DayOfMonthInput
+                    value={dueDay ?? null}
+                    onChange={(value) => setDueDay(value ?? undefined)}
+                    label="Dia do vencimento"
+                    placeholder="1-31"
+                  />
 
                   {frequency === 'yearly' && (
                     <div className="grid gap-2">
@@ -374,7 +360,7 @@ export function UnifiedExpenseForm({
                         value={dueMonth?.toString() || ''}
                         onValueChange={(v) => setDueMonth(parseInt(v))}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="Selecione o mês" />
                         </SelectTrigger>
                         <SelectContent>
