@@ -10,6 +10,10 @@ import {
   successResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
+import {
+  getFirstInstallmentDate,
+  calculateInstallmentDates,
+} from "@/shared/lib/billing-cycle";
 
 // GET - Get transactions for user's budgets
 export const GET = withAuthRequired(async (req, context) => {
@@ -123,6 +127,30 @@ export const POST = withAuthRequired(async (req, context) => {
   if (isInstallment && totalInstallments && totalInstallments > 1) {
     const installmentAmount = Math.round(amount / totalInstallments);
 
+    // Fetch account to check if it's a credit card with billing cycle
+    const [currentAccount] = await db
+      .select()
+      .from(financialAccounts)
+      .where(eq(financialAccounts.id, accountId));
+
+    const isCreditCard = currentAccount?.type === "credit_card";
+    const closingDay = currentAccount?.closingDay;
+
+    // Calculate installment dates
+    let installmentDates: Date[];
+    if (isCreditCard && closingDay) {
+      // Credit card: use billing cycle to determine dates
+      const firstDate = getFirstInstallmentDate(transactionDate, closingDay);
+      installmentDates = calculateInstallmentDates(firstDate, totalInstallments);
+    } else {
+      // Non-credit-card: simple monthly increment
+      installmentDates = Array.from({ length: totalInstallments }, (_, i) => {
+        const d = new Date(transactionDate);
+        d.setMonth(d.getMonth() + i);
+        return d;
+      });
+    }
+
     // Create parent transaction (first installment)
     const [parentTransaction] = await db
       .insert(transactions)
@@ -136,7 +164,7 @@ export const POST = withAuthRequired(async (req, context) => {
         amount: installmentAmount,
         description,
         notes,
-        date: transactionDate,
+        date: installmentDates[0],
         isInstallment: true,
         installmentNumber: 1,
         totalInstallments,
@@ -145,28 +173,23 @@ export const POST = withAuthRequired(async (req, context) => {
       .returning();
 
     // PERFORMANCE: Batch insert remaining installments instead of N individual inserts
-    const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => {
-      const installmentDate = new Date(transactionDate);
-      installmentDate.setMonth(installmentDate.getMonth() + (i + 1));
-
-      return {
-        budgetId,
-        accountId,
-        categoryId: type === "expense" ? categoryId : undefined,
-        incomeSourceId: type === "income" ? incomeSourceId : undefined,
-        memberId,
-        type,
-        amount: installmentAmount,
-        description,
-        notes,
-        date: installmentDate,
-        isInstallment: true,
-        installmentNumber: i + 2,
-        totalInstallments,
-        parentTransactionId: parentTransaction.id,
-        source: "web" as const,
-      };
-    });
+    const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => ({
+      budgetId,
+      accountId,
+      categoryId: type === "expense" ? categoryId : undefined,
+      incomeSourceId: type === "income" ? incomeSourceId : undefined,
+      memberId,
+      type,
+      amount: installmentAmount,
+      description,
+      notes,
+      date: installmentDates[i + 1],
+      isInstallment: true,
+      installmentNumber: i + 2,
+      totalInstallments,
+      parentTransactionId: parentTransaction.id,
+      source: "web" as const,
+    }));
 
     const remainingInstallments = installmentValues.length > 0
       ? await db.insert(transactions).values(installmentValues).returning()
@@ -174,16 +197,12 @@ export const POST = withAuthRequired(async (req, context) => {
 
     const createdTransactions = [parentTransaction, ...remainingInstallments];
 
-    // Update account balance for installments
-    // Note: Only the first installment affects balance immediately (it's due now)
-    // Future installments will affect balance when they're confirmed
-    const [currentAccount] = await db
-      .select()
-      .from(financialAccounts)
-      .where(eq(financialAccounts.id, accountId));
-
+    // Update account balance
     if (currentAccount) {
-      const balanceChange = type === "income" ? installmentAmount : -Math.abs(installmentAmount);
+      // Credit cards: debit total amount (all installments affect the credit limit)
+      // Other accounts: only the first installment affects balance now
+      const balanceAmount = isCreditCard ? amount : installmentAmount;
+      const balanceChange = type === "income" ? balanceAmount : -Math.abs(balanceAmount);
 
       await db
         .update(financialAccounts)

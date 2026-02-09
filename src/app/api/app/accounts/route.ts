@@ -1,7 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { financialAccounts, budgetMembers } from "@/db/schema";
-import { eq, and, inArray, or, isNull } from "drizzle-orm";
+import { financialAccounts, budgetMembers, transactions } from "@/db/schema";
+import { eq, and, inArray, or, isNull, gte, lte, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { capitalizeWords } from "@/shared/lib/utils";
 import {
@@ -15,6 +15,7 @@ import {
   successResponse,
 } from "@/shared/lib/api/responses";
 import { createAccountSchema } from "@/shared/lib/validations/account.schema";
+import { getBillingCycleDates } from "@/shared/lib/billing-cycle";
 
 // GET - Get accounts for user's budgets
 // Only returns accounts owned by the user OR shared accounts (ownerId is null)
@@ -74,7 +75,36 @@ export const GET = withAuthRequired(async (req, context) => {
     .leftJoin(budgetMembers, eq(financialAccounts.ownerId, budgetMembers.id))
     .where(whereCondition);
 
-  return cachedResponse({ accounts: userAccounts });
+  // Calculate currentBill for credit card accounts using billing cycle
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
+  const accountsWithBill = await Promise.all(
+    userAccounts.map(async (account) => {
+      if (account.type !== "credit_card" || !account.closingDay) {
+        return { ...account, currentBill: null };
+      }
+
+      const { start, end } = getBillingCycleDates(account.closingDay, currentYear, currentMonth);
+
+      const [result] = await db
+        .select({ total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)` })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.accountId, account.id),
+            eq(transactions.type, "expense"),
+            gte(transactions.date, start),
+            lte(transactions.date, end)
+          )
+        );
+
+      return { ...account, currentBill: Number(result?.total || 0) };
+    })
+  );
+
+  return cachedResponse({ accounts: accountsWithBill });
 });
 
 // POST - Create a new account

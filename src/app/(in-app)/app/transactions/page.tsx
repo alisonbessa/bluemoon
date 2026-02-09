@@ -65,6 +65,8 @@ export default function TransactionsPage() {
     formData,
     setFormData,
     isSubmitting,
+    applyToSeries,
+    setApplyToSeries,
     openCreate,
     openEdit,
     handleSubmit,
@@ -407,6 +409,7 @@ export default function TransactionsPage() {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         isEditing={!!editingTransaction}
+        editingTransaction={editingTransaction}
         formData={formData}
         setFormData={setFormData}
         categories={categories}
@@ -414,6 +417,8 @@ export default function TransactionsPage() {
         incomeSources={incomeSources}
         isSubmitting={isSubmitting}
         onSubmit={handleSubmit}
+        applyToSeries={applyToSeries}
+        onApplyToSeriesChange={setApplyToSeries}
       />
 
       {/* Delete Confirmation Dialog */}

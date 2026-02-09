@@ -33,6 +33,7 @@ export interface Account {
   creditLimit?: number | null;
   closingDay?: number | null;
   dueDay?: number | null;
+  currentBill?: number | null;
   clearedBalance?: number;
   isArchived?: boolean | null;
   displayOrder?: number;

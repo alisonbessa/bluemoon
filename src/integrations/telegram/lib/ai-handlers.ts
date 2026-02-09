@@ -14,6 +14,7 @@ import {
 } from "./transaction-matcher";
 import { getTodayNoonUTC } from "./telegram-utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
+import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import {
   sendMessage,
   formatCurrency,
@@ -138,6 +139,23 @@ export async function handleExpenseIntent(
       const installmentAmount = Math.round(data.amount / data.totalInstallments);
       const transactionDate = data.date || getTodayNoonUTC();
 
+      // Check if account is a credit card with billing cycle
+      const account = accounts.find(a => a.id === accountId);
+      const closingDay = account?.type === "credit_card" ? account.closingDay : null;
+
+      // Calculate installment dates using billing cycle if available
+      let installmentDates: Date[];
+      if (closingDay) {
+        const firstDate = getFirstInstallmentDate(transactionDate, closingDay);
+        installmentDates = calculateInstallmentDates(firstDate, data.totalInstallments);
+      } else {
+        installmentDates = Array.from({ length: data.totalInstallments }, (_, i) => {
+          const d = new Date(transactionDate);
+          d.setMonth(d.getMonth() + i);
+          return d;
+        });
+      }
+
       // Create parent transaction (first installment)
       const [parentTransaction] = await db
         .insert(transactions)
@@ -150,7 +168,7 @@ export async function handleExpenseIntent(
           status: "cleared",
           amount: installmentAmount,
           description: capitalizedDescription,
-          date: transactionDate,
+          date: installmentDates[0],
           isInstallment: true,
           installmentNumber: 1,
           totalInstallments: data.totalInstallments,
@@ -159,27 +177,22 @@ export async function handleExpenseIntent(
         .returning();
 
       // Batch insert remaining installments
-      const installmentValues = Array.from({ length: data.totalInstallments - 1 }, (_, i) => {
-        const installmentDate = new Date(transactionDate);
-        installmentDate.setMonth(installmentDate.getMonth() + (i + 1));
-
-        return {
-          budgetId,
-          accountId,
-          categoryId,
-          memberId,
-          type: "expense" as const,
-          status: "cleared" as const,
-          amount: installmentAmount,
-          description: capitalizedDescription,
-          date: installmentDate,
-          isInstallment: true,
-          installmentNumber: i + 2,
-          totalInstallments: data.totalInstallments,
-          parentTransactionId: parentTransaction.id,
-          source: "telegram" as const,
-        };
-      });
+      const installmentValues = Array.from({ length: data.totalInstallments - 1 }, (_, i) => ({
+        budgetId,
+        accountId,
+        categoryId,
+        memberId,
+        type: "expense" as const,
+        status: "cleared" as const,
+        amount: installmentAmount,
+        description: capitalizedDescription,
+        date: installmentDates[i + 1],
+        isInstallment: true,
+        installmentNumber: i + 2,
+        totalInstallments: data.totalInstallments,
+        parentTransactionId: parentTransaction.id,
+        source: "telegram" as const,
+      }));
 
       if (installmentValues.length > 0) {
         await db.insert(transactions).values(installmentValues);

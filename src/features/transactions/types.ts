@@ -33,6 +33,7 @@ export interface Transaction {
   isInstallment?: boolean;
   installmentNumber?: number | null;
   totalInstallments?: number | null;
+  parentTransactionId?: string | null;
   account?: Account | null;
   toAccount?: Account | null;
   category?: Category | null;

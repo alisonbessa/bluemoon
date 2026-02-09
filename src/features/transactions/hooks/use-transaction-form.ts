@@ -21,6 +21,8 @@ interface UseTransactionFormReturn {
   formData: TransactionFormData;
   setFormData: React.Dispatch<React.SetStateAction<TransactionFormData>>;
   isSubmitting: boolean;
+  applyToSeries: boolean;
+  setApplyToSeries: (value: boolean) => void;
   // Actions
   openCreate: () => void;
   openEdit: (transaction: Transaction) => void;
@@ -37,6 +39,7 @@ export function useTransactionForm(
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<TransactionFormData>(initialFormData);
+  const [applyToSeries, setApplyToSeries] = useState(false);
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -45,6 +48,7 @@ export function useTransactionForm(
       date: format(new Date(), "yyyy-MM-dd"),
     });
     setEditingTransaction(null);
+    setApplyToSeries(false);
   }, [accounts]);
 
   const openCreate = useCallback(() => {
@@ -122,8 +126,9 @@ export function useTransactionForm(
       };
 
       if (editingTransaction) {
+        const seriesParam = applyToSeries ? "?applyToSeries=true" : "";
         const response = await fetch(
-          `/api/app/transactions/${editingTransaction.id}`,
+          `/api/app/transactions/${editingTransaction.id}${seriesParam}`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
@@ -135,7 +140,9 @@ export function useTransactionForm(
           throw new Error("Erro ao atualizar transação");
         }
 
-        toast.success("Transação atualizada!");
+        toast.success(
+          applyToSeries ? "Todas as parcelas atualizadas!" : "Transação atualizada!"
+        );
       } else {
         const response = await fetch("/api/app/transactions", {
           method: "POST",
@@ -158,7 +165,7 @@ export function useTransactionForm(
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, budgets, accounts, editingTransaction, onSuccess]);
+  }, [formData, budgets, accounts, editingTransaction, applyToSeries, onSuccess]);
 
   return {
     // State
@@ -168,6 +175,8 @@ export function useTransactionForm(
     formData,
     setFormData,
     isSubmitting,
+    applyToSeries,
+    setApplyToSeries,
     // Actions
     openCreate,
     openEdit,

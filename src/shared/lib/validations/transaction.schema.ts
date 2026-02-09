@@ -30,7 +30,7 @@ export const createTransactionSchema = z.object({
   date: z.string().datetime().or(z.date()),
   // Installment fields
   isInstallment: z.boolean().optional(),
-  totalInstallments: z.number().int().min(2).max(72).optional(),
+  totalInstallments: z.number().int().min(2).max(24).optional(),
 });
 
 /**

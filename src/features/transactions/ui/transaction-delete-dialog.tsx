@@ -18,17 +18,27 @@ export function TransactionDeleteDialog({
   const isFromPlanning =
     transaction?.recurringBillId || transaction?.incomeSourceId;
 
+  // Check if this is a parent installment (deleting will remove all installments)
+  const isParentInstallment =
+    transaction?.isInstallment && !transaction?.parentTransactionId;
+
+  const getDescription = () => {
+    if (isFromPlanning) {
+      return "A transação voltará para a lista de pendentes.";
+    }
+    if (isParentInstallment) {
+      return `Todas as ${transaction?.totalInstallments || ""} parcelas desta compra serão excluídas. Esta ação não pode ser desfeita.`;
+    }
+    return "Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.";
+  };
+
   return (
     <DeleteConfirmDialog
       open={!!transaction}
       onOpenChange={(open) => !open && onClose()}
       onConfirm={onConfirm}
       title={isFromPlanning ? "Desfazer confirmação?" : "Excluir transação?"}
-      description={
-        isFromPlanning
-          ? "A transação voltará para a lista de pendentes."
-          : "Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita."
-      }
+      description={getDescription()}
       confirmLabel={isFromPlanning ? "Desfazer" : "Excluir"}
       variant={isFromPlanning ? "warning" : "destructive"}
     />
