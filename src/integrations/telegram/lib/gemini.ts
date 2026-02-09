@@ -5,13 +5,18 @@ import { createLogger } from "@/shared/lib/logger";
 
 const logger = createLogger("telegram:gemini");
 
-// Initialize Gemini client
+// Singleton Gemini client
+let geminiClient: GoogleGenerativeAI | null = null;
+
 function getGeminiClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
+  if (!geminiClient) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not configured");
+    }
+    geminiClient = new GoogleGenerativeAI(apiKey);
   }
-  return new GoogleGenerativeAI(apiKey);
+  return geminiClient;
 }
 
 // Confidence thresholds

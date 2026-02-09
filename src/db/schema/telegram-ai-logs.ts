@@ -71,6 +71,9 @@ export const telegramAILogs = pgTable("telegram_ai_logs", {
   // Was the intent UNKNOWN?
   isUnknownIntent: boolean("is_unknown_intent").notNull().default(false),
 
+  // Bot's response message sent back to user
+  botResponse: text("bot_response"),
+
   // Error message if any
   errorMessage: text("error_message"),
 

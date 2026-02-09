@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { telegramAILogs } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql, count } from "drizzle-orm";
 import type { AIResponse, UserContext } from "./types";
 import type { AILogResolution, StoredAIResponse, StoredUserContext } from "@/db/schema/telegram-ai-logs";
 import { CONFIDENCE_THRESHOLDS } from "./gemini";
@@ -60,6 +60,23 @@ export async function logAIResponse(
   } catch (error) {
     logger.error("[AILogger] Failed to log AI response:", error);
     return null;
+  }
+}
+
+/**
+ * Update the bot response text for a log entry
+ */
+export async function updateAILogBotResponse(
+  logId: string,
+  botResponse: string
+): Promise<void> {
+  try {
+    await db
+      .update(telegramAILogs)
+      .set({ botResponse })
+      .where(eq(telegramAILogs.id, logId));
+  } catch (error) {
+    logger.error("[AILogger] Failed to update bot response:", error);
   }
 }
 
@@ -127,25 +144,33 @@ export async function markLogAsFallback(logId: string): Promise<void> {
 }
 
 /**
- * Get statistics about AI performance
+ * Get statistics about AI performance using SQL aggregation
  */
 export async function getAIPerformanceStats() {
-  const logs = await db.select().from(telegramAILogs);
+  const [stats] = await db
+    .select({
+      total: count(),
+      confirmed: count(sql`CASE WHEN ${telegramAILogs.resolution} = 'confirmed' THEN 1 END`),
+      corrected: count(sql`CASE WHEN ${telegramAILogs.resolution} = 'corrected' THEN 1 END`),
+      cancelled: count(sql`CASE WHEN ${telegramAILogs.resolution} = 'cancelled' THEN 1 END`),
+      unknown: count(sql`CASE WHEN ${telegramAILogs.isUnknownIntent} = true THEN 1 END`),
+      lowConfidence: count(sql`CASE WHEN ${telegramAILogs.isLowConfidence} = true THEN 1 END`),
+    })
+    .from(telegramAILogs);
 
-  const total = logs.length;
-  const confirmed = logs.filter((l) => l.resolution === "confirmed").length;
-  const corrected = logs.filter((l) => l.resolution === "corrected").length;
-  const cancelled = logs.filter((l) => l.resolution === "cancelled").length;
-  const unknown = logs.filter((l) => l.isUnknownIntent).length;
-  const lowConfidence = logs.filter((l) => l.isLowConfidence).length;
+  const total = stats.total;
+  const confirmed = stats.confirmed;
+  const corrected = stats.corrected;
 
   return {
     total,
     confirmed,
     corrected,
-    cancelled,
-    unknown,
-    lowConfidence,
-    accuracy: total > 0 ? ((confirmed / (confirmed + corrected)) * 100).toFixed(1) : "N/A",
+    cancelled: stats.cancelled,
+    unknown: stats.unknown,
+    lowConfidence: stats.lowConfidence,
+    accuracy: (confirmed + corrected) > 0
+      ? ((confirmed / (confirmed + corrected)) * 100).toFixed(1)
+      : "N/A",
   };
 }

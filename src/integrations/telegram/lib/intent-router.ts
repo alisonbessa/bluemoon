@@ -2,7 +2,7 @@ import type { AIResponse, UserContext, ExtractedExpenseData, ExtractedIncomeData
 import { handleExpenseIntent, handleIncomeIntent, handleTransferIntent } from "./ai-handlers";
 import { handleQueryIntent } from "./query-executor";
 import { sendMessage } from "./bot";
-import { logAIResponse } from "./ai-logger";
+import { logAIResponse, markLogAsConfirmed, updateAILogBotResponse } from "./ai-logger";
 
 /**
  * Route the AI-parsed intent to the appropriate handler
@@ -27,7 +27,8 @@ export async function routeIntent(
         confidence,
         requiresConfirmation,
         userContext,
-        messagesToDelete
+        messagesToDelete,
+        logId
       );
       break;
 
@@ -38,7 +39,8 @@ export async function routeIntent(
         confidence,
         requiresConfirmation,
         userContext,
-        messagesToDelete
+        messagesToDelete,
+        logId
       );
       break;
 
@@ -52,6 +54,8 @@ export async function routeIntent(
         data as ExtractedQueryData,
         userContext
       );
+      // Queries are auto-confirmed (no user action needed)
+      if (logId) await markLogAsConfirmed(logId);
       break;
 
     case "TRANSFER":
@@ -61,13 +65,14 @@ export async function routeIntent(
         confidence,
         requiresConfirmation,
         userContext,
-        messagesToDelete
+        messagesToDelete,
+        logId
       );
       break;
 
     case "UNKNOWN":
     default:
-      await handleUnknownIntent(chatId);
+      await handleUnknownIntent(chatId, logId);
       break;
   }
 
@@ -77,19 +82,23 @@ export async function routeIntent(
 /**
  * Handle unknown or unclear intents
  */
-async function handleUnknownIntent(chatId: number): Promise<void> {
-  await sendMessage(
-    chatId,
+async function handleUnknownIntent(chatId: number, logId: string | null): Promise<void> {
+  const botMessage =
     `Não entendi bem. Posso ajudar com:\n\n` +
-      `<b>Registrar gastos:</b>\n` +
-      `"gastei 50 no mercado"\n` +
-      `"paguei 200 de luz"\n\n` +
-      `<b>Registrar receitas:</b>\n` +
-      `"recebi 5000 de salário"\n\n` +
-      `<b>Consultas:</b>\n` +
-      `"quanto gastei esse mês?"\n` +
-      `"quanto sobrou em alimentação?"\n` +
-      `"como está minha meta de viagem?"\n\n` +
-      `Use /ajuda para mais detalhes.`
-  );
+    `<b>Registrar gastos:</b>\n` +
+    `"gastei 50 no mercado"\n` +
+    `"paguei 200 de luz"\n\n` +
+    `<b>Registrar receitas:</b>\n` +
+    `"recebi 5000 de salário"\n\n` +
+    `<b>Consultas:</b>\n` +
+    `"quanto gastei esse mês?"\n` +
+    `"quanto sobrou em alimentação?"\n` +
+    `"como está minha meta de viagem?"\n\n` +
+    `Use /ajuda para mais detalhes.`;
+
+  await sendMessage(chatId, botMessage);
+
+  if (logId) {
+    await updateAILogBotResponse(logId, botMessage);
+  }
 }
