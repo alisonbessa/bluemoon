@@ -2,7 +2,6 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { financialAccounts, budgetMembers, transactions } from "@/db/schema";
 import { eq, and, inArray, or, isNull, gte, lte, sql } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { capitalizeWords } from "@/shared/lib/utils";
 import {
   getUserBudgetIds,
@@ -95,6 +94,7 @@ export const GET = withAuthRequired(async (req, context) => {
           and(
             eq(transactions.accountId, account.id),
             eq(transactions.type, "expense"),
+            inArray(transactions.status, ["pending", "cleared", "reconciled"]),
             gte(transactions.date, start),
             lte(transactions.date, end)
           )

@@ -86,17 +86,6 @@ export const PATCH = withAuthRequired(async (req, context) => {
   if (applyToSeries && existingTransaction.isInstallment) {
     const parentId = existingTransaction.parentTransactionId || existingTransaction.id;
 
-    // Get all transactions in the series
-    const seriesTransactions = await db
-      .select()
-      .from(transactions)
-      .where(
-        or(
-          eq(transactions.id, parentId),
-          eq(transactions.parentTransactionId, parentId)
-        )
-      );
-
     // Build cascade update data (only fields that make sense for series)
     const seriesUpdateData: Record<string, unknown> = { updatedAt: new Date() };
     if (validation.data.categoryId !== undefined) seriesUpdateData.categoryId = validation.data.categoryId;
@@ -104,6 +93,17 @@ export const PATCH = withAuthRequired(async (req, context) => {
     if (validation.data.notes !== undefined) seriesUpdateData.notes = validation.data.notes;
 
     const updatedTransaction = await db.transaction(async (tx) => {
+      // Get all transactions in the series (inside transaction for atomicity)
+      const seriesTransactions = await tx
+        .select()
+        .from(transactions)
+        .where(
+          or(
+            eq(transactions.id, parentId),
+            eq(transactions.parentTransactionId, parentId)
+          )
+        );
+
       // Handle amount change across all installments
       if (validation.data.amount !== undefined && validation.data.amount !== existingTransaction.amount) {
         const newAmount = validation.data.amount;
@@ -251,11 +251,20 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
   // Use transaction for atomic delete and balance update
   await db.transaction(async (tx) => {
+    // Get account to check type (credit cards had all installments debited)
+    const [account] = await tx
+      .select()
+      .from(financialAccounts)
+      .where(eq(financialAccounts.id, existingTransaction.accountId));
+
+    const isCreditCard = account?.type === "credit_card";
+
     // Calculate total amount to reverse
-    // For parent installments, include all child installments in the reversal
+    // Credit cards: all installments were debited at creation, so reverse all
+    // Other accounts: only the 1st installment was debited, so reverse just the parent
     let totalAmountToReverse = existingTransaction.amount;
 
-    if (existingTransaction.isInstallment && !existingTransaction.parentTransactionId) {
+    if (isCreditCard && existingTransaction.isInstallment && !existingTransaction.parentTransactionId) {
       const childTransactions = await tx
         .select({ amount: transactions.amount })
         .from(transactions)
@@ -267,11 +276,6 @@ export const DELETE = withAuthRequired(async (req, context) => {
     }
 
     // Reverse the balance change for source account
-    const [account] = await tx
-      .select()
-      .from(financialAccounts)
-      .where(eq(financialAccounts.id, existingTransaction.accountId));
-
     if (account) {
       const balanceChange =
         existingTransaction.type === "income"
