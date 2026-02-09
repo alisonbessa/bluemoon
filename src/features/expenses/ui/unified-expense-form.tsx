@@ -297,7 +297,7 @@ export function UnifiedExpenseForm({
                     setDueMonth(undefined);
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -322,78 +322,96 @@ export function UnifiedExpenseForm({
             )}
           </div>
 
-          {/* Campos de vencimento (só recorrente) */}
-          {isRecurring && (
+          {/* Categoria + Dia (recorrente) ou só Categoria (avulsa) */}
+          {isRecurring ? (
             <>
-              {frequency === 'weekly' ? (
+              <div className="grid grid-cols-2 gap-4">
+                {/* Categoria */}
                 <div className="grid gap-2">
-                  <Label>Dia da semana</Label>
-                  <Select
-                    value={dueDay?.toString() || ''}
-                    onValueChange={(v) => setDueDay(parseInt(v))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o dia" />
+                  <Label>Categoria *</Label>
+                  <Select value={categoryId || ''} onValueChange={setCategoryId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      {WEEKDAYS.map((day) => (
-                        <SelectItem key={day.value} value={day.value.toString()}>
-                          {day.label}
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.icon} {cat.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-              ) : (
-                <div className={frequency === 'yearly' ? 'grid grid-cols-2 gap-4' : ''}>
+
+                {/* Dia da semana ou Dia do vencimento */}
+                {frequency === 'weekly' ? (
+                  <div className="grid gap-2">
+                    <Label>Dia da semana</Label>
+                    <Select
+                      value={dueDay?.toString() || ''}
+                      onValueChange={(v) => setDueDay(parseInt(v))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {WEEKDAYS.map((day) => (
+                          <SelectItem key={day.value} value={day.value.toString()}>
+                            {day.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
                   <DayOfMonthInput
                     value={dueDay ?? null}
                     onChange={(value) => setDueDay(value ?? undefined)}
                     label="Dia do vencimento"
                     placeholder="1-31"
                   />
+                )}
+              </div>
 
-                  {frequency === 'yearly' && (
-                    <div className="grid gap-2">
-                      <Label>Mês *</Label>
-                      <Select
-                        value={dueMonth?.toString() || ''}
-                        onValueChange={(v) => setDueMonth(parseInt(v))}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecione o mês" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {MONTH_NAMES_FULL.map((month, index) => (
-                            <SelectItem key={index + 1} value={(index + 1).toString()}>
-                              {month}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
+              {/* Mês - apenas para frequência anual */}
+              {frequency === 'yearly' && (
+                <div className="grid gap-2">
+                  <Label>Mês *</Label>
+                  <Select
+                    value={dueMonth?.toString() || ''}
+                    onValueChange={(v) => setDueMonth(parseInt(v))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione o mês" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MONTH_NAMES_FULL.map((month, index) => (
+                        <SelectItem key={index + 1} value={(index + 1).toString()}>
+                          {month}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </>
+          ) : (
+            <div className="grid gap-2">
+              <Label>Categoria</Label>
+              <Select value={categoryId || ''} onValueChange={setCategoryId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.icon} {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
-
-          {/* Categoria */}
-          <div className="grid gap-2">
-            <Label>Categoria {isRecurring && '*'}</Label>
-            <Select value={categoryId || ''} onValueChange={setCategoryId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.icon} {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
           {/* Conta */}
           <AccountSelector
