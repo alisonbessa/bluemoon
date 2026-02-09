@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import type { UserContext, ExtractedExpenseData, ExtractedIncomeData, ExtractedTransferData } from "./types";
 import type { TelegramConversationContext, TelegramConversationStep } from "@/db/schema/telegram-users";
 import { matchCategory, matchIncomeSource, CONFIDENCE_THRESHOLDS } from "./gemini";
+import { markLogAsConfirmed } from "./ai-logger";
 import {
   findMatchingScheduledTransaction,
   findMatchingScheduledIncome,
@@ -34,7 +35,8 @@ export async function handleExpenseIntent(
   confidence: number,
   requiresConfirmation: boolean,
   userContext: UserContext,
-  initialMessagesToDelete: number[] = []
+  initialMessagesToDelete: number[] = [],
+  logId: string | null = null
 ): Promise<void> {
   const { budgetId, memberId, defaultAccountId, categories, accounts, currentYear, currentMonth } = userContext;
 
@@ -96,6 +98,7 @@ export async function handleExpenseIntent(
         },
         scheduledTransactionId: tx.id, // Store ID to update existing transaction
         messagesToDelete: [...initialMessagesToDelete, confirmMsgId],
+        lastAILogId: logId || undefined,
       });
       return;
     }
@@ -186,6 +189,8 @@ export async function handleExpenseIntent(
         lastTransactionId: parentTransaction.id,
       });
 
+      if (logId) await markLogAsConfirmed(logId);
+
       await sendMessage(
         chatId,
         `✅ <b>Compra parcelada registrada!</b>\n\n` +
@@ -219,6 +224,8 @@ export async function handleExpenseIntent(
     await updateTelegramContext(chatId, "IDLE", {
       lastTransactionId: newTransaction.id,
     });
+
+    if (logId) await markLogAsConfirmed(logId);
 
     await sendMessage(
       chatId,
@@ -274,6 +281,7 @@ export async function handleExpenseIntent(
       },
       scheduledTransactionId: scheduledMatch?.transaction.id,
       messagesToDelete: [...initialMessagesToDelete, confirmMsgId],
+      lastAILogId: logId || undefined,
     });
     return;
   }
@@ -322,6 +330,7 @@ export async function handleExpenseIntent(
         suggestedGroupId: suggestedGroupCode,
       },
       messagesToDelete: [...initialMessagesToDelete, newCatMsgId],
+      lastAILogId: logId || undefined,
     });
     return;
   }
@@ -355,6 +364,7 @@ export async function handleExpenseIntent(
         totalInstallments: data.totalInstallments,
       },
       messagesToDelete: [...initialMessagesToDelete, accSelectMsgId],
+      lastAILogId: logId || undefined,
     });
     return;
   }
@@ -382,6 +392,7 @@ export async function handleExpenseIntent(
       totalInstallments: data.totalInstallments,
     },
     messagesToDelete: [...initialMessagesToDelete, catSelectMsgId],
+    lastAILogId: logId || undefined,
   });
 }
 
@@ -394,9 +405,10 @@ export async function handleIncomeIntent(
   confidence: number,
   requiresConfirmation: boolean,
   userContext: UserContext,
-  initialMessagesToDelete: number[] = []
+  initialMessagesToDelete: number[] = [],
+  logId: string | null = null
 ): Promise<void> {
-  const { budgetId, memberId, defaultAccountId, incomeSources, currentYear, currentMonth } = userContext;
+  const { budgetId, memberId, defaultAccountId, incomeSources, accounts, currentYear, currentMonth } = userContext;
 
   if (!defaultAccountId) {
     await sendMessage(
@@ -410,6 +422,10 @@ export async function handleIncomeIntent(
   const sourceMatch = matchIncomeSource(data?.incomeSourceHint, incomeSources);
   const incomeSourceId = sourceMatch?.incomeSource.id;
   const incomeSourceName = sourceMatch?.incomeSource.name;
+
+  // Try to match account from hint (e.g., "recebi salário na conta do itaú")
+  const matchedAccount = data?.accountHint ? matchAccount(data.accountHint, accounts) : null;
+  const accountId = matchedAccount?.id || defaultAccountId;
 
   // CASE 1: No amount provided (null, undefined, or 0) - try to find a scheduled transaction
   // AI sometimes returns 0 instead of null when no amount is mentioned
@@ -446,9 +462,11 @@ export async function handleIncomeIntent(
           description: tx.description || undefined,
           incomeSourceId: tx.incomeSourceId || incomeSourceId,
           incomeSourceName: txSourceName,
+          accountId,
         },
         scheduledTransactionId: tx.id, // Store ID to update existing transaction
         messagesToDelete: [...initialMessagesToDelete, confirmMsgId],
+        lastAILogId: logId || undefined,
       });
       return;
     }
@@ -489,7 +507,7 @@ export async function handleIncomeIntent(
       .insert(transactions)
       .values({
         budgetId,
-        accountId: defaultAccountId,
+        accountId,
         incomeSourceId,
         memberId,
         type: "income",
@@ -504,6 +522,8 @@ export async function handleIncomeIntent(
     await updateTelegramContext(chatId, "IDLE", {
       lastTransactionId: newTransaction.id,
     });
+
+    if (logId) await markLogAsConfirmed(logId);
 
     await sendMessage(
       chatId,
@@ -540,9 +560,11 @@ export async function handleIncomeIntent(
       description: data.description,
       incomeSourceId,
       incomeSourceName,
+      accountId,
     },
     scheduledTransactionId: scheduledMatch?.transaction.id,
     messagesToDelete: [...initialMessagesToDelete, confirmMsgId],
+    lastAILogId: logId || undefined,
   });
 }
 
@@ -555,7 +577,8 @@ export async function handleTransferIntent(
   confidence: number,
   requiresConfirmation: boolean,
   userContext: UserContext,
-  initialMessagesToDelete: number[] = []
+  initialMessagesToDelete: number[] = [],
+  logId: string | null = null
 ): Promise<void> {
   if (!data || !data.amount) {
     await sendMessage(chatId, "Não consegui identificar o valor da transferência.");
@@ -619,6 +642,7 @@ export async function handleTransferIntent(
       description: data.description,
     },
     messagesToDelete: [...initialMessagesToDelete, confirmMsgId],
+    lastAILogId: logId || undefined,
   });
 }
 

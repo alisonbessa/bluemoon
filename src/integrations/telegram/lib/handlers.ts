@@ -32,6 +32,7 @@ import { routeIntent } from "./intent-router";
 import { handleVoiceMessage, isValidAudioDuration, isValidAudioSize } from "./voice-handler";
 import { markTransactionAsPaid } from "./transaction-matcher";
 import { getTodayNoonUTC } from "./telegram-utils";
+import { markLogAsConfirmed, markLogAsCancelled } from "./ai-logger";
 
 const logger = createLogger("telegram:handlers");
 
@@ -93,75 +94,37 @@ async function getUserBudgetInfo(userId: string) {
 
   const budgetId = membership[0].budget.id;
 
-  // Get all accounts
-  const budgetAccounts = await db
-    .select()
-    .from(financialAccounts)
-    .where(eq(financialAccounts.budgetId, budgetId));
-
-  // Get default account (first checking account)
-  const defaultAccount = budgetAccounts.find((a) => a.type === "checking");
-
-  // Get expense categories (from groups that are not income)
-  const budgetCategories = await db
-    .select({
-      category: categories,
-      group: groups,
-    })
-    .from(categories)
-    .innerJoin(groups, eq(categories.groupId, groups.id))
-    .where(
-      and(
-        eq(categories.budgetId, budgetId),
-        eq(categories.isArchived, false)
-      )
-    );
-
-  // Get income sources
-  const budgetIncomeSources = await db
-    .select()
-    .from(incomeSources)
-    .where(
-      and(
-        eq(incomeSources.budgetId, budgetId),
-        eq(incomeSources.isActive, true)
-      )
-    );
-
-  // Get goals
-  const budgetGoals = await db
-    .select()
-    .from(goals)
-    .where(
-      and(
-        eq(goals.budgetId, budgetId),
-        eq(goals.isArchived, false)
-      )
-    );
-
-  // Get pending transactions for current month
+  // Run all queries in parallel
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-  const pendingTxs = await db
-    .select({
-      id: transactions.id,
-      type: transactions.type,
-      amount: transactions.amount,
-      description: transactions.description,
-      categoryId: transactions.categoryId,
+  const [budgetAccounts, budgetCategories, budgetIncomeSources, budgetGoals, pendingTxs] = await Promise.all([
+    db.select().from(financialAccounts).where(eq(financialAccounts.budgetId, budgetId)),
+
+    db.select({ category: categories, group: groups })
+      .from(categories)
+      .innerJoin(groups, eq(categories.groupId, groups.id))
+      .where(and(eq(categories.budgetId, budgetId), eq(categories.isArchived, false))),
+
+    db.select().from(incomeSources)
+      .where(and(eq(incomeSources.budgetId, budgetId), eq(incomeSources.isActive, true))),
+
+    db.select().from(goals)
+      .where(and(eq(goals.budgetId, budgetId), eq(goals.isArchived, false))),
+
+    db.select({
+      id: transactions.id, type: transactions.type, amount: transactions.amount,
+      description: transactions.description, categoryId: transactions.categoryId,
       incomeSourceId: transactions.incomeSourceId,
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.budgetId, budgetId),
-        eq(transactions.status, "pending"),
-        gte(transactions.date, startOfMonth),
-        lte(transactions.date, endOfMonth)
-      )
-    );
+    }).from(transactions).where(and(
+      eq(transactions.budgetId, budgetId), eq(transactions.status, "pending"),
+      gte(transactions.date, startOfMonth), lte(transactions.date, endOfMonth),
+    )),
+  ]);
+
+  // Get default account (first checking account)
+  const defaultAccount = budgetAccounts.find((a) => a.type === "checking");
 
   // Map pending transactions with category/income source names
   const pendingTransactions = pendingTxs.map((tx) => {
@@ -514,6 +477,11 @@ async function handleUndo(chatId: number) {
     return;
   }
 
+  // Delete child installments first (if parent transaction)
+  await db
+    .delete(transactions)
+    .where(eq(transactions.parentTransactionId, context.lastTransactionId));
+
   // Delete the last transaction
   const deleted = await db
     .delete(transactions)
@@ -761,6 +729,7 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
 
   // Handle cancel first - no need to validate data
   if (!confirmed) {
+    if (context.lastAILogId) await markLogAsCancelled(context.lastAILogId);
     await updateTelegramUser(chatId, "IDLE", {});
     await sendMessage(chatId, "Registro cancelado.");
     return;
@@ -792,6 +761,8 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
       context.pendingExpense.description
     );
     transactionId = context.scheduledTransactionId;
+
+    if (context.lastAILogId) await markLogAsConfirmed(context.lastAILogId);
 
     await updateTelegramUser(chatId, "IDLE", {
       lastTransactionId: transactionId,
@@ -866,6 +837,8 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
 
       transactionId = parentTransaction.id;
 
+      if (context.lastAILogId) await markLogAsConfirmed(context.lastAILogId);
+
       // Update state with last transaction for undo
       await updateTelegramUser(chatId, "IDLE", {
         lastTransactionId: transactionId,
@@ -900,6 +873,8 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
         .returning();
 
       transactionId = newTransaction.id;
+
+      if (context.lastAILogId) await markLogAsConfirmed(context.lastAILogId);
 
       // Update state with last transaction for undo
       await updateTelegramUser(chatId, "IDLE", {
@@ -1127,6 +1102,7 @@ async function handleIncomeConfirmation(chatId: number, confirmed: boolean, call
   }
 
   if (!confirmed) {
+    if (context.lastAILogId) await markLogAsCancelled(context.lastAILogId);
     await updateTelegramUser(chatId, "IDLE", {});
     await sendMessage(chatId, "Registro cancelado.");
     return;
@@ -1152,6 +1128,8 @@ async function handleIncomeConfirmation(chatId: number, confirmed: boolean, call
     );
     transactionId = context.scheduledTransactionId;
 
+    if (context.lastAILogId) await markLogAsConfirmed(context.lastAILogId);
+
     await updateTelegramUser(chatId, "IDLE", {
       lastTransactionId: transactionId,
     });
@@ -1168,11 +1146,14 @@ async function handleIncomeConfirmation(chatId: number, confirmed: boolean, call
     // Create new income transaction
     const capitalizedDescription = capitalizeFirst(context.pendingIncome.description);
 
+    // Use account from context if specified, otherwise default
+    const incomeAccountId = context.pendingIncome.accountId || budgetInfo.defaultAccount.id;
+
     const [newTransaction] = await db
       .insert(transactions)
       .values({
         budgetId: budgetInfo.budget.id,
-        accountId: budgetInfo.defaultAccount.id,
+        accountId: incomeAccountId,
         incomeSourceId: context.pendingIncome.incomeSourceId,
         memberId: budgetInfo.member.id,
         type: "income",
@@ -1185,6 +1166,8 @@ async function handleIncomeConfirmation(chatId: number, confirmed: boolean, call
       .returning();
 
     transactionId = newTransaction.id;
+
+    if (context.lastAILogId) await markLogAsConfirmed(context.lastAILogId);
 
     await updateTelegramUser(chatId, "IDLE", {
       lastTransactionId: transactionId,
@@ -1228,6 +1211,7 @@ async function handleTransferConfirmation(chatId: number, confirmed: boolean, ca
   }
 
   if (!confirmed) {
+    if (context.lastAILogId) await markLogAsCancelled(context.lastAILogId);
     await updateTelegramUser(chatId, "IDLE", {});
     await sendMessage(chatId, "Transferência cancelada.");
     return;
@@ -1257,6 +1241,8 @@ async function handleTransferConfirmation(chatId: number, confirmed: boolean, ca
       source: "telegram",
     })
     .returning();
+
+  if (context.lastAILogId) await markLogAsConfirmed(context.lastAILogId);
 
   await updateTelegramUser(chatId, "IDLE", {
     lastTransactionId: newTransaction.id,
