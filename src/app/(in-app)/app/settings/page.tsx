@@ -3,14 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
+import { FormModalWrapper } from "@/shared/molecules";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
@@ -814,58 +807,45 @@ export default function SettingsPage() {
       </AlertDialog>
 
       {/* Feedback Modal */}
-      <Dialog open={showFeedbackModal} onOpenChange={setShowFeedbackModal}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {feedbackType === "question" && "Tirar dúvidas"}
-              {feedbackType === "bug" && "Reportar bug"}
-              {feedbackType === "feedback" && "Enviar sugestão"}
-            </DialogTitle>
-            <DialogDescription>
-              {feedbackType === "question" && "Descreva sua dúvida e responderemos por email."}
-              {feedbackType === "bug" && "Descreva o problema encontrado com o máximo de detalhes."}
-              {feedbackType === "feedback" && "Compartilhe suas ideias para melhorar o app."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="feedback-message">Mensagem</Label>
-              <Textarea
-                id="feedback-message"
-                placeholder={
-                  feedbackType === "question"
-                    ? "Qual é a sua dúvida?"
-                    : feedbackType === "bug"
-                    ? "O que aconteceu? Descreva os passos para reproduzir..."
-                    : "O que você gostaria de ver no app?"
-                }
-                value={feedbackMessage}
-                onChange={(e) => setFeedbackMessage(e.target.value)}
-                rows={5}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Responderemos para {user?.email}
-            </p>
+      <FormModalWrapper
+        open={showFeedbackModal}
+        onOpenChange={setShowFeedbackModal}
+        title={
+          feedbackType === "question" ? "Tirar dúvidas"
+          : feedbackType === "bug" ? "Reportar bug"
+          : "Enviar sugestão"
+        }
+        description={
+          feedbackType === "question" ? "Descreva sua dúvida e responderemos por email."
+          : feedbackType === "bug" ? "Descreva o problema encontrado com o máximo de detalhes."
+          : "Compartilhe suas ideias para melhorar o app."
+        }
+        isSubmitting={isSendingFeedback}
+        onSubmit={handleSendFeedback}
+        submitLabel="Enviar"
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="feedback-message">Mensagem</Label>
+            <Textarea
+              id="feedback-message"
+              placeholder={
+                feedbackType === "question"
+                  ? "Qual é a sua dúvida?"
+                  : feedbackType === "bug"
+                  ? "O que aconteceu? Descreva os passos para reproduzir..."
+                  : "O que você gostaria de ver no app?"
+              }
+              value={feedbackMessage}
+              onChange={(e) => setFeedbackMessage(e.target.value)}
+              rows={5}
+            />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowFeedbackModal(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSendFeedback} disabled={isSendingFeedback}>
-              {isSendingFeedback ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                "Enviar"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <p className="text-xs text-muted-foreground">
+            Responderemos para {user?.email}
+          </p>
+        </div>
+      </FormModalWrapper>
     </PageContent>
   );
 }

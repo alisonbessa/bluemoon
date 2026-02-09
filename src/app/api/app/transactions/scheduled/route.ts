@@ -89,24 +89,48 @@ export const GET = withAuthRequired(async (req, context) => {
   // If month is not "active", return empty scheduled transactions
   // The widget will show a banner to start the month
   if (monthStatus !== "active") {
-    // Check if there are any allocations for this month
-    const allocations = await db
-      .select({ id: monthlyAllocations.id })
-      .from(monthlyAllocations)
-      .where(
-        and(
-          eq(monthlyAllocations.budgetId, budgetId),
-          eq(monthlyAllocations.year, filterYear),
-          eq(monthlyAllocations.month, filterMonth)
+    // Check if there are any allocations for this month OR recurring bills/income sources configured
+    const [allocations, bills, sources] = await Promise.all([
+      db
+        .select({ id: monthlyAllocations.id })
+        .from(monthlyAllocations)
+        .where(
+          and(
+            eq(monthlyAllocations.budgetId, budgetId),
+            eq(monthlyAllocations.year, filterYear),
+            eq(monthlyAllocations.month, filterMonth)
+          )
         )
-      )
-      .limit(1);
+        .limit(1),
+      db
+        .select({ id: recurringBills.id })
+        .from(recurringBills)
+        .where(
+          and(
+            eq(recurringBills.budgetId, budgetId),
+            eq(recurringBills.isActive, true)
+          )
+        )
+        .limit(1),
+      db
+        .select({ id: incomeSources.id })
+        .from(incomeSources)
+        .where(
+          and(
+            eq(incomeSources.budgetId, budgetId),
+            eq(incomeSources.isActive, true)
+          )
+        )
+        .limit(1),
+    ]);
+
+    const hasSetup = allocations.length > 0 || bills.length > 0 || sources.length > 0;
 
     return successResponse({
       year: filterYear,
       month: filterMonth,
       monthStatus,
-      hasAllocations: allocations.length > 0,
+      hasAllocations: hasSetup,
       scheduledTransactions: [],
       totals: {
         expenses: 0,

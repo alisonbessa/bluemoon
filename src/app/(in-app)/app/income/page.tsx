@@ -107,7 +107,7 @@ export default function IncomePage() {
       {incomeSources.length > 0 ? (
         <div className="rounded-lg border bg-card overflow-x-auto">
           {/* Table Header */}
-          <div className="min-w-[400px]">
+          <div>
             <div
               className={COMPACT_TABLE_STYLES.header}
               style={{ gridTemplateColumns: gridCols }}

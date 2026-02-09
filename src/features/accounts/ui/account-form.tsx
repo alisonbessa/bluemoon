@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import {
@@ -11,15 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/shared/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { FormModalWrapper } from "@/shared/molecules";
 import { formatAmount, formatCurrencyFromDigits, parseCurrency } from "@/shared/lib/formatters";
 import type { AccountType, AccountFormData, AccountOwner } from "../types";
 
@@ -113,9 +104,7 @@ export function AccountForm({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     if (!validateForm()) {
       return;
     }
@@ -183,272 +172,252 @@ export function AccountForm({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>
-              {mode === "create" ? "Nova Conta" : "Editar Conta"}
-            </DialogTitle>
-            <DialogDescription>
-              {mode === "create"
-                ? "Adicione uma nova conta ou cartão ao seu orçamento"
-                : "Atualize os dados da sua conta"}
-            </DialogDescription>
-          </DialogHeader>
+    <FormModalWrapper
+      open={open}
+      onOpenChange={onOpenChange}
+      title={mode === "create" ? "Nova Conta" : "Editar Conta"}
+      description={
+        mode === "create"
+          ? "Adicione uma nova conta ou cartão ao seu orçamento"
+          : "Atualize os dados da sua conta"
+      }
+      isSubmitting={isSubmitting}
+      onSubmit={handleSubmit}
+      submitLabel={mode === "create" ? "Criar" : "Salvar"}
+      submitDisabled={!formData.name.trim()}
+    >
+      <div className="grid gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="type">Tipo</Label>
+          <Select
+            value={formData.type}
+            onValueChange={(value) => handleTypeChange(value as AccountType)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione o tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              {ACCOUNT_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  <span className="flex items-center gap-2">
+                    <span>{type.icon}</span>
+                    <span>{type.label}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-          <div className="grid gap-4 py-4">
+        <div className="grid gap-2">
+          <Label htmlFor="name" className={errors.name ? "text-destructive" : ""}>
+            Nome
+          </Label>
+          <Input
+            id="name"
+            placeholder={
+              isCreditCard
+                ? "Ex: Cartão Nubank, C6 Crédito"
+                : formData.type === "benefit"
+                  ? "Ex: Flash, VR Alelo"
+                  : formData.type === "savings"
+                    ? "Ex: Poupança Itaú, Reserva"
+                    : formData.type === "cash"
+                      ? "Ex: Carteira, Dinheiro Casa"
+                      : formData.type === "investment"
+                        ? "Ex: XP Investimentos, Nubank RDB"
+                        : "Ex: Conta Itaú, BB Corrente"
+            }
+            value={formData.name}
+            onChange={(e) => {
+              setFormData((prev) => ({ ...prev, name: e.target.value }));
+              if (errors.name && e.target.value.trim()) {
+                setErrors((prev) => ({ ...prev, name: false }));
+              }
+            }}
+            className={errors.name ? "border-destructive" : ""}
+          />
+        </div>
+
+        {/* Owner selector - Show for Duo plans or multi-member budgets */}
+        {showOwnerSelector && (
+          <div className="grid gap-2">
+            <Label htmlFor="owner">Proprietário</Label>
+            <Select
+              value={formData.ownerId || "shared"}
+              onValueChange={(value) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  ownerId: value === "shared" ? undefined : value,
+                }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o dono da conta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="shared">
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: "#9ca3af" }}
+                    />
+                    <span>Compartilhado</span>
+                  </span>
+                </SelectItem>
+                {members
+                  .filter((member) => member.type !== "pet")
+                  .map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: member.color || "#6366f1" }}
+                        />
+                        <span>{member.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Quem é responsável por esta conta
+            </p>
+          </div>
+        )}
+
+        {/* Balance + Credit Limit (side by side for credit cards) */}
+        <div className={isCreditCard ? "grid grid-cols-2 gap-4" : ""}>
+          <div className="grid gap-2">
+            <Label htmlFor="balance">{getBalanceLabel()}</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                R$
+              </span>
+              <Input
+                id="balance"
+                className="pl-10"
+                placeholder="0,00"
+                value={balanceInput}
+                onChange={(e) => {
+                  // Format as user types - only accept digits
+                  const formatted = formatCurrencyFromDigits(e.target.value);
+                  setBalanceInput(formatted);
+                }}
+                onFocus={(e) => {
+                  // Clear the input on focus if it's 0,00
+                  if (parseCurrency(balanceInput) === 0) {
+                    setBalanceInput("");
+                  }
+                  // Select all text
+                  e.target.select();
+                }}
+                onBlur={() => {
+                  // Ensure proper formatting on blur
+                  if (!balanceInput.trim()) {
+                    setBalanceInput("0,00");
+                  }
+                }}
+              />
+            </div>
+            {!isCreditCard && (
+              <p className="text-xs text-muted-foreground">
+                {getBalanceDescription()}
+              </p>
+            )}
+          </div>
+
+          {isCreditCard && (
             <div className="grid gap-2">
-              <Label htmlFor="type">Tipo</Label>
+              <Label htmlFor="creditLimit">Limite</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  R$
+                </span>
+                <Input
+                  id="creditLimit"
+                  className="pl-10"
+                  placeholder="0,00"
+                  value={creditLimitInput}
+                  onChange={(e) => {
+                    const formatted = formatCurrencyFromDigits(e.target.value);
+                    setCreditLimitInput(formatted);
+                  }}
+                  onFocus={(e) => {
+                    if (parseCurrency(creditLimitInput) === 0) {
+                      setCreditLimitInput("");
+                    }
+                    e.target.select();
+                  }}
+                  onBlur={() => {
+                    if (!creditLimitInput.trim()) {
+                      setCreditLimitInput("0,00");
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {isCreditCard && (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="closingDay">Dia do Fechamento</Label>
               <Select
-                value={formData.type}
-                onValueChange={(value) => handleTypeChange(value as AccountType)}
+                value={formData.closingDay?.toString() || ""}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    closingDay: parseInt(value),
+                  }))
+                }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
+                  <SelectValue placeholder="Dia" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ACCOUNT_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      <span className="flex items-center gap-2">
-                        <span>{type.icon}</span>
-                        <span>{type.label}</span>
-                      </span>
+                  {DAYS.map((day) => (
+                    <SelectItem key={day} value={day.toString()}>
+                      {day}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Quando a fatura &quot;vira&quot;
+              </p>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="name" className={errors.name ? "text-destructive" : ""}>
-                Nome
-              </Label>
-              <Input
-                id="name"
-                placeholder={
-                  isCreditCard
-                    ? "Ex: Cartão Nubank, C6 Crédito"
-                    : formData.type === "benefit"
-                      ? "Ex: Flash, VR Alelo"
-                      : formData.type === "savings"
-                        ? "Ex: Poupança Itaú, Reserva"
-                        : formData.type === "cash"
-                          ? "Ex: Carteira, Dinheiro Casa"
-                          : formData.type === "investment"
-                            ? "Ex: XP Investimentos, Nubank RDB"
-                            : "Ex: Conta Itaú, BB Corrente"
+              <Label htmlFor="dueDay">Dia do Vencimento</Label>
+              <Select
+                value={formData.dueDay?.toString() || ""}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    dueDay: parseInt(value),
+                  }))
                 }
-                value={formData.name}
-                onChange={(e) => {
-                  setFormData((prev) => ({ ...prev, name: e.target.value }));
-                  if (errors.name && e.target.value.trim()) {
-                    setErrors((prev) => ({ ...prev, name: false }));
-                  }
-                }}
-                className={errors.name ? "border-destructive" : ""}
-              />
-            </div>
-
-            {/* Owner selector - Show for Duo plans or multi-member budgets */}
-            {showOwnerSelector && (
-              <div className="grid gap-2">
-                <Label htmlFor="owner">Proprietário</Label>
-                <Select
-                  value={formData.ownerId || "shared"}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      ownerId: value === "shared" ? undefined : value,
-                    }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o dono da conta" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="shared">
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: "#9ca3af" }}
-                        />
-                        <span>Compartilhado</span>
-                      </span>
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Dia" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DAYS.map((day) => (
+                    <SelectItem key={day} value={day.toString()}>
+                      {day}
                     </SelectItem>
-                    {members
-                      .filter((member) => member.type !== "pet")
-                      .map((member) => (
-                        <SelectItem key={member.id} value={member.id}>
-                          <span className="flex items-center gap-2">
-                            <span
-                              className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: member.color || "#6366f1" }}
-                            />
-                            <span>{member.name}</span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Quem é responsável por esta conta
-                </p>
-              </div>
-            )}
-
-            {/* Balance + Credit Limit (side by side for credit cards) */}
-            <div className={isCreditCard ? "grid grid-cols-2 gap-4" : ""}>
-              <div className="grid gap-2">
-                <Label htmlFor="balance">{getBalanceLabel()}</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    R$
-                  </span>
-                  <Input
-                    id="balance"
-                    className="pl-10"
-                    placeholder="0,00"
-                    value={balanceInput}
-                    onChange={(e) => {
-                      // Format as user types - only accept digits
-                      const formatted = formatCurrencyFromDigits(e.target.value);
-                      setBalanceInput(formatted);
-                    }}
-                    onFocus={(e) => {
-                      // Clear the input on focus if it's 0,00
-                      if (parseCurrency(balanceInput) === 0) {
-                        setBalanceInput("");
-                      }
-                      // Select all text
-                      e.target.select();
-                    }}
-                    onBlur={() => {
-                      // Ensure proper formatting on blur
-                      if (!balanceInput.trim()) {
-                        setBalanceInput("0,00");
-                      }
-                    }}
-                  />
-                </div>
-                {!isCreditCard && (
-                  <p className="text-xs text-muted-foreground">
-                    {getBalanceDescription()}
-                  </p>
-                )}
-              </div>
-
-              {isCreditCard && (
-                <div className="grid gap-2">
-                  <Label htmlFor="creditLimit">Limite</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                      R$
-                    </span>
-                    <Input
-                      id="creditLimit"
-                      className="pl-10"
-                      placeholder="0,00"
-                      value={creditLimitInput}
-                      onChange={(e) => {
-                        const formatted = formatCurrencyFromDigits(e.target.value);
-                        setCreditLimitInput(formatted);
-                      }}
-                      onFocus={(e) => {
-                        if (parseCurrency(creditLimitInput) === 0) {
-                          setCreditLimitInput("");
-                        }
-                        e.target.select();
-                      }}
-                      onBlur={() => {
-                        if (!creditLimitInput.trim()) {
-                          setCreditLimitInput("0,00");
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Dia do pagamento
+              </p>
             </div>
-
-            {isCreditCard && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="closingDay">Dia do Fechamento</Label>
-                    <Select
-                      value={formData.closingDay?.toString() || ""}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          closingDay: parseInt(value),
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Dia" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DAYS.map((day) => (
-                          <SelectItem key={day} value={day.toString()}>
-                            {day}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Quando a fatura &quot;vira&quot;
-                    </p>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="dueDay">Dia do Vencimento</Label>
-                    <Select
-                      value={formData.dueDay?.toString() || ""}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          dueDay: parseInt(value),
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Dia" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DAYS.map((day) => (
-                          <SelectItem key={day} value={day.toString()}>
-                            {day}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Dia do pagamento
-                    </p>
-                  </div>
-                </div>
-              </>
-            )}
-
           </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting || !formData.name}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {mode === "create" ? "Adicionar" : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        )}
+      </div>
+    </FormModalWrapper>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { ChevronDown, Plus, MoreVertical } from 'lucide-react';
 import {
   DropdownMenu,
@@ -123,6 +124,12 @@ export function ExpensesSectionAccordion({
   onBillsChange,
   mobileViewMode = 'available',
 }: ExpensesSectionAccordionProps) {
+  const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
+
+  const handleToggleCategory = (categoryId: string) => {
+    setExpandedCategoryId((prev) => (prev === categoryId ? null : categoryId));
+  };
+
   if (groupsData.length === 0) {
     return null;
   }
@@ -332,6 +339,8 @@ export function ExpensesSectionAccordion({
                       onDeleteCategory={onDeleteCategory}
                       onBillsChange={onBillsChange}
                       mobileViewMode={mobileViewMode}
+                      isExpanded={expandedCategoryId === item.category.id}
+                      onToggleExpand={() => handleToggleCategory(item.category.id)}
                     />
                   );
                 })}

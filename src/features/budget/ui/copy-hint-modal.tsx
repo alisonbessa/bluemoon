@@ -2,14 +2,7 @@
 
 import { Button } from '@/shared/ui/button';
 import { Loader2, Copy } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/shared/ui/dialog';
+import { FormModalWrapper } from '@/shared/molecules';
 
 interface CopyHintModalProps {
   open: boolean;
@@ -29,29 +22,13 @@ export function CopyHintModal({
   previousMonthName,
 }: CopyHintModalProps) {
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onDismiss()}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Copy className="h-5 w-5 text-primary" />
-            Copiar planejamento anterior
-          </DialogTitle>
-          <DialogDescription>
-            Parece que {currentMonthName} ainda não tem um planejamento definido.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="py-4">
-          <p className="text-sm text-muted-foreground">
-            Você pode copiar o planejamento de{' '}
-            <span className="font-medium text-foreground">
-              {previousMonthName}
-            </span>{' '}
-            para começar rapidamente, ou definir os valores manualmente clicando em cada categoria.
-          </p>
-        </div>
-
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+    <FormModalWrapper
+      open={open}
+      onOpenChange={(isOpen) => !isOpen && onDismiss()}
+      title="Copiar planejamento anterior"
+      description={`Parece que ${currentMonthName} ainda não tem um planejamento definido.`}
+      footer={
+        <div className="flex flex-col sm:flex-row justify-end gap-2">
           <Button variant="outline" onClick={onDismiss} className="w-full sm:w-auto">
             Fazer manualmente
           </Button>
@@ -70,8 +47,16 @@ export function CopyHintModal({
             )}
             Copiar de {previousMonthName}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      }
+    >
+      <p className="text-sm text-muted-foreground">
+        Você pode copiar o planejamento de{' '}
+        <span className="font-medium text-foreground">
+          {previousMonthName}
+        </span>{' '}
+        para começar rapidamente, ou definir os valores manualmente clicando em cada categoria.
+      </p>
+    </FormModalWrapper>
   );
 }

@@ -45,7 +45,7 @@ interface FormModalWrapperProps {
 }
 
 const sizeClasses = {
-  sm: 'sm:max-w-sm',
+  sm: 'sm:max-w-lg',
   default: 'sm:max-w-lg',
   lg: 'sm:max-w-2xl',
   xl: 'sm:max-w-4xl',
@@ -146,15 +146,17 @@ export function FormModalWrapper({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={sizeClasses[size]}>
-        <DialogHeader>
+      <DialogContent className={cn(sizeClasses[size], "max-h-[85vh] flex flex-col")}>
+        <DialogHeader className="shrink-0">
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
 
-        <div className={cn("py-4", contentClassName)}>{children}</div>
+        <div className={cn("py-4 overflow-y-auto flex-1 -mx-6 px-6", contentClassName)}>
+          {children}
+        </div>
 
-        {renderFooter()}
+        <div className="shrink-0">{renderFooter()}</div>
       </DialogContent>
     </Dialog>
   );

@@ -187,7 +187,7 @@ export function GoalFormModal({
       }
       isSubmitting={isSubmitting}
       onSubmit={handleSubmit}
-      submitLabel={editingGoal ? "Salvar" : "Criar Meta"}
+      submitLabel={editingGoal ? "Salvar" : "Criar"}
     >
       <div className="grid gap-4">
         {/* Row 1: Name */}
