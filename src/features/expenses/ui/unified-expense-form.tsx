@@ -1,15 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/shared/ui/dialog';
-import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Switch } from '@/shared/ui/switch';
@@ -21,8 +12,13 @@ import {
   SelectValue,
 } from '@/shared/ui/select';
 import { CurrencyInput } from '@/shared/ui/currency-input';
-import { AccountSelector, DayOfMonthInput, WEEKDAYS, MONTH_NAMES_FULL } from '@/shared/molecules';
-import { Loader2 } from 'lucide-react';
+import {
+  FormModalWrapper,
+  AccountSelector,
+  DayOfMonthInput,
+  WEEKDAYS,
+  MONTH_NAMES_FULL,
+} from '@/shared/molecules';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -230,248 +226,237 @@ export function UnifiedExpenseForm({
       : 'Registrar uma despesa avulsa';
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+    <FormModalWrapper
+      open={isOpen}
+      onOpenChange={(open) => !open && onClose()}
+      title={title}
+      description={description}
+      isSubmitting={isSubmitting}
+      onSubmit={handleSubmit}
+      submitLabel={editingBill ? 'Salvar' : 'Criar'}
+      submitDisabled={!name.trim() || amount <= 0 || !accountId}
+    >
+      <div className="grid gap-4">
+        {/* Nome */}
+        <div className="grid gap-2">
+          <Label htmlFor="expense-name">Nome *</Label>
+          <Input
+            id="expense-name"
+            placeholder={
+              isRecurring ? 'Ex: Aluguel, Netflix...' : 'Ex: Compra no mercado...'
+            }
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoFocus
+          />
+        </div>
 
-        <div className="grid gap-4 py-4 overflow-y-auto flex-1 -mx-6 px-6">
-          {/* Nome */}
+        {/* Toggle Recorrente (só para nova despesa) */}
+        {!editingBill && (
+          <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+            <div className="space-y-0.5">
+              <Label
+                htmlFor="expense-recurring"
+                className="text-sm font-medium cursor-pointer"
+              >
+                É recorrente?
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {isRecurring ? 'Será gerada automaticamente' : 'Transação única'}
+              </p>
+            </div>
+            <Switch
+              id="expense-recurring"
+              checked={isRecurring}
+              onCheckedChange={setIsRecurring}
+            />
+          </div>
+        )}
+
+        {/* Valor + Frequência/Data */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="expense-name">Nome *</Label>
-            <Input
-              id="expense-name"
-              placeholder={
-                isRecurring ? 'Ex: Aluguel, Netflix...' : 'Ex: Compra no mercado...'
-              }
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
+            <Label htmlFor="expense-amount">Valor *</Label>
+            <CurrencyInput
+              id="expense-amount"
+              value={amount}
+              onChange={setAmount}
+              placeholder="0,00"
             />
           </div>
 
-          {/* Toggle Recorrente (só para nova despesa) */}
-          {!editingBill && (
-            <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
-              <div className="space-y-0.5">
-                <Label
-                  htmlFor="expense-recurring"
-                  className="text-sm font-medium cursor-pointer"
-                >
-                  É recorrente?
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {isRecurring ? 'Será gerada automaticamente' : 'Transação única'}
-                </p>
-              </div>
-              <Switch
-                id="expense-recurring"
-                checked={isRecurring}
-                onCheckedChange={setIsRecurring}
-              />
-            </div>
-          )}
-
-          {/* Valor + Frequência/Data */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="expense-amount">Valor *</Label>
-              <CurrencyInput
-                id="expense-amount"
-                value={amount}
-                onChange={setAmount}
-                placeholder="0,00"
-              />
-            </div>
-
-            {isRecurring ? (
-              <div className="grid gap-2">
-                <Label>Frequência</Label>
-                <Select
-                  value={frequency}
-                  onValueChange={(v) => {
-                    setFrequency(v as 'weekly' | 'monthly' | 'yearly');
-                    setDueDay(undefined);
-                    setDueMonth(undefined);
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FREQUENCY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div className="grid gap-2">
-                <Label htmlFor="expense-date">Data</Label>
-                <Input
-                  id="expense-date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Categoria + Dia (recorrente) ou só Categoria (avulsa) */}
           {isRecurring ? (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                {/* Categoria */}
-                <div className="grid gap-2">
-                  <Label>Categoria *</Label>
-                  <Select value={categoryId || ''} onValueChange={setCategoryId}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.icon} {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Dia da semana ou Dia do vencimento */}
-                {frequency === 'weekly' ? (
-                  <div className="grid gap-2">
-                    <Label>Dia da semana</Label>
-                    <Select
-                      value={dueDay?.toString() || ''}
-                      onValueChange={(v) => setDueDay(parseInt(v))}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {WEEKDAYS.map((day) => (
-                          <SelectItem key={day.value} value={day.value.toString()}>
-                            {day.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : (
-                  <DayOfMonthInput
-                    value={dueDay ?? null}
-                    onChange={(value) => setDueDay(value ?? undefined)}
-                    label="Dia do vencimento"
-                    placeholder="1-31"
-                  />
-                )}
-              </div>
-
-              {/* Mês - apenas para frequência anual */}
-              {frequency === 'yearly' && (
-                <div className="grid gap-2">
-                  <Label>Mês *</Label>
-                  <Select
-                    value={dueMonth?.toString() || ''}
-                    onValueChange={(v) => setDueMonth(parseInt(v))}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione o mês" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MONTH_NAMES_FULL.map((month, index) => (
-                        <SelectItem key={index + 1} value={(index + 1).toString()}>
-                          {month}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </>
-          ) : (
             <div className="grid gap-2">
-              <Label>Categoria</Label>
-              <Select value={categoryId || ''} onValueChange={setCategoryId}>
+              <Label>Frequência</Label>
+              <Select
+                value={frequency}
+                onValueChange={(v) => {
+                  setFrequency(v as 'weekly' | 'monthly' | 'yearly');
+                  setDueDay(undefined);
+                  setDueMonth(undefined);
+                }}
+              >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione uma categoria" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.icon} {cat.name}
+                  {FREQUENCY_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          )}
-
-          {/* Conta */}
-          <AccountSelector
-            value={accountId}
-            onChange={(value) => setAccountId(value || undefined)}
-            accounts={accounts}
-            label="Conta *"
-            allowNone={false}
-            placeholder="Selecione uma conta"
-          />
-
-          {/* Opções extras (só recorrente) */}
-          {isRecurring && (
-            <div className="grid gap-3 rounded-lg border p-3">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="expense-autoDebit" className="text-sm">
-                    Débito automático
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Confirmar automaticamente no vencimento
-                  </p>
-                </div>
-                <Switch
-                  id="expense-autoDebit"
-                  checked={isAutoDebit}
-                  onCheckedChange={setIsAutoDebit}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="expense-variable" className="text-sm">
-                    Valor variável
-                  </Label>
-                  <p className="text-xs text-muted-foreground">O valor é uma estimativa</p>
-                </div>
-                <Switch
-                  id="expense-variable"
-                  checked={isVariable}
-                  onCheckedChange={setIsVariable}
-                />
-              </div>
+          ) : (
+            <div className="grid gap-2">
+              <Label htmlFor="expense-date">Data</Label>
+              <Input
+                id="expense-date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
             </div>
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting || !name.trim() || amount <= 0 || !accountId}
-          >
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {editingBill ? 'Salvar' : 'Criar'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        {/* Categoria + Dia (recorrente) ou só Categoria (avulsa) */}
+        {isRecurring ? (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Categoria */}
+              <div className="grid gap-2">
+                <Label>Categoria *</Label>
+                <Select value={categoryId || ''} onValueChange={setCategoryId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.icon} {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Dia da semana ou Dia do vencimento */}
+              {frequency === 'weekly' ? (
+                <div className="grid gap-2">
+                  <Label>Dia da semana</Label>
+                  <Select
+                    value={dueDay?.toString() || ''}
+                    onValueChange={(v) => setDueDay(parseInt(v))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {WEEKDAYS.map((day) => (
+                        <SelectItem key={day.value} value={day.value.toString()}>
+                          {day.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <DayOfMonthInput
+                  value={dueDay ?? null}
+                  onChange={(value) => setDueDay(value ?? undefined)}
+                  label="Dia do vencimento"
+                  placeholder="1-31"
+                />
+              )}
+            </div>
+
+            {/* Mês - apenas para frequência anual */}
+            {frequency === 'yearly' && (
+              <div className="grid gap-2">
+                <Label>Mês *</Label>
+                <Select
+                  value={dueMonth?.toString() || ''}
+                  onValueChange={(v) => setDueMonth(parseInt(v))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione o mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTH_NAMES_FULL.map((month, index) => (
+                      <SelectItem key={index + 1} value={(index + 1).toString()}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="grid gap-2">
+            <Label>Categoria</Label>
+            <Select value={categoryId || ''} onValueChange={setCategoryId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione uma categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.icon} {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Conta */}
+        <AccountSelector
+          value={accountId}
+          onChange={(value) => setAccountId(value || undefined)}
+          accounts={accounts}
+          label="Conta *"
+          allowNone={false}
+          placeholder="Selecione uma conta"
+        />
+
+        {/* Opções extras (só recorrente) */}
+        {isRecurring && (
+          <div className="grid gap-3 rounded-lg border p-3">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="expense-autoDebit" className="text-sm">
+                  Débito automático
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Confirmar automaticamente no vencimento
+                </p>
+              </div>
+              <Switch
+                id="expense-autoDebit"
+                checked={isAutoDebit}
+                onCheckedChange={setIsAutoDebit}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="expense-variable" className="text-sm">
+                  Valor variável
+                </Label>
+                <p className="text-xs text-muted-foreground">O valor é uma estimativa</p>
+              </div>
+              <Switch
+                id="expense-variable"
+                checked={isVariable}
+                onCheckedChange={setIsVariable}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </FormModalWrapper>
   );
 }
