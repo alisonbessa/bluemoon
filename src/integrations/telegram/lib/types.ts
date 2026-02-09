@@ -182,6 +182,7 @@ export interface UserContext {
     id: string;
     name: string;
     type: string;
+    closingDay?: number | null;
   }>;
   pendingTransactions: PendingTransaction[];
   defaultAccountId?: string;
@@ -225,6 +226,7 @@ export interface BudgetInfo {
     id: string;
     name: string;
     type: string;
+    closingDay?: number | null;
   }>;
   pendingTransactions: PendingTransaction[];
 }

@@ -14,12 +14,13 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Switch } from '@/shared/ui/switch';
 import { formatCurrencyFromDigits, parseCurrency } from '@/shared/lib/formatters';
-import type { Category, Account, IncomeSource, TransactionFormData, TransactionType } from '../types';
+import type { Category, Account, IncomeSource, Transaction, TransactionFormData, TransactionType } from '../types';
 
 interface TransactionFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   isEditing: boolean;
+  editingTransaction?: Transaction | null;
   formData: TransactionFormData;
   setFormData: React.Dispatch<React.SetStateAction<TransactionFormData>>;
   categories: Category[];
@@ -27,12 +28,15 @@ interface TransactionFormModalProps {
   incomeSources: IncomeSource[];
   isSubmitting: boolean;
   onSubmit: () => void;
+  applyToSeries?: boolean;
+  onApplyToSeriesChange?: (value: boolean) => void;
 }
 
 export function TransactionFormModal({
   isOpen,
   onClose,
   isEditing,
+  editingTransaction,
   formData,
   setFormData,
   categories,
@@ -40,6 +44,8 @@ export function TransactionFormModal({
   incomeSources,
   isSubmitting,
   onSubmit,
+  applyToSeries,
+  onApplyToSeriesChange,
 }: TransactionFormModalProps) {
   const typeOptions = [
     { value: 'expense', label: 'Despesa', color: 'text-red-500' },
@@ -51,6 +57,9 @@ export function TransactionFormModal({
   const selectedAccount = accounts.find(a => a.id === formData.accountId);
   const isCreditCard = selectedAccount?.type === 'credit_card';
   const showInstallmentOption = formData.type === 'expense' && isCreditCard && !isEditing;
+
+  // Series editing: show when editing an installment transaction
+  const showSeriesOption = isEditing && editingTransaction?.isInstallment;
 
   return (
     <FormModalWrapper
@@ -250,6 +259,25 @@ export function TransactionFormModal({
               }
             />
           </div>
+
+          {/* Series editing option (when editing an installment) */}
+          {showSeriesOption && onApplyToSeriesChange && (
+            <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+              <div className="grid gap-0.5">
+                <Label htmlFor="applyToSeries" className="cursor-pointer">
+                  Aplicar em todas as parcelas
+                </Label>
+                <span className="text-xs text-muted-foreground">
+                  As alterações serão aplicadas em todas as {editingTransaction?.totalInstallments} parcelas
+                </span>
+              </div>
+              <Switch
+                id="applyToSeries"
+                checked={applyToSeries || false}
+                onCheckedChange={onApplyToSeriesChange}
+              />
+            </div>
+          )}
 
           {/* Installment option (only for credit card expenses, not when editing) */}
           {showInstallmentOption && (

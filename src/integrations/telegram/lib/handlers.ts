@@ -33,6 +33,7 @@ import { handleVoiceMessage, isValidAudioDuration, isValidAudioSize } from "./vo
 import { markTransactionAsPaid } from "./transaction-matcher";
 import { getTodayNoonUTC } from "./telegram-utils";
 import { markLogAsConfirmed, markLogAsCancelled } from "./ai-logger";
+import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 
 const logger = createLogger("telegram:handlers");
 
@@ -171,6 +172,7 @@ async function getUserBudgetInfo(userId: string) {
       id: a.id,
       name: a.name,
       type: a.type,
+      closingDay: a.closingDay,
     })),
     pendingTransactions,
   };
@@ -788,6 +790,23 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
       const installmentAmount = Math.round(context.pendingExpense.amount / totalInstallments);
       const transactionDate = getTodayNoonUTC();
 
+      // Check if account is a credit card with billing cycle
+      const account = budgetInfo.accounts.find(a => a.id === transactionAccountId);
+      const closingDay = account?.type === "credit_card" ? account.closingDay : null;
+
+      // Calculate installment dates using billing cycle if available
+      let installmentDates: Date[];
+      if (closingDay) {
+        const firstDate = getFirstInstallmentDate(transactionDate, closingDay);
+        installmentDates = calculateInstallmentDates(firstDate, totalInstallments);
+      } else {
+        installmentDates = Array.from({ length: totalInstallments }, (_, i) => {
+          const d = new Date(transactionDate);
+          d.setMonth(d.getMonth() + i);
+          return d;
+        });
+      }
+
       // Create parent transaction (first installment)
       const [parentTransaction] = await db
         .insert(transactions)
@@ -800,7 +819,7 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
           status: "cleared",
           amount: installmentAmount,
           description: capitalizedDescription,
-          date: transactionDate,
+          date: installmentDates[0],
           isInstallment: true,
           installmentNumber: 1,
           totalInstallments,
@@ -809,27 +828,22 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
         .returning();
 
       // Batch insert remaining installments
-      const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => {
-        const installmentDate = new Date(transactionDate);
-        installmentDate.setMonth(installmentDate.getMonth() + (i + 1));
-
-        return {
-          budgetId: budgetInfo.budget.id,
-          accountId: transactionAccountId,
-          categoryId: context.pendingExpense!.categoryId,
-          memberId: budgetInfo.member.id,
-          type: "expense" as const,
-          status: "cleared" as const,
-          amount: installmentAmount,
-          description: capitalizedDescription,
-          date: installmentDate,
-          isInstallment: true,
-          installmentNumber: i + 2,
-          totalInstallments,
-          parentTransactionId: parentTransaction.id,
-          source: "telegram" as const,
-        };
-      });
+      const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => ({
+        budgetId: budgetInfo.budget.id,
+        accountId: transactionAccountId,
+        categoryId: context.pendingExpense!.categoryId,
+        memberId: budgetInfo.member.id,
+        type: "expense" as const,
+        status: "cleared" as const,
+        amount: installmentAmount,
+        description: capitalizedDescription,
+        date: installmentDates[i + 1],
+        isInstallment: true,
+        installmentNumber: i + 2,
+        totalInstallments,
+        parentTransactionId: parentTransaction.id,
+        source: "telegram" as const,
+      }));
 
       if (installmentValues.length > 0) {
         await db.insert(transactions).values(installmentValues);
@@ -1430,6 +1444,23 @@ async function handleGroupSelection(chatId: number, groupId: string, callbackQue
     const installmentAmount = Math.round(context.pendingExpense.amount / totalInstallments);
     const transactionDate = getTodayNoonUTC();
 
+    // Check if account is a credit card with billing cycle
+    const account = budgetInfo.accounts.find(a => a.id === transactionAccountId);
+    const closingDay = account?.type === "credit_card" ? account.closingDay : null;
+
+    // Calculate installment dates using billing cycle if available
+    let installmentDates: Date[];
+    if (closingDay) {
+      const firstDate = getFirstInstallmentDate(transactionDate, closingDay);
+      installmentDates = calculateInstallmentDates(firstDate, totalInstallments);
+    } else {
+      installmentDates = Array.from({ length: totalInstallments }, (_, i) => {
+        const d = new Date(transactionDate);
+        d.setMonth(d.getMonth() + i);
+        return d;
+      });
+    }
+
     // Create parent transaction (first installment)
     const [parentTransaction] = await db
       .insert(transactions)
@@ -1442,7 +1473,7 @@ async function handleGroupSelection(chatId: number, groupId: string, callbackQue
         status: "cleared",
         amount: installmentAmount,
         description: capitalizedDescription,
-        date: transactionDate,
+        date: installmentDates[0],
         isInstallment: true,
         installmentNumber: 1,
         totalInstallments,
@@ -1451,27 +1482,22 @@ async function handleGroupSelection(chatId: number, groupId: string, callbackQue
       .returning();
 
     // Batch insert remaining installments
-    const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => {
-      const installmentDate = new Date(transactionDate);
-      installmentDate.setMonth(installmentDate.getMonth() + (i + 1));
-
-      return {
-        budgetId: budgetInfo.budget.id,
-        accountId: transactionAccountId,
-        categoryId: newCategory.id,
-        memberId: budgetInfo.member.id,
-        type: "expense" as const,
-        status: "cleared" as const,
-        amount: installmentAmount,
-        description: capitalizedDescription,
-        date: installmentDate,
-        isInstallment: true,
-        installmentNumber: i + 2,
-        totalInstallments,
-        parentTransactionId: parentTransaction.id,
-        source: "telegram" as const,
-      };
-    });
+    const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => ({
+      budgetId: budgetInfo.budget.id,
+      accountId: transactionAccountId,
+      categoryId: newCategory.id,
+      memberId: budgetInfo.member.id,
+      type: "expense" as const,
+      status: "cleared" as const,
+      amount: installmentAmount,
+      description: capitalizedDescription,
+      date: installmentDates[i + 1],
+      isInstallment: true,
+      installmentNumber: i + 2,
+      totalInstallments,
+      parentTransactionId: parentTransaction.id,
+      source: "telegram" as const,
+    }));
 
     if (installmentValues.length > 0) {
       await db.insert(transactions).values(installmentValues);

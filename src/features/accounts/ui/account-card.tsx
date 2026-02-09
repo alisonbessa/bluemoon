@@ -58,6 +58,12 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
     ? account.creditLimit - account.balance
     : null;
 
+  // Current bill from billing cycle (if available), otherwise fall back to balance
+  const currentBill = isCreditCard
+    ? (account.currentBill != null ? account.currentBill : account.balance)
+    : null;
+  const showTotalDue = isCreditCard && account.currentBill != null && account.balance !== account.currentBill;
+
   return (
     <Card className="group relative overflow-hidden transition-all hover:shadow-md">
       <CardContent className="p-4">
@@ -121,7 +127,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
               className={cn(
                 "text-lg font-bold",
                 isCreditCard
-                  ? account.balance > 0
+                  ? (currentBill || 0) > 0
                     ? "text-destructive"
                     : "text-foreground"
                   : account.balance >= 0
@@ -129,10 +135,21 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                   : "text-destructive"
               )}
             >
-              {isCreditCard && account.balance > 0 && "-"}
-              {formatCurrency(Math.abs(account.balance))}
+              {isCreditCard && (currentBill || 0) > 0 && "-"}
+              {isCreditCard
+                ? formatCurrency(Math.abs(currentBill || 0))
+                : formatCurrency(Math.abs(account.balance))}
             </span>
           </div>
+
+          {showTotalDue && (
+            <div className="flex items-baseline justify-between text-sm">
+              <span className="text-muted-foreground">Total Devido</span>
+              <span className="text-destructive">
+                -{formatCurrency(Math.abs(account.balance))}
+              </span>
+            </div>
+          )}
 
           {isCreditCard && account.creditLimit && (
             <>

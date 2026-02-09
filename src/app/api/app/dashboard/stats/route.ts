@@ -8,6 +8,7 @@ import {
   successResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
+import { getBillingCycleDates } from "@/shared/lib/billing-cycle";
 
 // GET - Get dashboard statistics including daily data for charts
 export const GET = withAuthRequired(async (req, context) => {
@@ -123,45 +124,65 @@ export const GET = withAuthRequired(async (req, context) => {
     });
   }
 
-  // Get credit card spending per card for current month
-  const creditCardSpending = await db
+  // Get credit card accounts
+  const creditCardAccounts = await db
     .select({
-      accountId: financialAccounts.id,
-      accountName: financialAccounts.name,
-      accountIcon: financialAccounts.icon,
+      id: financialAccounts.id,
+      name: financialAccounts.name,
+      icon: financialAccounts.icon,
       creditLimit: financialAccounts.creditLimit,
-      spent: sql<number>`COALESCE(ABS(SUM(${transactions.amount})), 0)`,
+      closingDay: financialAccounts.closingDay,
     })
     .from(financialAccounts)
-    .leftJoin(
-      transactions,
-      and(
-        eq(transactions.accountId, financialAccounts.id),
-        eq(transactions.type, "expense"),
-        gte(transactions.date, startDate),
-        lte(transactions.date, endDate),
-        inArray(transactions.status, ["pending", "cleared", "reconciled"])
-      )
-    )
     .where(
       and(
         eq(financialAccounts.budgetId, budgetId),
         eq(financialAccounts.type, "credit_card"),
         eq(financialAccounts.isArchived, false)
       )
-    )
-    .groupBy(financialAccounts.id, financialAccounts.name, financialAccounts.icon, financialAccounts.creditLimit);
+    );
+
+  // Calculate spending per card using billing cycle dates
+  const creditCards = await Promise.all(
+    creditCardAccounts.map(async (cc) => {
+      // Use billing cycle dates if closingDay is set, otherwise calendar month
+      let ccStartDate = startDate;
+      let ccEndDate = endDate;
+      if (cc.closingDay) {
+        const cycle = getBillingCycleDates(cc.closingDay, year, month);
+        ccStartDate = cycle.start;
+        ccEndDate = cycle.end;
+      }
+
+      const [result] = await db
+        .select({
+          spent: sql<number>`COALESCE(ABS(SUM(${transactions.amount})), 0)`,
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.accountId, cc.id),
+            eq(transactions.type, "expense"),
+            gte(transactions.date, ccStartDate),
+            lte(transactions.date, ccEndDate),
+            inArray(transactions.status, ["pending", "cleared", "reconciled"])
+          )
+        );
+
+      return {
+        id: cc.id,
+        name: cc.name,
+        icon: cc.icon,
+        creditLimit: cc.creditLimit || 0,
+        spent: Number(result?.spent) || 0,
+        available: (cc.creditLimit || 0) - (Number(result?.spent) || 0),
+      };
+    })
+  );
 
   return successResponse({
     dailyChartData,
     monthlyComparison: monthlyData,
-    creditCards: creditCardSpending.map((cc) => ({
-      id: cc.accountId,
-      name: cc.accountName,
-      icon: cc.accountIcon,
-      creditLimit: cc.creditLimit || 0,
-      spent: Number(cc.spent) || 0,
-      available: (cc.creditLimit || 0) - (Number(cc.spent) || 0),
-    })),
+    creditCards,
   });
 });
