@@ -1,6 +1,6 @@
 import { MetadataRoute } from "next";
 import { getAllBlogs } from "@/shared/lib/mdx/blogs";
-import { source } from "@/shared/lib/docs/source";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL!;
   const blogs = await getAllBlogs();
@@ -38,13 +38,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  // Docs pages
-  const docsPages = source.getPages().map((page) => ({
-    url: `${baseUrl}/docs/${page.slugs.join("/")}`,
-    lastModified: new Date(page.data.lastModified ?? new Date()),
-    changeFrequency: "monthly" as const,
-    priority: 0.7,
-  }));
-
-  return [...staticPages, ...policyPages, ...blogPages, ...docsPages];
+  return [...staticPages, ...policyPages, ...blogPages];
 }

@@ -22,14 +22,14 @@ import { WebPageJsonLd } from "next-seo";
 
 const formSchema = z.object({
   name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
+    message: "O nome deve ter pelo menos 2 caracteres.",
   }),
   email: z.string().email({
-    message: "Please enter a valid email address.",
+    message: "Por favor, insira um email válido.",
   }),
   company: z.string().optional(),
   message: z.string().min(10, {
-    message: "Message must be at least 10 characters.",
+    message: "A mensagem deve ter pelo menos 10 caracteres.",
   }),
 });
 
@@ -63,10 +63,10 @@ export default function ContactPage() {
         throw new Error("Failed to submit form");
       }
 
-      toast.success("Thank you for your message! We'll get back to you soon.");
+      toast.success("Obrigado pela sua mensagem! Responderemos em breve.");
       form.reset();
     } catch {
-      toast.error("Something went wrong. Please try again later.");
+      toast.error("Algo deu errado. Por favor, tente novamente mais tarde.");
     } finally {
       setIsSubmitting(false);
     }
@@ -77,8 +77,8 @@ export default function ContactPage() {
       <WebPageJsonLd
         useAppDir
         id={`${process.env.NEXT_PUBLIC_APP_URL}/contact`}
-        title="Contact Us"
-        description="Get in touch with us. We'd love to hear from you."
+        title="Fale Conosco"
+        description="Entre em contato conosco. Adoraríamos ouvir você."
         isAccessibleForFree={true}
         publisher={{
           "@type": "Organization",
@@ -92,7 +92,6 @@ export default function ContactPage() {
           },
         }}
       />
-      {/* Hero Section */}
       <section className="relative w-full overflow-hidden bg-linear-to-br from-primary via-primary/90 to-primary py-20 text-primary-foreground">
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff33_1px,transparent_1px),linear-gradient(to_bottom,#ffffff33_1px,transparent_1px)] bg-size-[14px_14px]" />
@@ -100,26 +99,23 @@ export default function ContactPage() {
         </div>
         <div className="container relative mx-auto px-4">
           <div className="mx-auto max-w-2xl space-y-4 text-center">
-            <h1 className="text-3xl font-bold md:text-5xl">Get in Touch</h1>
+            <h1 className="text-3xl font-bold md:text-5xl">Fale Conosco</h1>
             <p className="text-xl text-primary-foreground/90">
-              Have questions? We&apos;d love to hear from you. Send us a message
-              and we&apos;ll respond as soon as possible.
+              Tem alguma dúvida? Adoraríamos ouvir você. Envie uma mensagem
+              e responderemos o mais rápido possível.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Contact Section */}
       <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="mx-auto grid max-w-6xl gap-16 md:grid-cols-2">
-            {/* Contact Information */}
             <div className="space-y-12">
               <div>
-                <h2 className="mb-6 text-2xl font-bold">Contact Information</h2>
+                <h2 className="mb-6 text-2xl font-bold">Informações de Contato</h2>
                 <p className="mb-8 text-muted-foreground">
-                  Fill up the form and our Team will get back to you within 24
-                  hours.
+                  Preencha o formulário e nossa equipe retornará em até 24 horas.
                 </p>
               </div>
 
@@ -127,17 +123,17 @@ export default function ContactPage() {
                 {[
                   {
                     icon: Phone,
-                    title: "Call Us",
+                    title: "Telefone",
                     details: [appConfig.legal.phone],
                   },
                   {
                     icon: Mail,
-                    title: "Email Us",
+                    title: "Email",
                     details: [appConfig.legal.email],
                   },
                   {
                     icon: MapPin,
-                    title: "Visit Us",
+                    title: "Endereço",
                     details: [
                       appConfig.projectName,
                       appConfig.legal.address.street,
@@ -167,9 +163,8 @@ export default function ContactPage() {
               </div>
             </div>
 
-            {/* Contact Form */}
             <div className="rounded-2xl border bg-card p-8 shadow-lg">
-              <h2 className="mb-6 text-2xl font-bold">Send us a Message</h2>
+              <h2 className="mb-6 text-2xl font-bold">Envie uma Mensagem</h2>
               <Form {...form}>
                 <form
                   onSubmit={form.handleSubmit(onSubmit)}
@@ -180,9 +175,9 @@ export default function ContactPage() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Name</FormLabel>
+                        <FormLabel>Nome</FormLabel>
                         <FormControl>
-                          <Input placeholder="John Doe" {...field} />
+                          <Input placeholder="Seu nome" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -198,7 +193,7 @@ export default function ContactPage() {
                         <FormControl>
                           <Input
                             type="email"
-                            placeholder="john@example.com"
+                            placeholder="seu@email.com"
                             {...field}
                           />
                         </FormControl>
@@ -212,9 +207,9 @@ export default function ContactPage() {
                     name="company"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Company (Optional)</FormLabel>
+                        <FormLabel>Empresa (Opcional)</FormLabel>
                         <FormControl>
-                          <Input placeholder="Acme Inc." {...field} />
+                          <Input placeholder="Sua empresa" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -226,10 +221,10 @@ export default function ContactPage() {
                     name="message"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Message</FormLabel>
+                        <FormLabel>Mensagem</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="Tell us how we can help..."
+                            placeholder="Como podemos ajudar..."
                             className="min-h-[120px] resize-y"
                             {...field}
                           />
@@ -245,7 +240,7 @@ export default function ContactPage() {
                     size="lg"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? "Sending..." : "Send Message"}
+                    {isSubmitting ? "Enviando..." : "Enviar Mensagem"}
                   </Button>
                 </form>
               </Form>

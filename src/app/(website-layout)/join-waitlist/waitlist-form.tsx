@@ -18,8 +18,8 @@ import { Input } from "@/shared/ui/input";
 import { toast } from "sonner";
 
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Please enter a valid email"),
+  name: z.string().min(2, "O nome deve ter pelo menos 2 caracteres"),
+  email: z.string().email("Por favor, insira um email válido"),
   twitterAccount: z.string().optional(),
 });
 
@@ -56,13 +56,13 @@ export default function WaitlistForm() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Something went wrong");
+        throw new Error(result.error || "Algo deu errado");
       }
 
       router.push("/join-waitlist/success");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to join waitlist"
+        error instanceof Error ? error.message : "Falha ao entrar na lista de espera"
       );
       setIsSubmitting(false);
     }
@@ -76,9 +76,9 @@ export default function WaitlistForm() {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel>Nome</FormLabel>
               <FormControl>
-                <Input placeholder="John Doe" {...field} />
+                <Input placeholder="Seu nome" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -92,7 +92,7 @@ export default function WaitlistForm() {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="john@example.com" {...field} />
+                <Input type="email" placeholder="seu@email.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -104,9 +104,9 @@ export default function WaitlistForm() {
           name="twitterAccount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Twitter Account (Optional)</FormLabel>
+              <FormLabel>Conta no Twitter (Opcional)</FormLabel>
               <FormControl>
-                <Input placeholder="@johndoe" {...field} />
+                <Input placeholder="@seuusuario" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -114,7 +114,7 @@ export default function WaitlistForm() {
         />
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? "Joining..." : "Join Waitlist"}
+          {isSubmitting ? "Entrando..." : "Entrar na Lista de Espera"}
         </Button>
       </form>
     </Form>

@@ -63,13 +63,13 @@ export default async function CookiePolicyPage() {
         }}
         about={{
           "@type": "Thing",
-          name: "Cookie Policy",
+          name: "Política de Cookies",
         }}
       />
       <header className="mb-8 space-y-4">
         <h1 className="text-4xl font-bold">{policy.frontmatter.title}</h1>
         <p className="text-sm text-muted-foreground">
-          Last updated: {format(new Date(policy.frontmatter.lastUpdated), "MMMM d, yyyy")}
+          Última atualização: {format(new Date(policy.frontmatter.lastUpdated), "dd/MM/yyyy")}
         </p>
       </header>
 

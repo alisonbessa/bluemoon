@@ -30,19 +30,19 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </div>
 
         <p className="text-center text-sm text-muted-foreground">
-          By continuing, you agree to our{" "}
+          Ao continuar, você concorda com nossos{" "}
           <Link
             href="/terms"
             className="font-medium text-primary hover:text-primary/90 underline underline-offset-4"
           >
-            Terms of Service
+            Termos de Uso
           </Link>{" "}
-          and{" "}
+          e{" "}
           <Link
             href="/privacy"
             className="font-medium text-primary hover:text-primary/90 underline underline-offset-4"
           >
-            Privacy Policy
+            Política de Privacidade
           </Link>
         </p>
       </div>

@@ -61,12 +61,7 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    return [
-      {
-        source: "/docs/:path*.mdx",
-        destination: "/llms.mdx/:path*",
-      },
-    ];
+    return [];
   },
   experimental: {
     authInterrupts: true,

@@ -3,11 +3,11 @@ import { WebPageJsonLd } from "next-seo";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: `About Us | ${appConfig.projectName}`,
-  description: "Learn more about our company, mission, and values.",
+  title: `Sobre Nós | ${appConfig.projectName}`,
+  description: "Conheça mais sobre o HiveBudget, nossa missão e nossos valores.",
   openGraph: {
-    title: `About Us | ${appConfig.projectName}`,
-    description: "Learn more about our company, mission, and values.",
+    title: `Sobre Nós | ${appConfig.projectName}`,
+    description: "Conheça mais sobre o HiveBudget, nossa missão e nossos valores.",
     type: "website",
     url: `${process.env.NEXT_PUBLIC_APP_URL}/about`,
     images: [
@@ -15,14 +15,14 @@ export const metadata: Metadata = {
         url: `${process.env.NEXT_PUBLIC_APP_URL}/images/og.png`,
         width: 1200,
         height: 630,
-        alt: "About Us",
+        alt: "Sobre Nós",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: `About Us | ${appConfig.projectName}`,
-    description: "Learn more about our company, mission, and values.",
+    title: `Sobre Nós | ${appConfig.projectName}`,
+    description: "Conheça mais sobre o HiveBudget, nossa missão e nossos valores.",
     images: [`${process.env.NEXT_PUBLIC_APP_URL}/images/og.png`],
   },
   alternates: {
@@ -36,8 +36,8 @@ export default function AboutPage() {
       <WebPageJsonLd
         useAppDir
         id={`${process.env.NEXT_PUBLIC_APP_URL}/about`}
-        title={`About Us | ${appConfig.projectName}`}
-        description="Learn more about our company, mission, and values."
+        title={`Sobre Nós | ${appConfig.projectName}`}
+        description="Conheça mais sobre o HiveBudget, nossa missão e nossos valores."
         isAccessibleForFree={true}
         publisher={{
           "@type": "Organization",
@@ -46,50 +46,47 @@ export default function AboutPage() {
         }}
       />
       <div className="mx-auto max-w-3xl space-y-12">
-        {/* Hero Section */}
         <header className="space-y-4 text-center">
           <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl">
-            About {appConfig.projectName}
+            Sobre o {appConfig.projectName}
           </h1>
           <p className="text-xl text-muted-foreground">
-            Building the future of web publishing, one post at a time.
+            Ajudando famílias brasileiras a tomarem o controle das suas finanças, juntas.
           </p>
         </header>
 
-        {/* Mission Section */}
         <section className="space-y-4" aria-labelledby="mission">
-          <h2 id="mission" className="text-2xl font-semibold">Our Mission</h2>
+          <h2 id="mission" className="text-2xl font-semibold">Nossa Missão</h2>
           <p className="leading-relaxed text-muted-foreground">
-            At {appConfig.projectName}, we believe in empowering creators with the tools they need to publish their content independently. Our platform combines the simplicity of traditional blogging with the power of modern web technologies, making it easier than ever to share your stories with the world.
+            No {appConfig.projectName}, acreditamos que organizar as finanças não precisa ser complicado. Nossa plataforma combina planejamento de orçamento inteligente com colaboração em tempo real, tornando mais fácil do que nunca para casais e famílias controlarem seu dinheiro juntos.
           </p>
         </section>
 
-        {/* Values Section */}
         <section className="space-y-4" aria-labelledby="values">
-          <h2 id="values" className="text-2xl font-semibold">Our Values</h2>
+          <h2 id="values" className="text-2xl font-semibold">Nossos Valores</h2>
           <div className="grid gap-6 sm:grid-cols-2">
             <article className="space-y-2">
-              <h3 className="font-medium">Simplicity</h3>
+              <h3 className="font-medium">Simplicidade</h3>
               <p className="text-sm text-muted-foreground">
-                We believe in making complex things simple. Our tools are powerful yet intuitive, designed to let you focus on what matters most - your content.
+                Acreditamos em tornar coisas complexas simples. Nossas ferramentas são poderosas e intuitivas, feitas para você focar no que importa — suas finanças.
               </p>
             </article>
             <article className="space-y-2">
-              <h3 className="font-medium">Independence</h3>
+              <h3 className="font-medium">Colaboração</h3>
               <p className="text-sm text-muted-foreground">
-                We champion the independent web. Our platform gives you full control over your content and how it&apos;s presented to the world.
+                Finanças em família funcionam melhor quando todos participam. Nossa plataforma permite que casais e famílias planejem e acompanhem juntos, com transparência.
               </p>
             </article>
             <article className="space-y-2">
-              <h3 className="font-medium">Innovation</h3>
+              <h3 className="font-medium">Acessibilidade</h3>
               <p className="text-sm text-muted-foreground">
-                We&apos;re constantly pushing the boundaries of what&apos;s possible in web publishing, bringing you the latest technologies and best practices.
+                Controle financeiro deve ser acessível para todos. Oferecemos preços justos e uma experiência pensada para o dia a dia do brasileiro.
               </p>
             </article>
             <article className="space-y-2">
-              <h3 className="font-medium">Community</h3>
+              <h3 className="font-medium">Privacidade</h3>
               <p className="text-sm text-muted-foreground">
-                We believe in the power of community. We&apos;re building tools that help creators connect with their audience and each other.
+                Seus dados financeiros são seus. Tratamos sua privacidade com seriedade e nunca compartilhamos suas informações com terceiros.
               </p>
             </article>
           </div>
@@ -97,4 +94,4 @@ export default function AboutPage() {
       </div>
     </article>
   );
-} 
+}
