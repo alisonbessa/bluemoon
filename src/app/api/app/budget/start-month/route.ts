@@ -56,8 +56,7 @@ export const POST = withAuthRequired(async (req, context) => {
   // Use centralized function that handles all frequencies (weekly, biweekly, monthly, yearly)
   const result = await ensurePendingTransactionsForMonth(budgetId, year, month);
 
-  if (result.created === 0 && result.alreadyExisted) {
-    // No account found
+  if (result.noAccount) {
     return errorResponse("Nenhuma conta encontrada. Crie uma conta primeiro.", 400);
   }
 

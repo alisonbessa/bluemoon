@@ -137,25 +137,34 @@ export default function TransactionsPage() {
       return;
     }
 
-    const response = await fetch("/api/app/budget/start-month", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        budgetId: budgets[0].id,
-        year: periodValue.year,
-        month: periodValue.month,
-      }),
-    });
+    try {
+      const response = await fetch("/api/app/budget/start-month", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          budgetId: budgets[0].id,
+          year: periodValue.year,
+          month: periodValue.month,
+        }),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Erro ao iniciar o mês");
+      if (!response.ok) {
+        toast.error(data.error || "Erro ao iniciar o mês");
+        return;
+      }
+
+      if (data.createdTransactions > 0) {
+        toast.success(`Mês iniciado! ${data.createdTransactions} transações criadas.`);
+      } else {
+        toast.success("Mês iniciado!");
+      }
+      triggerWidgetRefresh();
+      fetchData();
+    } catch (error) {
+      toast.error("Erro ao iniciar o mês. Tente novamente.");
     }
-
-    toast.success(`Mês iniciado! ${data.createdTransactions} transações criadas.`);
-    triggerWidgetRefresh();
-    fetchData();
   }, [budgets, periodValue, fetchData, triggerWidgetRefresh]);
 
   const handleCopyPreviousMonth = useCallback(async () => {
