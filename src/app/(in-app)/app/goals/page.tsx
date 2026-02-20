@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/shared/lib/formatters";
-import confetti from "canvas-confetti";
+// canvas-confetti is loaded dynamically only when a goal is completed
 import { GoalFormModal, ContributeModal } from "@/features/goals";
 import { useGoals, useBudgets, useAccounts } from "@/shared/hooks";
 import type { Goal } from "@/types";
@@ -133,7 +133,8 @@ export default function GoalsPage() {
       const data = await response.json();
 
       if (data.justCompleted) {
-        // Celebration!
+        // Celebration! Load confetti dynamically only when needed
+        const { default: confetti } = await import("canvas-confetti");
         confetti({
           particleCount: 100,
           spread: 70,

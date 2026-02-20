@@ -36,11 +36,14 @@ export const GET = withAuthRequired(async (req, context) => {
   // Check if user has access through a partner relationship
   const hasPartnerAccess = await checkPartnerAccess(session.user.id);
 
-  return NextResponse.json<MeResponse>({
-    user: userFromDb,
-    currentPlan,
-    hasPartnerAccess,
-  });
+  return NextResponse.json<MeResponse>(
+    { user: userFromDb, currentPlan, hasPartnerAccess },
+    {
+      headers: {
+        "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+      },
+    }
+  );
 });
 
 export const PATCH = withAuthRequired(async (req, context) => {

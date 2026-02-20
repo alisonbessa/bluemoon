@@ -65,6 +65,14 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     authInterrupts: true,
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "date-fns",
+      "@radix-ui/react-icons",
+      "react-day-picker",
+      "motion",
+    ],
   }
 };
 
