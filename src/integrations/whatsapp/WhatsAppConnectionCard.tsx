@@ -91,7 +91,7 @@ export function WhatsAppConnectionCard() {
   // Build deep link with pre-filled message containing the code
   const getDeepLinkWithCode = () => {
     if (!status?.whatsappNumber || !status?.code) return "";
-    const message = encodeURIComponent(status.code);
+    const message = encodeURIComponent(`Olá! Meu código para o HiveBudget é: ${status.code}`);
     return `https://wa.me/${status.whatsappNumber}?text=${message}`;
   };
 

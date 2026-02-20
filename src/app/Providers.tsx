@@ -22,7 +22,7 @@ function Providers({ children }: { children: React.ReactNode }) {
             value={{
               fetcher,
               dedupingInterval: 60000, // 1 minuto - evita chamadas duplicadas
-              revalidateOnFocus: false, // não revalidar ao focar na janela
+              revalidateOnFocus: true, // revalidar ao voltar para a aba (útil para WhatsApp/Telegram)
               revalidateIfStale: false, // não revalidar em background ao navegar
               revalidateOnMount: true, // revalidar apenas no primeiro mount
               errorRetryCount: 3,
