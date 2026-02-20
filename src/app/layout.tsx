@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { appConfig } from "@/shared/lib/config";
 import Providers from "./Providers";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // Using system fonts as fallback when Google Fonts is unavailable
 // This ensures build succeeds in all environments
@@ -37,6 +38,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased bg-background" suppressHydrationWarning>
         <Providers>{children}</Providers>
+        <SpeedInsights />
       </body>
     </html>
   );

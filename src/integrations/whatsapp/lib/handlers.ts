@@ -35,6 +35,7 @@ import {
 } from "@/shared/lib/billing-cycle";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { formatCurrency } from "@/shared/lib/formatters";
+import { handleVoiceMessage } from "./voice-handler";
 
 const logger = createLogger("whatsapp:handlers");
 const adapter = new WhatsAppAdapter();
@@ -70,15 +71,20 @@ interface WhatsAppMessage {
   from: string;
   id: string;
   timestamp: string;
-  type: "text" | "interactive" | "audio" | "image";
+  type: string; // "text" | "interactive" | "audio" | "image" | "video" | "document" | "sticker" | "location" | "reaction" | etc.
   text?: { body: string };
   interactive?: {
     type: "button_reply" | "list_reply";
     button_reply?: { id: string; title: string };
     list_reply?: { id: string; title: string; description?: string };
   };
-  audio?: { id: string; mime_type: string };
+  audio?: { id: string; mime_type: string; voice?: boolean };
   image?: { id: string; mime_type: string; caption?: string };
+  video?: { id: string; mime_type: string; caption?: string };
+  document?: { id: string; mime_type: string; filename?: string };
+  sticker?: { id: string; mime_type: string };
+  location?: { latitude: number; longitude: number; name?: string; address?: string };
+  reaction?: { message_id: string; emoji: string };
 }
 
 // ============================================
@@ -124,14 +130,26 @@ async function getOrCreateWhatsAppUser(
 // ============================================
 
 function isVerificationCode(text: string): boolean {
-  return /^[A-Z2-9]{6}$/.test(text.toUpperCase().trim());
+  const code = extractVerificationCode(text);
+  return code !== null;
+}
+
+// Extract a 6-char verification code from text (handles both raw codes and friendly messages)
+function extractVerificationCode(text: string): string | null {
+  const trimmed = text.trim().toUpperCase();
+  // Raw code: exactly 6 alphanumeric chars
+  if (/^[A-Z2-9]{6}$/.test(trimmed)) return trimmed;
+  // Friendly message: extract code after "é:" or similar patterns
+  const match = trimmed.match(/\b([A-Z2-9]{6})\b/);
+  return match ? match[1] : null;
 }
 
 async function handleVerificationCode(
   phoneNumber: string,
-  code: string
+  text: string
 ): Promise<boolean> {
-  const normalizedCode = code.toUpperCase().trim();
+  const normalizedCode = extractVerificationCode(text);
+  if (!normalizedCode) return false;
 
   // Look up the code in pending connections
   const [pending] = await db
@@ -154,7 +172,7 @@ async function handleVerificationCode(
   if (waUser.userId && waUser.userId !== pending.userId) {
     await adapter.sendMessage(
       phoneNumber,
-      "Este WhatsApp ja esta conectado a outra conta.\n\n" +
+      "Este WhatsApp já está conectado a outra conta.\n\n" +
         "Para conectar a uma conta diferente, primeiro desconecte no app."
     );
     return true;
@@ -169,8 +187,8 @@ async function handleVerificationCode(
   if (existingConnection && existingConnection.phoneNumber !== phoneNumber) {
     await adapter.sendMessage(
       phoneNumber,
-      "Sua conta ja esta conectada a outro WhatsApp.\n\n" +
-        "Desconecte primeiro nas Configuracoes do app."
+      "Sua conta já está conectada a outro WhatsApp.\n\n" +
+        "Desconecte primeiro nas Configurações do app."
     );
     return true;
   }
@@ -197,16 +215,16 @@ async function handleVerificationCode(
     .from(users)
     .where(eq(users.id, pending.userId));
 
-  const userName = user?.displayName || user?.name || "Usuario";
+  const userName = user?.displayName || user?.name || "Usuário";
 
   await adapter.sendMessage(
     phoneNumber,
     `*Conta conectada com sucesso!*\n\n` +
-      `Ola, *${userName}*! Agora voce pode registrar seus gastos enviando mensagens.\n\n` +
+      `Olá, *${userName}*! Agora você pode registrar seus gastos enviando mensagens.\n\n` +
       `*Exemplos:*\n` +
       `- "gastei 50 no mercado"\n` +
       `- "paguei 200 de luz"\n` +
-      `- "recebi 5000 de salario"\n\n` +
+      `- "recebi 5000 de salário"\n\n` +
       `Envie *ajuda* para ver todos os comandos.`
   );
 
@@ -239,20 +257,20 @@ async function handleHelp(phoneNumber: string): Promise<void> {
       `*Registrar gastos:*\n` +
       `"gastei 50 no mercado"\n` +
       `"paguei 200 de luz"\n` +
-      `"comprei 100 em 3x no cartao"\n\n` +
+      `"comprei 100 em 3x no cartão"\n\n` +
       `*Registrar receitas:*\n` +
-      `"recebi 5000 de salario"\n` +
+      `"recebi 5000 de salário"\n` +
       `"entrou 150 de freelance"\n\n` +
-      `*Transferencias:*\n` +
-      `"transferi 500 do itau para nubank"\n\n` +
+      `*Transferências:*\n` +
+      `"transferi 500 do itaú para nubank"\n\n` +
       `*Consultas:*\n` +
-      `"quanto gastei esse mes?"\n` +
-      `"quanto sobrou em alimentacao?"\n` +
-      `"como esta minha meta de viagem?"\n\n` +
+      `"quanto gastei esse mês?"\n` +
+      `"quanto sobrou em alimentação?"\n` +
+      `"como está minha meta de viagem?"\n\n` +
       `*Comandos:*\n` +
       `ajuda - Esta mensagem\n` +
-      `desfazer - Desfazer ultimo registro\n` +
-      `cancelar - Cancelar operacao atual`
+      `desfazer - Desfazer último registro\n` +
+      `cancelar - Cancelar operação atual`
   );
 }
 
@@ -263,7 +281,7 @@ async function handleCancel(phoneNumber: string): Promise<void> {
     .where(eq(whatsappUsers.phoneNumber, phoneNumber));
 
   if (!waUser?.userId) {
-    await adapter.sendMessage(phoneNumber, "Voce precisa conectar sua conta primeiro.");
+    await adapter.sendMessage(phoneNumber, "Você precisa conectar sua conta primeiro.");
     return;
   }
 
@@ -275,7 +293,7 @@ async function handleCancel(phoneNumber: string): Promise<void> {
   }
 
   await adapter.updateState(phoneNumber, "IDLE", {});
-  await adapter.sendMessage(phoneNumber, "Operacao cancelada.");
+  await adapter.sendMessage(phoneNumber, "Operação cancelada.");
 }
 
 async function handleUndo(phoneNumber: string): Promise<void> {
@@ -285,14 +303,14 @@ async function handleUndo(phoneNumber: string): Promise<void> {
     .where(eq(whatsappUsers.phoneNumber, phoneNumber));
 
   if (!waUser?.userId) {
-    await adapter.sendMessage(phoneNumber, "Voce precisa conectar sua conta primeiro.");
+    await adapter.sendMessage(phoneNumber, "Você precisa conectar sua conta primeiro.");
     return;
   }
 
   const context = (waUser.context || {}) as ConversationContext;
 
   if (!context.lastTransactionId) {
-    await adapter.sendMessage(phoneNumber, "Nenhuma transacao recente para desfazer.");
+    await adapter.sendMessage(phoneNumber, "Nenhuma transação recente para desfazer.");
     return;
   }
 
@@ -310,9 +328,9 @@ async function handleUndo(phoneNumber: string): Promise<void> {
   if (deleted.length > 0) {
     await adapter.sendMessage(
       phoneNumber,
-      `Transacao desfeita!\n\n` +
+      `Transação desfeita!\n\n` +
         `Valor: ${formatCurrency(deleted[0].amount)}\n` +
-        `Descricao: ${deleted[0].description || "(sem descricao)"}`
+        `Descrição: ${deleted[0].description || "(sem descrição)"}`
     );
 
     // Clear last transaction from context
@@ -323,7 +341,7 @@ async function handleUndo(phoneNumber: string): Promise<void> {
   } else {
     await adapter.sendMessage(
       phoneNumber,
-      "Transacao nao encontrada ou ja foi removida."
+      "Transação não encontrada ou já foi removida."
     );
   }
 }
@@ -342,8 +360,8 @@ async function handleAIMessage(
   if (!budgetInfo || !budgetInfo.defaultAccount) {
     await adapter.sendMessage(
       phoneNumber,
-      "Voce precisa configurar seu orcamento primeiro no app.\n\n" +
-        "Acesse hivebudget.com.br e complete a configuracao."
+      "Você precisa configurar seu orçamento primeiro no app.\n\n" +
+        "Acesse hivebudget.com.br e complete a configuração."
     );
     return;
   }
@@ -406,7 +424,7 @@ async function handleExpenseConfirmation(
   if (!budgetInfo || !budgetInfo.defaultAccount) {
     await adapter.sendMessage(
       phoneNumber,
-      "Erro ao salvar. Configure seu orcamento no app."
+      "Erro ao salvar. Configure seu orçamento no app."
     );
     await adapter.updateState(phoneNumber, "IDLE", {});
     return;
@@ -436,7 +454,7 @@ async function handleExpenseConfirmation(
         `Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
         `Categoria: ${context.pendingExpense.categoryName}\n` +
         (context.pendingExpense.description
-          ? `Descricao: ${context.pendingExpense.description}\n\n`
+          ? `Descrição: ${context.pendingExpense.description}\n\n`
           : "\n") +
         `Envie *desfazer* para remover.`
     );
@@ -551,7 +569,7 @@ async function handleExpenseConfirmation(
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +
         (capitalizedDescription
-          ? `Descricao: ${capitalizedDescription}\n\n`
+          ? `Descrição: ${capitalizedDescription}\n\n`
           : "\n") +
         `Envie *desfazer* para remover.`
     );
@@ -590,7 +608,7 @@ async function handleExpenseConfirmation(
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +
         (capitalizedDescription
-          ? `Descricao: ${capitalizedDescription}\n\n`
+          ? `Descrição: ${capitalizedDescription}\n\n`
           : "\n") +
         `Envie *desfazer* para remover.`
     );
@@ -633,7 +651,7 @@ async function handleIncomeConfirmation(
   if (!budgetInfo || !budgetInfo.defaultAccount) {
     await adapter.sendMessage(
       phoneNumber,
-      "Erro ao salvar. Configure seu orcamento no app."
+      "Erro ao salvar. Configure seu orçamento no app."
     );
     await adapter.updateState(phoneNumber, "IDLE", {});
     return;
@@ -665,7 +683,7 @@ async function handleIncomeConfirmation(
           : "") +
         `Valor: ${formatCurrency(context.pendingIncome.amount)}\n` +
         (context.pendingIncome.description
-          ? `Descricao: ${context.pendingIncome.description}\n\n`
+          ? `Descrição: ${context.pendingIncome.description}\n\n`
           : "\n") +
         `Envie *desfazer* para remover.`
     );
@@ -710,7 +728,7 @@ async function handleIncomeConfirmation(
           : "") +
         `Valor: ${formatCurrency(context.pendingIncome.amount)}\n` +
         (capitalizedDescription
-          ? `Descricao: ${capitalizedDescription}\n\n`
+          ? `Descrição: ${capitalizedDescription}\n\n`
           : "\n") +
         `Envie *desfazer* para remover.`
     );
@@ -748,7 +766,7 @@ async function handleTransferConfirmation(
   if (!confirmed) {
     if (context.lastAILogId) await markLogAsCancelled(context.lastAILogId);
     await adapter.updateState(phoneNumber, "IDLE", {});
-    await adapter.sendMessage(phoneNumber, "Transferencia cancelada.");
+    await adapter.sendMessage(phoneNumber, "Transferência cancelada.");
     return;
   }
 
@@ -757,7 +775,7 @@ async function handleTransferConfirmation(
   if (!budgetInfo) {
     await adapter.sendMessage(
       phoneNumber,
-      "Erro ao salvar. Configure seu orcamento no app."
+      "Erro ao salvar. Configure seu orçamento no app."
     );
     await adapter.updateState(phoneNumber, "IDLE", {});
     return;
@@ -775,7 +793,7 @@ async function handleTransferConfirmation(
       status: "cleared",
       amount: context.pendingTransfer.amount,
       description:
-        context.pendingTransfer.description || "Transferencia via WhatsApp",
+        context.pendingTransfer.description || "Transferência via WhatsApp",
       date: getTodayNoonUTC(),
       source: "whatsapp",
     })
@@ -797,7 +815,7 @@ async function handleTransferConfirmation(
 
   await adapter.sendMessage(
     phoneNumber,
-    `*Transferencia realizada!*\n\n` +
+    `*Transferência realizada!*\n\n` +
       `De: ${fromAccount?.name || "Conta"}\n` +
       `Para: ${toAccount?.name || "Conta"}\n` +
       `Valor: ${formatCurrency(context.pendingTransfer.amount)}\n\n` +
@@ -835,7 +853,7 @@ async function handleCategorySelection(
     .where(eq(categories.id, categoryId));
 
   if (!category) {
-    await adapter.sendMessage(phoneNumber, "Categoria nao encontrada.");
+    await adapter.sendMessage(phoneNumber, "Categoria não encontrada.");
     await adapter.updateState(phoneNumber, "IDLE", {});
     return;
   }
@@ -862,7 +880,7 @@ async function handleCategorySelection(
     message += `Conta: ${context.pendingExpense.accountName}\n`;
   }
   if (context.pendingExpense.description) {
-    message += `Descricao: ${context.pendingExpense.description}\n`;
+    message += `Descrição: ${context.pendingExpense.description}\n`;
   }
 
   const confirmMsgId = await adapter.sendConfirmation(phoneNumber, message);
@@ -908,7 +926,7 @@ async function handleAccountSelection(
     .where(eq(financialAccounts.id, accountId));
 
   if (!account) {
-    await adapter.sendMessage(phoneNumber, "Conta nao encontrada.");
+    await adapter.sendMessage(phoneNumber, "Conta não encontrada.");
     await adapter.updateState(phoneNumber, "IDLE", {});
     return;
   }
@@ -919,7 +937,7 @@ async function handleAccountSelection(
   if (!budgetInfo) {
     await adapter.sendMessage(
       phoneNumber,
-      "Erro ao carregar informacoes. Tente novamente."
+      "Erro ao carregar informações. Tente novamente."
     );
     return;
   }
@@ -946,7 +964,7 @@ async function handleAccountSelection(
       valueText +
       `Conta: ${account.name}\n` +
       (context.pendingExpense.description
-        ? `Descricao: ${context.pendingExpense.description}\n\n`
+        ? `Descrição: ${context.pendingExpense.description}\n\n`
         : "\n") +
       `Selecione a categoria:`,
     budgetInfo.categories.map((c) => ({
@@ -1032,7 +1050,7 @@ async function handleNewCategoryExisting(phoneNumber: string): Promise<void> {
   if (!budgetInfo) {
     await adapter.sendMessage(
       phoneNumber,
-      "Erro ao carregar informacoes. Tente novamente."
+      "Erro ao carregar informações. Tente novamente."
     );
     return;
   }
@@ -1120,7 +1138,7 @@ async function handleGroupSelection(
   if (!budgetInfo) {
     await adapter.sendMessage(
       phoneNumber,
-      "Erro ao carregar informacoes. Tente novamente."
+      "Erro ao carregar informações. Tente novamente."
     );
     return;
   }
@@ -1257,7 +1275,7 @@ async function handleGroupSelection(
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +
         (capitalizedDescription
-          ? `Descricao: ${capitalizedDescription}\n\n`
+          ? `Descrição: ${capitalizedDescription}\n\n`
           : "\n") +
         `Envie *desfazer* para remover.`
     );
@@ -1303,7 +1321,7 @@ async function handleGroupSelection(
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +
         (capitalizedDescription
-          ? `Descricao: ${capitalizedDescription}\n\n`
+          ? `Descrição: ${capitalizedDescription}\n\n`
           : "\n") +
         `Envie *desfazer* para remover.`
     );
@@ -1335,7 +1353,7 @@ async function handleInteractiveResponse(
   if (!waUser?.userId) {
     await adapter.sendMessage(
       phoneNumber,
-      "Voce precisa conectar sua conta primeiro."
+      "Você precisa conectar sua conta primeiro."
     );
     return;
   }
@@ -1353,7 +1371,7 @@ async function handleInteractiveResponse(
     }
 
     await adapter.updateState(phoneNumber, "IDLE", {});
-    await adapter.sendMessage(phoneNumber, "Operacao cancelada.");
+    await adapter.sendMessage(phoneNumber, "Operação cancelada.");
     return;
   }
 
@@ -1405,7 +1423,7 @@ async function handleInteractiveResponse(
 
   // Unknown action
   logger.warn("Unknown interactive action:", { actionId, currentStep });
-  await adapter.sendMessage(phoneNumber, "Acao nao reconhecida. Tente novamente.");
+  await adapter.sendMessage(phoneNumber, "Ação não reconhecida. Tente novamente.");
 }
 
 // ============================================
@@ -1434,13 +1452,13 @@ async function handleTextMessage(
 
     await adapter.sendMessage(
       phoneNumber,
-      `Ola! Para usar o HiveBudget pelo WhatsApp, voce precisa conectar sua conta.\n\n` +
+      `Olá! Para usar o HiveBudget pelo WhatsApp, você precisa conectar sua conta.\n\n` +
         `*Como conectar:*\n` +
         `1. Acesse hivebudget.com.br\n` +
-        `2. Va em Configuracoes > Conectar WhatsApp\n` +
-        `3. Copie o codigo de 6 caracteres\n` +
-        `4. Envie o codigo aqui neste chat\n\n` +
-        `Aguardando seu codigo...`
+        `2. Vá em Configurações > Conectar WhatsApp\n` +
+        `3. Copie o código de 6 caracteres\n` +
+        `4. Envie o código aqui neste chat\n\n` +
+        `Aguardando seu código...`
     );
     return;
   }
@@ -1565,14 +1583,40 @@ export async function handleWebhook(
               } catch {
                 // Non-critical
               }
-              await adapter.sendMessage(
-                phoneNumber,
-                "Mensagens de audio ainda nao sao suportadas no WhatsApp. " +
-                  "Por favor, envie uma mensagem de texto."
-              );
+
+              // Check if user is connected
+              {
+                const waUser = await getOrCreateWhatsAppUser(phoneNumber, displayName);
+                if (!waUser.userId) {
+                  await adapter.sendMessage(
+                    phoneNumber,
+                    "Você precisa conectar sua conta primeiro para enviar áudios."
+                  );
+                  break;
+                }
+
+                if (message.audio?.id) {
+                  const { transcription } =
+                    await handleVoiceMessage(
+                      adapter,
+                      phoneNumber,
+                      message.audio.id,
+                      message.audio.mime_type
+                    );
+
+                  if (transcription) {
+                    await handleAIMessage(phoneNumber, transcription, waUser.userId);
+                  }
+                }
+              }
               break;
 
             case "image":
+            case "video":
+            case "document":
+            case "sticker":
+            case "location":
+            case "contacts":
               // Mark as read
               try {
                 await adapter.acknowledgeInteraction(message.id);
@@ -1581,13 +1625,17 @@ export async function handleWebhook(
               }
               await adapter.sendMessage(
                 phoneNumber,
-                "Imagens ainda nao sao suportadas no WhatsApp. " +
+                "Este tipo de mensagem ainda não é suportado. " +
                   "Por favor, envie uma mensagem de texto."
               );
               break;
 
+            case "reaction":
+              // Reactions don't need a response
+              break;
+
             default:
-              logger.warn("Unhandled message type:", message.type);
+              logger.warn("Unhandled message type:", { type: message.type });
               break;
           }
         } catch (error) {
