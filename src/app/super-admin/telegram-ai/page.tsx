@@ -159,7 +159,7 @@ export default function TelegramAIPage() {
   );
 
   const handleDelete = async () => {
-    if (!confirm("Tem certeza que deseja limpar logs antigos? Logs corrigidos serao mantidos.")) {
+    if (!confirm("Tem certeza que deseja limpar logs antigos? Logs corrigidos serão mantidos.")) {
       return;
     }
 
@@ -206,13 +206,13 @@ export default function TelegramAIPage() {
             Telegram AI Analytics
           </h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            Analise e melhore a precisao do bot do Telegram
+            Analise e melhore a precisão do bot do Telegram
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowSuggestions(true)}>
             <Lightbulb className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Sugestoes</span>
+            <span className="hidden sm:inline">Sugestões</span>
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 sm:mr-2" />
@@ -302,7 +302,7 @@ export default function TelegramAIPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Baixa Confianca
+                Baixa Confiança
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -315,7 +315,7 @@ export default function TelegramAIPage() {
           <Card className="bg-primary/5">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Precisao
+                Precisão
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -331,7 +331,7 @@ export default function TelegramAIPage() {
       {data?.intentDistribution && data.intentDistribution.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Distribuicao de Intencoes</CardTitle>
+            <CardTitle>Distribuição de Intenções</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-2">
@@ -353,8 +353,8 @@ export default function TelegramAIPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="unknown">Nao Reconhecidos</SelectItem>
-            <SelectItem value="low_confidence">Baixa Confianca</SelectItem>
+            <SelectItem value="unknown">Não Reconhecidos</SelectItem>
+            <SelectItem value="low_confidence">Baixa Confiança</SelectItem>
             <SelectItem value="corrected">Corrigidos</SelectItem>
             <SelectItem value="pending">Pendentes</SelectItem>
           </SelectContent>
@@ -368,10 +368,10 @@ export default function TelegramAIPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-[200px]">Mensagem</TableHead>
-                <TableHead className="min-w-[120px]">Usuario</TableHead>
-                <TableHead className="min-w-[100px]">Intencao AI</TableHead>
-                <TableHead className="min-w-[80px]">Confianca</TableHead>
-                <TableHead className="min-w-[100px]">Resolucao</TableHead>
+                <TableHead className="min-w-[120px]">Usuário</TableHead>
+                <TableHead className="min-w-[100px]">Intenção AI</TableHead>
+                <TableHead className="min-w-[80px]">Confiança</TableHead>
+                <TableHead className="min-w-[100px]">Resolução</TableHead>
                 <TableHead className="min-w-[90px]">Data</TableHead>
               </TableRow>
             </TableHeader>
@@ -435,7 +435,7 @@ export default function TelegramAIPage() {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm text-muted-foreground">
-            Pagina {page} de {data.pagination.totalPages}
+            Página {page} de {data.pagination.totalPages}
           </span>
           <Button
             variant="outline"
@@ -454,7 +454,7 @@ export default function TelegramAIPage() {
           <DialogHeader>
             <DialogTitle>Detalhes do Log</DialogTitle>
             <DialogDescription>
-              Analise completa da interpretacao AI
+              Análise completa da interpretação AI
             </DialogDescription>
           </DialogHeader>
           {selectedLog && (
@@ -471,7 +471,7 @@ export default function TelegramAIPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Intencao Detectada
+                    Intenção Detectada
                   </label>
                   <div className="mt-1">
                     <Badge variant={selectedLog.isUnknownIntent ? "destructive" : "secondary"}>
@@ -481,7 +481,7 @@ export default function TelegramAIPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Confianca
+                    Confiança
                   </label>
                   <div className="mt-1">
                     {getConfidenceBadge(selectedLog.aiResponse.confidence)}
@@ -492,7 +492,7 @@ export default function TelegramAIPage() {
               {selectedLog.aiResponse.data && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Dados Extraidos
+                    Dados Extraídos
                   </label>
                   <pre className="mt-1 p-3 bg-muted rounded-md text-sm overflow-auto">
                     {JSON.stringify(selectedLog.aiResponse.data, null, 2)}
@@ -503,7 +503,7 @@ export default function TelegramAIPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Resolucao
+                    Resolução
                   </label>
                   <div className="mt-1">
                     {getResolutionBadge(selectedLog.resolution)}
@@ -512,7 +512,7 @@ export default function TelegramAIPage() {
                 {selectedLog.correctedIntent && (
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
-                      Intencao Corrigida
+                      Intenção Corrigida
                     </label>
                     <div className="mt-1">
                       <Badge variant="default">{selectedLog.correctedIntent}</Badge>
@@ -524,7 +524,7 @@ export default function TelegramAIPage() {
               {selectedLog.userContext && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
-                    Contexto do Usuario
+                    Contexto do Usuário
                   </label>
                   <div className="mt-1 flex flex-wrap gap-2">
                     <Badge variant="outline">
@@ -564,10 +564,10 @@ export default function TelegramAIPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Lightbulb className="h-5 w-5 text-yellow-500" />
-              Sugestoes para Melhorar o Modelo
+              Sugestões para Melhorar o Modelo
             </DialogTitle>
             <DialogDescription>
-              Baseado nos logs de correcoes e erros
+              Baseado nos logs de correções e erros
             </DialogDescription>
           </DialogHeader>
           {exportData && (
@@ -594,7 +594,7 @@ export default function TelegramAIPage() {
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Precisao</CardTitle>
+                    <CardTitle className="text-sm">Precisão</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-primary">
@@ -607,7 +607,7 @@ export default function TelegramAIPage() {
               {/* Suggestions */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Padroes Identificados</CardTitle>
+                  <CardTitle className="text-lg">Padrões Identificados</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
@@ -627,7 +627,7 @@ export default function TelegramAIPage() {
                   <CardHeader>
                     <CardTitle className="text-lg">Exemplos de Erros</CardTitle>
                     <CardDescription>
-                      Adicione estes exemplos ao prompt para melhorar a precisao
+                      Adicione estes exemplos ao prompt para melhorar a precisão
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

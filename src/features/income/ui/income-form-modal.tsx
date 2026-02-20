@@ -89,7 +89,7 @@ export function IncomeFormModal({
       description={
         isEditing
           ? 'Atualize os dados da fonte de renda'
-          : 'Adicione uma nova fonte de renda ao orcamento'
+          : 'Adicione uma nova fonte de renda ao orçamento'
       }
       isSubmitting={isSubmitting}
       onSubmit={onSubmit}
@@ -105,7 +105,7 @@ export function IncomeFormModal({
           </Label>
           <Input
             id="name"
-            placeholder="Ex: Salario da Empresa X"
+            placeholder="Ex: Salário da Empresa X"
             value={formData.name}
             onChange={(e) => {
               setFormData({ ...formData, name: e.target.value });
@@ -183,10 +183,10 @@ export function IncomeFormModal({
             />
             <p className="text-xs text-muted-foreground">
               {formData.type === 'benefit'
-                ? 'Apenas contas de beneficio'
+                ? 'Apenas contas de benefício'
                 : formData.type === 'other'
-                  ? 'Todas as contas disponiveis'
-                  : 'Contas correntes e poupanca'}
+                  ? 'Todas as contas disponíveis'
+                  : 'Contas correntes e poupança'}
             </p>
           </div>
         )}

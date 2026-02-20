@@ -88,16 +88,16 @@ export async function routeIntent(
  */
 async function handleUnknownIntent(adapter: MessagingAdapter, chatId: ChatId, logId: string | null): Promise<void> {
   const botMessage =
-    `Nao entendi bem. Posso ajudar com:\n\n` +
+    `Não entendi bem. Posso ajudar com:\n\n` +
     `<b>Registrar gastos:</b>\n` +
     `"gastei 50 no mercado"\n` +
     `"paguei 200 de luz"\n\n` +
     `<b>Registrar receitas:</b>\n` +
-    `"recebi 5000 de salario"\n\n` +
+    `"recebi 5000 de salário"\n\n` +
     `<b>Consultas:</b>\n` +
-    `"quanto gastei esse mes?"\n` +
-    `"quanto sobrou em alimentacao?"\n` +
-    `"como esta minha meta de viagem?"`;
+    `"quanto gastei esse mês?"\n` +
+    `"quanto sobrou em alimentação?"\n` +
+    `"como está minha meta de viagem?"`;
 
   await adapter.sendMessage(chatId, botMessage);
 

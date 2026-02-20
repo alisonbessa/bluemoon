@@ -133,14 +133,14 @@ function generatePromptSuggestions(examples: TrainingExample[]): string[] {
     const commonWords = findCommonPatterns(unknownMistakes.map((m) => m.input));
     if (commonWords.length > 0) {
       suggestions.push(
-        `AI nao reconhece mensagens com: ${commonWords.join(", ")}. ` +
-          `Considere adicionar esses padroes ao prompt.`
+        `AI não reconhece mensagens com: ${commonWords.join(", ")}. ` +
+          `Considere adicionar esses padrões ao prompt.`
       );
     }
   }
 
   if (suggestions.length === 0) {
-    suggestions.push("Nenhum padrao de erro significativo encontrado ainda.");
+    suggestions.push("Nenhum padrão de erro significativo encontrado ainda.");
   }
 
   return suggestions;

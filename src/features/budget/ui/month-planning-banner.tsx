@@ -57,11 +57,11 @@ export function MonthPlanningBanner({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erro ao iniciar o mes');
+        throw new Error(data.error || 'Erro ao iniciar o mês');
       }
 
       toast.success(
-        `Mes iniciado! ${data.createdTransactions} transacoes criadas.`
+        `Mês iniciado! ${data.createdTransactions} transações criadas.`
       );
       onStatusChange();
     } catch (error) {
@@ -112,8 +112,8 @@ export function MonthPlanningBanner({
               </h3>
               <p className="text-sm text-muted-foreground mt-1">
                 {isFullyAllocated
-                  ? 'Orcamento pronto! Clique em Iniciar Mes para criar as transacoes pendentes.'
-                  : 'Configure suas alocacoes antes de iniciar o mes.'}
+                  ? 'Orçamento pronto! Clique em Iniciar Mês para criar as transações pendentes.'
+                  : 'Configure suas alocações antes de iniciar o mês.'}
               </p>
             </div>
 
@@ -130,7 +130,7 @@ export function MonthPlanningBanner({
                 <span className="font-semibold">{formatCurrency(totalAllocated)}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Disponivel: </span>
+                <span className="text-muted-foreground">Disponível:</span>
                 <span
                   className={cn(
                     'font-semibold',
@@ -151,7 +151,7 @@ export function MonthPlanningBanner({
                 className="gap-2"
               >
                 <Copy className="h-4 w-4" />
-                Copiar mes anterior
+                Copiar mês anterior
               </Button>
 
               <Button
@@ -165,14 +165,14 @@ export function MonthPlanningBanner({
                 ) : (
                   <Rocket className="h-4 w-4" />
                 )}
-                Iniciar Mes
+                Iniciar Mês
               </Button>
             </div>
 
             {!isFullyAllocated && totalAllocated === 0 && (
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Sparkles className="h-3 w-3" />
-                Dica: Use Copiar mes anterior para comecar rapidamente
+                Dica: Use Copiar mês anterior para começar rapidamente
               </p>
             )}
           </div>
@@ -186,11 +186,11 @@ export function MonthPlanningBanner({
             <AlertDialogTitle>Iniciar {monthName}?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-2">
               <p>
-                Ao iniciar o mes, serao criadas transacoes pendentes para todas
+                Ao iniciar o mês, serão criadas transações pendentes para todas
                 as despesas e receitas com data de vencimento definida.
               </p>
               <p className="font-medium">
-                Voce ainda podera ajustar valores, mas as transacoes ja estarao
+                Você ainda poderá ajustar valores, mas as transações já estarão
                 criadas.
               </p>
             </AlertDialogDescription>
@@ -206,7 +206,7 @@ export function MonthPlanningBanner({
               ) : (
                 <>
                   <Rocket className="mr-2 h-4 w-4" />
-                  Iniciar Mes
+                  Iniciar Mês
                 </>
               )}
             </AlertDialogAction>

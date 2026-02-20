@@ -67,7 +67,7 @@ export function BudgetComparison({
       {/* Header */}
       <div className="flex items-center gap-2 p-3 border-b bg-muted/30">
         <BarChart3 className="h-4 w-4 text-primary" />
-        <span className="font-semibold text-sm">Comparativo Orcado vs Real</span>
+        <span className="font-semibold text-sm">Comparativo Orçado vs Real</span>
       </div>
 
       <div className="p-4 space-y-6">
@@ -75,7 +75,7 @@ export function BudgetComparison({
         <div className="grid grid-cols-3 gap-3">
           {/* Budget Utilization */}
           <div className="rounded-lg border p-3 space-y-1">
-            <div className="text-xs text-muted-foreground">Uso do Orcamento</div>
+            <div className="text-xs text-muted-foreground">Uso do Orçamento</div>
             <div className="flex items-center gap-2">
               <span className={cn(
                 'text-xl font-bold tabular-nums',
@@ -152,7 +152,7 @@ export function BudgetComparison({
                   </div>
                   <div className="flex items-center gap-3 text-xs tabular-nums">
                     <span className="text-muted-foreground">
-                      Orcado: {formatCurrency(groupTotals.allocated)}
+                      Orçado: {formatCurrency(groupTotals.allocated)}
                     </span>
                     <span className={overBudget ? 'text-red-600 font-medium' : ''}>
                       Gasto: {formatCurrency(groupTotals.spent)}
@@ -196,7 +196,7 @@ export function BudgetComparison({
         <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 bg-muted-foreground/20 rounded" />
-            <span>Orcado</span>
+            <span>Orçado</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 bg-primary/60 rounded" />
