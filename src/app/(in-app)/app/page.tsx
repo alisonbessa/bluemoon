@@ -24,12 +24,26 @@ import {
 } from "lucide-react";
 import { Progress } from "@/shared/ui/progress";
 import { MonthSelector } from "@/shared/ui/month-selector";
+import dynamic from "next/dynamic";
 import {
-  DashboardCharts,
   CreditCardSpending,
   ScheduledTransactionsList,
   useDashboardData,
 } from "@/features/dashboard";
+
+// Lazy load charts since recharts is a heavy library (~200KB)
+const DashboardCharts = dynamic(
+  () => import("@/features/dashboard/ui/dashboard-charts").then((mod) => ({ default: mod.DashboardCharts })),
+  {
+    loading: () => (
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-[300px]" />
+        <Skeleton className="h-[300px]" />
+      </div>
+    ),
+    ssr: false,
+  }
+);
 import { SummaryCardGrid } from "@/shared/organisms";
 import { PageContent } from "@/shared/molecules";
 import Link from "next/link";

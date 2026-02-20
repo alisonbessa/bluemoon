@@ -90,12 +90,9 @@ export function useDashboardData(year: number, month: number) {
 
   const { data: statsData, isLoading: statsLoading } = useSWR<StatsResponse>(statsKey);
 
-  const isLoading =
-    budgetsLoading ||
-    allocationsLoading ||
-    commitmentsLoading ||
-    goalsLoading ||
-    statsLoading;
+  // Progressive loading: only block on essential data (budgets + summary)
+  // Goals, scheduled transactions, and charts load independently
+  const isLoading = budgetsLoading || allocationsLoading;
 
   return {
     // Data
@@ -107,7 +104,7 @@ export function useDashboardData(year: number, month: number) {
     dailyChartData: statsData?.dailyChartData ?? [],
     monthlyChartData: statsData?.monthlyComparison ?? [],
     creditCards: statsData?.creditCards ?? [],
-    // Loading
+    // Loading states (progressive: each section loads independently)
     isLoading,
     chartsLoading: statsLoading,
     goalsLoading,

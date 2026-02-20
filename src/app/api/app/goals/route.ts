@@ -8,6 +8,7 @@ import {
   validationError,
   forbiddenError,
   successResponse,
+  cachedResponse,
 } from "@/shared/lib/api/responses";
 import { createGoalSchema } from "@/shared/lib/validations/goal.schema";
 
@@ -74,7 +75,7 @@ export const GET = withAuthRequired(async (req, context) => {
     ...calculateGoalMetrics(goal),
   }));
 
-  return successResponse({ goals: goalsWithMetrics });
+  return cachedResponse({ goals: goalsWithMetrics }, { maxAge: 30, staleWhileRevalidate: 120 });
 });
 
 // POST - Create a new goal
