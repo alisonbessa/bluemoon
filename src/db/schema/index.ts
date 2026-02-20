@@ -23,6 +23,8 @@ export * from "./monthly-budget-status";
 export * from "./telegram-users";
 export * from "./telegram-ai-logs";
 export * from "./telegram-pending-connections";
+export * from "./whatsapp-users";
+export * from "./whatsapp-pending-connections";
 export * from "./goals";
 export * from "./recurring-bills";
 export * from "./audit-log";
