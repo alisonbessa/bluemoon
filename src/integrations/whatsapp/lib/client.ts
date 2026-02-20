@@ -9,6 +9,10 @@ function getConfig() {
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   if (!token || !phoneNumberId) {
+    logger.error("Missing WhatsApp env vars", new Error("Config missing"), {
+      hasToken: !!token,
+      hasPhoneNumberId: !!phoneNumberId,
+    });
     throw new Error("WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID must be configured");
   }
   return { token, phoneNumberId };
@@ -28,7 +32,11 @@ async function callWhatsAppAPI<T = WhatsAppAPIResponse>(
   body: object
 ): Promise<T> {
   const { token } = getConfig();
-  const response = await fetch(`${WHATSAPP_API}/${endpoint}`, {
+  const url = `${WHATSAPP_API}/${endpoint}`;
+
+  logger.info("Calling WhatsApp API", { url, bodyType: (body as Record<string, unknown>).type });
+
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -40,10 +48,15 @@ async function callWhatsAppAPI<T = WhatsAppAPIResponse>(
   const data = await response.json();
 
   if (data.error) {
-    logger.error("WhatsApp API error", data.error);
+    logger.error("WhatsApp API error", new Error(data.error.message), {
+      code: data.error.code,
+      type: data.error.type,
+      fbtrace_id: data.error.fbtrace_id,
+    });
     throw new Error(data.error.message || "WhatsApp API error");
   }
 
+  logger.info("WhatsApp API success", { messageId: data.messages?.[0]?.id });
   return data as T;
 }
 

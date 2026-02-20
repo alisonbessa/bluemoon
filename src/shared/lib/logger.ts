@@ -74,10 +74,9 @@ class Logger {
   info(message: string, context?: LogContext): void {
     const formatted = formatMessage("info", this.module, scrubPII(message));
     const scrubbedCtx = context ? scrubContext(context) : undefined;
-    if (isDev) {
-      console.info(formatted, scrubbedCtx || "");
-    }
-    // In production, add as Sentry breadcrumb
+    // Always log info to console (visible in Vercel Runtime Logs)
+    console.info(formatted, scrubbedCtx || "");
+    // In production, also add as Sentry breadcrumb
     if (!isDev) {
       Sentry.addBreadcrumb({
         category: this.module,
@@ -91,9 +90,8 @@ class Logger {
   warn(message: string, context?: LogContext): void {
     const formatted = formatMessage("warn", this.module, scrubPII(message));
     const scrubbedCtx = context ? scrubContext(context) : undefined;
-    if (isDev) {
-      console.warn(formatted, scrubbedCtx || "");
-    }
+    // Always log warnings to console (visible in Vercel Runtime Logs)
+    console.warn(formatted, scrubbedCtx || "");
     if (!isDev) {
       Sentry.addBreadcrumb({
         category: this.module,
@@ -107,10 +105,9 @@ class Logger {
   error(message: string, error?: unknown, context?: LogContext): void {
     const formatted = formatMessage("error", this.module, scrubPII(message));
     const scrubbedCtx = context ? scrubContext(context) : undefined;
-    if (isDev) {
-      console.error(formatted, error || "", scrubbedCtx || "");
-    }
-    // Always report errors to Sentry in production
+    // Always log errors to console (visible in Vercel Runtime Logs)
+    console.error(formatted, error || "", scrubbedCtx || "");
+    // Also report to Sentry in production
     if (!isDev) {
       if (error instanceof Error) {
         Sentry.captureException(error, {
