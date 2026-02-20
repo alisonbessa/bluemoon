@@ -11,7 +11,7 @@ interface EnsureResult {
   created: number;
   expenses: number;
   income: number;
-  alreadyExisted: boolean;
+  noAccount: boolean;
 }
 
 /**
@@ -117,7 +117,7 @@ export async function ensurePendingTransactionsForMonth(
     .limit(1);
 
   if (defaultAccount.length === 0) {
-    return { created: 0, expenses: 0, income: 0, alreadyExisted: true };
+    return { created: 0, expenses: 0, income: 0, noAccount: true };
   }
 
   // Create pending expense transactions from recurring bills
@@ -292,7 +292,7 @@ export async function ensurePendingTransactionsForMonth(
     created: allTransactions.length,
     expenses: expenseTransactions.length,
     income: incomeTransactions.length,
-    alreadyExisted: allTransactions.length === 0,
+    noAccount: false,
   };
 }
 
