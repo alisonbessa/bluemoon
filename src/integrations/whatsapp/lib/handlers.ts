@@ -1417,7 +1417,9 @@ async function handleTextMessage(
   text: string,
   displayName?: string
 ): Promise<void> {
+  logger.info("handleTextMessage", { phoneNumber, text: text.slice(0, 50), displayName });
   const waUser = await getOrCreateWhatsAppUser(phoneNumber, displayName);
+  logger.info("WhatsApp user state", { userId: waUser.userId, step: waUser.currentStep });
 
   // If user is not connected
   if (!waUser.userId) {

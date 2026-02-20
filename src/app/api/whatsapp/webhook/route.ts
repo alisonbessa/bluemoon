@@ -32,18 +32,33 @@ export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
 
-    if (process.env.NODE_ENV === "development") {
-      logger.info("Received webhook", { object: payload.object });
-    }
+    logger.info("Received webhook", {
+      object: payload.object,
+      hasEntry: !!payload.entry?.length,
+    });
 
     // Only process whatsapp_business_account events
     if (payload.object !== "whatsapp_business_account") {
       return NextResponse.json({ ok: true });
     }
 
+    // Log message details for debugging
+    for (const entry of payload.entry || []) {
+      for (const change of entry.changes || []) {
+        const msgs = change.value?.messages;
+        if (msgs?.length) {
+          console.log("[whatsapp:webhook] Messages received:", msgs.map((m: { from: string; type: string; id: string }) => ({
+            from: m.from,
+            type: m.type,
+            id: m.id,
+          })));
+        }
+      }
+    }
+
     await handleWebhook(payload);
 
-    // Always return 200 to Meta to acknowledge receipt
+    logger.info("Webhook processed successfully");
     return NextResponse.json({ ok: true });
   } catch (error) {
     logger.error("Error processing webhook", error);
