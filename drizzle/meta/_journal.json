@@ -15,6 +15,13 @@
       "when": 1769292680003,
       "tag": "0001_red_roulette",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770749132666,
+      "tag": "0002_daffy_shockwave",
+      "breakpoints": true
     }
   ]
 }

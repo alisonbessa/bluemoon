@@ -42,7 +42,7 @@ import {
   MessageSquare,
   Bug,
 } from "lucide-react";
-import { TelegramConnectionCard } from "@/integrations/telegram/TelegramConnectionCard";
+import { MessagingConnectionCard } from "@/integrations/messaging/MessagingConnectionCard";
 import { MembersManagement } from "@/shared/settings/members-management";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 import { useRouter } from "next/navigation";
@@ -427,8 +427,8 @@ export default function SettingsPage() {
 
         {/* Sidebar */}
         <div className="space-y-6 min-w-0">
-          {/* Telegram Connection */}
-          <TelegramConnectionCard />
+          {/* Messaging Integration */}
+          <MessagingConnectionCard />
 
           {/* Plan */}
           <Card>
