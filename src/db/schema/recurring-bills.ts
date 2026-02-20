@@ -28,7 +28,7 @@ export const recurringBills = pgTable("recurring_bills", {
   // Recurrence configuration
   frequency: text("frequency").$type<RecurringBillFrequency>().notNull().default("monthly"),
   dueDay: integer("due_day"), // dia do vencimento (1-31) para monthly
-  dueMonth: integer("due_month"), // mes do vencimento (1-12) para yearly
+  dueMonth: integer("due_month"), // mês do vencimento (1-12) para yearly
 
   // Automation settings
   isAutoDebit: boolean("is_auto_debit").default(false), // true = confirma automaticamente no vencimento

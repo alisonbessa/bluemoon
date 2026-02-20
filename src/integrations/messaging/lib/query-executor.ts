@@ -102,7 +102,7 @@ async function handleCategoryQuery(
   userContext: UserContext
 ): Promise<void> {
   if (!categoryName) {
-    await adapter.sendMessage(chatId, "Qual categoria voce gostaria de consultar?");
+    await adapter.sendMessage(chatId, "Qual categoria você gostaria de consultar?");
     return;
   }
 
@@ -112,8 +112,8 @@ async function handleCategoryQuery(
   if (!match) {
     await adapter.sendMessage(
       chatId,
-      `Nao encontrei a categoria "${categoryName}".\n\n` +
-        `Categorias disponiveis:\n` +
+      `Não encontrei a categoria "${categoryName}".\n\n` +
+        `Categorias disponíveis:\n` +
         userContext.categories.map((c) => `- ${c.name}`).join("\n")
     );
     return;
@@ -142,7 +142,7 @@ async function handleCategoryQuery(
   message += `Restante: ${formatCurrency(categoryInfo.remaining)}\n`;
 
   if (categoryInfo.remaining < 0) {
-    message += `\nVoce ultrapassou o limite em ${formatCurrency(Math.abs(categoryInfo.remaining))}`;
+    message += `\nVocê ultrapassou o limite em ${formatCurrency(Math.abs(categoryInfo.remaining))}`;
   }
 
   await adapter.sendMessage(chatId, message);
@@ -158,7 +158,7 @@ async function handleGoalQuery(
   userContext: UserContext
 ): Promise<void> {
   if (!goalName && userContext.goals.length === 0) {
-    await adapter.sendMessage(chatId, "Voce ainda nao tem metas cadastradas.");
+    await adapter.sendMessage(chatId, "Você ainda não tem metas cadastradas.");
     return;
   }
 
@@ -189,7 +189,7 @@ async function handleGoalQuery(
   if (!match) {
     await adapter.sendMessage(
       chatId,
-      `Nao encontrei a meta "${goalName}".\n\n` +
+      `Não encontrei a meta "${goalName}".\n\n` +
         `Suas metas:\n` +
         userContext.goals.map((g) => `- ${g.name}`).join("\n")
     );
@@ -227,7 +227,7 @@ async function handleAccountQuery(
   userContext: UserContext
 ): Promise<void> {
   if (!accountName && userContext.accounts.length === 0) {
-    await adapter.sendMessage(chatId, "Voce ainda nao tem contas cadastradas.");
+    await adapter.sendMessage(chatId, "Você ainda não tem contas cadastradas.");
     return;
   }
 
@@ -247,7 +247,7 @@ async function handleAccountQuery(
       message += `${balanceEmoji}Saldo: ${formatCurrency(account.balance)}\n`;
       if (account.type === "credit_card" && account.creditLimit) {
         const available = account.creditLimit - account.balance;
-        message += `Limite disponivel: ${formatCurrency(available)}\n`;
+        message += `Limite disponível: ${formatCurrency(available)}\n`;
       }
       message += "\n";
     }
@@ -262,7 +262,7 @@ async function handleAccountQuery(
   if (!match) {
     await adapter.sendMessage(
       chatId,
-      `Nao encontrei a conta "${accountName}".\n\n` +
+      `Não encontrei a conta "${accountName}".\n\n` +
         `Suas contas:\n` +
         userContext.accounts.map((a) => `- ${a.name}`).join("\n")
     );
@@ -276,7 +276,7 @@ async function handleAccountQuery(
     .where(eq(financialAccounts.id, match.account.id));
 
   if (!account) {
-    await adapter.sendMessage(chatId, "Conta nao encontrada.");
+    await adapter.sendMessage(chatId, "Conta não encontrada.");
     return;
   }
 
@@ -293,7 +293,7 @@ async function handleAccountQuery(
       const percentUsed = Math.round((used / account.creditLimit) * 100);
       message += `\nLimite: ${formatCurrency(account.creditLimit)}\n`;
       message += `Usado: ${formatCurrency(used)} (${percentUsed}%)\n`;
-      message += `Disponivel: ${formatCurrency(available)}\n`;
+      message += `Disponível: ${formatCurrency(available)}\n`;
     }
     if (account.closingDay) {
       message += `\nFechamento: dia ${account.closingDay}`;

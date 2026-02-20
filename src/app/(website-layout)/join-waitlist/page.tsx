@@ -6,11 +6,11 @@ import { cn } from "@/shared/lib/utils";
 import { AnimatedGridPattern } from "@/shared/magicui/animated-grid-pattern";
 
 export const metadata: Metadata = {
-  title: "Join Waitlist",
-  description: "Join our waitlist to get early access to our platform.",
+  title: "Lista de Espera",
+  description: "Entre na lista de espera para ter acesso antecipado à nossa plataforma.",
   openGraph: {
-    title: "Join Waitlist",
-    description: "Join our waitlist to get early access to our platform.",
+    title: "Lista de Espera",
+    description: "Entre na lista de espera para ter acesso antecipado à nossa plataforma.",
     type: "website",
     url: `${process.env.NEXT_PUBLIC_APP_URL}/join-waitlist`,
     images: [
@@ -18,14 +18,14 @@ export const metadata: Metadata = {
         url: `${process.env.NEXT_PUBLIC_APP_URL}/images/og.png`,
         width: 1200,
         height: 630,
-        alt: "Join Waitlist",
+        alt: "Lista de Espera",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Join Waitlist",
-    description: "Join our waitlist to get early access to our platform.",
+    title: "Lista de Espera",
+    description: "Entre na lista de espera para ter acesso antecipado à nossa plataforma.",
     images: [`${process.env.NEXT_PUBLIC_APP_URL}/images/og.png`],
   },
   alternates: {
@@ -49,8 +49,8 @@ export default function JoinWaitlistPage() {
       <WebPageJsonLd
         useAppDir
         id={`${process.env.NEXT_PUBLIC_APP_URL}/join-waitlist`}
-        title="Join Waitlist"
-        description="Join our waitlist to get early access to our platform."
+        title="Lista de Espera"
+        description="Entre na lista de espera para ter acesso antecipado à nossa plataforma."
         isAccessibleForFree={true}
         publisher={{
           "@type": "Organization",
@@ -62,9 +62,9 @@ export default function JoinWaitlistPage() {
         <div className="bg-background">
           <div className="rounded-3xl bg-muted/40 p-8 shadow-xs ring-1 ring-border/60">
             <div className="mb-8 text-center">
-              <h1 className="mb-2 text-3xl font-bold">Join Our Waitlist</h1>
+              <h1 className="mb-2 text-3xl font-bold">Lista de Espera</h1>
               <p className="text-muted-foreground">
-                Be among the first to experience our platform when we launch.
+                Seja um dos primeiros a experimentar nossa plataforma quando lançarmos.
               </p>
             </div>
             <WaitlistForm />

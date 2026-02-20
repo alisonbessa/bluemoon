@@ -63,13 +63,13 @@ export default async function RefundPolicyPage() {
         }}
         about={{
           "@type": "Thing",
-          name: "Refund Policy",
+          name: "Política de Reembolso",
         }}
       />
       <header className="mb-8 space-y-4">
         <h1 className="text-4xl font-bold">{policy.frontmatter.title}</h1>
         <p className="text-sm text-muted-foreground">
-          Last updated: {format(new Date(policy.frontmatter.lastUpdated), "MMMM d, yyyy")}
+          Última atualização: {format(new Date(policy.frontmatter.lastUpdated), "dd/MM/yyyy")}
         </p>
       </header>
 

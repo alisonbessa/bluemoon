@@ -63,13 +63,13 @@ export default async function TermsPage() {
         }}
         about={{
           "@type": "Thing",
-          name: "Terms of Service",
+          name: "Termos de Uso",
         }}
       />
       <header className="mb-8 space-y-4">
         <h1 className="text-4xl font-bold">{policy.frontmatter.title}</h1>
         <p className="text-sm text-muted-foreground">
-          Last updated: {format(new Date(policy.frontmatter.lastUpdated), "MMMM d, yyyy")}
+          Última atualização: {format(new Date(policy.frontmatter.lastUpdated), "dd/MM/yyyy")}
         </p>
       </header>
 

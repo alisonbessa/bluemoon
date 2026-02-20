@@ -10,7 +10,7 @@ export function Footer() {
     <footer className="border-t border-border/40">
       <div className="mx-auto max-w-(--breakpoint-xl) px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-6 lg:grid-cols-12">
-          {/* Brand and Description */}
+          {/* Marca e Descrição */}
           <div className="sm:col-span-2 md:col-span-2 lg:col-span-3">
             <Link href="/" className="text-lg font-semibold">
               {appConfig.projectName}
@@ -20,63 +20,39 @@ export function Footer() {
             </p>
           </div>
 
-          {/* Product Links */}
+          {/* Links do Produto */}
           <div className="sm:col-span-1 md:col-span-1 lg:col-span-2">
-            <h3 className="text-sm font-semibold">Product</h3>
+            <h3 className="text-sm font-semibold">Produto</h3>
             <ul className="mt-2 space-y-2 text-sm">
               <li>
                 <Link
-                  href="/features"
+                  href="/#features"
                   className="text-muted-foreground hover:text-primary"
                 >
-                  Features
+                  Funcionalidades
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/pricing"
+                  href="/#pricing"
                   className="text-muted-foreground hover:text-primary"
                 >
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/docs"
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  Documentation
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/api"
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  API
+                  Preços
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Company Links */}
+          {/* Links da Empresa */}
           <div className="sm:col-span-1 md:col-span-1 lg:col-span-2">
-            <h3 className="text-sm font-semibold">Company</h3>
+            <h3 className="text-sm font-semibold">Empresa</h3>
             <ul className="mt-2 space-y-2 text-sm">
               <li>
                 <Link
                   href="/about"
                   className="text-muted-foreground hover:text-primary"
                 >
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/careers"
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  Careers
+                  Sobre Nós
                 </Link>
               </li>
               <li>
@@ -89,55 +65,39 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/partners"
+                  href="/contact"
                   className="text-muted-foreground hover:text-primary"
                 >
-                  Partners
+                  Contato
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Resources Links */}
+          {/* Links de Recursos */}
           <div className="sm:col-span-1 md:col-span-1 lg:col-span-2">
-            <h3 className="text-sm font-semibold">Resources</h3>
+            <h3 className="text-sm font-semibold">Recursos</h3>
             <ul className="mt-2 space-y-2 text-sm">
-              <li>
-                <Link
-                  href="/community"
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  Community
-                </Link>
-              </li>
               <li>
                 <Link
                   href="/contact"
                   className="text-muted-foreground hover:text-primary"
                 >
-                  Contact
+                  Suporte
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/support"
+                  href="/#faq"
                   className="text-muted-foreground hover:text-primary"
                 >
-                  Support
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/status"
-                  className="text-muted-foreground hover:text-primary"
-                >
-                  Status
+                  Perguntas Frequentes
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Legal Links */}
+          {/* Links Legais */}
           <div className="sm:col-span-1 md:col-span-1 lg:col-span-2">
             <h3 className="text-sm font-semibold">Legal</h3>
             <ul className="mt-2 space-y-2 text-sm">
@@ -146,7 +106,7 @@ export function Footer() {
                   href="/privacy"
                   className="text-muted-foreground hover:text-primary"
                 >
-                  Privacy Policy
+                  Privacidade
                 </Link>
               </li>
               <li>
@@ -154,7 +114,7 @@ export function Footer() {
                   href="/terms"
                   className="text-muted-foreground hover:text-primary"
                 >
-                  Terms of Service
+                  Termos de Uso
                 </Link>
               </li>
               <li>
@@ -162,7 +122,7 @@ export function Footer() {
                   href="/cookie"
                   className="text-muted-foreground hover:text-primary"
                 >
-                  Cookie Policy
+                  Cookies
                 </Link>
               </li>
               <li>
@@ -170,13 +130,13 @@ export function Footer() {
                   href="/refund"
                   className="text-muted-foreground hover:text-primary"
                 >
-                  Refund Policy
+                  Reembolso
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Social Links */}
+          {/* Links Sociais */}
           <div className="sm:col-span-1 md:col-span-1 lg:col-span-1">
             <h3 className="text-sm font-semibold">Social</h3>
             <ul className="mt-2 space-y-2 text-sm">
@@ -223,7 +183,7 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom Section */}
+        {/* Seção Inferior */}
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border/40 pt-8 text-center sm:flex-row sm:text-left">
           <p className="text-sm text-muted-foreground">
             Copyright © {new Date().getFullYear()} {appConfig.projectName}

@@ -133,7 +133,7 @@ export function GoalsSectionAccordion({
                 </div>
                 <div className="hidden sm:block text-xs tabular-nums text-muted-foreground">
                   {goal.monthsRemaining > 0
-                    ? `${goal.monthsRemaining} ${goal.monthsRemaining === 1 ? 'mes' : 'meses'}`
+                    ? `${goal.monthsRemaining} ${goal.monthsRemaining === 1 ? 'mês' : 'meses'}`
                     : 'Vencida'}
                 </div>
                 {/* Mobile: empty column for alignment */}

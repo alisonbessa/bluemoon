@@ -4,8 +4,8 @@ import { Button } from "@/shared/ui/button";
 import { CheckCircle } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Waitlist Confirmation",
-  description: "Successfully joined the waitlist.",
+  title: "Lista de Espera - Confirmação",
+  description: "Inscrição na lista de espera confirmada com sucesso.",
 };
 
 export default function WaitlistSuccessPage() {
@@ -15,14 +15,14 @@ export default function WaitlistSuccessPage() {
         <div className="mb-6 flex justify-center">
           <CheckCircle className="h-16 w-16 text-green-500" />
         </div>
-        <h1 className="mb-2 text-3xl font-bold">You&apos;re on the Waitlist!</h1>
+        <h1 className="mb-2 text-3xl font-bold">Você está na lista!</h1>
         <p className="mb-8 text-muted-foreground">
-          Thank you for joining. We&apos;ll notify you via email when our platform is ready.
+          Obrigado por se inscrever. Avisaremos por email quando a plataforma estiver pronta.
         </p>
         <Button asChild>
-          <Link href="/">Return Home</Link>
+          <Link href="/">Voltar ao Início</Link>
         </Button>
       </div>
     </div>
   );
-} 
+}

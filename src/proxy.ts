@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "./auth";
 import type { NextRequest } from "next/server";
-import { isMarkdownPreferred, rewritePath } from "fumadocs-core/negotiation";
-const { rewrite: rewriteLLM } = rewritePath("/docs/*path", "/llms.mdx/*path");
 
 /**
  * Detect common attack patterns in URLs
@@ -50,14 +48,6 @@ export async function proxy(req: NextRequest) {
       { error: "Bad Request", code: "BLOCKED" },
       { status: 400 }
     );
-  }
-
-  // 2. Fumadocs LLM rewrite
-  if (isMarkdownPreferred(req)) {
-    const result = rewriteLLM(pathname);
-    if (result) {
-      return NextResponse.rewrite(new URL(result, req.nextUrl));
-    }
   }
 
   const session = await auth();
@@ -114,7 +104,6 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/docs/:path*",
     "/api/app/:path*",
     "/app/:path*",
     "/sign-in",
