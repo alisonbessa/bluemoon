@@ -117,6 +117,12 @@ REGRAS DE DATA:
 - Se não mencionar data, retorne date: null (será usado hoje)
 - Retorne no formato "YYYY-MM-DD"
 
+REGRAS DE ESCOPO (individual vs casal):
+- Se o usuário usar "eu", "meu", "minha" ou verbos na primeira pessoa do singular → scope: "individual"
+- Se o usuário usar "nós", "nosso", "nossa", "a gente", "juntos", "casal" → scope: "couple"
+- Exemplos: "quanto eu gastei?" → individual, "quanto gastamos?" → couple, "quanto a gente gastou?" → couple
+- Se não for claro, retorne scope: null (padrão: mostra ambos)
+
 REGRAS DE SAUDAÇÃO:
 - Se o usuário enviar uma saudação (oi, olá, bom dia, boa tarde, boa noite, e aí) retorne intent GREETING
 - Se o usuário agradecer (obrigado, valeu, thanks, brigado) retorne intent GREETING
@@ -144,12 +150,14 @@ Responda APENAS com JSON válido no formato:
 
     // Para QUERY_BALANCE:
     "queryType": "balance",
-    "period": "month" (padrão)
+    "period": "month" (padrão),
+    "scope": "individual" ou "couple" ou null
 
     // Para QUERY_CATEGORY:
     "queryType": "category",
     "categoryName": "nome da categoria mencionada",
-    "period": "month"
+    "period": "month",
+    "scope": "individual" ou "couple" ou null
 
     // Para QUERY_GOAL:
     "queryType": "goal",
@@ -208,10 +216,19 @@ Entrada: "chegou o VR"
 Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.85, "data": {"amount": null, "description": "VR", "incomeSourceHint": "Vale Refeição", "date": null}}
 
 Entrada: "quanto gastei esse mês?"
-Resposta: {"intent": "QUERY_BALANCE", "confidence": 0.95, "data": {"queryType": "balance", "period": "month"}}
+Resposta: {"intent": "QUERY_BALANCE", "confidence": 0.95, "data": {"queryType": "balance", "period": "month", "scope": null}}
+
+Entrada: "quanto eu gastei?"
+Resposta: {"intent": "QUERY_BALANCE", "confidence": 0.95, "data": {"queryType": "balance", "period": "month", "scope": "individual"}}
+
+Entrada: "quanto a gente gastou esse mês?"
+Resposta: {"intent": "QUERY_BALANCE", "confidence": 0.95, "data": {"queryType": "balance", "period": "month", "scope": "couple"}}
+
+Entrada: "quanto nós gastamos?"
+Resposta: {"intent": "QUERY_BALANCE", "confidence": 0.95, "data": {"queryType": "balance", "period": "month", "scope": "couple"}}
 
 Entrada: "quanto sobrou de alimentação?"
-Resposta: {"intent": "QUERY_CATEGORY", "confidence": 0.90, "data": {"queryType": "category", "categoryName": "Alimentação", "period": "month"}}
+Resposta: {"intent": "QUERY_CATEGORY", "confidence": 0.90, "data": {"queryType": "category", "categoryName": "Alimentação", "period": "month", "scope": null}}
 
 Entrada: "como tá minha meta da viagem?"
 Resposta: {"intent": "QUERY_GOAL", "confidence": 0.88, "data": {"queryType": "goal", "goalName": "viagem"}}
