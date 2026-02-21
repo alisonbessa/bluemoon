@@ -74,6 +74,8 @@ export const transactions = pgTable("transactions", {
   index("idx_transactions_budget_date").on(table.budgetId, table.date),
   index("idx_transactions_budget_type_date").on(table.budgetId, table.type, table.date),
   index("idx_transactions_budget_status").on(table.budgetId, table.status),
+  // Composite index for billing cycle queries (fix 3.5)
+  index("idx_transactions_account_type_status_date").on(table.accountId, table.type, table.status, table.date),
 ]);
 
 export const transactionsRelations = relations(transactions, ({ one, many }) => ({

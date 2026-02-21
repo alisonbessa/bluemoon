@@ -152,13 +152,20 @@ export const GET = withAuthRequired(async (req, context) => {
 
     const prevSpendingMap = new Map(prevSpending.map((s) => [s.categoryId, Number(s.totalSpent) || 0]));
 
+    // Build a map of category behaviors for carry-over logic
+    const categoryBehaviorMap = new Map(
+      budgetCategories.map(({ category }) => [category.id, category.behavior])
+    );
+
     // Calculate carriedOver for each category
     for (const prevAlloc of prevMonthAllocationsList) {
       const prevSpent = prevSpendingMap.get(prevAlloc.categoryId) || 0;
       const prevAvailable = (prevAlloc.allocated || 0) + (prevAlloc.carriedOver || 0) - prevSpent;
 
-      // Only carry over positive amounts (surplus), not negative (overspent)
-      const carryOver = Math.max(0, prevAvailable);
+      // Only carry over for "set_aside" categories (fix 2.6)
+      // "refill_up" categories reset each month — no carry-over
+      const behavior = categoryBehaviorMap.get(prevAlloc.categoryId) || "refill_up";
+      const carryOver = behavior === "set_aside" ? Math.max(0, prevAvailable) : 0;
 
       // Find or create current month allocation
       const currentAlloc = allocationsMap.get(prevAlloc.categoryId);

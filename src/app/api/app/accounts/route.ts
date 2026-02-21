@@ -75,34 +75,74 @@ export const GET = withAuthRequired(async (req, context) => {
     .where(whereCondition);
 
   // Calculate currentBill for credit card accounts using billing cycle
+  // Single grouped query instead of N+1 (fix 3.4)
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
 
-  const accountsWithBill = await Promise.all(
-    userAccounts.map(async (account) => {
-      if (account.type !== "credit_card" || !account.closingDay) {
-        return { ...account, currentBill: null };
-      }
-
-      const { start, end } = getBillingCycleDates(account.closingDay, currentYear, currentMonth);
-
-      const [result] = await db
-        .select({ total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)` })
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.accountId, account.id),
-            eq(transactions.type, "expense"),
-            inArray(transactions.status, ["pending", "cleared", "reconciled"]),
-            gte(transactions.date, start),
-            lte(transactions.date, end)
-          )
-        );
-
-      return { ...account, currentBill: Number(result?.total || 0) };
-    })
+  const creditCardAccounts = userAccounts.filter(
+    (a) => a.type === "credit_card" && a.closingDay
   );
+
+  const billsMap = new Map<string, number>();
+
+  if (creditCardAccounts.length > 0) {
+    // Calculate the widest date range across all billing cycles to minimize data fetched
+    let globalStart: Date | null = null;
+    let globalEnd: Date | null = null;
+    const billingRanges = new Map<string, { start: Date; end: Date }>();
+
+    for (const account of creditCardAccounts) {
+      const range = getBillingCycleDates(account.closingDay!, currentYear, currentMonth);
+      billingRanges.set(account.id, range);
+      if (!globalStart || range.start < globalStart) globalStart = range.start;
+      if (!globalEnd || range.end > globalEnd) globalEnd = range.end;
+    }
+
+    // Single query with the widest date range, grouped by accountId (fix 3.4)
+    const ccIds = creditCardAccounts.map((a) => a.id);
+    const ccBills = await db
+      .select({
+        accountId: transactions.accountId,
+        amount: transactions.amount,
+        date: transactions.date,
+      })
+      .from(transactions)
+      .where(
+        and(
+          inArray(transactions.accountId, ccIds),
+          eq(transactions.type, "expense"),
+          inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+          gte(transactions.date, globalStart!),
+          lte(transactions.date, globalEnd!)
+        )
+      );
+
+    // Aggregate per account filtered by its specific billing cycle
+    for (const account of creditCardAccounts) {
+      const range = billingRanges.get(account.id)!;
+      const startTime = range.start.getTime();
+      const endTime = range.end.getTime();
+
+      let total = 0;
+      for (const row of ccBills) {
+        if (row.accountId === account.id) {
+          const txTime = new Date(row.date).getTime();
+          if (txTime >= startTime && txTime <= endTime) {
+            total += Number(row.amount) || 0;
+          }
+        }
+      }
+      billsMap.set(account.id, total);
+    }
+  }
+
+  const accountsWithBill = userAccounts.map((account) => ({
+    ...account,
+    currentBill: account.type === "credit_card" && account.closingDay
+      ? (billsMap.get(account.id) ?? 0)
+      : null,
+  }));
 
   return cachedResponse({ accounts: accountsWithBill });
 });

@@ -30,6 +30,10 @@ export const recurringBills = pgTable("recurring_bills", {
   dueDay: integer("due_day"), // dia do vencimento (1-31) para monthly
   dueMonth: integer("due_month"), // mês do vencimento (1-12) para yearly
 
+  // Date bounds — prevents retroactive generation for past months (fix 4.3)
+  startDate: timestamp("start_date", { mode: "date" }), // When the bill started (null = always active)
+  endDate: timestamp("end_date", { mode: "date" }), // When the bill ends (null = no end)
+
   // Automation settings
   isAutoDebit: boolean("is_auto_debit").default(false), // true = confirma automaticamente no vencimento
   isVariable: boolean("is_variable").default(false), // true = valor é estimativa (ex: conta de luz)

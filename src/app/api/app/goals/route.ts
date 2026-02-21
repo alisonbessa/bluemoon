@@ -11,35 +11,7 @@ import {
   cachedResponse,
 } from "@/shared/lib/api/responses";
 import { createGoalSchema } from "@/shared/lib/validations/goal.schema";
-
-// Helper to calculate goal metrics
-function calculateGoalMetrics(goal: typeof goals.$inferSelect) {
-  const now = new Date();
-  const targetDate = new Date(goal.targetDate);
-  const currentAmount = goal.currentAmount ?? 0;
-  const targetAmount = goal.targetAmount;
-
-  // Calculate progress percentage
-  const progress = Math.min(Math.round((currentAmount / targetAmount) * 100), 100);
-
-  // Calculate months remaining
-  const monthsRemaining = Math.max(
-    0,
-    (targetDate.getFullYear() - now.getFullYear()) * 12 +
-      (targetDate.getMonth() - now.getMonth())
-  );
-
-  // Calculate monthly target
-  const remaining = targetAmount - currentAmount;
-  const monthlyTarget = monthsRemaining > 0 ? Math.ceil(remaining / monthsRemaining) : remaining;
-
-  return {
-    progress,
-    monthsRemaining,
-    monthlyTarget,
-    remaining,
-  };
-}
+import { calculateGoalMetrics } from "@/shared/lib/goals/calculate-metrics";
 
 // GET - Get goals for user's budgets
 export const GET = withAuthRequired(async (req, context) => {
