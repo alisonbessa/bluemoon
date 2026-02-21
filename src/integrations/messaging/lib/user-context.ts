@@ -58,8 +58,13 @@ export async function getUserBudgetInfo(userId: string): Promise<BudgetInfo | nu
     )),
   ]);
 
-  // Get default account (first checking account)
-  const defaultAccount = budgetAccounts.find((a) => a.type === "checking");
+  // Get default account with fallback chain: checking > cash > credit_card > savings > any
+  const defaultAccount =
+    budgetAccounts.find((a) => a.type === "checking") ||
+    budgetAccounts.find((a) => a.type === "cash") ||
+    budgetAccounts.find((a) => a.type === "credit_card") ||
+    budgetAccounts.find((a) => a.type === "savings") ||
+    budgetAccounts[0];
 
   // Map pending transactions with category/income source names
   const pendingTransactions = pendingTxs.map((tx) => {

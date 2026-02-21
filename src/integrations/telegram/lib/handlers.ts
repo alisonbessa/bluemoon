@@ -9,7 +9,7 @@ import {
   users,
   groups,
 } from "@/db/schema";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, sql } from "drizzle-orm";
 import type { TelegramMessage, TelegramCallbackQuery, UserContext } from "./types";
 import type { TelegramConversationStep, TelegramConversationContext } from "@/db/schema/telegram-users";
 import { getUserBudgetInfo, buildUserContext } from "@/integrations/messaging/lib/user-context";
@@ -341,33 +341,75 @@ async function handleUndo(chatId: number) {
     return;
   }
 
-  // Delete child installments first (if parent transaction)
-  await db
-    .delete(transactions)
+  // Get the transaction to find account info
+  const [txToDelete] = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.id, context.lastTransactionId));
+
+  if (!txToDelete) {
+    await sendMessage(chatId, "❌ Transação não encontrada ou já foi removida.");
+    return;
+  }
+
+  // Get child installments to reverse their balances too
+  const childTxs = await db
+    .select()
+    .from(transactions)
     .where(eq(transactions.parentTransactionId, context.lastTransactionId));
 
-  // Delete the last transaction
-  const deleted = await db
-    .delete(transactions)
-    .where(eq(transactions.id, context.lastTransactionId))
-    .returning();
-
-  if (deleted.length > 0) {
-    await sendMessage(
-      chatId,
-      `✅ Transação desfeita!\n\n` +
-        `Valor: ${formatCurrency(deleted[0].amount)}\n` +
-        `Descrição: ${deleted[0].description || "(sem descrição)"}`
-    );
-
-    // Clear last transaction from context
-    await updateTelegramUser(chatId, "IDLE", {
-      ...context,
-      lastTransactionId: undefined,
-    });
-  } else {
-    await sendMessage(chatId, "❌ Transação não encontrada ou já foi removida.");
+  // Reverse balance for all transactions (parent + children)
+  const allTxs = [txToDelete, ...childTxs];
+  for (const tx of allTxs) {
+    if (!tx.accountId) continue;
+    if (tx.type === "expense") {
+      await db
+        .update(financialAccounts)
+        .set({ balance: sql`${financialAccounts.balance} + ${tx.amount}` })
+        .where(eq(financialAccounts.id, tx.accountId));
+    } else if (tx.type === "income") {
+      await db
+        .update(financialAccounts)
+        .set({ balance: sql`${financialAccounts.balance} - ${tx.amount}` })
+        .where(eq(financialAccounts.id, tx.accountId));
+    } else if (tx.type === "transfer") {
+      await db
+        .update(financialAccounts)
+        .set({ balance: sql`${financialAccounts.balance} + ${tx.amount}` })
+        .where(eq(financialAccounts.id, tx.accountId));
+      if (tx.toAccountId) {
+        await db
+          .update(financialAccounts)
+          .set({ balance: sql`${financialAccounts.balance} - ${tx.amount}` })
+          .where(eq(financialAccounts.id, tx.toAccountId));
+      }
+    }
   }
+
+  // Delete child installments first
+  if (childTxs.length > 0) {
+    await db
+      .delete(transactions)
+      .where(eq(transactions.parentTransactionId, context.lastTransactionId));
+  }
+
+  // Delete the parent transaction
+  await db
+    .delete(transactions)
+    .where(eq(transactions.id, context.lastTransactionId));
+
+  await sendMessage(
+    chatId,
+    `✅ Transação desfeita!\n\n` +
+      `Valor: ${formatCurrency(txToDelete.amount)}\n` +
+      `Descrição: ${txToDelete.description || "(sem descrição)"}`
+  );
+
+  // Clear last transaction from context
+  await updateTelegramUser(chatId, "IDLE", {
+    ...context,
+    lastTransactionId: undefined,
+  });
 }
 
 // Handle /cancelar command
@@ -1112,11 +1154,22 @@ async function handleTransferConfirmation(chatId: number, confirmed: boolean, ca
       type: "transfer",
       status: "cleared",
       amount: context.pendingTransfer.amount,
-      description: context.pendingTransfer.description || "Transferencia via Telegram",
+      description: context.pendingTransfer.description || "Transferência via Telegram",
       date: getTodayNoonUTC(),
       source: "telegram",
     })
     .returning();
+
+  // Update account balances: subtract from source, add to destination
+  await db
+    .update(financialAccounts)
+    .set({ balance: sql`${financialAccounts.balance} - ${context.pendingTransfer.amount}` })
+    .where(eq(financialAccounts.id, context.pendingTransfer.fromAccountId));
+
+  await db
+    .update(financialAccounts)
+    .set({ balance: sql`${financialAccounts.balance} + ${context.pendingTransfer.amount}` })
+    .where(eq(financialAccounts.id, context.pendingTransfer.toAccountId));
 
   if (context.lastAILogId) await markLogAsConfirmed(context.lastAILogId);
 
@@ -1130,7 +1183,7 @@ async function handleTransferConfirmation(chatId: number, confirmed: boolean, ca
 
   await sendMessage(
     chatId,
-    `<b>Transferencia realizada!</b>\n\n` +
+    `<b>Transferência realizada!</b>\n\n` +
       `De: ${fromAccount?.name || "Conta"}\n` +
       `Para: ${toAccount?.name || "Conta"}\n` +
       `Valor: ${formatCurrency(context.pendingTransfer.amount)}\n\n` +

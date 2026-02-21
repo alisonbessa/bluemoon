@@ -1,4 +1,4 @@
-import type { AIResponse, UserContext, ExtractedExpenseData, ExtractedIncomeData, ExtractedQueryData, ExtractedTransferData, MessagingAdapter, ChatId, MessageId } from "./types";
+import type { AIResponse, UserContext, ExtractedExpenseData, ExtractedIncomeData, ExtractedQueryData, ExtractedTransferData, ExtractedData, MessagingAdapter, ChatId, MessageId } from "./types";
 import { handleExpenseIntent, handleIncomeIntent, handleTransferIntent } from "./ai-handlers";
 import { handleQueryIntent } from "./query-executor";
 import { logAIResponse, markLogAsConfirmed, updateAILogBotResponse } from "./ai-logger";
@@ -74,6 +74,10 @@ export async function routeIntent(
       );
       break;
 
+    case "GREETING":
+      await handleGreetingIntent(adapter, chatId, data, logId);
+      break;
+
     case "UNKNOWN":
     default:
       await handleUnknownIntent(adapter, chatId, logId);
@@ -81,6 +85,33 @@ export async function routeIntent(
   }
 
   return logId;
+}
+
+/**
+ * Handle greeting intents (oi, obrigado, bom dia, etc.)
+ */
+async function handleGreetingIntent(adapter: MessagingAdapter, chatId: ChatId, data: ExtractedData, logId: string | null): Promise<void> {
+  const greetingData = data as Record<string, unknown> | null;
+  const type = greetingData?.type as string | undefined;
+
+  let botMessage: string;
+  if (type === "thanks") {
+    botMessage = "De nada! Estou aqui para ajudar. 😊";
+  } else {
+    botMessage =
+      `Olá! 👋 Como posso ajudar?\n\n` +
+      `Você pode me enviar coisas como:\n` +
+      `"gastei 50 no mercado"\n` +
+      `"recebi 5000 de salário"\n` +
+      `"quanto gastei esse mês?"`;
+  }
+
+  await adapter.sendMessage(chatId, botMessage);
+
+  if (logId) {
+    await markLogAsConfirmed(logId);
+    await updateAILogBotResponse(logId, botMessage);
+  }
 }
 
 /**

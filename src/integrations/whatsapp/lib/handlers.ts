@@ -9,7 +9,7 @@ import {
   users,
   groups,
 } from "@/db/schema";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, sql } from "drizzle-orm";
 import type {
   ConversationStep,
   ConversationContext,
@@ -314,36 +314,81 @@ async function handleUndo(phoneNumber: string): Promise<void> {
     return;
   }
 
-  // Delete child installments first (if parent transaction)
-  await db
-    .delete(transactions)
-    .where(eq(transactions.parentTransactionId, context.lastTransactionId));
+  // Get the transaction to find account info
+  const [txToDelete] = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.id, context.lastTransactionId));
 
-  // Delete the last transaction
-  const deleted = await db
-    .delete(transactions)
-    .where(eq(transactions.id, context.lastTransactionId))
-    .returning();
-
-  if (deleted.length > 0) {
-    await adapter.sendMessage(
-      phoneNumber,
-      `Transação desfeita!\n\n` +
-        `Valor: ${formatCurrency(deleted[0].amount)}\n` +
-        `Descrição: ${deleted[0].description || "(sem descrição)"}`
-    );
-
-    // Clear last transaction from context
-    await adapter.updateState(phoneNumber, "IDLE", {
-      ...context,
-      lastTransactionId: undefined,
-    });
-  } else {
+  if (!txToDelete) {
     await adapter.sendMessage(
       phoneNumber,
       "Transação não encontrada ou já foi removida."
     );
+    return;
   }
+
+  // Get child installments to reverse their balances too
+  const childTxs = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.parentTransactionId, context.lastTransactionId));
+
+  // Reverse balance for all transactions (parent + children)
+  const allTxs = [txToDelete, ...childTxs];
+  for (const tx of allTxs) {
+    if (!tx.accountId) continue;
+    if (tx.type === "expense") {
+      // Reverse expense: add back to balance
+      await db
+        .update(financialAccounts)
+        .set({ balance: sql`${financialAccounts.balance} + ${tx.amount}` })
+        .where(eq(financialAccounts.id, tx.accountId));
+    } else if (tx.type === "income") {
+      // Reverse income: subtract from balance
+      await db
+        .update(financialAccounts)
+        .set({ balance: sql`${financialAccounts.balance} - ${tx.amount}` })
+        .where(eq(financialAccounts.id, tx.accountId));
+    } else if (tx.type === "transfer") {
+      // Reverse transfer: add back to source, subtract from destination
+      await db
+        .update(financialAccounts)
+        .set({ balance: sql`${financialAccounts.balance} + ${tx.amount}` })
+        .where(eq(financialAccounts.id, tx.accountId));
+      if (tx.toAccountId) {
+        await db
+          .update(financialAccounts)
+          .set({ balance: sql`${financialAccounts.balance} - ${tx.amount}` })
+          .where(eq(financialAccounts.id, tx.toAccountId));
+      }
+    }
+  }
+
+  // Delete child installments first
+  if (childTxs.length > 0) {
+    await db
+      .delete(transactions)
+      .where(eq(transactions.parentTransactionId, context.lastTransactionId));
+  }
+
+  // Delete the parent transaction
+  await db
+    .delete(transactions)
+    .where(eq(transactions.id, context.lastTransactionId));
+
+  await adapter.sendMessage(
+    phoneNumber,
+    `Transação desfeita!\n\n` +
+      `Valor: ${formatCurrency(txToDelete.amount)}\n` +
+      `Descrição: ${txToDelete.description || "(sem descrição)"}`
+  );
+
+  // Clear last transaction from context
+  await adapter.updateState(phoneNumber, "IDLE", {
+    ...context,
+    lastTransactionId: undefined,
+  });
 }
 
 // ============================================
@@ -798,6 +843,17 @@ async function handleTransferConfirmation(
       source: "whatsapp",
     })
     .returning();
+
+  // Update account balances: subtract from source, add to destination
+  await db
+    .update(financialAccounts)
+    .set({ balance: sql`${financialAccounts.balance} - ${context.pendingTransfer.amount}` })
+    .where(eq(financialAccounts.id, context.pendingTransfer.fromAccountId));
+
+  await db
+    .update(financialAccounts)
+    .set({ balance: sql`${financialAccounts.balance} + ${context.pendingTransfer.amount}` })
+    .where(eq(financialAccounts.id, context.pendingTransfer.toAccountId));
 
   if (context.lastAILogId) await markLogAsConfirmed(context.lastAILogId);
 
@@ -1496,12 +1552,18 @@ async function handleTextMessage(
     case "AWAITING_NEW_CATEGORY_CONFIRM":
     case "AWAITING_NEW_CATEGORY_GROUP":
     case "AWAITING_INCOME_SOURCE":
-    case "AWAITING_TRANSFER_DEST":
+    case "AWAITING_TRANSFER_DEST": {
       // User is in the middle of a flow but sent text instead of using buttons
+      // Cancel the previous AI log before resetting
+      const prevContext = (waUser.context || {}) as ConversationContext;
+      if (prevContext.lastAILogId) {
+        await markLogAsCancelled(prevContext.lastAILogId);
+      }
       // Reset and process as new message
       await adapter.updateState(phoneNumber, "IDLE", {});
       await handleAIMessage(phoneNumber, text, waUser.userId);
       break;
+    }
 
     case "IDLE":
     default:
