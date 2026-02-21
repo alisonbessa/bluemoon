@@ -147,6 +147,7 @@ export interface ExtractedQueryData {
   goalName?: string;
   accountName?: string;
   period?: "day" | "week" | "month" | "year";
+  scope?: "individual" | "couple"; // "eu" vs "nós/casal/juntos"
 }
 
 export interface ExtractedTransferData {
@@ -213,6 +214,11 @@ export interface UserContext {
     type: string;
     closingDay?: number | null;
   }>;
+  members: Array<{
+    id: string;
+    name: string;
+    type: string;
+  }>;
   pendingTransactions: PendingTransaction[];
   defaultAccountId?: string;
   memberId: string;
@@ -255,6 +261,11 @@ export interface BudgetInfo {
     name: string;
     type: string;
     closingDay?: number | null;
+  }>;
+  members: Array<{
+    id: string;
+    name: string;
+    type: string;
   }>;
   pendingTransactions: PendingTransaction[];
 }

@@ -34,7 +34,7 @@ export async function getUserBudgetInfo(userId: string): Promise<BudgetInfo | nu
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-  const [budgetAccounts, budgetCategories, budgetIncomeSources, budgetGoals, pendingTxs] = await Promise.all([
+  const [budgetAccounts, budgetCategories, budgetIncomeSources, budgetGoals, pendingTxs, allMembers] = await Promise.all([
     db.select().from(financialAccounts).where(eq(financialAccounts.budgetId, budgetId)),
 
     db.select({ category: categories, group: groups })
@@ -56,6 +56,12 @@ export async function getUserBudgetInfo(userId: string): Promise<BudgetInfo | nu
       eq(transactions.budgetId, budgetId), eq(transactions.status, "pending"),
       gte(transactions.date, startOfMonth), lte(transactions.date, endOfMonth),
     )),
+
+    db.select({
+      id: budgetMembers.id,
+      name: budgetMembers.name,
+      type: budgetMembers.type,
+    }).from(budgetMembers).where(eq(budgetMembers.budgetId, budgetId)),
   ]);
 
   // Get default account with fallback chain: checking > cash > credit_card > savings > any
@@ -123,6 +129,11 @@ export async function getUserBudgetInfo(userId: string): Promise<BudgetInfo | nu
       type: a.type,
       closingDay: a.closingDay,
     })),
+    members: allMembers.map((m) => ({
+      id: m.id,
+      name: m.name,
+      type: m.type,
+    })),
     pendingTransactions,
   };
 }
@@ -139,6 +150,7 @@ export function buildUserContext(userId: string, budgetInfo: BudgetInfo): UserCo
     incomeSources: budgetInfo.incomeSources,
     goals: budgetInfo.goals,
     accounts: budgetInfo.accounts,
+    members: budgetInfo.members,
     pendingTransactions: budgetInfo.pendingTransactions,
     defaultAccountId: budgetInfo.defaultAccount?.id,
     memberId: budgetInfo.member.id,

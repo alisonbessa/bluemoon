@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { transactions, categories, goals, groups, monthlyAllocations, financialAccounts } from "@/db/schema";
+import { transactions, categories, goals, groups, monthlyAllocations, financialAccounts, budgetMembers } from "@/db/schema";
 import { eq, and, gte, lte, sql, sum } from "drizzle-orm";
 import type { UserContext, ExtractedQueryData, Intent, MessagingAdapter, ChatId } from "./types";
 import { formatCurrency } from "@/shared/lib/formatters";
@@ -19,6 +19,8 @@ interface MonthSummary {
   totalExpenses: number;
   balance: number;
   topCategories: CategorySummary[];
+  myExpenses: number;
+  myIncome: number;
 }
 
 /**
@@ -35,7 +37,7 @@ export async function handleQueryIntent(
 
   switch (data.queryType) {
     case "balance":
-      await handleBalanceQuery(adapter, chatId, budgetId, currentYear, currentMonth);
+      await handleBalanceQuery(adapter, chatId, budgetId, currentYear, currentMonth, userContext, data.scope);
       break;
 
     case "category":
@@ -51,7 +53,7 @@ export async function handleQueryIntent(
       break;
 
     default:
-      await handleBalanceQuery(adapter, chatId, budgetId, currentYear, currentMonth);
+      await handleBalanceQuery(adapter, chatId, budgetId, currentYear, currentMonth, userContext);
   }
 }
 
@@ -63,23 +65,55 @@ async function handleBalanceQuery(
   chatId: ChatId,
   budgetId: string,
   year: number,
-  month: number
+  month: number,
+  userContext: UserContext,
+  scope?: "individual" | "couple"
 ): Promise<void> {
-  const summary = await getMonthSummary(budgetId, year, month);
+  // Check if this is a duo budget (2+ owner/partner members)
+  const activeMembers = userContext.members.filter(
+    (m) => m.type === "owner" || m.type === "partner"
+  );
+  const isDuo = activeMembers.length >= 2;
+
+  const summary = await getMonthSummary(budgetId, year, month, isDuo ? userContext.memberId : undefined);
 
   const monthName = new Date(year, month - 1).toLocaleDateString("pt-BR", { month: "long" });
 
   let message = `<b>Resumo de ${monthName}/${year}</b>\n\n`;
 
-  // Balance
-  const balanceEmoji = summary.balance >= 0 ? "+" : "";
-  message += `<b>Saldo:</b> ${balanceEmoji}${formatCurrency(summary.balance)}\n`;
-  message += `Receitas: ${formatCurrency(summary.totalIncome)}\n`;
-  message += `Despesas: ${formatCurrency(summary.totalExpenses)}\n\n`;
+  if (isDuo && scope === "individual") {
+    // Individual view: show only the user's own data
+    const myBalance = summary.myIncome - summary.myExpenses;
+    const balanceEmoji = myBalance >= 0 ? "+" : "";
+    message += `<b>Seus números:</b>\n`;
+    message += `Saldo: ${balanceEmoji}${formatCurrency(myBalance)}\n`;
+    message += `Suas receitas: ${formatCurrency(summary.myIncome)}\n`;
+    message += `Seus gastos: ${formatCurrency(summary.myExpenses)}\n`;
+  } else if (isDuo && scope === "couple") {
+    // Couple view: show only total data
+    const balanceEmoji = summary.balance >= 0 ? "+" : "";
+    message += `<b>Números do casal:</b>\n`;
+    message += `Saldo: ${balanceEmoji}${formatCurrency(summary.balance)}\n`;
+    message += `Receitas totais: ${formatCurrency(summary.totalIncome)}\n`;
+    message += `Despesas totais: ${formatCurrency(summary.totalExpenses)}\n`;
+  } else if (isDuo) {
+    // Default for duo: show both
+    const balanceEmoji = summary.balance >= 0 ? "+" : "";
+    message += `<b>Saldo:</b> ${balanceEmoji}${formatCurrency(summary.balance)}\n`;
+    message += `Receitas: ${formatCurrency(summary.totalIncome)}\n`;
+    message += `Despesas totais: ${formatCurrency(summary.totalExpenses)}\n`;
+    message += `Seus gastos: ${formatCurrency(summary.myExpenses)}\n`;
+  } else {
+    // Solo budget
+    const balanceEmoji = summary.balance >= 0 ? "+" : "";
+    message += `<b>Saldo:</b> ${balanceEmoji}${formatCurrency(summary.balance)}\n`;
+    message += `Receitas: ${formatCurrency(summary.totalIncome)}\n`;
+    message += `Despesas: ${formatCurrency(summary.totalExpenses)}\n`;
+  }
 
   // Top categories
   if (summary.topCategories.length > 0) {
-    message += `<b>Maiores gastos:</b>\n`;
+    message += `\n<b>Maiores gastos:</b>\n`;
     for (const cat of summary.topCategories.slice(0, 5)) {
       const icon = cat.categoryIcon || "📁";
       message += `${icon} ${cat.categoryName}: ${formatCurrency(cat.spent)}\n`;
@@ -327,49 +361,56 @@ function getAccountIcon(type: string): string {
 async function getMonthSummary(
   budgetId: string,
   year: number,
-  month: number
+  month: number,
+  memberId?: string
 ): Promise<MonthSummary> {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
 
-  // Get total income
-  const incomeResult = await db
-    .select({
-      total: sum(transactions.amount),
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.budgetId, budgetId),
-        eq(transactions.type, "income"),
-        eq(transactions.status, "cleared"),
-        gte(transactions.date, startDate),
-        lte(transactions.date, endDate)
-      )
-    );
+  const baseFilters = and(
+    eq(transactions.budgetId, budgetId),
+    eq(transactions.status, "cleared"),
+    gte(transactions.date, startDate),
+    lte(transactions.date, endDate)
+  );
 
-  const totalIncome = Number(incomeResult[0]?.total) || 0;
+  // Run queries in parallel
+  const [incomeResult, expensesByCategory, myExpenseResult, myIncomeResult] = await Promise.all([
+    // Total income (whole budget)
+    db.select({ total: sum(transactions.amount) })
+      .from(transactions)
+      .where(and(baseFilters, eq(transactions.type, "income"))),
 
-  // Get expenses by category
-  const expensesByCategory = await db
-    .select({
+    // Expenses by category (whole budget)
+    db.select({
       categoryId: transactions.categoryId,
       categoryName: categories.name,
       categoryIcon: categories.icon,
       spent: sum(transactions.amount),
     })
-    .from(transactions)
-    .leftJoin(categories, eq(transactions.categoryId, categories.id))
-    .where(
-      and(
-        eq(transactions.budgetId, budgetId),
-        eq(transactions.type, "expense"),
-        eq(transactions.status, "cleared"),
-        gte(transactions.date, startDate),
-        lte(transactions.date, endDate)
-      )
-    )
-    .groupBy(transactions.categoryId, categories.name, categories.icon);
+      .from(transactions)
+      .leftJoin(categories, eq(transactions.categoryId, categories.id))
+      .where(and(baseFilters, eq(transactions.type, "expense")))
+      .groupBy(transactions.categoryId, categories.name, categories.icon),
+
+    // My expenses (individual member)
+    memberId
+      ? db.select({ total: sum(transactions.amount) })
+          .from(transactions)
+          .where(and(baseFilters, eq(transactions.type, "expense"), eq(transactions.memberId, memberId)))
+      : Promise.resolve([{ total: null }]),
+
+    // My income (individual member)
+    memberId
+      ? db.select({ total: sum(transactions.amount) })
+          .from(transactions)
+          .where(and(baseFilters, eq(transactions.type, "income"), eq(transactions.memberId, memberId)))
+      : Promise.resolve([{ total: null }]),
+  ]);
+
+  const totalIncome = Number(incomeResult[0]?.total) || 0;
+  const myExpenses = Number(myExpenseResult[0]?.total) || 0;
+  const myIncome = Number(myIncomeResult[0]?.total) || 0;
 
   const totalExpenses = expensesByCategory.reduce(
     (sum, cat) => sum + (Number(cat.spent) || 0),
@@ -393,6 +434,8 @@ async function getMonthSummary(
     totalExpenses,
     balance: totalIncome - totalExpenses,
     topCategories,
+    myExpenses,
+    myIncome,
   };
 }
 

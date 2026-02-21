@@ -191,6 +191,7 @@ function normalizeExtractedData(
         goalName: data.goalName as string | undefined,
         accountName: data.accountName as string | undefined,
         period: normalizePeriod(data.period as string),
+        scope: normalizeScope(data.scope as string),
       };
 
     case "TRANSFER":
@@ -250,6 +251,16 @@ function normalizePeriod(
   return valid.includes(period || "")
     ? (period as "day" | "week" | "month" | "year")
     : "month";
+}
+
+/**
+ * Normalize scope (individual vs couple)
+ */
+function normalizeScope(
+  scope: string | undefined
+): "individual" | "couple" | undefined {
+  if (scope === "individual" || scope === "couple") return scope;
+  return undefined;
 }
 
 /**
