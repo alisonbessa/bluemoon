@@ -91,6 +91,21 @@ export default function AboutPage() {
             </article>
           </div>
         </section>
+
+        <section className="space-y-4" aria-labelledby="data-protection">
+          <h2 id="data-protection" className="text-2xl font-semibold">Proteção de Dados</h2>
+          <p className="leading-relaxed text-muted-foreground">
+            O {appConfig.projectName} está em conformidade com a <strong>Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)</strong>. Respeitamos seus direitos como titular de dados pessoais e oferecemos ferramentas para que você tenha controle total sobre suas informações:
+          </p>
+          <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+            <li><strong>Exportação de dados:</strong> você pode exportar todos os seus dados a qualquer momento nas Configurações.</li>
+            <li><strong>Exclusão de conta:</strong> você pode solicitar a exclusão completa dos seus dados diretamente na Plataforma.</li>
+            <li><strong>Transparência:</strong> detalhamos quais dados coletamos, como os utilizamos e com quem os compartilhamos em nossa <a href="/privacy" className="text-primary hover:underline">Política de Privacidade</a>.</li>
+          </ul>
+          <p className="leading-relaxed text-muted-foreground">
+            Não vendemos, alugamos ou compartilhamos seus dados pessoais com terceiros para fins de marketing ou publicidade. Para mais informações, consulte nossos <a href="/terms" className="text-primary hover:underline">Termos de Uso</a> e nossa <a href="/privacy" className="text-primary hover:underline">Política de Privacidade</a>.
+          </p>
+        </section>
       </div>
     </article>
   );

@@ -36,6 +36,17 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
 
       {showPasswordAuth ? <SignUpForm /> : <AuthForm callbackUrl={callbackUrl} />}
 
+      <p className="mt-4 text-center text-xs text-muted-foreground">
+        Ao criar sua conta, você concorda com nossos{" "}
+        <Link href="/terms" className="text-primary hover:underline">
+          Termos de Uso
+        </Link>{" "}
+        e nossa{" "}
+        <Link href="/privacy" className="text-primary hover:underline">
+          Política de Privacidade
+        </Link>.
+      </p>
+
       <div className="mt-6 text-center">
         <Link
           href="/sign-in"

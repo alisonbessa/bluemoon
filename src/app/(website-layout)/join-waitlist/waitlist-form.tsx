@@ -16,6 +16,7 @@ import {
 } from "@/shared/ui/form";
 import { Input } from "@/shared/ui/input";
 import { toast } from "sonner";
+import Link from "next/link";
 
 const formSchema = z.object({
   name: z.string().min(2, "O nome deve ter pelo menos 2 caracteres"),
@@ -116,6 +117,13 @@ export default function WaitlistForm() {
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? "Entrando..." : "Entrar na Lista de Espera"}
         </Button>
+
+        <p className="text-center text-xs text-muted-foreground">
+          Ao se inscrever, você concorda com nossa{" "}
+          <Link href="/privacy" className="text-primary hover:underline">
+            Política de Privacidade
+          </Link>. Usaremos seu e-mail apenas para comunicações sobre o lançamento da plataforma.
+        </p>
       </form>
     </Form>
   );
