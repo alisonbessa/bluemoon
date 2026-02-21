@@ -141,6 +141,7 @@ function normalizeIntent(intent: string | undefined): Intent {
     "QUERY_GOAL",
     "QUERY_ACCOUNT",
     "TRANSFER",
+    "GREETING",
     "UNKNOWN",
   ];
 

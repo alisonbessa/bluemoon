@@ -66,8 +66,26 @@ export async function handleExpenseIntent(
 
   // Try to match account from hint (e.g., "paguei com o cartão flash")
   const matchedAccount = data?.accountHint ? matchAccount(data.accountHint, accounts) : null;
-  const accountId = matchedAccount?.id || defaultAccountId;
-  const accountName = matchedAccount?.name;
+
+  // For installments without explicit account, prefer credit card
+  let accountId: string;
+  let accountName: string;
+  if (matchedAccount) {
+    accountId = matchedAccount.id;
+    accountName = matchedAccount.name;
+  } else if (data?.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
+    const creditCard = accounts.find(a => a.type === "credit_card");
+    if (creditCard) {
+      accountId = creditCard.id;
+      accountName = creditCard.name;
+    } else {
+      accountId = defaultAccountId;
+      accountName = accounts.find(a => a.id === defaultAccountId)?.name || "Conta padrão";
+    }
+  } else {
+    accountId = defaultAccountId;
+    accountName = accounts.find(a => a.id === defaultAccountId)?.name || "Conta padrão";
+  }
 
   // Try to match category
   const categoryMatch = matchCategory(data?.categoryHint, categories);
@@ -445,6 +463,7 @@ export async function handleIncomeIntent(
   // Try to match account from hint (e.g., "recebi salário na conta do itaú")
   const matchedAccount = data?.accountHint ? matchAccount(data.accountHint, accounts) : null;
   const accountId = matchedAccount?.id || defaultAccountId;
+  const accountName = matchedAccount?.name || accounts.find(a => a.id === defaultAccountId)?.name;
 
   // CASE 1: No amount provided (null, undefined, or 0) - try to find a scheduled transaction
   // AI sometimes returns 0 instead of null when no amount is mentioned
@@ -547,6 +566,7 @@ export async function handleIncomeIntent(
       `✅ <b>Receita registrada!</b>\n\n` +
         (incomeSourceName ? `Fonte: ${incomeSourceName}\n` : "") +
         `Valor: ${formatCurrency(data.amount)}\n` +
+        (accountName ? `Conta: ${accountName}\n` : "") +
         (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
         `Use /desfazer para remover.`
     );
@@ -559,6 +579,9 @@ export async function handleIncomeIntent(
     message += `Fonte: ${incomeSourceName}\n`;
   }
   message += `Valor: ${formatCurrency(data.amount)}\n`;
+  if (accountName) {
+    message += `Conta: ${accountName}\n`;
+  }
   if (data.description) {
     message += `Descrição: ${data.description}\n`;
   }

@@ -120,6 +120,7 @@ export type Intent =
   | "QUERY_GOAL"
   | "QUERY_ACCOUNT"
   | "TRANSFER"
+  | "GREETING"
   | "UNKNOWN";
 
 export interface ExtractedExpenseData {

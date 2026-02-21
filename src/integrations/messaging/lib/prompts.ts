@@ -65,6 +65,7 @@ INTENÇÕES VÁLIDAS:
 - QUERY_GOAL: Consultar meta (como está minha meta)
 - QUERY_ACCOUNT: Consultar saldo de conta específica (quanto tenho na poupança, saldo do nubank)
 - TRANSFER: Transferir entre contas (transferi, movi)
+- GREETING: Saudação ou agradecimento (oi, bom dia, obrigado)
 - UNKNOWN: Não conseguiu identificar
 
 REGRAS DE VALOR:
@@ -107,9 +108,23 @@ REGRAS DE PARCELAMENTO:
 - Se mencionar parcelamento, retorne isInstallment: true e totalInstallments com o número
 - Se não mencionar parcelamento, retorne isInstallment: false
 
+REGRAS DE DATA:
+- A data atual é: ${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}
+- "ontem" = data de ontem
+- "anteontem" = 2 dias atrás
+- "semana passada" = 7 dias atrás (aproximado)
+- "dia 15", "no dia 15" = dia 15 do mês atual
+- Se não mencionar data, retorne date: null (será usado hoje)
+- Retorne no formato "YYYY-MM-DD"
+
+REGRAS DE SAUDAÇÃO:
+- Se o usuário enviar uma saudação (oi, olá, bom dia, boa tarde, boa noite, e aí) retorne intent GREETING
+- Se o usuário agradecer (obrigado, valeu, thanks, brigado) retorne intent GREETING
+- Não confunda com intenções financeiras: "recebi bom dia" não é saudação
+
 Responda APENAS com JSON válido no formato:
 {
-  "intent": "REGISTER_EXPENSE" | "REGISTER_INCOME" | "QUERY_BALANCE" | "QUERY_CATEGORY" | "QUERY_GOAL" | "TRANSFER" | "UNKNOWN",
+  "intent": "REGISTER_EXPENSE" | "REGISTER_INCOME" | "QUERY_BALANCE" | "QUERY_CATEGORY" | "QUERY_GOAL" | "TRANSFER" | "GREETING" | "UNKNOWN",
   "confidence": 0.0 a 1.0,
   "data": {
     // Para REGISTER_EXPENSE:
@@ -118,12 +133,14 @@ Responda APENAS com JSON válido no formato:
     "categoryHint": "nome da categoria mais provável ou vazio",
     "accountHint": "nome da conta usada para pagar ou vazio",
     "isInstallment": true ou false,
-    "totalInstallments": número de parcelas (2-24) ou null se não parcelado
+    "totalInstallments": número de parcelas (2-24) ou null se não parcelado,
+    "date": "YYYY-MM-DD" ou null se não mencionado
 
     // Para REGISTER_INCOME:
     "amount": número em reais ou null se não mencionado,
     "description": "descrição opcional",
-    "incomeSourceHint": "nome da fonte de renda mais provável ou vazio"
+    "incomeSourceHint": "nome da fonte de renda mais provável ou vazio",
+    "date": "YYYY-MM-DD" ou null se não mencionado
 
     // Para QUERY_BALANCE:
     "queryType": "balance",
@@ -152,40 +169,43 @@ Responda APENAS com JSON válido no formato:
 EXEMPLOS:
 
 Entrada: "gastei 50 no mercado"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "mercado", "categoryHint": "Alimentação", "accountHint": "", "isInstallment": false, "totalInstallments": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "mercado", "categoryHint": "Alimentação", "accountHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
 
 Entrada: "gastei 177 e 34 no restaurante"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 177.34, "description": "restaurante", "categoryHint": "Alimentação", "accountHint": "", "isInstallment": false, "totalInstallments": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 177.34, "description": "restaurante", "categoryHint": "Alimentação", "accountHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
 
-Entrada: "paguei 200 de luz"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 200.00, "description": "conta de luz", "categoryHint": "Energia", "accountHint": "", "isInstallment": false, "totalInstallments": null}}
+Entrada: "paguei 200 de luz ontem"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 200.00, "description": "conta de luz", "categoryHint": "Energia", "accountHint": "", "isInstallment": false, "totalInstallments": null, "date": "(data de ontem no formato YYYY-MM-DD)"}}
 
 Entrada: "gastei 50 na churrascaria e paguei com o cartão flash"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "churrascaria", "categoryHint": "Alimentação", "accountHint": "Flash", "isInstallment": false, "totalInstallments": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "churrascaria", "categoryHint": "Alimentação", "accountHint": "Flash", "isInstallment": false, "totalInstallments": null, "date": null}}
 
 Entrada: "comprei 80 de remédio no débito"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 80.00, "description": "remédio", "categoryHint": "Saúde", "accountHint": "conta corrente", "isInstallment": false, "totalInstallments": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 80.00, "description": "remédio", "categoryHint": "Saúde", "accountHint": "conta corrente", "isInstallment": false, "totalInstallments": null, "date": null}}
 
 Entrada: "comprei uma TV de 2000 em 10x no cartão"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 2000.00, "description": "TV", "categoryHint": "Eletrônicos", "accountHint": "cartão de crédito", "isInstallment": true, "totalInstallments": 10}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 2000.00, "description": "TV", "categoryHint": "Eletrônicos", "accountHint": "cartão de crédito", "isInstallment": true, "totalInstallments": 10, "date": null}}
 
 Entrada: "parcelei o sofá de 3500 em 12 vezes"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 3500.00, "description": "sofá", "categoryHint": "Casa", "accountHint": "", "isInstallment": true, "totalInstallments": 12}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 3500.00, "description": "sofá", "categoryHint": "Casa", "accountHint": "", "isInstallment": true, "totalInstallments": 12, "date": null}}
 
 Entrada: "gastei 600 no dentista em 3x"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 600.00, "description": "dentista", "categoryHint": "Saúde", "accountHint": "", "isInstallment": true, "totalInstallments": 3}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 600.00, "description": "dentista", "categoryHint": "Saúde", "accountHint": "", "isInstallment": true, "totalInstallments": 3, "date": null}}
+
+Entrada: "gastei 30 no uber dia 15"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 30.00, "description": "uber", "categoryHint": "Transporte", "accountHint": "", "isInstallment": false, "totalInstallments": null, "date": "(dia 15 do mês atual no formato YYYY-MM-DD)"}}
 
 Entrada: "recebi 5000 de salário"
-Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.95, "data": {"amount": 5000.00, "description": "salário", "incomeSourceHint": "Salário"}}
+Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.95, "data": {"amount": 5000.00, "description": "salário", "incomeSourceHint": "Salário", "date": null}}
 
 Entrada: "recebi salário da Radix"
-Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.90, "data": {"amount": null, "description": "salário", "incomeSourceHint": "Radix"}}
+Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.90, "data": {"amount": null, "description": "salário", "incomeSourceHint": "Radix", "date": null}}
 
 Entrada: "paguei a conta de luz"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.88, "data": {"amount": null, "description": "conta de luz", "categoryHint": "Energia", "accountHint": "", "isInstallment": false, "totalInstallments": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.88, "data": {"amount": null, "description": "conta de luz", "categoryHint": "Energia", "accountHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
 
 Entrada: "chegou o VR"
-Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.85, "data": {"amount": null, "description": "VR", "incomeSourceHint": "Vale Refeição"}}
+Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.85, "data": {"amount": null, "description": "VR", "incomeSourceHint": "Vale Refeição", "date": null}}
 
 Entrada: "quanto gastei esse mês?"
 Resposta: {"intent": "QUERY_BALANCE", "confidence": 0.95, "data": {"queryType": "balance", "period": "month"}}
@@ -206,10 +226,13 @@ Entrada: "transferi 500 da conta corrente pra poupança"
 Resposta: {"intent": "TRANSFER", "confidence": 0.90, "data": {"amount": 500.00, "fromAccountHint": "conta corrente", "toAccountHint": "poupança"}}
 
 Entrada: "oi"
-Resposta: {"intent": "UNKNOWN", "confidence": 0.10, "data": null}
+Resposta: {"intent": "GREETING", "confidence": 0.95, "data": {"type": "greeting"}}
 
 Entrada: "obrigado"
-Resposta: {"intent": "UNKNOWN", "confidence": 0.10, "data": null}
+Resposta: {"intent": "GREETING", "confidence": 0.95, "data": {"type": "thanks"}}
+
+Entrada: "bom dia"
+Resposta: {"intent": "GREETING", "confidence": 0.95, "data": {"type": "greeting"}}
 
 AGORA ANALISE A MENSAGEM E RESPONDA APENAS COM O JSON:`;
 }
