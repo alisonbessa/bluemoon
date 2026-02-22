@@ -17,6 +17,7 @@ import {
 } from "@/shared/lib/api/responses";
 import { checkPartnerAccess } from "@/shared/lib/users/checkPartnerAccess";
 import stripe from "@/integrations/stripe";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 export const GET = withAuthRequired(async (req, context) => {
   const { getCurrentPlan, getUser, session } = context;
@@ -92,6 +93,15 @@ export const DELETE = withAuthRequired(async (req, context) => {
   try {
     const { session, getUser } = context;
 
+    // Parse optional deletion reason from request body
+    let reason: string | undefined;
+    try {
+      const body = await req.json();
+      reason = body.reason;
+    } catch {
+      // No body provided, that's fine
+    }
+
     // Get user to check for Stripe subscription
     const user = await getUser();
 
@@ -113,12 +123,36 @@ export const DELETE = withAuthRequired(async (req, context) => {
       }
     }
 
-    // Delete the user - cascade will handle related data
-    await db.delete(users).where(eq(users.id, session.user.id));
+    // LGPD soft delete: mark account as deleted instead of hard deleting
+    // Data will be permanently removed after 30 days as per Privacy Policy
+    const now = new Date();
+    await db
+      .update(users)
+      .set({
+        deletedAt: now,
+        deletionRequestedAt: now,
+        deletionReason: reason || null,
+      })
+      .where(eq(users.id, session.user.id));
+
+    // Record audit log for LGPD compliance
+    await recordAuditLog({
+      userId: session.user.id,
+      action: "user.delete",
+      resource: "user",
+      resourceId: session.user.id,
+      details: {
+        type: "lgpd_deletion_request",
+        reason: reason || "not provided",
+      },
+      req,
+    });
+
+    logger.info(`LGPD deletion requested for user ${session.user.id}`);
 
     return successResponse({
       success: true,
-      message: "Account deleted successfully",
+      message: "Sua conta foi desativada e seus dados serão excluídos em até 30 dias.",
     });
   } catch (error) {
     logger.error("Error deleting account:", error);

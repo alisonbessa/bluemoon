@@ -19,6 +19,7 @@ import { useState } from "react";
 import { appConfig } from "@/shared/lib/config";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { WebPageJsonLd } from "next-seo";
+import Link from "next/link";
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -242,6 +243,13 @@ export default function ContactPage() {
                   >
                     {isSubmitting ? "Enviando..." : "Enviar Mensagem"}
                   </Button>
+
+                  <p className="text-xs text-muted-foreground text-center">
+                    Ao enviar, você concorda com o tratamento dos seus dados conforme nossa{" "}
+                    <Link href="/privacy" className="text-primary hover:underline">
+                      Política de Privacidade
+                    </Link>. Seus dados serão utilizados exclusivamente para responder sua mensagem.
+                  </p>
                 </form>
               </Form>
             </div>

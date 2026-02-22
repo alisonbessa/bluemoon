@@ -1,44 +1,98 @@
 ---
-title: Cookie Policy
-lastUpdated: "2024-01-04"
-description: Learn about how we use cookies and similar technologies on our platform.
+title: Política de Cookies
+lastUpdated: "2026-02-21"
+description: Saiba como o HiveBudget utiliza cookies e tecnologias semelhantes em sua plataforma.
 ---
 
-# Cookie Policy
+# Política de Cookies
 
-This Cookie Policy explains how we use cookies and similar tracking technologies on our website.
+Esta Política de Cookies explica como o **HiveBudget** ("nós", "nosso" ou "Plataforma") utiliza cookies e tecnologias semelhantes, em conformidade com a **Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018 — LGPD)** e o **Marco Civil da Internet (Lei nº 12.965/2014)**.
 
-## What Are Cookies?
+---
 
-Cookies are small text files that are stored on your device when you visit our website. They help us provide you with a better experience by:
-- Remembering your preferences
-- Understanding how you use our website
-- Keeping you signed in
-- Protecting against fraud
-- Improving our services
+## 1. O que são Cookies?
 
-## Types of Cookies We Use
+Cookies são pequenos arquivos de texto armazenados no seu dispositivo (computador, tablet ou celular) quando você acessa um site. Eles permitem que o site reconheça seu dispositivo e armazene informações sobre suas preferências ou ações anteriores.
 
-### Essential Cookies
-These cookies are necessary for the website to function properly. They enable core functionality such as security, network management, and accessibility. You may disable these by changing your browser settings, but this may affect how the website functions.
+---
 
-### Analytics Cookies
-We use analytics cookies to understand how visitors interact with our website. This helps us improve our website and services. The information collected is anonymous and statistical in nature.
+## 2. Tipos de Cookies que Utilizamos
 
-### Functionality Cookies
-These cookies enable the website to provide enhanced functionality and personalization. They may be set by us or by third-party providers whose services we have added to our pages.
+### 2.1. Cookies Essenciais (Estritamente Necessários)
 
-### Marketing Cookies
-Marketing cookies are used to track visitors across websites. The intention is to display ads that are relevant and engaging for the individual user.
+Estes cookies são indispensáveis para o funcionamento da Plataforma e não podem ser desativados. Eles são utilizados para:
 
-## Managing Cookies
+- **Autenticação:** manter sua sessão ativa e você conectado à sua conta.
+- **Segurança:** proteger contra acessos não autorizados e fraudes.
+- **Funcionalidade básica:** garantir que a Plataforma funcione corretamente.
 
-Most web browsers allow you to control cookies through their settings preferences. However, if you limit the ability of websites to set cookies, you may worsen your overall user experience.
+Esses cookies não coletam informações para fins de marketing ou publicidade.
 
-## Updates to This Policy
+### 2.2. Cookies de Preferências
 
-We may update this Cookie Policy from time to time. The latest version will always be available on our website.
+Utilizamos cookies para lembrar suas preferências de uso, como:
 
-## Contact Us
+- **Tema:** sua escolha entre modo claro, escuro ou automático (sistema).
 
-If you have any questions about our Cookie Policy, please contact us. 
+Esses cookies melhoram sua experiência, mas não são utilizados para rastreamento.
+
+---
+
+## 3. Cookies de Terceiros
+
+A Plataforma pode utilizar serviços de terceiros que definem seus próprios cookies:
+
+| Serviço | Finalidade | Tipo |
+|---|---|---|
+| **Stripe** | Processamento seguro de pagamentos | Essencial |
+| **Provedor de autenticação (Google)** | Login seguro via OAuth | Essencial |
+
+Não utilizamos cookies de marketing, publicidade ou rastreamento de terceiros.
+
+---
+
+## 4. Base Legal para Uso de Cookies
+
+Conforme a LGPD:
+
+- **Cookies essenciais:** utilizados com base no legítimo interesse (Art. 7º, IX) e na execução de contrato (Art. 7º, V), pois são necessários para o funcionamento da Plataforma.
+- **Cookies de preferências:** utilizados com base no legítimo interesse (Art. 7º, IX) para melhorar sua experiência de uso.
+
+---
+
+## 5. Como Gerenciar Cookies
+
+Você pode gerenciar ou bloquear cookies por meio das configurações do seu navegador. Abaixo estão links para as instruções dos navegadores mais comuns:
+
+- **Google Chrome:** Configurações > Privacidade e segurança > Cookies
+- **Mozilla Firefox:** Configurações > Privacidade e segurança
+- **Safari:** Preferências > Privacidade
+- **Microsoft Edge:** Configurações > Cookies e permissões do site
+
+**Atenção:** desativar cookies essenciais pode comprometer o funcionamento da Plataforma, impedindo o login e o acesso às funcionalidades.
+
+---
+
+## 6. Período de Retenção dos Cookies
+
+| Tipo de Cookie | Duração |
+|---|---|
+| Cookies de sessão (autenticação) | Até o encerramento da sessão ou conforme configuração |
+| Cookies de preferências (tema) | Persistem até serem excluídos pelo usuário |
+
+---
+
+## 7. Alterações nesta Política
+
+Podemos atualizar esta Política de Cookies periodicamente. A versão atualizada será publicada nesta página com a data da última modificação.
+
+---
+
+## 8. Contato
+
+Para dúvidas sobre esta Política de Cookies:
+
+- **E-mail:** suporte@hivebudget.com
+- **Endereço:** Rua Funchal, 538 — São Paulo, SP — CEP 04551-060, Brasil
+
+Para mais informações sobre o tratamento dos seus dados pessoais, consulte nossa [Política de Privacidade](/privacy).

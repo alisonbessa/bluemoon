@@ -41,6 +41,8 @@ import {
   HelpCircle,
   MessageSquare,
   Bug,
+  FileDown,
+  Shield,
 } from "lucide-react";
 import { MessagingConnectionCard } from "@/integrations/messaging/MessagingConnectionCard";
 import { MembersManagement } from "@/shared/settings/members-management";
@@ -67,7 +69,9 @@ export default function SettingsPage() {
   const [displayName, setDisplayName] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingLgpd, setIsExportingLgpd] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletionReason, setDeletionReason] = useState("");
   const [isCancellingTrial, setIsCancellingTrial] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackType, setFeedbackType] = useState<"question" | "bug" | "feedback">("question");
@@ -172,11 +176,39 @@ export default function SettingsPage() {
     }
   };
 
+  const handleExportLgpdData = async () => {
+    setIsExportingLgpd(true);
+    try {
+      const response = await fetch("/api/app/account/export");
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `hivebudget-dados-pessoais-${new Date().toISOString().split("T")[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success("Dados pessoais exportados com sucesso!");
+      } else {
+        toast.error("Erro ao exportar dados pessoais");
+      }
+    } catch (error) {
+      console.error("Error exporting LGPD data:", error);
+      toast.error("Erro ao exportar dados pessoais");
+    } finally {
+      setIsExportingLgpd(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
       const response = await fetch("/api/app/me", {
         method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: deletionReason.trim() || undefined }),
       });
 
       if (response.ok) {
@@ -631,13 +663,16 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Data */}
+          {/* Data & Privacy */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Download className="h-5 w-5 text-muted-foreground" />
-                <CardTitle className="text-lg">Dados</CardTitle>
+                <Shield className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="text-lg">Dados e Privacidade</CardTitle>
               </div>
+              <CardDescription>
+                Seus direitos conforme a LGPD (Lei Geral de Proteção de Dados)
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button
@@ -660,12 +695,35 @@ export default function SettingsPage() {
               </Button>
               <Button
                 variant="outline"
+                className="w-full justify-start"
+                onClick={handleExportLgpdData}
+                disabled={isExportingLgpd}
+              >
+                {isExportingLgpd ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Exportando...
+                  </>
+                ) : (
+                  <>
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Exportar todos os dados pessoais (LGPD)
+                  </>
+                )}
+              </Button>
+              <Separator />
+              <Button
+                variant="outline"
                 className="w-full justify-start text-destructive hover:text-destructive"
                 onClick={() => setShowDeleteConfirm(true)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Excluir minha conta
               </Button>
+              <p className="text-xs text-muted-foreground">
+                Ao solicitar exclusão, seus dados serão removidos em até 30 dias conforme nossa{" "}
+                <Link href="/privacy" className="text-primary hover:underline">Política de Privacidade</Link>.
+              </p>
             </CardContent>
           </Card>
 
@@ -701,15 +759,28 @@ export default function SettingsPage() {
       </AlertDialog>
 
       {/* Delete Account Confirmation Dialog */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => {
+        setShowDeleteConfirm(open);
+        if (!open) setDeletionReason("");
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Tem certeza que deseja excluir sua conta?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Todos os seus dados, incluindo transações,
-              contas, categorias e orçamentos serão permanentemente excluídos.
+              Sua conta será desativada imediatamente e todos os seus dados serão
+              permanentemente excluídos em até 30 dias, conforme a LGPD.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="deletion-reason">Motivo da exclusão (opcional)</Label>
+            <Textarea
+              id="deletion-reason"
+              placeholder="Nos ajude a melhorar: por que você está saindo?"
+              value={deletionReason}
+              onChange={(e) => setDeletionReason(e.target.value)}
+              rows={3}
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
