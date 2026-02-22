@@ -15,9 +15,34 @@ interface EnsureResult {
 }
 
 /**
+ * Check if a bill is active for a given month based on its startDate/endDate bounds.
+ * Returns false if the month falls outside the bill's active period.
+ */
+function isBillActiveForMonth(
+  bill: { startDate: Date | null; endDate: Date | null },
+  year: number,
+  month: number
+): boolean {
+  const monthStart = new Date(Date.UTC(year, month - 1, 1));
+  const monthEnd = new Date(Date.UTC(year, month, 0, 23, 59, 59));
+
+  if (bill.startDate && bill.startDate > monthEnd) return false;
+  if (bill.endDate && bill.endDate < monthStart) return false;
+  return true;
+}
+
+/**
  * Ensure pending transactions exist for a given month.
  * This implements "lazy generation" - transactions are created on-demand
  * when queried, rather than requiring a manual "start month" action.
+ *
+ * DESIGN NOTE (issue 1.4): Auto-generated pending transactions intentionally
+ * do NOT update account balances. The `balance` field represents confirmed
+ * state. Pending transactions are reflected in UI projections calculated on
+ * the fly. This differs from manually-created transactions via POST which
+ * do update the balance regardless of status — a known trade-off that keeps
+ * the UX responsive for manual entries while preventing balance pollution
+ * from auto-generated future transactions.
  *
  * @param budgetId - The budget ID
  * @param year - The year (e.g., 2026)
@@ -124,6 +149,9 @@ export async function ensurePendingTransactionsForMonth(
   const expenseTransactions = [];
   for (const bill of activeBills) {
     if (bill.amount <= 0) continue;
+
+    // Skip bills outside their active date range (fix 4.3)
+    if (!isBillActiveForMonth(bill, year, month)) continue;
 
     // Handle different frequencies
     if (bill.frequency === "weekly") {

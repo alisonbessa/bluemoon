@@ -3,6 +3,7 @@ import {
   pgTable,
   text,
   integer,
+  bigint,
   boolean,
   unique,
 } from "drizzle-orm/pg-core";
@@ -25,8 +26,8 @@ export const goals = pgTable("goals", {
   name: text("name").notNull(),
   icon: text("icon").default("🎯"),
   color: text("color").default("#8b5cf6"),
-  targetAmount: integer("target_amount").notNull(), // Valor alvo em centavos
-  currentAmount: integer("current_amount").default(0), // Valor atual acumulado
+  targetAmount: bigint("target_amount", { mode: "number" }).notNull(), // Valor alvo em centavos (bigint para metas de longo prazo)
+  currentAmount: bigint("current_amount", { mode: "number" }).default(0), // Valor atual acumulado
   targetDate: timestamp("target_date", { mode: "date" }).notNull(),
   isCompleted: boolean("is_completed").default(false),
   completedAt: timestamp("completed_at", { mode: "date" }),
