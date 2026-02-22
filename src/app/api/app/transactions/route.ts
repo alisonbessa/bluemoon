@@ -1,7 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { transactions, financialAccounts, categories, incomeSources } from "@/db/schema";
-import { eq, and, inArray, desc, gte, lte } from "drizzle-orm";
+import { transactions, financialAccounts, categories, incomeSources, budgetMembers } from "@/db/schema";
+import { eq, and, inArray, desc, gte, lte, sql } from "drizzle-orm";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import { createTransactionSchema } from "@/shared/lib/validations/transaction.schema";
 import {
@@ -121,29 +121,83 @@ export const POST = withAuthRequired(async (req, context) => {
     return errorResponse("Transfer requires toAccountId", 400);
   }
 
+  // Validate accountId belongs to the budget (fix 5.1)
+  const [sourceAccount] = await db
+    .select()
+    .from(financialAccounts)
+    .where(
+      and(
+        eq(financialAccounts.id, accountId),
+        eq(financialAccounts.budgetId, budgetId)
+      )
+    );
+  if (!sourceAccount) {
+    return errorResponse("Account does not belong to this budget", 400);
+  }
+
+  // Validate toAccountId belongs to the budget (fix 5.1)
+  if (toAccountId) {
+    const [destAccount] = await db
+      .select({ id: financialAccounts.id })
+      .from(financialAccounts)
+      .where(
+        and(
+          eq(financialAccounts.id, toAccountId),
+          eq(financialAccounts.budgetId, budgetId)
+        )
+      );
+    if (!destAccount) {
+      return errorResponse("Destination account does not belong to this budget", 400);
+    }
+  }
+
+  // Validate categoryId belongs to the budget (fix 5.1)
+  if (categoryId) {
+    const [cat] = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(
+        and(
+          eq(categories.id, categoryId),
+          eq(categories.budgetId, budgetId)
+        )
+      );
+    if (!cat) {
+      return errorResponse("Category does not belong to this budget", 400);
+    }
+  }
+
+  // Validate memberId belongs to the budget (fix 5.2)
+  if (memberId) {
+    const [member] = await db
+      .select({ id: budgetMembers.id })
+      .from(budgetMembers)
+      .where(
+        and(
+          eq(budgetMembers.id, memberId),
+          eq(budgetMembers.budgetId, budgetId)
+        )
+      );
+    if (!member) {
+      return errorResponse("Member does not belong to this budget", 400);
+    }
+  }
+
   const transactionDate = typeof date === "string" ? new Date(date) : date;
 
-  // Handle installments with batch insert for better performance
+  // Handle installments — all inside a single db.transaction() for atomicity (fix 1.2)
   if (isInstallment && totalInstallments && totalInstallments > 1) {
     const installmentAmount = Math.round(amount / totalInstallments);
 
-    // Fetch account to check if it's a credit card with billing cycle
-    const [currentAccount] = await db
-      .select()
-      .from(financialAccounts)
-      .where(eq(financialAccounts.id, accountId));
-
-    const isCreditCard = currentAccount?.type === "credit_card";
-    const closingDay = currentAccount?.closingDay;
+    const isCreditCard = sourceAccount.type === "credit_card";
+    const closingDay = sourceAccount.closingDay;
 
     // Calculate installment dates
     let installmentDates: Date[];
     if (isCreditCard && closingDay) {
-      // Credit card: use billing cycle to determine dates
       const firstDate = getFirstInstallmentDate(transactionDate, closingDay);
       installmentDates = calculateInstallmentDates(firstDate, totalInstallments);
     } else {
-      // Non-credit-card: simple monthly increment
       installmentDates = Array.from({ length: totalInstallments }, (_, i) => {
         const d = new Date(transactionDate);
         d.setMonth(d.getMonth() + i);
@@ -151,74 +205,90 @@ export const POST = withAuthRequired(async (req, context) => {
       });
     }
 
-    // Create parent transaction (first installment)
-    const [parentTransaction] = await db
-      .insert(transactions)
-      .values({
+    // Wrap everything in a transaction for atomicity (fix 1.2)
+    const createdTransactions = await db.transaction(async (tx) => {
+      // Create parent transaction (first installment)
+      const [parentTransaction] = await tx
+        .insert(transactions)
+        .values({
+          budgetId,
+          accountId,
+          categoryId: type === "expense" ? categoryId : undefined,
+          incomeSourceId: type === "income" ? incomeSourceId : undefined,
+          toAccountId: type === "transfer" ? toAccountId : undefined,
+          memberId,
+          type,
+          amount: installmentAmount,
+          description,
+          notes,
+          date: installmentDates[0],
+          isInstallment: true,
+          installmentNumber: 1,
+          totalInstallments,
+          source: "web",
+        })
+        .returning();
+
+      // PERFORMANCE: Batch insert remaining installments
+      const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => ({
         budgetId,
         accountId,
         categoryId: type === "expense" ? categoryId : undefined,
         incomeSourceId: type === "income" ? incomeSourceId : undefined,
+        toAccountId: type === "transfer" ? toAccountId : undefined,
         memberId,
         type,
         amount: installmentAmount,
         description,
         notes,
-        date: installmentDates[0],
+        date: installmentDates[i + 1],
         isInstallment: true,
-        installmentNumber: 1,
+        installmentNumber: i + 2,
         totalInstallments,
-        source: "web",
-      })
-      .returning();
+        parentTransactionId: parentTransaction.id,
+        source: "web" as const,
+      }));
 
-    // PERFORMANCE: Batch insert remaining installments instead of N individual inserts
-    const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => ({
-      budgetId,
-      accountId,
-      categoryId: type === "expense" ? categoryId : undefined,
-      incomeSourceId: type === "income" ? incomeSourceId : undefined,
-      memberId,
-      type,
-      amount: installmentAmount,
-      description,
-      notes,
-      date: installmentDates[i + 1],
-      isInstallment: true,
-      installmentNumber: i + 2,
-      totalInstallments,
-      parentTransactionId: parentTransaction.id,
-      source: "web" as const,
-    }));
+      const remainingInstallments = installmentValues.length > 0
+        ? await tx.insert(transactions).values(installmentValues).returning()
+        : [];
 
-    const remainingInstallments = installmentValues.length > 0
-      ? await db.insert(transactions).values(installmentValues).returning()
-      : [];
-
-    const createdTransactions = [parentTransaction, ...remainingInstallments];
-
-    // Update account balance
-    if (currentAccount) {
+      // Atomic balance update — no read-then-write race (fix 1.1)
       // Credit cards: debit total amount (all installments affect the credit limit)
       // Other accounts: only the first installment affects balance now
       const balanceAmount = isCreditCard ? amount : installmentAmount;
       const balanceChange = type === "income" ? balanceAmount : -Math.abs(balanceAmount);
 
-      await db
+      await tx
         .update(financialAccounts)
         .set({
-          balance: currentAccount.balance + balanceChange,
+          balance: sql`${financialAccounts.balance} + ${balanceChange}`,
           updatedAt: new Date(),
         })
         .where(eq(financialAccounts.id, accountId));
-    }
+
+      // Handle transfers in installments (fix 2.5)
+      if (type === "transfer" && toAccountId) {
+        // Credit cards: full amount credited to destination
+        // Other accounts: only first installment credited to destination
+        const destAmount = isCreditCard ? Math.abs(amount) : Math.abs(installmentAmount);
+        await tx
+          .update(financialAccounts)
+          .set({
+            balance: sql`${financialAccounts.balance} + ${destAmount}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(financialAccounts.id, toAccountId));
+      }
+
+      return [parentTransaction, ...remainingInstallments];
+    });
 
     return successResponse({ transactions: createdTransactions }, 201);
   }
 
-  // Create transaction and update balances atomically
+  // Create single transaction and update balances atomically
   const newTransaction = await db.transaction(async (tx) => {
-    // Create the transaction
     const [created] = await tx
       .insert(transactions)
       .values({
@@ -230,7 +300,7 @@ export const POST = withAuthRequired(async (req, context) => {
         memberId,
         toAccountId,
         type,
-        status: status || "pending", // Use provided status or default to pending
+        status: status || "pending",
         amount,
         description,
         notes,
@@ -239,40 +309,26 @@ export const POST = withAuthRequired(async (req, context) => {
       })
       .returning();
 
-    // Update account balance
+    // Atomic balance update (fix 1.1) — no read-then-write race condition
     const balanceChange = type === "income" ? amount : -Math.abs(amount);
 
-    const [currentAccount] = await tx
-      .select()
-      .from(financialAccounts)
+    await tx
+      .update(financialAccounts)
+      .set({
+        balance: sql`${financialAccounts.balance} + ${balanceChange}`,
+        updatedAt: new Date(),
+      })
       .where(eq(financialAccounts.id, accountId));
 
-    if (currentAccount) {
+    // For transfers, update destination account atomically
+    if (type === "transfer" && toAccountId) {
       await tx
         .update(financialAccounts)
         .set({
-          balance: currentAccount.balance + balanceChange,
+          balance: sql`${financialAccounts.balance} + ${Math.abs(amount)}`,
           updatedAt: new Date(),
         })
-        .where(eq(financialAccounts.id, accountId));
-    }
-
-    // For transfers, update destination account
-    if (type === "transfer" && toAccountId) {
-      const [destAccount] = await tx
-        .select()
-        .from(financialAccounts)
         .where(eq(financialAccounts.id, toAccountId));
-
-      if (destAccount) {
-        await tx
-          .update(financialAccounts)
-          .set({
-            balance: destAccount.balance + Math.abs(amount),
-            updatedAt: new Date(),
-          })
-          .where(eq(financialAccounts.id, toAccountId));
-      }
     }
 
     return created;

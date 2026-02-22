@@ -1,7 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { goals, goalContributions, transactions, financialAccounts } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
@@ -9,6 +9,7 @@ import {
   notFoundError,
   successResponse,
 } from "@/shared/lib/api/responses";
+import { calculateGoalMetrics } from "@/shared/lib/goals/calculate-metrics";
 
 const contributeSchema = z.object({
   amount: z.number().int().min(1),
@@ -16,36 +17,6 @@ const contributeSchema = z.object({
   month: z.number().int().min(1).max(12),
   fromAccountId: z.string().uuid(), // Conta de origem (obrigatória)
 });
-
-// Helper to calculate goal metrics
-function calculateGoalMetrics(goal: typeof goals.$inferSelect) {
-  const now = new Date();
-  const targetDate = new Date(goal.targetDate);
-  const currentAmount = goal.currentAmount ?? 0;
-  const targetAmount = goal.targetAmount;
-
-  const progress = Math.min(
-    Math.round((currentAmount / targetAmount) * 100),
-    100
-  );
-
-  const monthsRemaining = Math.max(
-    0,
-    (targetDate.getFullYear() - now.getFullYear()) * 12 +
-      (targetDate.getMonth() - now.getMonth())
-  );
-
-  const remaining = targetAmount - currentAmount;
-  const monthlyTarget =
-    monthsRemaining > 0 ? Math.ceil(remaining / monthsRemaining) : remaining;
-
-  return {
-    progress,
-    monthsRemaining,
-    monthlyTarget,
-    remaining,
-  };
-}
 
 // POST - Add a contribution to a goal
 export const POST = withAuthRequired(async (req, context) => {
@@ -91,94 +62,98 @@ export const POST = withAuthRequired(async (req, context) => {
     return notFoundError("Conta de origem");
   }
 
-  // Create the transfer transaction
-  const transactionDate = new Date(year, month - 1, new Date().getDate());
+  // All balance-affecting operations inside a single atomic transaction (fix 1.3)
+  const result = await db.transaction(async (tx) => {
+    const transactionDate = new Date(year, month - 1, new Date().getDate());
 
-  const [newTransaction] = await db
-    .insert(transactions)
-    .values({
-      budgetId: existingGoal.budgetId,
-      accountId: fromAccountId,
-      toAccountId: existingGoal.accountId, // Conta destino da meta (pode ser null)
-      type: "transfer",
-      status: "cleared",
-      amount: amount,
-      description: `Contribuição para meta: ${existingGoal.name}`,
-      date: transactionDate,
-      source: "web",
-    })
-    .returning();
+    // Create the transfer transaction
+    const [newTransaction] = await tx
+      .insert(transactions)
+      .values({
+        budgetId: existingGoal.budgetId,
+        accountId: fromAccountId,
+        toAccountId: existingGoal.accountId,
+        type: "transfer",
+        status: "cleared",
+        amount: amount,
+        description: `Contribuição para meta: ${existingGoal.name}`,
+        date: transactionDate,
+        source: "web",
+      })
+      .returning();
 
-  // Update account balances
-  // Subtract from source account
-  await db
-    .update(financialAccounts)
-    .set({
-      balance: (fromAccount.balance ?? 0) - amount,
-      updatedAt: new Date(),
-    })
-    .where(eq(financialAccounts.id, fromAccountId));
+    // Atomic balance updates (fix 1.1) — no read-then-write race condition
+    await tx
+      .update(financialAccounts)
+      .set({
+        balance: sql`${financialAccounts.balance} - ${amount}`,
+        clearedBalance: sql`${financialAccounts.clearedBalance} - ${amount}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(financialAccounts.id, fromAccountId));
 
-  // Add to goal's account if it has one
-  if (existingGoal.accountId) {
-    const [toAccount] = await db
-      .select()
-      .from(financialAccounts)
-      .where(eq(financialAccounts.id, existingGoal.accountId));
-
-    if (toAccount) {
-      await db
+    // Add to goal's account if it has one
+    if (existingGoal.accountId) {
+      await tx
         .update(financialAccounts)
         .set({
-          balance: (toAccount.balance ?? 0) + amount,
+          balance: sql`${financialAccounts.balance} + ${amount}`,
+          clearedBalance: sql`${financialAccounts.clearedBalance} + ${amount}`,
           updatedAt: new Date(),
         })
         .where(eq(financialAccounts.id, existingGoal.accountId));
     }
-  }
 
-  // Create the contribution record
-  const [contribution] = await db
-    .insert(goalContributions)
-    .values({
-      goalId,
-      fromAccountId,
-      transactionId: newTransaction.id,
-      year,
-      month,
-      amount,
-    })
-    .returning();
+    // Create the contribution record
+    const [contribution] = await tx
+      .insert(goalContributions)
+      .values({
+        goalId,
+        fromAccountId,
+        transactionId: newTransaction.id,
+        year,
+        month,
+        amount,
+      })
+      .returning();
 
-  // Update goal's current amount
-  const newCurrentAmount = (existingGoal.currentAmount ?? 0) + amount;
-  const isNowCompleted = newCurrentAmount >= existingGoal.targetAmount;
+    // Atomic goal amount update (fix 1.1)
+    const [updatedGoal] = await tx
+      .update(goals)
+      .set({
+        currentAmount: sql`${goals.currentAmount} + ${amount}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(goals.id, goalId))
+      .returning();
 
-  const updateData: Partial<typeof goals.$inferInsert> = {
-    currentAmount: newCurrentAmount,
-    updatedAt: new Date(),
-  };
+    // Check completion after atomic update
+    const isNowCompleted = (updatedGoal.currentAmount ?? 0) >= updatedGoal.targetAmount;
+    if (isNowCompleted && !existingGoal.isCompleted) {
+      await tx
+        .update(goals)
+        .set({ isCompleted: true, completedAt: new Date() })
+        .where(eq(goals.id, goalId));
+      updatedGoal.isCompleted = true;
+      updatedGoal.completedAt = new Date();
+    }
 
-  // Mark as completed if reached target
-  if (isNowCompleted && !existingGoal.isCompleted) {
-    updateData.isCompleted = true;
-    updateData.completedAt = new Date();
-  }
-
-  const [updatedGoal] = await db
-    .update(goals)
-    .set(updateData)
-    .where(eq(goals.id, goalId))
-    .returning();
+    return {
+      contribution,
+      transaction: newTransaction,
+      updatedGoal,
+      isNowCompleted,
+    };
+  });
 
   return successResponse({
-    contribution,
-    transaction: newTransaction,
+    contribution: result.contribution,
+    transaction: result.transaction,
     goal: {
-      ...updatedGoal,
-      ...calculateGoalMetrics(updatedGoal),
+      ...result.updatedGoal,
+      ...calculateGoalMetrics(result.updatedGoal),
     },
-    justCompleted: isNowCompleted && !existingGoal.isCompleted,
+    justCompleted: result.isNowCompleted && !existingGoal.isCompleted,
   });
 });
 
