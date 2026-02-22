@@ -20,7 +20,7 @@ import {
   findScheduledExpenseByHint,
   markTransactionAsPaid,
 } from "./transaction-matcher";
-import { getTodayNoonUTC } from "./utils";
+import { getTodayNoonUTC, formatInstallmentMonths } from "./utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib/billing-cycle";
@@ -291,8 +291,9 @@ export async function handleExpenseIntent(
     // Show installment info if applicable
     if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
       const installmentAmount = Math.round(data.amount / data.totalInstallments);
+      const monthsText = formatInstallmentMonths(data.totalInstallments);
       message += `Valor total: ${formatCurrency(data.amount)}\n`;
-      message += `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
+      message += `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)} ${monthsText}\n`;
     } else {
       message += `Valor: ${formatCurrency(data.amount)}\n`;
     }
@@ -379,8 +380,9 @@ export async function handleExpenseIntent(
   let valueText = `Valor: ${formatCurrency(data.amount)}\n`;
   if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
     const installmentAmount = Math.round(data.amount / data.totalInstallments);
+    const monthsText = formatInstallmentMonths(data.totalInstallments);
     valueText = `Valor total: ${formatCurrency(data.amount)}\n` +
-      `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
+      `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)} ${monthsText}\n`;
   }
 
   // If no account was specified, ask for account first
@@ -391,7 +393,8 @@ export async function handleExpenseIntent(
         valueText +
         (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
         `Qual a forma de pagamento?`,
-      accounts.map(a => ({ id: `acc_${a.id}`, label: `${getAccountIcon(a.type)} ${a.name}` }))
+      accounts.map(a => ({ id: `acc_${a.id}`, label: `${getAccountIcon(a.type)} ${a.name}` })),
+      "Contas"
     );
 
     await adapter.updateState(chatId, "AWAITING_ACCOUNT", {
@@ -415,7 +418,8 @@ export async function handleExpenseIntent(
       (accountName ? `Conta: ${accountName}\n` : "") +
       (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
       `Selecione a categoria:`,
-    categories.map(c => ({ id: `cat_${c.id}`, label: `${c.icon || "📁"} ${c.name}` }))
+    categories.map(c => ({ id: `cat_${c.id}`, label: `${c.icon || "📁"} ${c.name}` })),
+    "Categorias"
   );
 
   await adapter.updateState(chatId, "AWAITING_CATEGORY", {

@@ -29,6 +29,7 @@ import { routeIntent } from "./intent-router";
 import { handleVoiceMessage, isValidAudioDuration, isValidAudioSize } from "./voice-handler";
 import { markTransactionAsPaid } from "./transaction-matcher";
 import { getTodayNoonUTC, parseAmount } from "./telegram-utils";
+import { formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import { markLogAsConfirmed, markLogAsCancelled } from "./ai-logger";
 import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 
@@ -585,7 +586,7 @@ async function handleAccountSelection(chatId: number, accountId: string, callbac
   if (context.pendingExpense.isInstallment && context.pendingExpense.totalInstallments && context.pendingExpense.totalInstallments > 1) {
     const installmentAmount = Math.round(context.pendingExpense.amount / context.pendingExpense.totalInstallments);
     valueText = `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
-      `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
+      `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(context.pendingExpense.totalInstallments)}\n`;
   }
 
   // Now ask for category
@@ -771,7 +772,7 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
         chatId,
         `✅ <b>Compra parcelada registrada!</b>\n\n` +
           `Valor total: <b>${formatCurrency(context.pendingExpense.amount)}</b>\n` +
-          `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
+          `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(totalInstallments)}\n` +
           `Categoria: ${context.pendingExpense.categoryName}\n` +
           (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
           (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n` : "") +

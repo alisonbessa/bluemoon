@@ -122,7 +122,8 @@ export async function sendListMessage(
   to: string,
   bodyText: string,
   buttonLabel: string,
-  rows: ListRow[] // max 10
+  rows: ListRow[], // max 10
+  sectionTitle: string = "Opções"
 ): Promise<string> {
   const { phoneNumberId } = getConfig();
   const data = await callWhatsAppAPI(`${phoneNumberId}/messages`, {
@@ -137,7 +138,7 @@ export async function sendListMessage(
         button: buttonLabel.slice(0, 20),
         sections: [
           {
-            title: "Opções",
+            title: sectionTitle.slice(0, 24),
             rows: rows.map((r) => ({
               id: r.id,
               title: r.title.slice(0, 24),
@@ -150,6 +151,39 @@ export async function sendListMessage(
   });
 
   return data.messages?.[0]?.id ?? "";
+}
+
+// ------------------------------------------------------------------
+// Reactions (visual processing indicator)
+// ------------------------------------------------------------------
+
+export async function sendReaction(
+  to: string,
+  messageId: string,
+  emoji: string
+): Promise<void> {
+  const { phoneNumberId } = getConfig();
+  await callWhatsAppAPI(`${phoneNumberId}/messages`, {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to,
+    type: "reaction",
+    reaction: { message_id: messageId, emoji },
+  });
+}
+
+export async function removeReaction(
+  to: string,
+  messageId: string
+): Promise<void> {
+  const { phoneNumberId } = getConfig();
+  await callWhatsAppAPI(`${phoneNumberId}/messages`, {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to,
+    type: "reaction",
+    reaction: { message_id: messageId, emoji: "" },
+  });
 }
 
 // ------------------------------------------------------------------

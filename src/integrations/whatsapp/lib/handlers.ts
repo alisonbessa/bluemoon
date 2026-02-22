@@ -29,7 +29,7 @@ import {
   markLogAsCancelled,
 } from "@/integrations/messaging/lib/ai-logger";
 import { markTransactionAsPaid } from "@/integrations/messaging/lib/transaction-matcher";
-import { getTodayNoonUTC } from "@/integrations/messaging/lib/utils";
+import { getTodayNoonUTC, formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import {
   getFirstInstallmentDate,
   calculateInstallmentDates,
@@ -614,7 +614,7 @@ async function handleExpenseConfirmation(
       phoneNumber,
       `*Compra parcelada registrada!*\n\n` +
         `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
-        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
+        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(totalInstallments)}\n` +
         `Categoria: ${context.pendingExpense.categoryName}\n` +
         (context.pendingExpense.accountName
           ? `Conta: ${context.pendingExpense.accountName}\n`
@@ -940,7 +940,7 @@ async function handleCategorySelection(
       context.pendingExpense.amount / context.pendingExpense.totalInstallments
     );
     message += `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n`;
-    message += `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
+    message += `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(context.pendingExpense.totalInstallments)}\n`;
   } else {
     message += `Valor: ${formatCurrency(context.pendingExpense.amount)}\n`;
   }
@@ -1023,7 +1023,7 @@ async function handleAccountSelection(
     );
     valueText =
       `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
-      `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
+      `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(context.pendingExpense.totalInstallments)}\n`;
   }
 
   // Now ask for category
@@ -1039,7 +1039,8 @@ async function handleAccountSelection(
     budgetInfo.categories.map((c) => ({
       id: `cat_${c.id}`,
       label: `${c.icon || ""} ${c.name}`,
-    }))
+    })),
+    "Categorias"
   );
 
   await adapter.updateState(phoneNumber, "AWAITING_CATEGORY", {
@@ -1132,7 +1133,8 @@ async function handleNewCategoryExisting(phoneNumber: string): Promise<void> {
     budgetInfo.categories.map((c) => ({
       id: `cat_${c.id}`,
       label: `${c.icon || ""} ${c.name}`,
-    }))
+    })),
+    "Categorias"
   );
 
   await adapter.updateState(phoneNumber, "AWAITING_CATEGORY", {
@@ -1456,6 +1458,21 @@ async function handleInteractiveResponse(
     return;
   }
 
+  // Check for confirmation timeout (15 minutes)
+  if (context.createdAt) {
+    const elapsed = Date.now() - new Date(context.createdAt).getTime();
+    const TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+    if (elapsed > TIMEOUT_MS) {
+      if (context.lastAILogId) await markLogAsCancelled(context.lastAILogId);
+      await adapter.updateState(phoneNumber, "IDLE", {});
+      await adapter.sendMessage(
+        phoneNumber,
+        "Esta operação expirou (mais de 15 minutos). Envie a mensagem novamente."
+      );
+      return;
+    }
+  }
+
   // Route based on action ID prefix and current step
   if (actionId.startsWith("cat_")) {
     const categoryId = actionId.replace("cat_", "");
@@ -1639,11 +1656,15 @@ export async function handleWebhook(
           switch (message.type) {
             case "text":
               if (message.text?.body) {
+                // React with ⏳ to indicate processing
+                await adapter.reactToMessage(phoneNumber, message.id, "⏳");
                 await handleTextMessage(
                   phoneNumber,
                   message.text.body.trim(),
                   displayName
                 );
+                // Remove processing reaction when done
+                await adapter.removeMessageReaction(phoneNumber, message.id);
               }
               break;
 
