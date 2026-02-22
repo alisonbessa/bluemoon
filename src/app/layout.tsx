@@ -3,6 +3,7 @@ import "./globals.css";
 import { appConfig } from "@/shared/lib/config";
 import Providers from "./Providers";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { CookieConsent } from "@/shared/components/cookie-consent";
 
 // Using system fonts as fallback when Google Fonts is unavailable
 // This ensures build succeeds in all environments
@@ -37,7 +38,10 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className="font-sans antialiased bg-background" suppressHydrationWarning>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <CookieConsent />
+        </Providers>
         <SpeedInsights />
       </body>
     </html>

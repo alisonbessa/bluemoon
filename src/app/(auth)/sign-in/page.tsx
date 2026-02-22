@@ -41,6 +41,17 @@ export default async function SignInPage() {
 
       <AuthForm />
 
+      <p className="mt-4 text-center text-xs text-muted-foreground">
+        Ao entrar, você concorda com nossos{" "}
+        <Link href="/terms" className="text-primary hover:underline">
+          Termos de Uso
+        </Link>{" "}
+        e nossa{" "}
+        <Link href="/privacy" className="text-primary hover:underline">
+          Política de Privacidade
+        </Link>.
+      </p>
+
       <div className="mt-6 text-center">
         <Link
           href="/sign-up"
