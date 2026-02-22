@@ -138,7 +138,7 @@ export const DELETE = withAuthRequired(async (req, context) => {
     // Record audit log for LGPD compliance
     await recordAuditLog({
       userId: session.user.id,
-      action: "account.deletion_requested",
+      action: "user.delete",
       resource: "user",
       resourceId: session.user.id,
       details: {
