@@ -9,8 +9,10 @@ import {
   incomeSources,
   goals,
 } from "@/db/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, inArray, sql } from "drizzle-orm";
+import { monthlyAllocations } from "@/db/schema";
 import type { UserContext, BudgetInfo } from "./types";
+import { formatCurrency } from "@/shared/lib/formatters";
 
 // Get user's default budget, accounts, categories, income sources, goals, and pending transactions
 export async function getUserBudgetInfo(userId: string): Promise<BudgetInfo | null> {
@@ -155,4 +157,80 @@ export function buildUserContext(userId: string, budgetInfo: BudgetInfo): UserCo
     defaultAccountId: budgetInfo.defaultAccount?.id,
     memberId: budgetInfo.member.id,
   };
+}
+
+/**
+ * Get the balance summary for a category in the current month.
+ * Returns a formatted line like: "📊 Saldo: R$ 210,12 / R$ 450,00"
+ */
+export async function getCategoryBalanceSummary(
+  budgetId: string,
+  categoryId: string
+): Promise<string> {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const startOfMonth = new Date(year, month - 1, 1);
+  const endOfMonth = new Date(year, month, 0, 23, 59, 59);
+
+  const [allocationResult, spentResult, categoryResult] = await Promise.all([
+    db
+      .select({
+        allocated: monthlyAllocations.allocated,
+        carriedOver: monthlyAllocations.carriedOver,
+      })
+      .from(monthlyAllocations)
+      .where(
+        and(
+          eq(monthlyAllocations.budgetId, budgetId),
+          eq(monthlyAllocations.categoryId, categoryId),
+          eq(monthlyAllocations.year, year),
+          eq(monthlyAllocations.month, month)
+        )
+      )
+      .limit(1),
+
+    db
+      .select({
+        total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)`,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.budgetId, budgetId),
+          eq(transactions.categoryId, categoryId),
+          eq(transactions.type, "expense"),
+          inArray(transactions.status, ["cleared", "reconciled"]),
+          gte(transactions.date, startOfMonth),
+          lte(transactions.date, endOfMonth)
+        )
+      ),
+
+    db
+      .select({ plannedAmount: categories.plannedAmount })
+      .from(categories)
+      .where(eq(categories.id, categoryId))
+      .limit(1),
+  ]);
+
+  const spent = Number(spentResult[0]?.total) || 0;
+
+  // Determine allocated: monthly allocation > category plannedAmount > 0
+  let allocated = 0;
+  if (allocationResult.length > 0) {
+    allocated = (allocationResult[0].allocated || 0) + (allocationResult[0].carriedOver || 0);
+  } else if (categoryResult[0]?.plannedAmount) {
+    allocated = categoryResult[0].plannedAmount;
+  }
+
+  if (allocated > 0) {
+    const remaining = allocated - spent;
+    if (remaining < 0) {
+      return `🔴 Saldo: ${formatCurrency(remaining)} / ${formatCurrency(allocated)}`;
+    }
+    return `📊 Saldo: ${formatCurrency(remaining)} / ${formatCurrency(allocated)}`;
+  }
+
+  // No allocation — just show total spent in the month
+  return `📊 Total no mês: ${formatCurrency(spent)}`;
 }

@@ -12,7 +12,7 @@ import {
 import { eq, and, gt, sql } from "drizzle-orm";
 import type { TelegramMessage, TelegramCallbackQuery, UserContext } from "./types";
 import type { TelegramConversationStep, TelegramConversationContext } from "@/db/schema/telegram-users";
-import { getUserBudgetInfo, buildUserContext } from "@/integrations/messaging/lib/user-context";
+import { getUserBudgetInfo, buildUserContext, getCategoryBalanceSummary } from "@/integrations/messaging/lib/user-context";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import {
   sendMessage,
@@ -762,6 +762,11 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
         lastTransactionId: transactionId,
       });
 
+      const tgInstallmentBalance = await getCategoryBalanceSummary(
+        budgetInfo.budget.id,
+        context.pendingExpense!.categoryId!
+      );
+
       await sendMessage(
         chatId,
         `✅ <b>Compra parcelada registrada!</b>\n\n` +
@@ -769,7 +774,8 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
           `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
           `Categoria: ${context.pendingExpense.categoryName}\n` +
           (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
-          (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
+          (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n` : "") +
+          `\n${tgInstallmentBalance}\n\n` +
           `Use /desfazer para remover este registro.`
       );
     } else {
@@ -799,13 +805,19 @@ async function handleConfirmation(chatId: number, confirmed: boolean, callbackQu
         lastTransactionId: transactionId,
       });
 
+      const tgBalance = await getCategoryBalanceSummary(
+        budgetInfo.budget.id,
+        context.pendingExpense!.categoryId!
+      );
+
       await sendMessage(
         chatId,
         `✅ <b>Gasto registrado!</b>\n\n` +
           `Valor: <b>${formatCurrency(context.pendingExpense.amount)}</b>\n` +
           `Categoria: ${context.pendingExpense.categoryName}\n` +
           (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
-          (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
+          (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n` : "") +
+          `\n${tgBalance}\n\n` +
           `Use /desfazer para remover este registro.`
       );
     }
@@ -1427,6 +1439,11 @@ async function handleGroupSelection(chatId: number, groupId: string, callbackQue
     // Get group name
     const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
 
+    const tgNewCatInstBalance = await getCategoryBalanceSummary(
+      budgetInfo.budget.id,
+      newCategory.id
+    );
+
     await sendMessage(
       chatId,
       `✅ <b>Categoria criada e compra parcelada registrada!</b>\n\n` +
@@ -1435,7 +1452,8 @@ async function handleGroupSelection(chatId: number, groupId: string, callbackQue
         `💰 Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
         `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
         (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
-        (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
+        (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n` : "") +
+        `\n${tgNewCatInstBalance}\n\n` +
         `Use /desfazer para remover o gasto.`
     );
   } else {
@@ -1465,6 +1483,11 @@ async function handleGroupSelection(chatId: number, groupId: string, callbackQue
     // Get group name
     const [group] = await db.select().from(groups).where(eq(groups.id, groupId));
 
+    const tgNewCatBalance = await getCategoryBalanceSummary(
+      budgetInfo.budget.id,
+      newCategory.id
+    );
+
     await sendMessage(
       chatId,
       `✅ <b>Categoria criada e gasto registrado!</b>\n\n` +
@@ -1472,7 +1495,8 @@ async function handleGroupSelection(chatId: number, groupId: string, callbackQue
         `📂 Grupo: ${group?.name || "—"}\n\n` +
         `💰 Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
         (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
-        (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
+        (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n` : "") +
+        `\n${tgNewCatBalance}\n\n` +
         `Use /desfazer para remover o gasto.`
     );
   }

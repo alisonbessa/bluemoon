@@ -22,6 +22,7 @@ import { routeIntent } from "@/integrations/messaging/lib/intent-router";
 import {
   getUserBudgetInfo,
   buildUserContext,
+  getCategoryBalanceSummary,
 } from "@/integrations/messaging/lib/user-context";
 import {
   markLogAsConfirmed,
@@ -604,6 +605,11 @@ async function handleExpenseConfirmation(
       lastTransactionId: transactionId,
     });
 
+    const installmentBalanceLine = await getCategoryBalanceSummary(
+      budgetInfo.budget.id,
+      context.pendingExpense!.categoryId!
+    );
+
     await adapter.sendMessage(
       phoneNumber,
       `*Compra parcelada registrada!*\n\n` +
@@ -614,8 +620,9 @@ async function handleExpenseConfirmation(
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +
         (capitalizedDescription
-          ? `Descrição: ${capitalizedDescription}\n\n`
-          : "\n") +
+          ? `Descrição: ${capitalizedDescription}\n`
+          : "") +
+        `\n${installmentBalanceLine}\n\n` +
         `Envie *desfazer* para remover.`
     );
   } else {
@@ -644,6 +651,11 @@ async function handleExpenseConfirmation(
       lastTransactionId: transactionId,
     });
 
+    const balanceLine = await getCategoryBalanceSummary(
+      budgetInfo.budget.id,
+      context.pendingExpense!.categoryId!
+    );
+
     await adapter.sendMessage(
       phoneNumber,
       `*Gasto registrado!*\n\n` +
@@ -653,8 +665,9 @@ async function handleExpenseConfirmation(
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +
         (capitalizedDescription
-          ? `Descrição: ${capitalizedDescription}\n\n`
-          : "\n") +
+          ? `Descrição: ${capitalizedDescription}\n`
+          : "") +
+        `\n${balanceLine}\n\n` +
         `Envie *desfazer* para remover.`
     );
   }
@@ -1320,6 +1333,11 @@ async function handleGroupSelection(
       .from(groups)
       .where(eq(groups.id, groupId));
 
+    const newCatInstallmentBalanceLine = await getCategoryBalanceSummary(
+      budgetInfo.budget.id,
+      newCategory.id
+    );
+
     await adapter.sendMessage(
       phoneNumber,
       `*Categoria criada e compra parcelada registrada!*\n\n` +
@@ -1331,8 +1349,9 @@ async function handleGroupSelection(
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +
         (capitalizedDescription
-          ? `Descrição: ${capitalizedDescription}\n\n`
-          : "\n") +
+          ? `Descrição: ${capitalizedDescription}\n`
+          : "") +
+        `\n${newCatInstallmentBalanceLine}\n\n` +
         `Envie *desfazer* para remover.`
     );
   } else {
@@ -1367,6 +1386,11 @@ async function handleGroupSelection(
       .from(groups)
       .where(eq(groups.id, groupId));
 
+    const newCatBalanceLine = await getCategoryBalanceSummary(
+      budgetInfo.budget.id,
+      newCategory.id
+    );
+
     await adapter.sendMessage(
       phoneNumber,
       `*Categoria criada e gasto registrado!*\n\n` +
@@ -1377,8 +1401,9 @@ async function handleGroupSelection(
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +
         (capitalizedDescription
-          ? `Descrição: ${capitalizedDescription}\n\n`
-          : "\n") +
+          ? `Descrição: ${capitalizedDescription}\n`
+          : "") +
+        `\n${newCatBalanceLine}\n\n` +
         `Envie *desfazer* para remover.`
     );
   }
