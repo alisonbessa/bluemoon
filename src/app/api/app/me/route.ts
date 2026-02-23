@@ -5,7 +5,6 @@ import { profileUpdateSchema } from "@/shared/lib/validations/profile.schema";
 const logger = createLogger("api:me");
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
-import { budgetMembers } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { MeResponse } from "./types";
@@ -16,35 +15,25 @@ import {
   successResponse,
   internalError,
 } from "@/shared/lib/api/responses";
-import { checkPartnerAccess } from "@/shared/lib/users/checkPartnerAccess";
+import { checkUserAccess } from "@/shared/lib/users/checkPartnerAccess";
 import stripe from "@/integrations/stripe";
 import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 export const GET = withAuthRequired(async (req, context) => {
   const { getCurrentPlan, getUser, session } = context;
 
-  // You can also use context.session to get user id and email
-  // from the jwt token (no database call is made in that case)
-
-  const userFromDb = await getUser();
+  // Run all queries in parallel
+  const [userFromDb, currentPlan, { hasPartnerAccess, hasBudget }] =
+    await Promise.all([
+      getUser(),
+      getCurrentPlan(),
+      checkUserAccess(session.user.id),
+    ]);
 
   // If user doesn't exist in database, return 401 to force re-login
   if (!userFromDb) {
     return unauthorizedError("User not found - please sign in again");
   }
-
-  const currentPlan = await getCurrentPlan();
-
-  // Check if user has access through a partner relationship
-  const hasPartnerAccess = await checkPartnerAccess(session.user.id);
-
-  // Check if user has at least one budget (indicates they've used the app)
-  const userBudgets = await db
-    .select({ budgetId: budgetMembers.budgetId })
-    .from(budgetMembers)
-    .where(eq(budgetMembers.userId, session.user.id))
-    .limit(1);
-  const hasBudget = userBudgets.length > 0;
 
   return NextResponse.json<MeResponse>(
     { user: userFromDb, currentPlan, hasPartnerAccess, hasBudget },

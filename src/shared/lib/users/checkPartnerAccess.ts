@@ -5,32 +5,37 @@ import { eq, and } from "drizzle-orm";
 // Roles that don't require a Stripe subscription
 const SUBSCRIPTION_EXEMPT_ROLES = ["beta", "lifetime", "admin"];
 
+interface UserAccessInfo {
+  hasPartnerAccess: boolean;
+  hasBudget: boolean;
+}
+
 /**
- * Checks if a user has access through a partner relationship.
- * A user has partner access if they are a "partner" member of a budget
- * where the owner has an active subscription or an exempt role.
+ * Checks user's budget membership and partner access in a single pass.
+ * Returns both hasBudget (user has any budget) and hasPartnerAccess
+ * (user is a partner in a budget where the owner has an active subscription).
  */
-export async function checkPartnerAccess(userId: string): Promise<boolean> {
-  // Find all budgets where the user is a partner
-  const partnerMemberships = await db
+export async function checkUserAccess(userId: string): Promise<UserAccessInfo> {
+  // Single query: get all budget memberships for this user
+  const allMemberships = await db
     .select({
       budgetId: budgetMembers.budgetId,
+      type: budgetMembers.type,
     })
     .from(budgetMembers)
-    .where(
-      and(
-        eq(budgetMembers.userId, userId),
-        eq(budgetMembers.type, "partner")
-      )
-    );
+    .where(eq(budgetMembers.userId, userId));
+
+  const hasBudget = allMemberships.length > 0;
+
+  // Filter to only partner memberships for the access check
+  const partnerMemberships = allMemberships.filter((m) => m.type === "partner");
 
   if (partnerMemberships.length === 0) {
-    return false;
+    return { hasPartnerAccess: false, hasBudget };
   }
 
-  // For each budget, find the owner and check if they have an active subscription
+  // For each partner membership, check if the budget owner has an active subscription
   for (const membership of partnerMemberships) {
-    // Find the owner of this budget
     const ownerMembership = await db
       .select({
         userId: budgetMembers.userId,
@@ -48,7 +53,6 @@ export async function checkPartnerAccess(userId: string): Promise<boolean> {
       continue;
     }
 
-    // Get the owner's user record to check subscription
     const [owner] = await db
       .select({
         stripeSubscriptionId: users.stripeSubscriptionId,
@@ -62,14 +66,22 @@ export async function checkPartnerAccess(userId: string): Promise<boolean> {
       continue;
     }
 
-    // Check if owner has an active subscription or exempt role
     const hasSubscription = owner.stripeSubscriptionId !== null;
     const hasExemptRole = owner.role && SUBSCRIPTION_EXEMPT_ROLES.includes(owner.role);
 
     if (hasSubscription || hasExemptRole) {
-      return true;
+      return { hasPartnerAccess: true, hasBudget };
     }
   }
 
-  return false;
+  return { hasPartnerAccess: false, hasBudget };
+}
+
+/**
+ * @deprecated Use checkUserAccess() instead to avoid redundant queries.
+ * Kept for backward compatibility with existing callers.
+ */
+export async function checkPartnerAccess(userId: string): Promise<boolean> {
+  const { hasPartnerAccess } = await checkUserAccess(userId);
+  return hasPartnerAccess;
 }
