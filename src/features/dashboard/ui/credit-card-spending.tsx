@@ -16,9 +16,11 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { Progress } from "@/shared/ui/progress";
-import { CreditCardIcon } from "lucide-react";
+import { CreditCardIcon, PlusIcon } from "lucide-react";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { formatCurrency } from "@/shared/lib/formatters";
+import { Button } from "@/shared/ui/button";
+import Link from "next/link";
 
 interface CreditCard {
   id: string;
@@ -55,7 +57,34 @@ export function CreditCardSpending({
   }
 
   if (creditCards.length === 0) {
-    return null;
+    return (
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CreditCardIcon className="h-4 w-4" />
+            Fatura do Cartão
+          </CardTitle>
+          <CardDescription>Gastos no mês atual</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-4 text-center">
+            <CreditCardIcon className="h-10 w-10 text-muted-foreground/50 mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Nenhum cartão de crédito cadastrado
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Cadastre um cartão para acompanhar seus gastos e limites
+            </p>
+            <Button asChild variant="outline" size="sm" className="mt-4">
+              <Link href="/app/accounts">
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Cadastrar cartão
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   // Calculate totals for "all" option

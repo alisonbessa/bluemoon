@@ -9,6 +9,7 @@ import {
   ListIcon,
   ReceiptIcon,
   CreditCardIcon,
+  BarChart3Icon,
   SettingsIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
@@ -59,6 +60,12 @@ const navItems = [
     label: "Contas",
     icon: CreditCardIcon,
     tutorialId: "nav-accounts",
+  },
+  {
+    href: "/app/insights",
+    label: "Relatórios",
+    icon: BarChart3Icon,
+    tutorialId: "nav-insights",
   },
   {
     href: "/app/settings",
