@@ -227,7 +227,7 @@ export function WhatsAppConnectionCard() {
 
                   {/* Info */}
                   <p className="text-xs text-muted-foreground text-center">
-                    Código expira em 10 minutos
+                    Código expira em 30 minutos
                   </p>
                 </>
               ) : (

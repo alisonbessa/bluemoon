@@ -19,16 +19,18 @@ import type {
 import { WhatsAppAdapter } from "./whatsapp-adapter";
 import { parseUserMessage } from "@/integrations/messaging/lib/gemini";
 import { routeIntent } from "@/integrations/messaging/lib/intent-router";
+import { handleQueryIntent } from "@/integrations/messaging/lib/query-executor";
 import {
   getUserBudgetInfo,
   buildUserContext,
+  getCategoryBalanceSummary,
 } from "@/integrations/messaging/lib/user-context";
 import {
   markLogAsConfirmed,
   markLogAsCancelled,
 } from "@/integrations/messaging/lib/ai-logger";
 import { markTransactionAsPaid } from "@/integrations/messaging/lib/transaction-matcher";
-import { getTodayNoonUTC } from "@/integrations/messaging/lib/utils";
+import { getTodayNoonUTC, formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import {
   getFirstInstallmentDate,
   calculateInstallmentDates,
@@ -246,6 +248,7 @@ function isCommand(text: string): string | null {
   if (normalized === "cancelar" || normalized === "cancel") return "cancelar";
   if (normalized === "desfazer" || normalized === "undo") return "desfazer";
   if (normalized === "start" || normalized === "iniciar") return "start";
+  if (normalized === "saldo" || normalized === "resumo" || normalized === "balance") return "saldo";
 
   return null;
 }
@@ -268,9 +271,42 @@ async function handleHelp(phoneNumber: string): Promise<void> {
       `"quanto sobrou em alimentação?"\n` +
       `"como está minha meta de viagem?"\n\n` +
       `*Comandos:*\n` +
+      `saldo - Resumo do mês\n` +
       `ajuda - Esta mensagem\n` +
       `desfazer - Desfazer último registro\n` +
       `cancelar - Cancelar operação atual`
+  );
+}
+
+async function handleBalance(phoneNumber: string): Promise<void> {
+  const [waUser] = await db
+    .select()
+    .from(whatsappUsers)
+    .where(eq(whatsappUsers.phoneNumber, phoneNumber));
+
+  if (!waUser?.userId) {
+    await adapter.sendMessage(phoneNumber, "Você precisa conectar sua conta primeiro.");
+    return;
+  }
+
+  const budgetInfo = await getUserBudgetInfo(waUser.userId);
+
+  if (!budgetInfo) {
+    await adapter.sendMessage(
+      phoneNumber,
+      "Você precisa configurar seu orçamento primeiro no app."
+    );
+    return;
+  }
+
+  const userContext = buildUserContext(waUser.userId, budgetInfo);
+
+  await handleQueryIntent(
+    adapter,
+    phoneNumber,
+    "QUERY_BALANCE",
+    { queryType: "balance" },
+    userContext
   );
 }
 
@@ -604,18 +640,24 @@ async function handleExpenseConfirmation(
       lastTransactionId: transactionId,
     });
 
+    const installmentBalanceLine = await getCategoryBalanceSummary(
+      budgetInfo.budget.id,
+      context.pendingExpense!.categoryId!
+    );
+
     await adapter.sendMessage(
       phoneNumber,
       `*Compra parcelada registrada!*\n\n` +
         `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
-        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
+        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(totalInstallments)}\n` +
         `Categoria: ${context.pendingExpense.categoryName}\n` +
         (context.pendingExpense.accountName
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +
         (capitalizedDescription
-          ? `Descrição: ${capitalizedDescription}\n\n`
-          : "\n") +
+          ? `Descrição: ${capitalizedDescription}\n`
+          : "") +
+        `\n${installmentBalanceLine}\n\n` +
         `Envie *desfazer* para remover.`
     );
   } else {
@@ -644,6 +686,11 @@ async function handleExpenseConfirmation(
       lastTransactionId: transactionId,
     });
 
+    const balanceLine = await getCategoryBalanceSummary(
+      budgetInfo.budget.id,
+      context.pendingExpense!.categoryId!
+    );
+
     await adapter.sendMessage(
       phoneNumber,
       `*Gasto registrado!*\n\n` +
@@ -653,8 +700,9 @@ async function handleExpenseConfirmation(
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +
         (capitalizedDescription
-          ? `Descrição: ${capitalizedDescription}\n\n`
-          : "\n") +
+          ? `Descrição: ${capitalizedDescription}\n`
+          : "") +
+        `\n${balanceLine}\n\n` +
         `Envie *desfazer* para remover.`
     );
   }
@@ -927,7 +975,7 @@ async function handleCategorySelection(
       context.pendingExpense.amount / context.pendingExpense.totalInstallments
     );
     message += `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n`;
-    message += `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
+    message += `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(context.pendingExpense.totalInstallments)}\n`;
   } else {
     message += `Valor: ${formatCurrency(context.pendingExpense.amount)}\n`;
   }
@@ -1010,7 +1058,7 @@ async function handleAccountSelection(
     );
     valueText =
       `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
-      `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
+      `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(context.pendingExpense.totalInstallments)}\n`;
   }
 
   // Now ask for category
@@ -1026,7 +1074,8 @@ async function handleAccountSelection(
     budgetInfo.categories.map((c) => ({
       id: `cat_${c.id}`,
       label: `${c.icon || ""} ${c.name}`,
-    }))
+    })),
+    "Categorias"
   );
 
   await adapter.updateState(phoneNumber, "AWAITING_CATEGORY", {
@@ -1119,7 +1168,8 @@ async function handleNewCategoryExisting(phoneNumber: string): Promise<void> {
     budgetInfo.categories.map((c) => ({
       id: `cat_${c.id}`,
       label: `${c.icon || ""} ${c.name}`,
-    }))
+    })),
+    "Categorias"
   );
 
   await adapter.updateState(phoneNumber, "AWAITING_CATEGORY", {
@@ -1320,6 +1370,11 @@ async function handleGroupSelection(
       .from(groups)
       .where(eq(groups.id, groupId));
 
+    const newCatInstallmentBalanceLine = await getCategoryBalanceSummary(
+      budgetInfo.budget.id,
+      newCategory.id
+    );
+
     await adapter.sendMessage(
       phoneNumber,
       `*Categoria criada e compra parcelada registrada!*\n\n` +
@@ -1331,8 +1386,9 @@ async function handleGroupSelection(
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +
         (capitalizedDescription
-          ? `Descrição: ${capitalizedDescription}\n\n`
-          : "\n") +
+          ? `Descrição: ${capitalizedDescription}\n`
+          : "") +
+        `\n${newCatInstallmentBalanceLine}\n\n` +
         `Envie *desfazer* para remover.`
     );
   } else {
@@ -1367,6 +1423,11 @@ async function handleGroupSelection(
       .from(groups)
       .where(eq(groups.id, groupId));
 
+    const newCatBalanceLine = await getCategoryBalanceSummary(
+      budgetInfo.budget.id,
+      newCategory.id
+    );
+
     await adapter.sendMessage(
       phoneNumber,
       `*Categoria criada e gasto registrado!*\n\n` +
@@ -1377,8 +1438,9 @@ async function handleGroupSelection(
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +
         (capitalizedDescription
-          ? `Descrição: ${capitalizedDescription}\n\n`
-          : "\n") +
+          ? `Descrição: ${capitalizedDescription}\n`
+          : "") +
+        `\n${newCatBalanceLine}\n\n` +
         `Envie *desfazer* para remover.`
     );
   }
@@ -1429,6 +1491,21 @@ async function handleInteractiveResponse(
     await adapter.updateState(phoneNumber, "IDLE", {});
     await adapter.sendMessage(phoneNumber, "Operação cancelada.");
     return;
+  }
+
+  // Check for confirmation timeout (15 minutes)
+  if (context.createdAt) {
+    const elapsed = Date.now() - new Date(context.createdAt).getTime();
+    const TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+    if (elapsed > TIMEOUT_MS) {
+      if (context.lastAILogId) await markLogAsCancelled(context.lastAILogId);
+      await adapter.updateState(phoneNumber, "IDLE", {});
+      await adapter.sendMessage(
+        phoneNumber,
+        "Esta operação expirou (mais de 15 minutos). Envie a mensagem novamente."
+      );
+      return;
+    }
   }
 
   // Route based on action ID prefix and current step
@@ -1506,11 +1583,14 @@ async function handleTextMessage(
       // Code was invalid/expired - fall through to show connection instructions
     }
 
+    const appUrl = process.env.NEXTAUTH_URL || "https://www.hivebudget.com";
     await adapter.sendMessage(
       phoneNumber,
-      `Olá! Para usar o HiveBudget pelo WhatsApp, você precisa conectar sua conta.\n\n` +
-        `*Como conectar:*\n` +
-        `1. Acesse hivebudget.com.br\n` +
+      `Olá! Para usar o HiveBudget pelo WhatsApp, você precisa ter uma conta.\n\n` +
+        `*Ainda não tem conta?*\n` +
+        `Cadastre-se grátis: ${appUrl}/sign-up\n\n` +
+        `*Já tem conta?*\n` +
+        `1. Acesse ${appUrl}\n` +
         `2. Vá em Configurações > Conectar WhatsApp\n` +
         `3. Copie o código de 6 caracteres\n` +
         `4. Envie o código aqui neste chat\n\n` +
@@ -1534,6 +1614,9 @@ async function handleTextMessage(
         return;
       case "start":
         await handleHelp(phoneNumber);
+        return;
+      case "saldo":
+        await handleBalance(phoneNumber);
         return;
     }
   }
@@ -1614,11 +1697,15 @@ export async function handleWebhook(
           switch (message.type) {
             case "text":
               if (message.text?.body) {
+                // React with ⏳ to indicate processing
+                await adapter.reactToMessage(phoneNumber, message.id, "⏳");
                 await handleTextMessage(
                   phoneNumber,
                   message.text.body.trim(),
                   displayName
                 );
+                // Remove processing reaction when done
+                await adapter.removeMessageReaction(phoneNumber, message.id);
               }
               break;
 

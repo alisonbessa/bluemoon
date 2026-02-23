@@ -4,7 +4,7 @@ import { db } from "@/db";
 
 const logger = createLogger("api:export");
 import { transactions, financialAccounts, categories, incomeSources } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, asc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
@@ -67,7 +67,7 @@ export const GET = withAuthRequired(async (req, context) => {
       .leftJoin(categories, eq(transactions.categoryId, categories.id))
       .leftJoin(incomeSources, eq(transactions.incomeSourceId, incomeSources.id))
       .where(inArray(transactions.budgetId, budgetIds))
-      .orderBy(transactions.date);
+      .orderBy(asc(transactions.date), asc(transactions.createdAt));
 
     // Build CSV content
     const headers = [

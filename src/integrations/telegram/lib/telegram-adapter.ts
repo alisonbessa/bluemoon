@@ -58,7 +58,7 @@ export class TelegramAdapter implements MessagingAdapter {
     return String(msgId);
   }
 
-  async sendChoiceList(chatId: ChatId, text: string, choices: Choice[]): Promise<MessageId> {
+  async sendChoiceList(chatId: ChatId, text: string, choices: Choice[], _sectionTitle?: string): Promise<MessageId> {
     const numericChatId = parseInt(chatId, 10);
     // Detect the prefix from the first choice's context
     const replyMarkup = createChoiceKeyboard(choices, "");

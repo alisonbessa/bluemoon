@@ -28,7 +28,8 @@ export interface MessagingAdapter {
   // Present a list of choices (categories, accounts, groups, income sources)
   // Telegram: inline keyboard rows of 2 + cancel
   // WhatsApp: buttons (<=3) or list (>3) + cancel
-  sendChoiceList(chatId: ChatId, text: string, choices: Choice[]): Promise<MessageId>;
+  // sectionTitle is used by WhatsApp lists (e.g. "Categorias", "Contas")
+  sendChoiceList(chatId: ChatId, text: string, choices: Choice[], sectionTitle?: string): Promise<MessageId>;
 
   // Present a confirmation prompt (yes/no)
   sendConfirmation(chatId: ChatId, text: string): Promise<MessageId>;
@@ -106,6 +107,7 @@ export interface ConversationContext {
   lastAILogId?: string;
   messagesToDelete?: string[];
   scheduledTransactionId?: string;
+  createdAt?: string; // ISO timestamp for confirmation timeout
 }
 
 // ============================================

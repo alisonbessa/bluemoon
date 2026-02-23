@@ -97,6 +97,7 @@ export const GET = withAuthRequired(async (req, context) => {
                 .select()
                 .from(transactions)
                 .where(eq(transactions.budgetId, budgetId))
+                .orderBy(transactions.date, transactions.createdAt)
             )
           ).then((results) => results.flat())
         : [];

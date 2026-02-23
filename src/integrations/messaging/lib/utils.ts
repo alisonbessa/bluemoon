@@ -34,6 +34,20 @@ export function parseAmount(text: string): number | null {
 }
 
 /**
+ * Format installment month names for display
+ * e.g. 3 installments from Feb 2026 → "(fev, mar, abr)"
+ */
+export function formatInstallmentMonths(totalInstallments: number): string {
+  const now = new Date();
+  const months: string[] = [];
+  for (let i = 0; i < totalInstallments; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    months.push(d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""));
+  }
+  return `(${months.join(", ")})`;
+}
+
+/**
  * Extract amount and description from text
  */
 export function parseExpenseInput(text: string): {

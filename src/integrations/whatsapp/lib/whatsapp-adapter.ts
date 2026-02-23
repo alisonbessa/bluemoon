@@ -16,6 +16,8 @@ import {
   sendButtonMessage,
   sendListMessage,
   markAsRead,
+  sendReaction,
+  removeReaction,
 } from "./client";
 
 // Strip HTML tags for WhatsApp (plain text only)
@@ -35,7 +37,12 @@ export class WhatsAppAdapter implements MessagingAdapter {
     return sendTextMessage(chatId, plainText);
   }
 
-  async sendChoiceList(chatId: ChatId, text: string, choices: Choice[]): Promise<MessageId> {
+  async sendChoiceList(
+    chatId: ChatId,
+    text: string,
+    choices: Choice[],
+    sectionTitle: string = "Opções"
+  ): Promise<MessageId> {
     const plainText = stripHtml(text);
 
     // WhatsApp buttons: max 3 (+ we need a cancel button)
@@ -58,7 +65,7 @@ export class WhatsAppAdapter implements MessagingAdapter {
       })),
       { id: "cancel", title: "Cancelar" },
     ];
-    return sendListMessage(chatId, plainText, "Escolher", rows);
+    return sendListMessage(chatId, plainText, "Escolher", rows, sectionTitle);
   }
 
   async sendConfirmation(chatId: ChatId, text: string): Promise<MessageId> {
@@ -96,7 +103,7 @@ export class WhatsAppAdapter implements MessagingAdapter {
       })),
       { id: "cancel", title: "Cancelar" },
     ];
-    return sendListMessage(chatId, plainText, "Escolher grupo", rows);
+    return sendListMessage(chatId, plainText, "Escolher grupo", rows, "Grupos");
   }
 
   async deleteMessages(_chatId: ChatId, _messageIds: MessageId[]): Promise<void> {
@@ -104,16 +111,37 @@ export class WhatsAppAdapter implements MessagingAdapter {
     // This is a no-op
   }
 
+  async reactToMessage(chatId: ChatId, messageId: string, emoji: string): Promise<void> {
+    try {
+      await sendReaction(chatId, messageId, emoji);
+    } catch {
+      // Non-critical — don't fail the flow if reaction fails
+    }
+  }
+
+  async removeMessageReaction(chatId: ChatId, messageId: string): Promise<void> {
+    try {
+      await removeReaction(chatId, messageId);
+    } catch {
+      // Non-critical
+    }
+  }
+
   async acknowledgeInteraction(interactionId: string): Promise<void> {
     await markAsRead(interactionId);
   }
 
   async updateState(chatId: ChatId, step: ConversationStep, context: ConversationContext): Promise<void> {
+    // Auto-set timestamp for non-IDLE states (used for confirmation timeout)
+    const contextWithTimestamp = step !== "IDLE"
+      ? { ...context, createdAt: context.createdAt || new Date().toISOString() }
+      : context;
+
     await db
       .update(whatsappUsers)
       .set({
         currentStep: step,
-        context,
+        context: contextWithTimestamp,
         updatedAt: new Date(),
       })
       .where(eq(whatsappUsers.phoneNumber, chatId));

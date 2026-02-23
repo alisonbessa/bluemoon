@@ -64,7 +64,7 @@ export const GET = withAuthRequired(async (_req, context) => {
 
   // Generate new verification code
   const code = generateShortCode();
-  const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+  const expiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
   // Store the pending connection
   await db.insert(whatsappPendingConnections).values({

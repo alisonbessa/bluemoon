@@ -82,7 +82,7 @@ export const sendWeeklyBillsSummary = inngest.createFunction(
                 lte(transactions.date, nextWeek)
               )
             )
-            .orderBy(transactions.date);
+            .orderBy(transactions.date, transactions.createdAt);
         });
 
         if (upcomingTransactions.length === 0) continue;

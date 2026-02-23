@@ -68,7 +68,7 @@ export const GET = withAuthRequired(async (req, context) => {
     .leftJoin(categories, eq(transactions.categoryId, categories.id))
     .leftJoin(incomeSources, eq(transactions.incomeSourceId, incomeSources.id))
     .where(and(...conditions))
-    .orderBy(desc(transactions.date))
+    .orderBy(desc(transactions.date), desc(transactions.createdAt))
     .limit(limit)
     .offset(offset);
 

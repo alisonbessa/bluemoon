@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create signup token
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
     const signUpToken: SignUpToken = {
       name,
       email,
