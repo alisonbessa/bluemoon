@@ -30,7 +30,7 @@ interface SubscriptionGate {
  * Users without active subscriptions get read-only access to their data.
  */
 export function useSubscriptionGate(): SubscriptionGate {
-  const { user, hasPartnerAccess, isLoading } = useCurrentUser();
+  const { user, hasPartnerAccess, hasBudget, isLoading } = useCurrentUser();
 
   if (isLoading || !user) {
     return {
@@ -77,8 +77,11 @@ export function useSubscriptionGate(): SubscriptionGate {
   }
 
   // No subscription - determine if returning user or new user
-  // A returning user has completed onboarding (has used the app before)
-  const isReturningUser = user.onboardingCompletedAt !== null;
+  // A returning user has a budget (has actually used the app before).
+  // We use hasBudget instead of onboardingCompletedAt because the current
+  // auto-initialize flow (welcome endpoint) creates budgets without setting
+  // onboardingCompletedAt, so that field is unreliable.
+  const isReturningUser = hasBudget;
 
   return {
     isReadOnly: isReturningUser, // Only read-only if they had data before
