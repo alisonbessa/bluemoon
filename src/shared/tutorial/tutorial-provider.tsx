@@ -26,7 +26,8 @@ export type TutorialValidationKey =
   | "hasEditedCategory"
   | "hasGoals"
   | "hasAllocations"
-  | "hasTransactions";
+  | "hasTransactions"
+  | "hasMessagingConnected";
 
 interface TutorialContextValue {
   isActive: boolean;

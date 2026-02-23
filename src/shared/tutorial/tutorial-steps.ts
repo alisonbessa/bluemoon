@@ -296,9 +296,46 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "setup-complete",
         route: "/app",
+        title: "Quase lá!",
+        content:
+          "Sua plataforma está configurada! Falta só um passo: conectar o WhatsApp para registrar gastos em segundos.",
+        placement: "center",
+      },
+
+      // ===== 8. SETTINGS - MESSAGING CONNECTION =====
+      {
+        id: "settings-messaging-intro",
+        route: "/app/settings",
+        title: "Registre gastos pelo WhatsApp!",
+        content:
+          "Com o WhatsApp conectado, basta enviar uma mensagem como \"50 mercado\" e o gasto é registrado automaticamente no seu orçamento.",
+        placement: "center",
+      },
+      {
+        id: "settings-messaging-card",
+        route: "/app/settings",
+        title: "Conectar WhatsApp",
+        content:
+          "Gere o código de conexão aqui. Depois escaneie o QR code ou envie o código pelo WhatsApp para conectar sua conta.",
+        targetSelector: '[data-tutorial="messaging-card"]',
+        placement: "left",
+      },
+      {
+        id: "settings-messaging-action",
+        route: "/app/settings",
+        title: "Agora é sua vez!",
+        content:
+          "Conecte seu WhatsApp para registrar gastos com uma simples mensagem. Quando terminar (ou se preferir fazer depois), clique em \"Próxima Etapa\".",
+        placement: "center",
+        requiresAction: true,
+        validationKey: "hasMessagingConnected",
+      },
+      {
+        id: "onboarding-complete",
+        route: "/app",
         title: "Tudo pronto!",
         content:
-          "Sua plataforma está configurada! Use o menu lateral para navegar entre as seções. Bom planejamento financeiro!",
+          "Sua plataforma está 100% configurada! Use o app no navegador ou registre gastos pelo WhatsApp. Bom planejamento financeiro!",
         placement: "center",
       },
     ],

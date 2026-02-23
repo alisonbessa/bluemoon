@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/button";
-import { PartyPopper, Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
+import { PartyPopper, Sparkles, CheckCircle2, MessageCircle } from "lucide-react";
 import confetti from "canvas-confetti";
 import { formatCurrency } from "@/shared/lib/formatters";
 
@@ -17,10 +17,11 @@ interface SetupSummary {
 interface CelebrationModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onConnectMessaging?: () => void;
   summary?: SetupSummary;
 }
 
-export function CelebrationModal({ isOpen, onClose, summary }: CelebrationModalProps) {
+export function CelebrationModal({ isOpen, onClose, onConnectMessaging, summary }: CelebrationModalProps) {
   const [hasAnimated, setHasAnimated] = useState(false);
 
   useEffect(() => {
@@ -123,22 +124,38 @@ export function CelebrationModal({ isOpen, onClose, summary }: CelebrationModalP
           </div>
         )}
 
-        {/* Tips */}
-        <div className="px-6 pb-4">
-          <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">Dica:</span> Você pode ajustar
-              qualquer configuração a qualquer momento nas configurações da plataforma.
-            </p>
+        {/* Messaging CTA */}
+        {onConnectMessaging && (
+          <div className="px-6 pb-4">
+            <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
+              <div className="flex items-center gap-2 mb-1">
+                <MessageCircle className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-foreground">Falta só mais um passo!</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Conecte o WhatsApp para registrar gastos em segundos, direto do celular.
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Footer */}
-        <div className="p-6 pt-2 flex justify-center">
-          <Button onClick={onClose} size="lg" className="gap-2 px-8">
-            Começar a usar
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+        <div className="p-6 pt-2 flex flex-col gap-2">
+          {onConnectMessaging ? (
+            <>
+              <Button onClick={onConnectMessaging} size="lg" className="gap-2 w-full">
+                <MessageCircle className="h-4 w-4" />
+                Conectar WhatsApp
+              </Button>
+              <Button onClick={onClose} variant="ghost" size="sm" className="text-muted-foreground">
+                Fazer depois
+              </Button>
+            </>
+          ) : (
+            <Button onClick={onClose} size="lg" className="gap-2 px-8 mx-auto">
+              Começar a usar
+            </Button>
+          )}
         </div>
       </div>
     </div>

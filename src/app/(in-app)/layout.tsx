@@ -83,7 +83,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, hasPartnerAccess, isLoading, error, mutate } = useUser();
-  const { isActive: isTutorialActive, currentStep, startTutorial } = useTutorial();
+  const { isActive: isTutorialActive, currentStep, startTutorial, nextStep, completeTutorial } = useTutorial();
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationSummary, setCelebrationSummary] = useState<SetupSummary | undefined>();
@@ -196,10 +196,14 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
   const handleCelebrationClose = () => {
     setShowCelebration(false);
-    // Ensure user stays on dashboard
-    if (pathname !== "/app") {
-      router.push("/app");
-    }
+    // User chose "Fazer depois" — complete the tutorial
+    completeTutorial();
+  };
+
+  const handleConnectMessaging = () => {
+    setShowCelebration(false);
+    // Advance tutorial to the settings/messaging steps
+    nextStep();
   };
 
   // Redirect to home if user is not authenticated
@@ -277,6 +281,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         <CelebrationModal
           isOpen={showCelebration}
           onClose={handleCelebrationClose}
+          onConnectMessaging={handleConnectMessaging}
           summary={celebrationSummary}
         />
 
