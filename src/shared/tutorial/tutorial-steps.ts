@@ -300,11 +300,32 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app",
         title: "Quase lá!",
         content:
-          "Sua plataforma está configurada! Falta só um passo: conectar o WhatsApp para registrar gastos em segundos.",
+          "Sua plataforma está configurada! Falta só mais alguns passos nas configurações.",
         placement: "center",
       },
 
-      // ===== 8. SETTINGS - MESSAGING CONNECTION =====
+      // ===== 8. SETTINGS - PARTNER INVITE (Duo plan only, before WhatsApp) =====
+      {
+        id: "settings-partner-intro",
+        route: "/app/settings",
+        title: "Convide seu parceiro(a)!",
+        content:
+          "Você tem o plano Duo! Convide seu parceiro(a) para compartilhar o controle financeiro. Cada um terá sua própria visão, tudo sincronizado.",
+        placement: "center",
+        condition: "hasDuoPlan",
+      },
+      {
+        id: "settings-partner-card",
+        route: "/app/settings",
+        title: "Criar Link de Convite",
+        content:
+          "Clique em \"Criar link de convite\" para gerar um link. Envie para seu parceiro(a) por WhatsApp ou outro meio.",
+        targetSelector: '[data-tutorial="members-card"]',
+        placement: "left",
+        condition: "hasDuoPlan",
+      },
+
+      // ===== 9. SETTINGS - MESSAGING CONNECTION (last step before leaving app) =====
       {
         id: "settings-messaging-intro",
         route: "/app/settings",
@@ -331,27 +352,6 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         placement: "center",
         requiresAction: true,
         validationKey: "hasMessagingConnected",
-      },
-
-      // ===== 9. SETTINGS - PARTNER INVITE (Duo plan only) =====
-      {
-        id: "settings-partner-intro",
-        route: "/app/settings",
-        title: "Convide seu parceiro(a)!",
-        content:
-          "Você tem o plano Duo! Convide seu parceiro(a) para compartilhar o controle financeiro. Cada um terá sua própria visão, tudo sincronizado.",
-        placement: "center",
-        condition: "hasDuoPlan",
-      },
-      {
-        id: "settings-partner-card",
-        route: "/app/settings",
-        title: "Criar Link de Convite",
-        content:
-          "Clique em \"Criar link de convite\" para gerar um link. Envie para seu parceiro(a) por WhatsApp ou outro meio.",
-        targetSelector: '[data-tutorial="members-card"]',
-        placement: "left",
-        condition: "hasDuoPlan",
       },
 
       {
