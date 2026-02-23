@@ -264,12 +264,10 @@ function AppHomepage() {
       />
 
       {/* Credit Card Spending */}
-      {creditCards.length > 0 && (
-        <CreditCardSpending
-          creditCards={creditCards}
-          isLoading={chartsLoading}
-        />
-      )}
+      <CreditCardSpending
+        creditCards={creditCards}
+        isLoading={chartsLoading}
+      />
 
       {/* Navigation Cards */}
       <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
