@@ -14,6 +14,8 @@ export interface TutorialStep {
   requiresAction?: boolean;
   /** Validation function name to check if step is complete */
   validationKey?: string;
+  /** If set, this step is only shown when the condition is met (e.g., "hasDuoPlan") */
+  condition?: string;
 }
 
 export interface TutorialFlow {
@@ -330,6 +332,28 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         requiresAction: true,
         validationKey: "hasMessagingConnected",
       },
+
+      // ===== 9. SETTINGS - PARTNER INVITE (Duo plan only) =====
+      {
+        id: "settings-partner-intro",
+        route: "/app/settings",
+        title: "Convide seu parceiro(a)!",
+        content:
+          "Você tem o plano Duo! Convide seu parceiro(a) para compartilhar o controle financeiro. Cada um terá sua própria visão, tudo sincronizado.",
+        placement: "center",
+        condition: "hasDuoPlan",
+      },
+      {
+        id: "settings-partner-card",
+        route: "/app/settings",
+        title: "Criar Link de Convite",
+        content:
+          "Clique em \"Criar link de convite\" para gerar um link. Envie para seu parceiro(a) por WhatsApp ou outro meio.",
+        targetSelector: '[data-tutorial="members-card"]',
+        placement: "left",
+        condition: "hasDuoPlan",
+      },
+
       {
         id: "onboarding-complete",
         route: "/app",

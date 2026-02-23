@@ -61,13 +61,6 @@ export function WhatsAppConnectionCard({ onConnected }: WhatsAppConnectionCardPr
     fetchStatus();
   }, []);
 
-  // Poll for connection status when code is displayed (waiting for user to connect)
-  useEffect(() => {
-    if (!status?.code || status?.connected) return;
-    const interval = setInterval(fetchStatus, 5000);
-    return () => clearInterval(interval);
-  }, [status?.code, status?.connected]);
-
   const handleDisconnect = async () => {
     setIsDisconnecting(true);
     try {

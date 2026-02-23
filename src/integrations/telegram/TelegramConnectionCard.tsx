@@ -59,13 +59,6 @@ export function TelegramConnectionCard({ onConnected }: TelegramConnectionCardPr
     fetchStatus();
   }, []);
 
-  // Poll for connection status when code is displayed
-  useEffect(() => {
-    if (!status?.code || status?.connected) return;
-    const interval = setInterval(fetchStatus, 5000);
-    return () => clearInterval(interval);
-  }, [status?.code, status?.connected]);
-
   const handleDisconnect = async () => {
     setIsDisconnecting(true);
     try {
