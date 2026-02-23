@@ -12,6 +12,8 @@ import {
 import React, { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useUser, useCurrentPlan } from "@/shared/hooks/use-current-user";
+import { useSubscriptionGate } from "@/shared/hooks/use-subscription-gate";
+import { SubscriptionExpiredBanner } from "@/shared/layout/subscription-expired-banner";
 import { mutate as swrMutate } from "swr";
 
 const BUDGET_INITIALIZED_KEY = "hivebudget_budget_initialized";
@@ -84,6 +86,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, hasPartnerAccess, isLoading, error, mutate } = useUser();
   const { currentPlan } = useCurrentPlan();
+  const { isReadOnly, status: subscriptionStatus } = useSubscriptionGate();
   const { isActive: isTutorialActive, currentStep, startTutorial, nextStep, completeTutorial, setCondition } = useTutorial();
 
   const [showCelebration, setShowCelebration] = useState(false);
@@ -222,11 +225,12 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, user, error, router]);
 
-  // Redirect to choose-plan if user doesn't have an active subscription
+  // Redirect NEW users (never subscribed) to choose-plan.
+  // RETURNING users (cancelled subscription) get read-only access to their data.
   useEffect(() => {
     if (isLoading || !user) return;
 
-    // Skip check for exempt paths (choose-plan, settings)
+    // Skip check for exempt paths (choose-plan, settings, subscribe)
     if (SUBSCRIPTION_EXEMPT_PATHS.some((path) => pathname?.startsWith(path))) {
       return;
     }
@@ -241,8 +245,9 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // If user doesn't have a Stripe subscription, redirect to choose-plan
-    if (!user.stripeSubscriptionId) {
+    // Only redirect NEW users who never completed onboarding
+    // Returning users (who cancelled) get read-only access to view their data
+    if (!user.stripeSubscriptionId && !user.onboardingCompletedAt) {
       router.replace("/app/choose-plan");
     }
   }, [isLoading, user, hasPartnerAccess, pathname, router]);
@@ -278,10 +283,13 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         {/* Header - Full Width at Top */}
         <AppHeader />
 
+        {/* Subscription expired banner for returning users */}
+        {subscriptionStatus === "expired" && <SubscriptionExpiredBanner />}
+
         {/* Sidebar + Content (sidebar on left for desktop) */}
         <div className="flex flex-1 overflow-hidden">
           <AppSidebar />
-          <main className="flex-1 overflow-auto">
+          <main className={`flex-1 overflow-auto ${isReadOnly ? "pointer-events-auto" : ""}`}>
             <div className="max-w-7xl mx-auto w-full">{children}</div>
           </main>
         </div>

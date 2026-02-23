@@ -428,6 +428,43 @@ async function handleUndo(phoneNumber: string): Promise<void> {
 }
 
 // ============================================
+// Subscription Access Check
+// ============================================
+
+const SUBSCRIPTION_EXEMPT_ROLES = ["beta", "lifetime", "admin"];
+
+/**
+ * Checks if a user has an active subscription or exempt access.
+ * Used to gate WhatsApp message processing for users without plans.
+ */
+async function checkUserSubscriptionAccess(userId: string): Promise<boolean> {
+  const [user] = await db
+    .select({
+      stripeSubscriptionId: users.stripeSubscriptionId,
+      role: users.role,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user) return false;
+
+  // Check exempt roles (beta, lifetime, admin)
+  if (user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role)) {
+    return true;
+  }
+
+  // Check active Stripe subscription
+  if (user.stripeSubscriptionId) {
+    return true;
+  }
+
+  // Check partner access (access through budget owner's subscription)
+  const { checkPartnerAccess } = await import("@/shared/lib/users/checkPartnerAccess");
+  return checkPartnerAccess(userId);
+}
+
+// ============================================
 // AI Message Processing
 // ============================================
 
@@ -1599,6 +1636,21 @@ async function handleTextMessage(
     return;
   }
 
+  // User is connected - check if they have an active subscription
+  const hasAccess = await checkUserSubscriptionAccess(waUser.userId);
+  if (!hasAccess) {
+    const appUrl = process.env.NEXTAUTH_URL || "https://www.hivebudget.com";
+    await adapter.sendMessage(
+      phoneNumber,
+      `Sua assinatura do HiveBudget expirou.\n\n` +
+        `Seus dados estao seguros no app, mas para continuar registrando pelo WhatsApp, ` +
+        `e preciso reativar seu plano.\n\n` +
+        `Reative em: ${appUrl}/app/choose-plan\n\n` +
+        `Enquanto isso, voce pode visualizar seus dados no app.`
+    );
+    return;
+  }
+
   // User is connected - check for commands
   const command = isCommand(text);
   if (command) {
@@ -1740,6 +1792,18 @@ export async function handleWebhook(
                   await adapter.sendMessage(
                     phoneNumber,
                     "Você precisa conectar sua conta primeiro para enviar áudios."
+                  );
+                  break;
+                }
+
+                // Check subscription before processing audio
+                const hasAudioAccess = await checkUserSubscriptionAccess(waUser.userId);
+                if (!hasAudioAccess) {
+                  const appUrl = process.env.NEXTAUTH_URL || "https://www.hivebudget.com";
+                  await adapter.sendMessage(
+                    phoneNumber,
+                    `Sua assinatura do HiveBudget expirou.\n\n` +
+                      `Para continuar registrando pelo WhatsApp, reative seu plano em: ${appUrl}/app/choose-plan`
                   );
                   break;
                 }
