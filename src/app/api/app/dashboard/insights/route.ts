@@ -247,8 +247,9 @@ export const GET = withAuthRequired(async (req, context) => {
 
   // Categories over budget
   const overBudgetCategories = categorySpending
+    .filter((c) => c.categoryId !== null)
     .map((c) => {
-      const allocated = allocationsMap.get(c.categoryId) || 0;
+      const allocated = allocationsMap.get(c.categoryId!) || 0;
       const spent = Number(c.totalSpent) || 0;
       if (allocated > 0 && spent > allocated) {
         return {
@@ -270,8 +271,8 @@ export const GET = withAuthRequired(async (req, context) => {
   // Top categories with comparison
   const topCategoriesWithComparison = topCategories.map((c) => {
     const spent = Number(c.totalSpent) || 0;
-    const prevSpent = prevSpendingMap.get(c.categoryId) || 0;
-    const allocated = allocationsMap.get(c.categoryId) || 0;
+    const prevSpent = prevSpendingMap.get(c.categoryId!) || 0;
+    const allocated = allocationsMap.get(c.categoryId!) || 0;
     const variation =
       prevSpent > 0 ? Math.round(((spent - prevSpent) / prevSpent) * 100) : null;
 
