@@ -226,9 +226,10 @@ export async function getCategoryBalanceSummary(
   if (allocated > 0) {
     const remaining = allocated - spent;
     if (remaining < 0) {
-      return `🔴 Saldo: ${formatCurrency(remaining)} / ${formatCurrency(allocated)}`;
+      const overAmount = spent - allocated;
+      return `🔴 Estourou ${formatCurrency(overAmount)} (gasto: ${formatCurrency(spent)} / ${formatCurrency(allocated)})`;
     }
-    return `📊 Saldo: ${formatCurrency(remaining)} / ${formatCurrency(allocated)}`;
+    return `📊 Restam ${formatCurrency(remaining)} de ${formatCurrency(allocated)}`;
   }
 
   // No allocation — just show total spent in the month

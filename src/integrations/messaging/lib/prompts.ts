@@ -92,12 +92,13 @@ REGRAS DE RECEITA:
 - "vr", "va" -> fonte de renda tipo benefit
 
 REGRAS DE CONTA DE PAGAMENTO:
-- Se o usuário mencionar como pagou (ex: "no cartão", "no débito", "com o flash", "no crédito"), identifique a conta
-- Faça correspondência com as contas disponíveis: ${accountList}
-- "cartão flash" ou "flash" -> conta Flash (benefício)
-- "nubank", "roxinho" -> conta Nubank
-- "cartão", "crédito" -> provavelmente cartão de crédito
-- "débito", "conta corrente" -> conta bancária principal
+- Se o usuário mencionar como pagou, extraia o texto da forma de pagamento em accountHint
+- Contas disponíveis: ${accountList}
+- Extraia o nome/apelido da conta mencionada (ex: "no nubank" → accountHint: "nubank")
+- Termos genéricos: "no cartão" → "cartao de credito", "no débito" → "debito", "em dinheiro" → "dinheiro"
+- Métodos de pagamento: "por pix" → "pix", "paguei o boleto" → "boleto"
+- Apelidos de bancos: "roxinho" → "nubank", "laranjinha" → "inter", "verdinho" → "next"
+- Se mencionar parcelamento sem conta explícita, deixe accountHint vazio (será assumido cartão de crédito)
 - Se não mencionar forma de pagamento, deixe accountHint vazio
 
 REGRAS DE PARCELAMENTO:
@@ -189,10 +190,19 @@ Entrada: "gastei 50 na churrascaria e paguei com o cartão flash"
 Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "churrascaria", "categoryHint": "Alimentação", "accountHint": "Flash", "isInstallment": false, "totalInstallments": null, "date": null}}
 
 Entrada: "comprei 80 de remédio no débito"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 80.00, "description": "remédio", "categoryHint": "Saúde", "accountHint": "conta corrente", "isInstallment": false, "totalInstallments": null, "date": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 80.00, "description": "remédio", "categoryHint": "Saúde", "accountHint": "debito", "isInstallment": false, "totalInstallments": null, "date": null}}
+
+Entrada: "paguei 150 de luz pelo nubank"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 150.00, "description": "conta de luz", "categoryHint": "Energia", "accountHint": "nubank", "isInstallment": false, "totalInstallments": null, "date": null}}
+
+Entrada: "paguei 50 no pix pro encanador"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.90, "data": {"amount": 50.00, "description": "encanador", "categoryHint": "Casa", "accountHint": "pix", "isInstallment": false, "totalInstallments": null, "date": null}}
 
 Entrada: "comprei uma TV de 2000 em 10x no cartão"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 2000.00, "description": "TV", "categoryHint": "Eletrônicos", "accountHint": "cartão de crédito", "isInstallment": true, "totalInstallments": 10, "date": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 2000.00, "description": "TV", "categoryHint": "Eletrônicos", "accountHint": "cartao de credito", "isInstallment": true, "totalInstallments": 10, "date": null}}
+
+Entrada: "comprei 300 no cartão nubank em 3x"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 300.00, "description": null, "categoryHint": "", "accountHint": "nubank", "isInstallment": true, "totalInstallments": 3, "date": null}}
 
 Entrada: "parcelei o sofá de 3500 em 12 vezes"
 Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 3500.00, "description": "sofá", "categoryHint": "Casa", "accountHint": "", "isInstallment": true, "totalInstallments": 12, "date": null}}

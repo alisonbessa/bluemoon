@@ -67,6 +67,9 @@ export async function handleExpenseIntent(
   // Try to match account from hint (e.g., "paguei com o cartão flash")
   const matchedAccount = data?.accountHint ? matchAccount(data.accountHint, accounts) : null;
 
+  // If user mentioned a payment method but we couldn't match it, ask them to pick
+  const unmatchedAccountHint = data?.accountHint && !matchedAccount;
+
   // For installments without explicit account, prefer credit card
   let accountId: string;
   let accountName: string;
@@ -157,7 +160,8 @@ export async function handleExpenseIntent(
 
   // HIGH CONFIDENCE without scheduled match: Auto-save new transaction
   // Note: We NEVER auto-save when updating scheduled transactions - always confirm
-  if (finalConfidence >= CONFIDENCE_THRESHOLDS.HIGH && categoryId && !scheduledMatch) {
+  // If user mentioned an account we couldn't match, don't auto-save — ask for account
+  if (finalConfidence >= CONFIDENCE_THRESHOLDS.HIGH && categoryId && !scheduledMatch && !unmatchedAccountHint) {
     // Delete processing messages before showing final result
     if (initialMessagesToDelete.length > 0) {
       await adapter.deleteMessages(chatId, initialMessagesToDelete);
@@ -284,7 +288,8 @@ export async function handleExpenseIntent(
   }
 
   // MEDIUM CONFIDENCE: Ask for confirmation
-  if (finalConfidence >= CONFIDENCE_THRESHOLDS.MEDIUM && categoryId) {
+  // If user mentioned an account we couldn't match, skip to account selection flow
+  if (finalConfidence >= CONFIDENCE_THRESHOLDS.MEDIUM && categoryId && !unmatchedAccountHint) {
     let message = `📝 <b>Confirmar registro?</b>\n\n`;
     message += `${categoryIcon || "📁"} ${categoryName}\n`;
 
@@ -385,13 +390,18 @@ export async function handleExpenseIntent(
       `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)} ${monthsText}\n`;
   }
 
-  // If no account was specified, ask for account first
+  // If no account was specified (or hint didn't match), ask for account first
   if (!matchedAccount && accounts.length > 1) {
+    const unmatchedNote = unmatchedAccountHint
+      ? `Não encontrei a conta "<b>${data.accountHint}</b>".\n\n`
+      : "";
+
     const accSelectMsgId = await adapter.sendChoiceList(
       chatId,
       `💰 <b>Registrar gasto</b>\n\n` +
         valueText +
         (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
+        unmatchedNote +
         `Qual a forma de pagamento?`,
       accounts.map(a => ({ id: `acc_${a.id}`, label: `${getAccountIcon(a.type)} ${a.name}` })),
       "Contas"
@@ -776,7 +786,7 @@ function matchAccount(
 
   const normalizedHint = normalizeText(hint);
 
-  // Direct name match (e.g., "flash" matches "Flash")
+  // 1. Direct name match (e.g., "flash" matches "Flash", "nubank" matches "Cartão Nubank")
   for (const account of accounts) {
     const normalizedName = normalizeText(account.name);
     if (
@@ -787,12 +797,21 @@ function matchAccount(
     }
   }
 
-  // Common aliases for account types
+  // 2. Word-level match: any word in the hint matches any word in account name
+  const hintWords = normalizedHint.split(/\s+/).filter(w => w.length >= 3);
+  for (const account of accounts) {
+    const nameWords = normalizeText(account.name).split(/\s+/);
+    if (hintWords.some(hw => nameWords.some(nw => nw.includes(hw) || hw.includes(nw)))) {
+      return { id: account.id, name: account.name };
+    }
+  }
+
+  // 3. Common aliases for account types
   const aliases: Record<string, string[]> = {
-    credit_card: ["cartao", "credito", "cartao de credito"],
-    checking: ["debito", "conta corrente", "corrente"],
+    credit_card: ["cartao", "credito", "cartao de credito", "cartao de cred"],
+    checking: ["debito", "conta corrente", "corrente", "conta bancaria"],
     savings: ["poupanca"],
-    benefit: ["vr", "va", "flash", "alelo", "sodexo", "ticket", "beneficio"],
+    benefit: ["vr", "va", "flash", "alelo", "sodexo", "ticket", "beneficio", "vale"],
     cash: ["dinheiro", "especie"],
   };
 
@@ -802,6 +821,12 @@ function matchAccount(
     if (typeAliases.some((alias) => normalizedHint.includes(alias))) {
       return { id: account.id, name: account.name };
     }
+  }
+
+  // 4. "pix" and "boleto" → checking account (most common source for these)
+  if (normalizedHint.includes("pix") || normalizedHint.includes("boleto")) {
+    const checking = accounts.find(a => a.type === "checking");
+    if (checking) return { id: checking.id, name: checking.name };
   }
 
   return null;
