@@ -1,4 +1,5 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
 import { transactions, financialAccounts } from "@/db/schema";
 import { eq, and, inArray, or, sql } from "drizzle-orm";
@@ -52,6 +53,11 @@ export const GET = withAuthRequired(async (req, context) => {
 // PATCH - Update a transaction
 export const PATCH = withAuthRequired(async (req, context) => {
   const { session } = context;
+
+  // Require active subscription for modifying transactions
+  const subscriptionError = await requireActiveSubscription(session.user.id);
+  if (subscriptionError) return subscriptionError;
+
   const params = await context.params;
   const transactionId = params.id as string;
   const { searchParams } = new URL(req.url);
@@ -240,6 +246,11 @@ export const PATCH = withAuthRequired(async (req, context) => {
 // DELETE - Delete a transaction
 export const DELETE = withAuthRequired(async (req, context) => {
   const { session } = context;
+
+  // Require active subscription for deleting transactions
+  const subscriptionError = await requireActiveSubscription(session.user.id);
+  if (subscriptionError) return subscriptionError;
+
   const params = await context.params;
   const transactionId = params.id as string;
 

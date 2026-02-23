@@ -612,21 +612,51 @@ export default function SettingsPage() {
                   )}
                 </div>
               ) : (
-                // Free/default plan
+                // Free/default plan - distinguish returning users from new ones
                 <div className="rounded-lg border bg-muted/50 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold">{currentPlan?.name || "Plano Gratuito"}</span>
-                    <Badge variant="secondary">Gratuito</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Funcionalidades básicas para controle financeiro pessoal
-                  </p>
-                  <Button asChild className="w-full" variant="default">
-                    <Link href="/app/choose-plan">
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Fazer upgrade
-                    </Link>
-                  </Button>
+                  {user?.onboardingCompletedAt ? (
+                    // Returning user - cancelled subscription
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-amber-600" />
+                          <span className="font-semibold">Plano Expirado</span>
+                        </div>
+                        <Badge variant="outline" className="text-amber-600 border-amber-300">
+                          Inativo
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Sua assinatura foi cancelada. Voce esta no modo somente leitura.
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        Seus dados estao seguros. Reative para voltar a registrar transacoes.
+                      </p>
+                      <Button asChild className="w-full" variant="default">
+                        <Link href="/app/choose-plan">
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Reativar plano
+                        </Link>
+                      </Button>
+                    </>
+                  ) : (
+                    // New user without subscription
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold">{currentPlan?.name || "Plano Gratuito"}</span>
+                        <Badge variant="secondary">Gratuito</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Funcionalidades basicas para controle financeiro pessoal
+                      </p>
+                      <Button asChild className="w-full" variant="default">
+                        <Link href="/app/choose-plan">
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Fazer upgrade
+                        </Link>
+                      </Button>
+                    </>
+                  )}
                 </div>
               )}
             </CardContent>

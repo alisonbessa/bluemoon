@@ -1,4 +1,5 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
 import { incomeSources, budgetMembers, financialAccounts } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
@@ -71,6 +72,11 @@ export const GET = withAuthRequired(async (req, context) => {
 // POST - Create a new income source
 export const POST = withAuthRequired(async (req, context) => {
   const { session } = context;
+
+  // Require active subscription for creating income sources
+  const subscriptionError = await requireActiveSubscription(session.user.id);
+  if (subscriptionError) return subscriptionError;
+
   const body = await req.json();
 
   const validation = createIncomeSourceSchema.safeParse(body);

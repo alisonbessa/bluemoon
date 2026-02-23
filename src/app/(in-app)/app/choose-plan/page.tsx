@@ -21,6 +21,7 @@ import getSubscribeUrl, {
   PlanType,
   DEFAULT_TRIAL_PERIOD_DAYS,
 } from "@/shared/lib/plans/getSubscribeUrl";
+import { useSubscriptionGate } from "@/shared/hooks/use-subscription-gate";
 
 interface PlanPricing {
   price: number | null;
@@ -53,6 +54,7 @@ interface PlansResponse {
 export default function ChoosePlanPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isReturningUser } = useSubscriptionGate();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -152,9 +154,13 @@ export default function ChoosePlanPage() {
       <div className="w-full max-w-4xl py-10">
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold mb-2">Escolha seu plano</h1>
+          <h1 className="text-3xl font-bold mb-2">
+            {isReturningUser ? "Bem-vindo de volta!" : "Escolha seu plano"}
+          </h1>
           <p className="text-muted-foreground text-lg">
-            Comece com {trialDays} dias grátis. Cancele a qualquer momento.
+            {isReturningUser
+              ? "Reative seu plano para continuar gerenciando suas financas."
+              : `Comece com ${trialDays} dias gratis. Cancele a qualquer momento.`}
           </p>
         </div>
 
@@ -241,7 +247,7 @@ export default function ChoosePlanPage() {
                   size="lg"
                   onClick={() => handleSelectPlan("solo")}
                 >
-                  Começar trial grátis
+                  {isReturningUser ? "Reativar com Solo" : "Comecar trial gratis"}
                 </Button>
               </CardFooter>
             </Card>
@@ -266,7 +272,7 @@ export default function ChoosePlanPage() {
                   <CardTitle className="text-2xl">{duoPlan.name}</CardTitle>
                 </div>
                 <CardDescription>
-                  Ideal para casais e parceiros que compartilham finanças
+                  Ideal para casais e parceiros que compartilham financas
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-1">
@@ -279,12 +285,12 @@ export default function ChoosePlanPage() {
                         : duoPlan.pricing.monthly?.priceFormatted}
                     </span>
                     <span className="text-muted-foreground">
-                      /{isYearly ? "ano" : "mês"}
+                      /{isYearly ? "ano" : "mes"}
                     </span>
                   </div>
                   {isYearly && duoPlan.pricing.yearly?.monthlyEquivalent && (
                     <p className="text-sm text-muted-foreground mt-1">
-                      {duoPlan.pricing.yearly.monthlyEquivalent}/mês
+                      {duoPlan.pricing.yearly.monthlyEquivalent}/mes
                       {getYearlySavings(duoPlan) && (
                         <Badge variant="outline" className="ml-2 text-xs">
                           {getYearlySavings(duoPlan)}% off
@@ -310,7 +316,7 @@ export default function ChoosePlanPage() {
                   size="lg"
                   onClick={() => handleSelectPlan("duo")}
                 >
-                  Começar trial grátis
+                  {isReturningUser ? "Reativar com Duo" : "Comecar trial gratis"}
                 </Button>
               </CardFooter>
             </Card>
@@ -320,9 +326,19 @@ export default function ChoosePlanPage() {
         {/* Trial Info */}
         <div className="mt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            Seu cartão será salvo mas você só será cobrado após {trialDays} dias.
-            <br />
-            Cancele a qualquer momento durante o trial sem nenhuma cobrança.
+            {isReturningUser ? (
+              <>
+                Seus dados continuam salvos e serao acessiveis assim que reativar.
+                <br />
+                A cobranca sera imediata, sem novo periodo de trial.
+              </>
+            ) : (
+              <>
+                Seu cartao sera salvo mas voce so sera cobrado apos {trialDays} dias.
+                <br />
+                Cancele a qualquer momento durante o trial sem nenhuma cobranca.
+              </>
+            )}
           </p>
         </div>
       </div>
