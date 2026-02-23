@@ -19,6 +19,7 @@ import type {
 import { WhatsAppAdapter } from "./whatsapp-adapter";
 import { parseUserMessage } from "@/integrations/messaging/lib/gemini";
 import { routeIntent } from "@/integrations/messaging/lib/intent-router";
+import { handleQueryIntent } from "@/integrations/messaging/lib/query-executor";
 import {
   getUserBudgetInfo,
   buildUserContext,
@@ -247,6 +248,7 @@ function isCommand(text: string): string | null {
   if (normalized === "cancelar" || normalized === "cancel") return "cancelar";
   if (normalized === "desfazer" || normalized === "undo") return "desfazer";
   if (normalized === "start" || normalized === "iniciar") return "start";
+  if (normalized === "saldo" || normalized === "resumo" || normalized === "balance") return "saldo";
 
   return null;
 }
@@ -269,9 +271,42 @@ async function handleHelp(phoneNumber: string): Promise<void> {
       `"quanto sobrou em alimentação?"\n` +
       `"como está minha meta de viagem?"\n\n` +
       `*Comandos:*\n` +
+      `saldo - Resumo do mês\n` +
       `ajuda - Esta mensagem\n` +
       `desfazer - Desfazer último registro\n` +
       `cancelar - Cancelar operação atual`
+  );
+}
+
+async function handleBalance(phoneNumber: string): Promise<void> {
+  const [waUser] = await db
+    .select()
+    .from(whatsappUsers)
+    .where(eq(whatsappUsers.phoneNumber, phoneNumber));
+
+  if (!waUser?.userId) {
+    await adapter.sendMessage(phoneNumber, "Você precisa conectar sua conta primeiro.");
+    return;
+  }
+
+  const budgetInfo = await getUserBudgetInfo(waUser.userId);
+
+  if (!budgetInfo) {
+    await adapter.sendMessage(
+      phoneNumber,
+      "Você precisa configurar seu orçamento primeiro no app."
+    );
+    return;
+  }
+
+  const userContext = buildUserContext(waUser.userId, budgetInfo);
+
+  await handleQueryIntent(
+    adapter,
+    phoneNumber,
+    "QUERY_BALANCE",
+    { queryType: "balance" },
+    userContext
   );
 }
 
@@ -1548,11 +1583,14 @@ async function handleTextMessage(
       // Code was invalid/expired - fall through to show connection instructions
     }
 
+    const appUrl = process.env.NEXTAUTH_URL || "https://www.hivebudget.com";
     await adapter.sendMessage(
       phoneNumber,
-      `Olá! Para usar o HiveBudget pelo WhatsApp, você precisa conectar sua conta.\n\n` +
-        `*Como conectar:*\n` +
-        `1. Acesse hivebudget.com.br\n` +
+      `Olá! Para usar o HiveBudget pelo WhatsApp, você precisa ter uma conta.\n\n` +
+        `*Ainda não tem conta?*\n` +
+        `Cadastre-se grátis: ${appUrl}/sign-up\n\n` +
+        `*Já tem conta?*\n` +
+        `1. Acesse ${appUrl}\n` +
         `2. Vá em Configurações > Conectar WhatsApp\n` +
         `3. Copie o código de 6 caracteres\n` +
         `4. Envie o código aqui neste chat\n\n` +
@@ -1576,6 +1614,9 @@ async function handleTextMessage(
         return;
       case "start":
         await handleHelp(phoneNumber);
+        return;
+      case "saldo":
+        await handleBalance(phoneNumber);
         return;
     }
   }

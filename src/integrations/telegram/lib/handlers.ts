@@ -26,6 +26,7 @@ import {
 } from "./bot";
 import { parseUserMessage } from "./gemini";
 import { routeIntent } from "./intent-router";
+import { handleQueryIntent } from "./query-executor";
 import { handleVoiceMessage, isValidAudioDuration, isValidAudioSize } from "./voice-handler";
 import { markTransactionAsPaid } from "./transaction-matcher";
 import { getTodayNoonUTC, parseAmount } from "./telegram-utils";
@@ -203,12 +204,15 @@ async function handleStart(chatId: number, telegramUserId: number, username?: st
     );
   } else {
     // Not connected
+    const appUrl = process.env.NEXTAUTH_URL || "https://www.hivebudget.com";
     await sendMessage(
       chatId,
       `👋 Bem-vindo ao <b>HiveBudget</b>!\n\n` +
-        `Para registrar seus gastos pelo Telegram, conecte sua conta:\n\n` +
-        `<b>Como conectar:</b>\n` +
-        `1. Acesse hivebudget.com\n` +
+        `Para registrar seus gastos pelo Telegram, conecte sua conta.\n\n` +
+        `<b>Ainda não tem conta?</b>\n` +
+        `Cadastre-se grátis: ${appUrl}/sign-up\n\n` +
+        `<b>Já tem conta?</b>\n` +
+        `1. Acesse ${appUrl}\n` +
         `2. Vá em Configurações > Conectar Telegram\n` +
         `3. Copie o código de 6 caracteres\n` +
         `4. Envie o código aqui neste chat\n\n` +
@@ -317,6 +321,7 @@ async function handleHelp(chatId: number) {
       `<b>Áudio:</b>\n` +
       `Envie uma mensagem de voz!\n\n` +
       `<b>Comandos:</b>\n` +
+      `/saldo - Resumo do mês\n` +
       `/ajuda - Esta mensagem\n` +
       `/desfazer - Desfazer último registro\n` +
       `/cancelar - Cancelar operação atual`
@@ -411,6 +416,38 @@ async function handleUndo(chatId: number) {
     ...context,
     lastTransactionId: undefined,
   });
+}
+
+// Handle /saldo command - quick balance summary
+async function handleBalance(chatId: number) {
+  const [telegramUser] = await db
+    .select()
+    .from(telegramUsers)
+    .where(eq(telegramUsers.chatId, chatId));
+
+  if (!telegramUser?.userId) {
+    await sendMessage(chatId, "❌ Você precisa conectar sua conta primeiro. Use /start");
+    return;
+  }
+
+  const budgetInfo = await getUserBudgetInfo(telegramUser.userId);
+
+  if (!budgetInfo) {
+    await sendMessage(
+      chatId,
+      "❌ Você precisa configurar seu orçamento primeiro no app."
+    );
+    return;
+  }
+
+  const userContext = buildUserContext(telegramUser.userId, budgetInfo);
+
+  await handleQueryIntent(
+    chatId,
+    "QUERY_BALANCE",
+    { queryType: "balance" },
+    userContext
+  );
 }
 
 // Handle /cancelar command
@@ -941,6 +978,11 @@ export async function handleMessage(message: TelegramMessage) {
       case "/cancel":
         await handleCancel(chatId);
         break;
+      case "/saldo":
+      case "/resumo":
+      case "/balance":
+        await handleBalance(chatId);
+        break;
       default:
         await sendMessage(chatId, "Comando não reconhecido. Use /ajuda para ver os comandos disponíveis.");
     }
@@ -970,11 +1012,14 @@ export async function handleMessage(message: TelegramMessage) {
       // Code was invalid/expired - fall through to show connection instructions
     }
 
+    const startAppUrl = process.env.NEXTAUTH_URL || "https://www.hivebudget.com";
     await sendMessage(
       chatId,
       "👋 Para usar o bot, você precisa conectar sua conta.\n\n" +
-        "<b>Como conectar:</b>\n" +
-        "1. Acesse hivebudget.com\n" +
+        "<b>Ainda não tem conta?</b>\n" +
+        `Cadastre-se grátis: ${startAppUrl}/sign-up\n\n` +
+        "<b>Já tem conta?</b>\n" +
+        `1. Acesse ${startAppUrl}\n` +
         "2. Vá em Configurações > Conectar Telegram\n" +
         "3. Copie o código e envie aqui\n\n" +
         "Ou use /start para mais informações."

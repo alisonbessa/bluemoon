@@ -171,7 +171,7 @@ export function TelegramConnectionCard() {
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Expira em 10 minutos
+                      Expira em 30 minutos
                     </p>
                   </div>
 
