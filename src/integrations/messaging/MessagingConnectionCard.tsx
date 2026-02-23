@@ -5,10 +5,18 @@ import { WhatsAppConnectionCard } from "@/integrations/whatsapp/WhatsAppConnecti
 
 const MESSAGING_PLATFORM = process.env.NEXT_PUBLIC_MESSAGING_PLATFORM || "telegram";
 
-export function MessagingConnectionCard() {
-  if (MESSAGING_PLATFORM === "whatsapp") {
-    return <WhatsAppConnectionCard />;
-  }
+interface MessagingConnectionCardProps {
+  onConnected?: () => void;
+}
 
-  return <TelegramConnectionCard />;
+export function MessagingConnectionCard({ onConnected }: MessagingConnectionCardProps = {}) {
+  return (
+    <div data-tutorial="messaging-card">
+      {MESSAGING_PLATFORM === "whatsapp" ? (
+        <WhatsAppConnectionCard onConnected={onConnected} />
+      ) : (
+        <TelegramConnectionCard onConnected={onConnected} />
+      )}
+    </div>
+  );
 }

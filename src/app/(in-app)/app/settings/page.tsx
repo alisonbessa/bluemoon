@@ -77,7 +77,7 @@ export default function SettingsPage() {
   const [feedbackType, setFeedbackType] = useState<"question" | "bug" | "feedback">("question");
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
-  const { startTutorial } = useTutorial();
+  const { startTutorial, notifyActionCompleted, isActive: isTutorialActive, setCondition } = useTutorial();
   const router = useRouter();
 
   // Computed properties for plan/trial status
@@ -97,6 +97,14 @@ export default function SettingsPage() {
       setDisplayName(user.displayName || firstName);
     }
   }, [user]);
+
+  // Set tutorial condition for Duo plan
+  useEffect(() => {
+    if (currentPlan) {
+      const isDuoPlan = (currentPlan.quotas?.maxBudgetMembers ?? 1) >= 2;
+      setCondition("hasDuoPlan", isDuoPlan);
+    }
+  }, [currentPlan, setCondition]);
 
   useEffect(() => {
     const fetchBudgets = async () => {
@@ -460,7 +468,9 @@ export default function SettingsPage() {
         {/* Sidebar */}
         <div className="space-y-6 min-w-0">
           {/* Messaging Integration */}
-          <MessagingConnectionCard />
+          <MessagingConnectionCard
+            onConnected={isTutorialActive ? () => notifyActionCompleted("hasMessagingConnected") : undefined}
+          />
 
           {/* Plan */}
           <Card>

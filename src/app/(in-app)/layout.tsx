@@ -11,7 +11,7 @@ import {
 } from "@/shared/tutorial";
 import React, { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useUser } from "@/shared/hooks/use-current-user";
+import { useUser, useCurrentPlan } from "@/shared/hooks/use-current-user";
 import { mutate as swrMutate } from "swr";
 
 const BUDGET_INITIALIZED_KEY = "hivebudget_budget_initialized";
@@ -83,12 +83,21 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, hasPartnerAccess, isLoading, error, mutate } = useUser();
-  const { isActive: isTutorialActive, currentStep, startTutorial } = useTutorial();
+  const { currentPlan } = useCurrentPlan();
+  const { isActive: isTutorialActive, currentStep, startTutorial, nextStep, completeTutorial, setCondition } = useTutorial();
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationSummary, setCelebrationSummary] = useState<SetupSummary | undefined>();
   const initializingRef = useRef(false);
   const tutorialStartedRef = useRef(false);
+
+  // Set tutorial conditions based on user plan
+  useEffect(() => {
+    if (currentPlan) {
+      const isDuoPlan = (currentPlan.quotas?.maxBudgetMembers ?? 1) >= 2;
+      setCondition("hasDuoPlan", isDuoPlan);
+    }
+  }, [currentPlan, setCondition]);
 
   // Auto-initialize budget for new users (creates budget, groups, categories silently)
   useEffect(() => {
@@ -196,10 +205,14 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
   const handleCelebrationClose = () => {
     setShowCelebration(false);
-    // Ensure user stays on dashboard
-    if (pathname !== "/app") {
-      router.push("/app");
-    }
+    // User chose "Fazer depois" — complete the tutorial
+    completeTutorial();
+  };
+
+  const handleConnectMessaging = () => {
+    setShowCelebration(false);
+    // Advance tutorial to the settings/messaging steps
+    nextStep();
   };
 
   // Redirect to home if user is not authenticated
@@ -277,6 +290,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         <CelebrationModal
           isOpen={showCelebration}
           onClose={handleCelebrationClose}
+          onConnectMessaging={handleConnectMessaging}
           summary={celebrationSummary}
         />
 

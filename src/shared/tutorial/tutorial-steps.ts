@@ -14,6 +14,8 @@ export interface TutorialStep {
   requiresAction?: boolean;
   /** Validation function name to check if step is complete */
   validationKey?: string;
+  /** If set, this step is only shown when the condition is met (e.g., "hasDuoPlan") */
+  condition?: string;
 }
 
 export interface TutorialFlow {
@@ -296,9 +298,68 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "setup-complete",
         route: "/app",
+        title: "Quase lá!",
+        content:
+          "Sua plataforma está configurada! Falta só mais alguns passos nas configurações.",
+        placement: "center",
+      },
+
+      // ===== 8. SETTINGS - PARTNER INVITE (Duo plan only, before WhatsApp) =====
+      {
+        id: "settings-partner-intro",
+        route: "/app/settings",
+        title: "Convide seu parceiro(a)!",
+        content:
+          "Você tem o plano Duo! Convide seu parceiro(a) para compartilhar o controle financeiro. Cada um terá sua própria visão, tudo sincronizado.",
+        placement: "center",
+        condition: "hasDuoPlan",
+      },
+      {
+        id: "settings-partner-card",
+        route: "/app/settings",
+        title: "Criar Link de Convite",
+        content:
+          "Clique em \"Criar link de convite\" para gerar um link. Envie para seu parceiro(a) por WhatsApp ou outro meio.",
+        targetSelector: '[data-tutorial="members-card"]',
+        placement: "left",
+        condition: "hasDuoPlan",
+      },
+
+      // ===== 9. SETTINGS - MESSAGING CONNECTION (last step before leaving app) =====
+      {
+        id: "settings-messaging-intro",
+        route: "/app/settings",
+        title: "Registre gastos pelo WhatsApp!",
+        content:
+          "Com o WhatsApp conectado, basta enviar uma mensagem como \"50 mercado\" e o gasto é registrado automaticamente no seu orçamento.",
+        placement: "center",
+      },
+      {
+        id: "settings-messaging-card",
+        route: "/app/settings",
+        title: "Conectar WhatsApp",
+        content:
+          "Gere o código de conexão aqui. Depois escaneie o QR code ou envie o código pelo WhatsApp para conectar sua conta.",
+        targetSelector: '[data-tutorial="messaging-card"]',
+        placement: "left",
+      },
+      {
+        id: "settings-messaging-action",
+        route: "/app/settings",
+        title: "Agora é sua vez!",
+        content:
+          "Conecte seu WhatsApp para registrar gastos com uma simples mensagem. Quando terminar (ou se preferir fazer depois), clique em \"Próxima Etapa\".",
+        placement: "center",
+        requiresAction: true,
+        validationKey: "hasMessagingConnected",
+      },
+
+      {
+        id: "onboarding-complete",
+        route: "/app",
         title: "Tudo pronto!",
         content:
-          "Sua plataforma está configurada! Use o menu lateral para navegar entre as seções. Bom planejamento financeiro!",
+          "Sua plataforma está 100% configurada! Use o app no navegador ou registre gastos pelo WhatsApp. Bom planejamento financeiro!",
         placement: "center",
       },
     ],

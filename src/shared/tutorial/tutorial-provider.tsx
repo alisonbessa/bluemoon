@@ -26,7 +26,8 @@ export type TutorialValidationKey =
   | "hasEditedCategory"
   | "hasGoals"
   | "hasAllocations"
-  | "hasTransactions";
+  | "hasTransactions"
+  | "hasMessagingConnected";
 
 interface TutorialContextValue {
   isActive: boolean;
@@ -49,6 +50,8 @@ interface TutorialContextValue {
   notifyActionCompleted: (validationKey: TutorialValidationKey) => void;
   /** Resume showing tutorial after user interaction */
   resumeTutorial: () => void;
+  /** Set a condition that affects which tutorial steps are shown */
+  setCondition: (key: string, value: boolean) => void;
 }
 
 const TutorialContext = createContext<TutorialContextValue | null>(null);
@@ -92,8 +95,46 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const [isVisible, setIsVisible] = useState(false);
   const [dismissedForPage, setDismissedForPage] = useState<string | null>(null);
   const [isWaitingForAction, setIsWaitingForAction] = useState(false);
+  const [conditions, setConditions] = useState<Record<string, boolean>>({});
+
+  const conditionsRef = useRef(conditions);
+  conditionsRef.current = conditions;
 
   const previousPathname = useRef(pathname);
+
+  // Check if a step's condition is met
+  const isStepConditionMet = useCallback((step: TutorialStep): boolean => {
+    if (!step.condition) return true;
+    return conditionsRef.current[step.condition] === true;
+  }, []);
+
+  // Find the next valid step (skipping steps with unmet conditions)
+  const findNextValidStep = useCallback((flow: TutorialFlow, afterStepId: string): TutorialStep | undefined => {
+    const currentIndex = flow.steps.findIndex((s) => s.id === afterStepId);
+    if (currentIndex === -1) return undefined;
+
+    for (let i = currentIndex + 1; i < flow.steps.length; i++) {
+      const step = flow.steps[i];
+      if (isStepConditionMet(step)) {
+        return step;
+      }
+    }
+    return undefined;
+  }, [isStepConditionMet]);
+
+  // Find the next valid step on a different page (skipping steps with unmet conditions)
+  const findNextValidPageStep = useCallback((flow: TutorialFlow, afterStepId: string, currentRoute: string): TutorialStep | undefined => {
+    const currentIndex = flow.steps.findIndex((s) => s.id === afterStepId);
+    if (currentIndex === -1) return undefined;
+
+    for (let i = currentIndex + 1; i < flow.steps.length; i++) {
+      const step = flow.steps[i];
+      if (step.route !== currentRoute && isStepConditionMet(step)) {
+        return step;
+      }
+    }
+    return undefined;
+  }, [isStepConditionMet]);
 
   // Initialize from localStorage on mount
   useEffect(() => {
@@ -136,8 +177,8 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
     // If tutorial is active and we navigated to a new page
     if (currentFlow && currentStep) {
-      // Check if the new page has tutorial steps
-      const pageSteps = getStepsByRoute(currentFlow.id, pathname);
+      // Check if the new page has tutorial steps (filtered by conditions)
+      const pageSteps = getStepsByRoute(currentFlow.id, pathname).filter(isStepConditionMet);
 
       if (pageSteps.length > 0) {
         // We have steps for this page - find the first step for this page
@@ -193,7 +234,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   const nextStep = useCallback(() => {
     if (!currentFlow || !currentStep) return;
 
-    const next = getNextStep(currentFlow.id, currentStep.id);
+    const next = findNextValidStep(currentFlow, currentStep.id);
 
     if (next) {
       // Check if we're transitioning to a new page
@@ -231,24 +272,13 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       // No more steps - complete the tutorial
       completeTutorial();
     }
-  }, [currentFlow, currentStep, dismissedForPage, router]);
+  }, [currentFlow, currentStep, dismissedForPage, router, findNextValidStep]);
 
   // Navigate to the next page in the tutorial flow
   const goToNextPage = useCallback(() => {
     if (!currentFlow || !currentStep) return;
 
-    // Find the first step of the next page
-    const currentIndex = currentFlow.steps.findIndex(s => s.id === currentStep.id);
-    const currentRoute = currentStep.route;
-
-    // Find next step that's on a different route
-    let nextPageStep: TutorialStep | undefined;
-    for (let i = currentIndex + 1; i < currentFlow.steps.length; i++) {
-      if (currentFlow.steps[i].route !== currentRoute) {
-        nextPageStep = currentFlow.steps[i];
-        break;
-      }
-    }
+    const nextPageStep = findNextValidPageStep(currentFlow, currentStep.id, currentStep.route);
 
     if (nextPageStep) {
       setCurrentStep(nextPageStep);
@@ -270,7 +300,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       // No more pages - complete the tutorial
       completeTutorial();
     }
-  }, [currentFlow, currentStep, router]);
+  }, [currentFlow, currentStep, router, findNextValidPageStep]);
 
   const dismissPageTutorial = useCallback(() => {
     if (!currentFlow || !currentStep) return;
@@ -295,12 +325,12 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
       // Check if this matches the current step's validation key
       if (currentStep.validationKey === validationKey && isWaitingForAction) {
-        // Action completed! Navigate to next page
+        // Action completed! Advance to next step (may be same or different page)
         setIsWaitingForAction(false);
-        goToNextPage();
+        nextStep();
       }
     },
-    [currentFlow, currentStep, isWaitingForAction, goToNextPage]
+    [currentFlow, currentStep, isWaitingForAction, nextStep]
   );
 
   // Resume tutorial after user interaction
@@ -317,6 +347,13 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
       waitingForAction: isWaitingForAction,
     });
   }, [currentFlow, currentStep, isWaitingForAction]);
+
+  const setCondition = useCallback((key: string, value: boolean) => {
+    setConditions((prev) => {
+      if (prev[key] === value) return prev;
+      return { ...prev, [key]: value };
+    });
+  }, []);
 
   const skipTutorial = useCallback(() => {
     localStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
@@ -339,13 +376,17 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     router.push("/app");
   }, [router]);
 
-  // Calculate indices
-  const stepIndex = currentFlow && currentStep
-    ? getStepIndex(currentFlow.id, currentStep.id)
+  // Calculate indices (filtering by conditions)
+  const validSteps = currentFlow
+    ? currentFlow.steps.filter(isStepConditionMet)
+    : [];
+
+  const stepIndex = currentStep
+    ? validSteps.findIndex((s) => s.id === currentStep.id)
     : 0;
 
   const pageSteps = currentFlow && currentStep
-    ? getStepsByRoute(currentFlow.id, currentStep.route)
+    ? getStepsByRoute(currentFlow.id, currentStep.route).filter(isStepConditionMet)
     : [];
 
   const pageStepIndex = currentStep
@@ -360,7 +401,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     currentFlow,
     currentStep,
     stepIndex,
-    totalSteps: currentFlow?.steps.length ?? 0,
+    totalSteps: validSteps.length,
     pageStepIndex,
     pageStepsTotal: pageSteps.length,
     isLastPageStep,
@@ -373,6 +414,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     completeTutorial,
     notifyActionCompleted,
     resumeTutorial,
+    setCondition,
   };
 
   return (

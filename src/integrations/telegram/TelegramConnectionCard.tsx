@@ -27,7 +27,11 @@ interface ConnectionStatus {
   expiresAt?: string;
 }
 
-export function TelegramConnectionCard() {
+interface TelegramConnectionCardProps {
+  onConnected?: () => void;
+}
+
+export function TelegramConnectionCard({ onConnected }: TelegramConnectionCardProps = {}) {
   const [status, setStatus] = useState<ConnectionStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
@@ -38,7 +42,11 @@ export function TelegramConnectionCard() {
       const res = await fetch("/api/telegram/connect-link");
       if (res.ok) {
         const data = await res.json();
+        const wasDisconnected = !status?.connected;
         setStatus(data);
+        if (data.connected && wasDisconnected && onConnected) {
+          onConnected();
+        }
       }
     } catch (error) {
       console.error("Error fetching Telegram status:", error);
