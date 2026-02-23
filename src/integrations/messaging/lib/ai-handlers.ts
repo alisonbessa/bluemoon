@@ -27,6 +27,19 @@ import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib
 import type { GroupCode } from "@/db/schema/groups";
 
 /**
+ * Get a user-friendly label for a payment method hint.
+ * e.g. "cartão" → "Qual cartão?", "pix" → "Qual conta para o Pix?"
+ */
+function getPaymentMethodLabel(hint: string): string {
+  const normalized = normalizeText(hint);
+  if (normalized.includes("cartao") || normalized.includes("credito")) return "Qual cartão?";
+  if (normalized.includes("pix")) return "Qual conta para o Pix?";
+  if (normalized.includes("debito")) return "Qual conta?";
+  if (normalized.includes("boleto")) return "Qual conta para o boleto?";
+  return "Qual a forma de pagamento?";
+}
+
+/**
  * Get icon for account type
  */
 function getAccountIcon(type: string): string {
@@ -392,32 +405,45 @@ export async function handleExpenseIntent(
 
   // If no account was specified (or hint didn't match), ask for account first
   if (!matchedAccount && accounts.length > 1) {
-    const unmatchedNote = unmatchedAccountHint
-      ? `Não encontrei a conta "<b>${data.accountHint}</b>".\n\n`
-      : "";
+    // Filter accounts by hint type if possible (e.g. "cartão" → show only credit cards)
+    const filteredAccounts = unmatchedAccountHint
+      ? filterAccountsByHint(data.accountHint!, accounts)
+      : null;
+    const accountsToShow = filteredAccounts || accounts;
 
-    const accSelectMsgId = await adapter.sendChoiceList(
-      chatId,
-      `💰 <b>Registrar gasto</b>\n\n` +
-        valueText +
-        (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
-        unmatchedNote +
-        `Qual a forma de pagamento?`,
-      accounts.map(a => ({ id: `acc_${a.id}`, label: `${getAccountIcon(a.type)} ${a.name}` })),
-      "Contas"
-    );
+    // If filtering narrowed it to exactly one account, auto-select it
+    if (filteredAccounts && filteredAccounts.length === 1) {
+      accountId = filteredAccounts[0].id;
+      accountName = filteredAccounts[0].name;
+    } else {
+      const headerNote = unmatchedAccountHint
+        ? (filteredAccounts
+            ? getPaymentMethodLabel(data.accountHint!)
+            : `Não encontrei a conta "<b>${data.accountHint}</b>".\nQual a forma de pagamento?`)
+        : `Qual a forma de pagamento?`;
 
-    await adapter.updateState(chatId, "AWAITING_ACCOUNT", {
-      pendingExpense: {
-        amount: data.amount,
-        description: data.description,
-        isInstallment: data.isInstallment,
-        totalInstallments: data.totalInstallments,
-      },
-      messagesToDelete: [...initialMessagesToDelete, accSelectMsgId],
-      lastAILogId: logId || undefined,
-    });
-    return;
+      const accSelectMsgId = await adapter.sendChoiceList(
+        chatId,
+        `💰 <b>Registrar gasto</b>\n\n` +
+          valueText +
+          (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
+          headerNote,
+        accountsToShow.map(a => ({ id: `acc_${a.id}`, label: `${getAccountIcon(a.type)} ${a.name}` })),
+        "Contas"
+      );
+
+      await adapter.updateState(chatId, "AWAITING_ACCOUNT", {
+        pendingExpense: {
+          amount: data.amount,
+          description: data.description,
+          isInstallment: data.isInstallment,
+          totalInstallments: data.totalInstallments,
+        },
+        messagesToDelete: [...initialMessagesToDelete, accSelectMsgId],
+        lastAILogId: logId || undefined,
+      });
+      return;
+    }
   }
 
   // Account already selected (or only one account), ask for category
@@ -771,9 +797,38 @@ function suggestGroupForCategory(hint: string): GroupCode {
   return "lifestyle";
 }
 
+const ACCOUNT_TYPE_ALIASES: Record<string, string[]> = {
+  credit_card: ["cartao", "credito", "cartao de credito", "cartao de cred", "crédito"],
+  checking: ["debito", "conta corrente", "corrente", "conta bancaria", "pix", "boleto"],
+  savings: ["poupanca"],
+  benefit: ["vr", "va", "flash", "alelo", "sodexo", "ticket", "beneficio", "vale"],
+  cash: ["dinheiro", "especie"],
+};
+
+function normalizeText(text: string): string {
+  return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
 /**
- * Match account from hint text
- * Returns the matched account or null if no match found
+ * Detect which account type the hint refers to (generic match).
+ * e.g. "cartão" → "credit_card", "pix" → "checking"
+ */
+function detectAccountType(hint: string): string | null {
+  const normalized = normalizeText(hint);
+  for (const [type, aliases] of Object.entries(ACCOUNT_TYPE_ALIASES)) {
+    if (aliases.some(alias => normalized.includes(alias))) {
+      return type;
+    }
+  }
+  return null;
+}
+
+/**
+ * Match account from hint text.
+ * 1. Exact/substring name match → single account
+ * 2. Word-level name match → single account
+ * 3. Type alias match → returns first if only one of that type
+ * Returns null if no confident single match found.
  */
 function matchAccount(
   hint: string,
@@ -781,12 +836,9 @@ function matchAccount(
 ): { id: string; name: string } | null {
   if (!hint || accounts.length === 0) return null;
 
-  const normalizeText = (text: string) =>
-    text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-
   const normalizedHint = normalizeText(hint);
 
-  // 1. Direct name match (e.g., "flash" matches "Flash", "nubank" matches "Cartão Nubank")
+  // 1. Direct name match (e.g., "flash" → "Flash", "nubank" → "Cartão Nubank")
   for (const account of accounts) {
     const normalizedName = normalizeText(account.name);
     if (
@@ -797,7 +849,7 @@ function matchAccount(
     }
   }
 
-  // 2. Word-level match: any word in the hint matches any word in account name
+  // 2. Word-level match
   const hintWords = normalizedHint.split(/\s+/).filter(w => w.length >= 3);
   for (const account of accounts) {
     const nameWords = normalizeText(account.name).split(/\s+/);
@@ -806,28 +858,33 @@ function matchAccount(
     }
   }
 
-  // 3. Common aliases for account types
-  const aliases: Record<string, string[]> = {
-    credit_card: ["cartao", "credito", "cartao de credito", "cartao de cred"],
-    checking: ["debito", "conta corrente", "corrente", "conta bancaria"],
-    savings: ["poupanca"],
-    benefit: ["vr", "va", "flash", "alelo", "sodexo", "ticket", "beneficio", "vale"],
-    cash: ["dinheiro", "especie"],
-  };
-
-  // Try matching by type aliases
-  for (const account of accounts) {
-    const typeAliases = aliases[account.type] || [];
-    if (typeAliases.some((alias) => normalizedHint.includes(alias))) {
-      return { id: account.id, name: account.name };
+  // 3. Type alias match — only if there's exactly one account of that type
+  const detectedType = detectAccountType(hint);
+  if (detectedType) {
+    const matchingAccounts = accounts.filter(a => a.type === detectedType);
+    if (matchingAccounts.length === 1) {
+      return { id: matchingAccounts[0].id, name: matchingAccounts[0].name };
     }
   }
 
-  // 4. "pix" and "boleto" → checking account (most common source for these)
-  if (normalizedHint.includes("pix") || normalizedHint.includes("boleto")) {
-    const checking = accounts.find(a => a.type === "checking");
-    if (checking) return { id: checking.id, name: checking.name };
-  }
-
   return null;
+}
+
+/**
+ * Filter accounts by hint when exact match fails but we can narrow by type.
+ * e.g. "cartão" + 2 credit cards → returns both credit cards
+ * e.g. "pix" + 3 checking accounts → returns all checking accounts
+ * Returns null if we can't narrow down (no type detected).
+ */
+function filterAccountsByHint(
+  hint: string,
+  accounts: Array<{ id: string; name: string; type: string }>
+): Array<{ id: string; name: string; type: string }> | null {
+  if (!hint) return null;
+
+  const detectedType = detectAccountType(hint);
+  if (!detectedType) return null;
+
+  const filtered = accounts.filter(a => a.type === detectedType);
+  return filtered.length > 0 ? filtered : null;
 }
