@@ -58,7 +58,7 @@ import { signOut } from "next-auth/react";
 import { PageContent, PageHeader } from "@/shared/molecules";
 
 export default function SettingsPage() {
-  const { user, currentPlan, isLoading: isUserLoading, mutate: mutateUser } = useCurrentUser();
+  const { user, currentPlan, hasBudget, isLoading: isUserLoading, mutate: mutateUser } = useCurrentUser();
   const { theme, setTheme } = useTheme();
   const [showOnboardingConfirm, setShowOnboardingConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -614,7 +614,7 @@ export default function SettingsPage() {
               ) : (
                 // Free/default plan - distinguish returning users from new ones
                 <div className="rounded-lg border bg-muted/50 p-4">
-                  {user?.onboardingCompletedAt ? (
+                  {hasBudget ? (
                     // Returning user - cancelled subscription
                     <>
                       <div className="flex items-center justify-between mb-2">

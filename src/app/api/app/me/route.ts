@@ -5,6 +5,7 @@ import { profileUpdateSchema } from "@/shared/lib/validations/profile.schema";
 const logger = createLogger("api:me");
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
+import { budgetMembers } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { MeResponse } from "./types";
@@ -37,8 +38,16 @@ export const GET = withAuthRequired(async (req, context) => {
   // Check if user has access through a partner relationship
   const hasPartnerAccess = await checkPartnerAccess(session.user.id);
 
+  // Check if user has at least one budget (indicates they've used the app)
+  const userBudgets = await db
+    .select({ budgetId: budgetMembers.budgetId })
+    .from(budgetMembers)
+    .where(eq(budgetMembers.userId, session.user.id))
+    .limit(1);
+  const hasBudget = userBudgets.length > 0;
+
   return NextResponse.json<MeResponse>(
-    { user: userFromDb, currentPlan, hasPartnerAccess },
+    { user: userFromDb, currentPlan, hasPartnerAccess, hasBudget },
     {
       headers: {
         "Cache-Control": "private, max-age=30, stale-while-revalidate=60",

@@ -12,4 +12,6 @@ export interface MeResponse {
   user: Omit<typeof users.$inferSelect, "password">;
   /** True if user has access through a partner relationship (owner has active subscription) */
   hasPartnerAccess: boolean;
+  /** True if user has at least one budget (has used the app before) */
+  hasBudget: boolean;
 }

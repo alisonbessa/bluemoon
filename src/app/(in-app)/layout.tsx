@@ -225,8 +225,8 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, user, error, router]);
 
-  // Redirect NEW users (never subscribed) to choose-plan.
-  // RETURNING users (cancelled subscription) get read-only access to their data.
+  // Redirect NEW users (never had a budget) to choose-plan.
+  // RETURNING users (have a budget but cancelled subscription) get read-only access.
   useEffect(() => {
     if (isLoading || !user) return;
 
@@ -235,22 +235,12 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Skip check for exempt roles (beta, lifetime, admin)
-    if (user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role)) {
-      return;
-    }
-
-    // Skip check for partners who have access through owner's subscription
-    if (hasPartnerAccess) {
-      return;
-    }
-
-    // Only redirect NEW users who never completed onboarding
-    // Returning users (who cancelled) get read-only access to view their data
-    if (!user.stripeSubscriptionId && !user.onboardingCompletedAt) {
+    // Only redirect users with status "none" (no subscription, no budget)
+    // All other statuses (active, trialing, expired, partner, exempt) can stay
+    if (subscriptionStatus === "none") {
       router.replace("/app/choose-plan");
     }
-  }, [isLoading, user, hasPartnerAccess, pathname, router]);
+  }, [isLoading, user, subscriptionStatus, pathname, router]);
 
   if (isLoading) {
     return <DashboardSkeleton />;
