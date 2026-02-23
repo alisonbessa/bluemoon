@@ -134,7 +134,7 @@ export default function ResetPasswordConfirmPage() {
         </div>
 
         <Button type="submit" disabled={isLoading} className="w-full py-6">
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
           Redefinir Senha
         </Button>
       </form>

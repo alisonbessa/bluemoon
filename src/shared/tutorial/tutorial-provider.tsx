@@ -26,8 +26,7 @@ export type TutorialValidationKey =
   | "hasEditedCategory"
   | "hasGoals"
   | "hasAllocations"
-  | "hasTransactions"
-  | "hasMessagingConnected";
+  | "hasTransactions";
 
 interface TutorialContextValue {
   isActive: boolean;
@@ -177,6 +176,22 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
     // If tutorial is active and we navigated to a new page
     if (currentFlow && currentStep) {
+      // If the current step is already for this page (set by nextStep/goToNextPage),
+      // don't reset to the first step - just show it
+      if (currentStep.route === pathname) {
+        setDismissedForPage(null);
+        setIsWaitingForAction(currentStep.requiresAction || false);
+        setIsVisible(true);
+
+        saveTutorialProgress({
+          flowId: currentFlow.id,
+          currentStepId: currentStep.id,
+          dismissedForPage: null,
+          waitingForAction: currentStep.requiresAction || false,
+        });
+        return;
+      }
+
       // Check if the new page has tutorial steps (filtered by conditions)
       const pageSteps = getStepsByRoute(currentFlow.id, pathname).filter(isStepConditionMet);
 
@@ -297,10 +312,32 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
       router.push(nextPageStep.route);
     } else {
-      // No more pages - complete the tutorial
-      completeTutorial();
+      // No more pages with different routes - check for remaining steps
+      // (e.g., onboarding-complete on the same page as dashboard steps)
+      const remainingStep = findNextValidStep(currentFlow, currentStep.id);
+      if (remainingStep) {
+        setCurrentStep(remainingStep);
+        setDismissedForPage(null);
+        setIsWaitingForAction(remainingStep.requiresAction || false);
+        setIsVisible(true);
+
+        saveTutorialProgress({
+          flowId: currentFlow.id,
+          currentStepId: remainingStep.id,
+          dismissedForPage: null,
+          waitingForAction: remainingStep.requiresAction || false,
+        });
+
+        // Navigate if on a different route
+        if (remainingStep.route !== currentStep.route) {
+          router.push(remainingStep.route);
+        }
+      } else {
+        // No more steps - complete the tutorial
+        completeTutorial();
+      }
     }
-  }, [currentFlow, currentStep, router, findNextValidPageStep]);
+  }, [currentFlow, currentStep, router, findNextValidPageStep, findNextValidStep, completeTutorial]);
 
   const dismissPageTutorial = useCallback(() => {
     if (!currentFlow || !currentStep) return;

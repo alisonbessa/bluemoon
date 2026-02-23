@@ -87,7 +87,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, hasPartnerAccess, isLoading, error, mutate } = useUser();
   const { currentPlan } = useCurrentPlan();
   const { isReadOnly, status: subscriptionStatus } = useSubscriptionGate();
-  const { isActive: isTutorialActive, currentStep, startTutorial, nextStep, completeTutorial, setCondition } = useTutorial();
+  const { isActive: isTutorialActive, currentStep, startTutorial, skipTutorial, completeTutorial, setCondition } = useTutorial();
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationSummary, setCelebrationSummary] = useState<SetupSummary | undefined>();
@@ -167,7 +167,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Detect when tutorial reaches the final step
   useEffect(() => {
-    if (isTutorialActive && currentStep?.id === "setup-complete" && pathname === "/app") {
+    if (isTutorialActive && currentStep?.id === "onboarding-complete" && pathname === "/app") {
       // Fetch summary data and show celebration
       fetchSetupSummary();
     }
@@ -214,8 +214,9 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
   const handleConnectMessaging = () => {
     setShowCelebration(false);
-    // Advance tutorial to the settings/messaging steps
-    nextStep();
+    // Complete tutorial and navigate to settings for WhatsApp connection
+    skipTutorial();
+    router.push("/app/settings");
   };
 
   // Redirect to home if user is not authenticated

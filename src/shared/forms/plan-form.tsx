@@ -587,7 +587,7 @@ export function PlanForm({
         </div>
 
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
           {submitLabel}
         </Button>
       </form>

@@ -220,7 +220,7 @@ function AppHomepage() {
                   <Button asChild variant="ghost" size="sm" className="w-full">
                     <Link href="/app/goals">
                       Ver {goals.filter((g) => !g.isCompleted).length > 5 ? `todas as ${goals.filter((g) => !g.isCompleted).length} metas` : "mais"}
-                      <ArrowRightIcon className="ml-2 h-4 w-4" />
+                      <ArrowRightIcon className="h-4 w-4" />
                     </Link>
                   </Button>
                 </div>
@@ -234,7 +234,7 @@ function AppHomepage() {
                 <div className="mt-auto pt-3">
                   <Button asChild variant="outline" size="sm">
                     <Link href="/app/goals">
-                      <PlusIcon className="mr-2 h-4 w-4" />
+                      <PlusIcon className="h-4 w-4" />
                       Criar primeira meta
                     </Link>
                   </Button>

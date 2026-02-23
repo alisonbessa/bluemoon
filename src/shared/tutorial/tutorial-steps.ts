@@ -295,16 +295,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         targetSelector: '[data-tutorial="dashboard-scheduled"]',
         placement: "bottom",
       },
-      {
-        id: "setup-complete",
-        route: "/app",
-        title: "Quase lá!",
-        content:
-          "Sua plataforma está configurada! Falta só mais alguns passos nas configurações.",
-        placement: "center",
-      },
-
-      // ===== 8. SETTINGS - PARTNER INVITE (Duo plan only, before WhatsApp) =====
+      // ===== 8. SETTINGS - PARTNER INVITE (Duo plan only) =====
       {
         id: "settings-partner-intro",
         route: "/app/settings",
@@ -325,35 +316,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         condition: "hasDuoPlan",
       },
 
-      // ===== 9. SETTINGS - MESSAGING CONNECTION (last step before leaving app) =====
-      {
-        id: "settings-messaging-intro",
-        route: "/app/settings",
-        title: "Registre gastos pelo WhatsApp!",
-        content:
-          "Com o WhatsApp conectado, basta enviar uma mensagem como \"50 mercado\" e o gasto é registrado automaticamente no seu orçamento.",
-        placement: "center",
-      },
-      {
-        id: "settings-messaging-card",
-        route: "/app/settings",
-        title: "Conectar WhatsApp",
-        content:
-          "Gere o código de conexão aqui. Depois escaneie o QR code ou envie o código pelo WhatsApp para conectar sua conta.",
-        targetSelector: '[data-tutorial="messaging-card"]',
-        placement: "left",
-      },
-      {
-        id: "settings-messaging-action",
-        route: "/app/settings",
-        title: "Agora é sua vez!",
-        content:
-          "Conecte seu WhatsApp para registrar gastos com uma simples mensagem. Quando terminar (ou se preferir fazer depois), clique em \"Próxima Etapa\".",
-        placement: "center",
-        requiresAction: true,
-        validationKey: "hasMessagingConnected",
-      },
-
+      // ===== 9. ONBOARDING COMPLETE =====
       {
         id: "onboarding-complete",
         route: "/app",

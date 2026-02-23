@@ -28,8 +28,8 @@ export function SubscriptionExpiredBanner() {
         <div className="flex items-center gap-2 shrink-0">
           <Button asChild size="sm" variant="default" className="h-7 text-xs">
             <Link href="/app/choose-plan">
-              <Sparkles className="mr-1 h-3 w-3" />
-              Reativar plano
+              <Sparkles className="h-3 w-3" />
+              Renovar assinatura
             </Link>
           </Button>
           <button

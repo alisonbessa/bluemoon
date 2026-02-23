@@ -53,14 +53,14 @@ export function ErrorBoundary({
 
       <div className="flex gap-3">
         <Button onClick={reset} variant="default">
-          <RefreshCw className="mr-2 h-4 w-4" />
+          <RefreshCw className="h-4 w-4" />
           Tentar novamente
         </Button>
 
         {showHomeLink && (
           <Button variant="outline" asChild>
             <Link href="/app">
-              <Home className="mr-2 h-4 w-4" />
+              <Home className="h-4 w-4" />
               Voltar ao início
             </Link>
           </Button>

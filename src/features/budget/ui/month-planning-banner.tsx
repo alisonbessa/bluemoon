@@ -200,12 +200,12 @@ export function MonthPlanningBanner({
             <AlertDialogAction onClick={handleStartMonth} disabled={isStarting}>
               {isStarting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Iniciando...
                 </>
               ) : (
                 <>
-                  <Rocket className="mr-2 h-4 w-4" />
+                  <Rocket className="h-4 w-4" />
                   Iniciar Mês
                 </>
               )}

@@ -269,7 +269,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
               className="w-full sm:w-auto mt-2"
               onClick={handleOpenPreInvite}
             >
-              <UserPlus className="mr-2 h-4 w-4" />
+              <UserPlus className="h-4 w-4" />
               Criar link de convite
             </Button>
           )}
@@ -435,7 +435,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
                   className="flex-1"
                   onClick={handleCopyLink}
                 >
-                  <Copy className="mr-2 h-4 w-4" />
+                  <Copy className="h-4 w-4" />
                   Copiar link
                 </Button>
                 <Button
@@ -448,7 +448,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
                     window.open(`https://wa.me/?text=${message}`, "_blank");
                   }}
                 >
-                  <Share2 className="mr-2 h-4 w-4" />
+                  <Share2 className="h-4 w-4" />
                   WhatsApp
                 </Button>
               </div>
@@ -503,12 +503,12 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
             >
               {isSavingBudgetName || isCreatingInvite ? (
                 <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  <RefreshCw className="h-4 w-4 animate-spin" />
                   Criando...
                 </>
               ) : (
                 <>
-                  <UserPlus className="mr-2 h-4 w-4" />
+                  <UserPlus className="h-4 w-4" />
                   Criar Link de Convite
                 </>
               )}

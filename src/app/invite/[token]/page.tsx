@@ -147,7 +147,7 @@ export default function AcceptInvitePage({
           <CardContent className="text-center">
             <Button asChild>
               <Link href="/">
-                <Home className="mr-2 h-4 w-4" />
+                <Home className="h-4 w-4" />
                 Voltar para o início
               </Link>
             </Button>
@@ -182,7 +182,7 @@ export default function AcceptInvitePage({
           </CardHeader>
           <CardContent className="text-center">
             <Button onClick={() => router.push("/app")}>
-              <Home className="mr-2 h-4 w-4" />
+              <Home className="h-4 w-4" />
               Ir para o Dashboard
             </Button>
           </CardContent>
@@ -278,7 +278,7 @@ export default function AcceptInvitePage({
             <div className="text-center">
               <Button asChild>
                 <Link href={isAlreadyAccepted ? "/app" : "/"}>
-                  <Home className="mr-2 h-4 w-4" />
+                  <Home className="h-4 w-4" />
                   {isAlreadyAccepted ? "Ir para o Dashboard" : "Voltar para o início"}
                 </Link>
               </Button>
@@ -301,7 +301,7 @@ export default function AcceptInvitePage({
                   router.push(`/sign-in?callbackUrl=/invite/${token}`)
                 }
               >
-                <LogIn className="mr-2 h-4 w-4" />
+                <LogIn className="h-4 w-4" />
                 Fazer login
               </Button>
               <p className="text-xs text-center text-muted-foreground">

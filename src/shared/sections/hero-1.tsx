@@ -30,10 +30,10 @@ const Hero1 = () => {
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
             <Button>
-              Get Started <ChevronRight className="ml-2 size-4" />
+              Get Started <ChevronRight className="size-4" />
             </Button>
             <Button variant="outline">
-              <Play className="mr-2 size-4" />
+              <Play className="size-4" />
               Watch Demo
             </Button>
           </div>

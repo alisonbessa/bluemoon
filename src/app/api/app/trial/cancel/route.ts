@@ -52,10 +52,10 @@ export const POST = withAuthRequired(async (_req, { getUser, session }) => {
       // Cancel immediately during trial - no charges will be made
       await stripe.subscriptions.cancel(user.stripeSubscriptionId);
 
-      // Clear trial end date
+      // Clear trial end date and subscription data
       await db
         .update(users)
-        .set({ trialEndsAt: null })
+        .set({ trialEndsAt: null, stripeSubscriptionId: null, planId: null })
         .where(eq(users.id, session.user.id));
 
       return NextResponse.json({

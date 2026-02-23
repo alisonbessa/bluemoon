@@ -248,7 +248,7 @@ export function SyncStripeModal({
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <ExternalLink className="h-4 w-4 mr-2" />
+                <ExternalLink className="h-4 w-4" />
                 Ver no Stripe
               </a>
             </Button>
@@ -258,7 +258,7 @@ export function SyncStripeModal({
           </Button>
           {!result?.success && (
             <Button onClick={handleSync} disabled={isSyncing}>
-              {isSyncing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSyncing && <Loader2 className="h-4 w-4 animate-spin" />}
               {isSyncing ? "Sincronizando..." : "Sincronizar"}
             </Button>
           )}
