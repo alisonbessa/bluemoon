@@ -33,7 +33,7 @@ const Hero1 = () => {
               Get Started <ChevronRight className="ml-2 size-4" />
             </Button>
             <Button variant="outline">
-              <Play className="mr-2 size-4" />
+              <Play className="size-4" />
               Watch Demo
             </Button>
           </div>

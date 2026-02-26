@@ -177,11 +177,16 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
     // If tutorial is active and we navigated to a new page
     if (currentFlow && currentStep) {
-      // Check if the new page has tutorial steps (filtered by conditions)
-      const pageSteps = getStepsByRoute(currentFlow.id, pathname).filter(isStepConditionMet);
+      // Find the current step's position in the flow
+      const currentStepIndex = currentFlow.steps.findIndex(s => s.id === currentStep.id);
+
+      // Only consider steps for this page that are at or after our current position
+      // This prevents going backward when revisiting a page we've already passed
+      const pageSteps = currentFlow.steps
+        .filter((s, i) => s.route === pathname && i >= currentStepIndex && isStepConditionMet(s));
 
       if (pageSteps.length > 0) {
-        // We have steps for this page - find the first step for this page
+        // We have steps for this page - find the first step at or after current position
         const firstPageStep = pageSteps[0];
         setCurrentStep(firstPageStep);
         setDismissedForPage(null);

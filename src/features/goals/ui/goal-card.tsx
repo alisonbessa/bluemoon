@@ -108,7 +108,7 @@ export function GoalCard({ goal, onEdit, onArchive, onContribute }: GoalCardProp
         className="w-full mt-3"
         onClick={() => onContribute(goal)}
       >
-        <Plus className="mr-2 h-4 w-4" />
+        <Plus className="h-4 w-4" />
         Contribuir
       </Button>
     </div>

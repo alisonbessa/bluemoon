@@ -121,7 +121,7 @@ export function ExpireCouponsModal({ onSuccess }: ExpireCouponsModalProps) {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="destructive">
-          <Ban className="mr-2 h-4 w-4" />
+          <Ban className="h-4 w-4" />
           Expirar Cupons
         </Button>
       </DialogTrigger>
@@ -159,7 +159,7 @@ export function ExpireCouponsModal({ onSuccess }: ExpireCouponsModalProps) {
                 onClick={handleSubmit}
                 disabled={!couponCodes.trim()}
               >
-                <AlertTriangle className="mr-2 h-4 w-4" />
+                <AlertTriangle className="h-4 w-4" />
                 Expirar Cupons
               </Button>
             </DialogFooter>

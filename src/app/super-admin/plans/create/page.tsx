@@ -116,7 +116,7 @@ export default function CreatePlanPage() {
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" asChild>
           <Link href="/super-admin/plans">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="h-4 w-4" />
             Voltar
           </Link>
         </Button>
@@ -239,7 +239,7 @@ export default function CreatePlanPage() {
 
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Criar Plano
               </Button>
               <Button variant="outline" asChild>

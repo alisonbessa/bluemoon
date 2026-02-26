@@ -270,7 +270,7 @@ export default function GoalsPage() {
                   setContributeFromAccountId("");
                 }}
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="h-4 w-4" />
                 Contribuir
               </Button>
             </div>
@@ -284,7 +284,7 @@ export default function GoalsPage() {
           action={{
             label: "Criar Primeira Meta",
             onClick: openCreateForm,
-            icon: <Plus className="mr-2 h-4 w-4" />,
+            icon: <Plus className="h-4 w-4" />,
           }}
         />
       )}

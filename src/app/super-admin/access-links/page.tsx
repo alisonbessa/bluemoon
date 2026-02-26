@@ -306,7 +306,7 @@ export default function AccessLinksPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => copyRedeemUrl(link.code)}>
-                          <Copy className="mr-2 h-4 w-4" />
+                          <Copy className="h-4 w-4" />
                           Copiar
                         </DropdownMenuItem>
                         {!link.expired && !link.usedAt && (
@@ -314,7 +314,7 @@ export default function AccessLinksPage() {
                             onClick={() => expireLink(link.id)}
                             className="text-amber-600"
                           >
-                            <AlertTriangle className="mr-2 h-4 w-4" />
+                            <AlertTriangle className="h-4 w-4" />
                             Expirar
                           </DropdownMenuItem>
                         )}
@@ -326,7 +326,7 @@ export default function AccessLinksPage() {
                           }}
                           className="text-destructive"
                         >
-                          <Trash2 className="mr-2 h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                           Deletar
                         </DropdownMenuItem>
                       </DropdownMenuContent>

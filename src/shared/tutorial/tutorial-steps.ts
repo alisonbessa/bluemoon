@@ -295,16 +295,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         targetSelector: '[data-tutorial="dashboard-scheduled"]',
         placement: "bottom",
       },
-      {
-        id: "setup-complete",
-        route: "/app",
-        title: "Quase lá!",
-        content:
-          "Sua plataforma está configurada! Falta só mais alguns passos nas configurações.",
-        placement: "center",
-      },
-
-      // ===== 8. SETTINGS - PARTNER INVITE (Duo plan only, before WhatsApp) =====
+      // ===== 8. SETTINGS - PARTNER INVITE (Duo plan only, before celebration) =====
       {
         id: "settings-partner-intro",
         route: "/app/settings",
@@ -325,7 +316,17 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         condition: "hasDuoPlan",
       },
 
-      // ===== 9. SETTINGS - MESSAGING CONNECTION (last step before leaving app) =====
+      // ===== 9. CELEBRATION - Shows celebration modal with WhatsApp CTA =====
+      {
+        id: "setup-celebration",
+        route: "/app",
+        title: "Tudo pronto!",
+        content:
+          "Parabéns! Sua plataforma está configurada!",
+        placement: "center",
+      },
+
+      // ===== 10. SETTINGS - MESSAGING CONNECTION (optional, reached from celebration modal) =====
       {
         id: "settings-messaging-intro",
         route: "/app/settings",
@@ -352,15 +353,6 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         placement: "center",
         requiresAction: true,
         validationKey: "hasMessagingConnected",
-      },
-
-      {
-        id: "onboarding-complete",
-        route: "/app",
-        title: "Tudo pronto!",
-        content:
-          "Sua plataforma está 100% configurada! Use o app no navegador ou registre gastos pelo WhatsApp. Bom planejamento financeiro!",
-        placement: "center",
       },
     ],
   },

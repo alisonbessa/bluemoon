@@ -234,7 +234,7 @@ function AppHomepage() {
                 <div className="mt-auto pt-3">
                   <Button asChild variant="outline" size="sm">
                     <Link href="/app/goals">
-                      <PlusIcon className="mr-2 h-4 w-4" />
+                      <PlusIcon className="h-4 w-4" />
                       Criar primeira meta
                     </Link>
                   </Button>

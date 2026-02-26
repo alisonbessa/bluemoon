@@ -131,7 +131,7 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
         <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between sm:gap-0">
           {generatedCoupons.length > 0 ? (
             <Button onClick={downloadCoupons} className="w-full sm:w-auto">
-              <Download className="mr-2 h-4 w-4" />
+              <Download className="h-4 w-4" />
               Baixar {generatedCoupons.length} Cupons
             </Button>
           ) : (
@@ -140,7 +140,7 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
               disabled={isGenerating || !prefix || count <= 0 || !!prefixError}
               className="w-full sm:w-auto"
             >
-              {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isGenerating && <Loader2 className="h-4 w-4 animate-spin" />}
               Gerar
             </Button>
           )}

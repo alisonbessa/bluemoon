@@ -208,7 +208,7 @@ export default function CouponsPage() {
                             onClick={() => expireCoupon(coupon.id)}
                             className="text-destructive"
                           >
-                            <AlertTriangle className="mr-2 h-4 w-4" />
+                            <AlertTriangle className="h-4 w-4" />
                             Expirar
                           </DropdownMenuItem>
                         )}

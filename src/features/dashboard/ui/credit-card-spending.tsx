@@ -77,7 +77,7 @@ export function CreditCardSpending({
             </p>
             <Button asChild variant="outline" size="sm" className="mt-4">
               <Link href="/app/accounts">
-                <PlusIcon className="mr-2 h-4 w-4" />
+                <PlusIcon className="h-4 w-4" />
                 Cadastrar cartão
               </Link>
             </Button>

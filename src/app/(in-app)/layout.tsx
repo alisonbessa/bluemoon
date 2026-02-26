@@ -165,9 +165,9 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     initializeBudget();
   }, [user, isLoading, mutate, startTutorial]);
 
-  // Detect when tutorial reaches the final step
+  // Detect when tutorial reaches the celebration step (after partner invite, before messaging)
   useEffect(() => {
-    if (isTutorialActive && currentStep?.id === "setup-complete" && pathname === "/app") {
+    if (isTutorialActive && currentStep?.id === "setup-celebration" && pathname === "/app") {
       // Fetch summary data and show celebration
       fetchSetupSummary();
     }
@@ -292,8 +292,8 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           summary={celebrationSummary}
         />
 
-        {/* Tutorial Overlay (spotlight + tooltip) */}
-        <TutorialOverlay />
+        {/* Tutorial Overlay (spotlight + tooltip) - hidden during celebration */}
+        {!showCelebration && <TutorialOverlay />}
       </div>
     </SidebarProvider>
   );
