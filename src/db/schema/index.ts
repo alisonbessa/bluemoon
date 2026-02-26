@@ -28,3 +28,4 @@ export * from "./whatsapp-pending-connections";
 export * from "./goals";
 export * from "./recurring-bills";
 export * from "./audit-log";
+export * from "./feedback";

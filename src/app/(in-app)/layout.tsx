@@ -9,6 +9,7 @@ import {
   CelebrationModal,
   useTutorial,
 } from "@/shared/tutorial";
+import { FloatingFeedbackButton } from "@/shared/components/floating-feedback-button";
 import React, { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useUser, useCurrentPlan } from "@/shared/hooks/use-current-user";
@@ -283,6 +284,9 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
             <div className="max-w-7xl mx-auto w-full">{children}</div>
           </main>
         </div>
+
+        {/* Floating Feedback Button */}
+        <FloatingFeedbackButton />
 
         {/* Celebration Modal when tutorial completes */}
         <CelebrationModal
