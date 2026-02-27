@@ -25,44 +25,13 @@ import { AccordionContent } from '@/shared/ui/accordion-content';
 import { toast } from 'sonner';
 import { RecurringBillItem } from './recurring-bill-item';
 import { UnifiedExpenseForm } from '@/features/expenses';
+import type {
+  Category,
+  CategoryAllocation,
+  RecurringBillSummary,
+  Account,
+} from '../types';
 import type { MobileViewMode } from '../hooks';
-
-interface Account {
-  id: string;
-  name: string;
-  type: string;
-  icon?: string | null;
-}
-
-interface RecurringBillSummary {
-  id: string;
-  name: string;
-  amount: number;
-  frequency: string;
-  dueDay: number | null;
-  dueMonth: number | null;
-  isAutoDebit?: boolean;
-  isVariable?: boolean;
-  account: { id: string; name: string; icon: string | null } | null;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  icon?: string | null;
-  behavior: 'set_aside' | 'refill_up';
-  plannedAmount: number;
-}
-
-interface CategoryAllocation {
-  category: Category;
-  allocated: number;
-  carriedOver: number;
-  spent: number;
-  available: number;
-  isOtherMemberCategory?: boolean;
-  recurringBills?: RecurringBillSummary[];
-}
 
 interface CategoryWithBillsProps {
   item: CategoryAllocation;

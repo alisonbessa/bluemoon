@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { Loader2, PiggyBank, User } from 'lucide-react';
@@ -12,6 +12,7 @@ import {
   useBudgetPeriod,
   useBudgetUIState,
   useBudgetPageData,
+  useBudgetViewFilter,
   useAllocationForm,
   useCategoryForm,
   useIncomeAllocationForm,
@@ -40,7 +41,6 @@ import { formatCurrency } from '@/shared/lib/formatters';
 import type {
   IncomeSource,
   IncomeSourceData,
-  GroupData,
 } from '@/features/budget/types';
 
 export default function BudgetPage() {
@@ -77,120 +77,22 @@ export default function BudgetPage() {
     refreshData,
   } = useBudgetPageData(currentYear, currentMonth);
 
-  const isPersonalView = hasContributionModel && uiState.budgetViewMode === 'personal';
-
-  // Filter expenses data based on view mode
-  const filteredGroupsData = useMemo(() => {
-    if (!hasContributionModel) return groupsData;
-
-    if (isPersonalView) {
-      // Personal view: only show categories that belong to the current user (memberId !== null and not other member)
-      return groupsData
-        .map((g) => {
-          const personalCategories = g.categories.filter(
-            (c) => c.category.memberId != null && !c.isOtherMemberCategory
-          );
-          if (personalCategories.length === 0) return null;
-          return {
-            ...g,
-            categories: personalCategories,
-            totals: {
-              allocated: personalCategories.reduce((sum, c) => sum + c.allocated + c.carriedOver, 0),
-              spent: personalCategories.reduce((sum, c) => sum + c.spent, 0),
-              available: personalCategories.reduce((sum, c) => sum + c.available, 0),
-            },
-          };
-        })
-        .filter((g): g is GroupData => g !== null);
-    }
-
-    // Shared view: only show shared categories (memberId === null)
-    return groupsData
-      .map((g) => {
-        const sharedCategories = g.categories.filter(
-          (c) => c.category.memberId == null
-        );
-        if (sharedCategories.length === 0) return null;
-        return {
-          ...g,
-          categories: sharedCategories,
-          totals: {
-            allocated: sharedCategories.reduce((sum, c) => sum + c.allocated + c.carriedOver, 0),
-            spent: sharedCategories.reduce((sum, c) => sum + c.spent, 0),
-            available: sharedCategories.reduce((sum, c) => sum + c.available, 0),
-          },
-        };
-      })
-      .filter((g): g is GroupData => g !== null);
-  }, [groupsData, hasContributionModel, isPersonalView]);
-
-  // Calculate filtered totals for expenses
-  const filteredTotals = useMemo(() => {
-    if (!hasContributionModel) return totals;
-    return {
-      allocated: filteredGroupsData.reduce((sum, g) => sum + g.totals.allocated, 0),
-      spent: filteredGroupsData.reduce((sum, g) => sum + g.totals.spent, 0),
-      available: filteredGroupsData.reduce((sum, g) => sum + g.totals.available, 0),
-    };
-  }, [filteredGroupsData, hasContributionModel, totals]);
-
-  // Transform income data based on view mode
-  const filteredIncomeData = useMemo(() => {
-    if (!incomeData || !hasContributionModel) return incomeData;
-
-    if (isPersonalView) {
-      // Personal view: show personal reserve (planned - contributionPlanned)
-      const transformedByMember = incomeData.byMember.map((memberGroup) => ({
-        ...memberGroup,
-        sources: memberGroup.sources.map((s) => ({
-          ...s,
-          planned: s.planned - (s.contributionPlanned ?? s.planned),
-          defaultAmount: s.defaultAmount - (s.defaultContribution ?? s.defaultAmount),
-        })),
-        totals: {
-          ...memberGroup.totals,
-          planned: memberGroup.totals.planned - (memberGroup.totals.contributionPlanned ?? memberGroup.totals.planned),
-        },
-      }));
-      return {
-        ...incomeData,
-        byMember: transformedByMember,
-        totals: {
-          ...incomeData.totals,
-          planned: incomeData.totals.planned - totalContribution,
-        },
-      };
-    }
-
-    // Shared view: show contribution amounts
-    const transformedByMember = incomeData.byMember.map((memberGroup) => ({
-      ...memberGroup,
-      sources: memberGroup.sources.map((s) => ({
-        ...s,
-        planned: s.contributionPlanned ?? s.planned,
-        defaultAmount: s.defaultContribution ?? s.defaultAmount,
-      })),
-      totals: {
-        ...memberGroup.totals,
-        planned: memberGroup.totals.contributionPlanned ?? memberGroup.totals.planned,
-      },
-    }));
-    return {
-      ...incomeData,
-      byMember: transformedByMember,
-      totals: {
-        ...incomeData.totals,
-        planned: totalContribution,
-      },
-    };
-  }, [incomeData, hasContributionModel, isPersonalView, totalContribution]);
-
-  // Calculate effective total income for header based on view mode
-  const effectiveTotalIncome = useMemo(() => {
-    if (!hasContributionModel) return totalIncome;
-    if (isPersonalView) return totalIncome - totalContribution;
-    return totalContribution;
-  }, [hasContributionModel, isPersonalView, totalIncome, totalContribution]);
+  // Filter data based on shared/personal view mode
+  const {
+    isPersonalView,
+    filteredGroupsData,
+    filteredTotals,
+    filteredIncomeData,
+    effectiveTotalIncome,
+  } = useBudgetViewFilter({
+    groupsData,
+    totals,
+    incomeData,
+    totalIncome,
+    totalContribution,
+    hasContributionModel,
+    budgetViewMode: uiState.budgetViewMode,
+  });
 
   // Local UI state
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
