@@ -113,6 +113,7 @@ export async function getUserBudgetInfo(userId: string): Promise<BudgetInfo | nu
       name: c.category.name,
       icon: c.category.icon,
       groupName: c.group.name,
+      memberId: c.category.memberId,
     })),
     incomeSources: budgetIncomeSources.map((s) => ({
       id: s.id,
@@ -127,6 +128,7 @@ export async function getUserBudgetInfo(userId: string): Promise<BudgetInfo | nu
       icon: g.icon,
       targetAmount: g.targetAmount,
       currentAmount: g.currentAmount || 0,
+      memberId: g.memberId,
     })),
     accounts: budgetAccounts.map((a) => ({
       id: a.id,

@@ -208,17 +208,7 @@ export const GET = withAuthRequired(async (req, context) => {
   }
 
   // Group bills by categoryId
-  const billsMap = new Map<string, Array<{
-    id: string;
-    name: string;
-    amount: number;
-    frequency: string;
-    dueDay: number | null;
-    dueMonth: number | null;
-    isAutoDebit: boolean;
-    isVariable: boolean;
-    account: { id: string; name: string; icon: string | null } | null;
-  }>>();
+  const billsMap = new Map<string, RecurringBillSummary[]>();
 
   for (const { bill, account } of bills) {
     if (!billsMap.has(bill.categoryId)) {
@@ -233,6 +223,8 @@ export const GET = withAuthRequired(async (req, context) => {
       dueMonth: bill.dueMonth,
       isAutoDebit: bill.isAutoDebit ?? false,
       isVariable: bill.isVariable ?? false,
+      startDate: bill.startDate,
+      endDate: bill.endDate,
       account: account?.id ? { id: account.id, name: account.name, icon: account.icon } : null,
     });
   }
@@ -247,6 +239,8 @@ export const GET = withAuthRequired(async (req, context) => {
     dueMonth: number | null;
     isAutoDebit: boolean;
     isVariable: boolean;
+    startDate: Date | null;
+    endDate: Date | null;
     account: { id: string; name: string; icon: string | null } | null;
   };
 

@@ -197,6 +197,7 @@ export interface UserContext {
     name: string;
     icon?: string | null;
     groupName?: string;
+    memberId?: string | null;
   }>;
   incomeSources: Array<{
     id: string;
@@ -211,6 +212,7 @@ export interface UserContext {
     icon?: string | null;
     targetAmount: number;
     currentAmount: number;
+    memberId?: string | null;
   }>;
   accounts: Array<{
     id: string;
@@ -249,6 +251,7 @@ export interface BudgetInfo {
     name: string;
     icon?: string | null;
     groupName?: string;
+    memberId?: string | null;
   }>;
   incomeSources: Array<{
     id: string;
@@ -263,6 +266,7 @@ export interface BudgetInfo {
     icon?: string | null;
     targetAmount: number;
     currentAmount: number;
+    memberId?: string | null;
   }>;
   accounts: Array<{
     id: string;
