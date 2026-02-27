@@ -29,6 +29,13 @@
       "when": 1772143200000,
       "tag": "0003_feedback_table",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772232497473,
+      "tag": "0004_add-privacy-level",
+      "breakpoints": true
     }
   ]
 }

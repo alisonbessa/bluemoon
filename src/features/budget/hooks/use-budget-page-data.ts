@@ -2,6 +2,7 @@
 
 import useSWR from 'swr';
 import { useMemo } from 'react';
+import { useViewMode } from '@/shared/providers/view-mode-provider';
 import type {
   GroupData,
   IncomeData,
@@ -39,6 +40,9 @@ interface GoalsResponse {
  * Uses SWR for automatic caching and deduplication
  */
 export function useBudgetPageData(year: number, month: number) {
+  const { viewMode, isDuoPlan } = useViewMode();
+  const vm = isDuoPlan ? `&viewMode=${viewMode}` : '';
+
   // Fetch budgets
   const { data: budgetsData, isLoading: budgetsLoading } = useSWR<BudgetsResponse>(
     '/api/app/budgets'
@@ -52,15 +56,15 @@ export function useBudgetPageData(year: number, month: number) {
   );
   const members = membersData?.members ?? [];
 
-  // Fetch accounts
+  // Fetch accounts (filtered by viewMode)
   const { data: accountsData, isLoading: accountsLoading } = useSWR<AccountsResponse>(
-    '/api/app/accounts'
+    isDuoPlan ? `/api/app/accounts?viewMode=${viewMode}` : '/api/app/accounts'
   );
   const accounts = accountsData?.accounts ?? [];
 
-  // Fetch allocations (only when we have a budget)
+  // Fetch allocations (only when we have a budget, filtered by viewMode)
   const allocationsKey = primaryBudgetId
-    ? `/api/app/allocations?budgetId=${primaryBudgetId}&year=${year}&month=${month}`
+    ? `/api/app/allocations?budgetId=${primaryBudgetId}&year=${year}&month=${month}${vm}`
     : null;
 
   const {
@@ -69,9 +73,9 @@ export function useBudgetPageData(year: number, month: number) {
     mutate: mutateAllocations,
   } = useSWR<AllocationsResponse>(allocationsKey);
 
-  // Fetch goals (only when we have a budget)
+  // Fetch goals (only when we have a budget, filtered by viewMode)
   const goalsKey = primaryBudgetId
-    ? `/api/app/goals?budgetId=${primaryBudgetId}`
+    ? `/api/app/goals?budgetId=${primaryBudgetId}${vm}`
     : null;
 
   const {

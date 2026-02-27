@@ -2,13 +2,14 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { transactions, financialAccounts } from "@/db/schema";
 import { eq, and, inArray, gte, lte, sql } from "drizzle-orm";
-import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import {
   forbiddenError,
   cachedResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
 import { getBillingCycleDates } from "@/shared/lib/billing-cycle";
+import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
 
 // GET - Get dashboard statistics including daily data for charts
 export const GET = withAuthRequired(async (req, context) => {
@@ -18,6 +19,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const budgetId = searchParams.get("budgetId");
   const year = parseInt(searchParams.get("year") || new Date().getFullYear().toString());
   const month = parseInt(searchParams.get("month") || (new Date().getMonth() + 1).toString());
+  const viewMode = parseViewMode(searchParams);
 
   if (!budgetId) {
     return errorResponse("budgetId is required", 400);
@@ -28,12 +30,52 @@ export const GET = withAuthRequired(async (req, context) => {
     return forbiddenError("Budget not found or access denied");
   }
 
+  // Get user's member ID and partner privacy for view mode filtering
+  const userMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
+  const partnerPrivacy = viewMode === "all" && userMemberId
+    ? await getPartnerPrivacyLevel(session.user.id, budgetId)
+    : undefined;
+
+  // Build transaction view mode condition
+  const txViewCondition = userMemberId
+    ? getViewModeCondition({ viewMode, userMemberId, ownerField: transactions.memberId, partnerPrivacy })
+    : undefined;
+
+  // Build account view mode condition
+  const acctViewCondition = userMemberId
+    ? getViewModeCondition({ viewMode, userMemberId, ownerField: financialAccounts.ownerId, partnerPrivacy })
+    : undefined;
+
   // Calculate date ranges
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
   const daysInMonth = endDate.getDate();
   const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   const rangeStartDate = new Date(year, month - 1 - 11, 1); // 12 months back
+
+  // Base conditions for transaction queries
+  const baseDailyConditions = [
+    eq(transactions.budgetId, budgetId),
+    gte(transactions.date, startDate),
+    lte(transactions.date, endDate),
+    inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+    ...(txViewCondition ? [txViewCondition] : []),
+  ];
+
+  const baseMonthlyConditions = [
+    eq(transactions.budgetId, budgetId),
+    gte(transactions.date, rangeStartDate),
+    lte(transactions.date, endDate),
+    inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+    ...(txViewCondition ? [txViewCondition] : []),
+  ];
+
+  const baseCcConditions = [
+    eq(financialAccounts.budgetId, budgetId),
+    eq(financialAccounts.type, "credit_card"),
+    eq(financialAccounts.isArchived, false),
+    ...(acctViewCondition ? [acctViewCondition] : []),
+  ];
 
   // PERFORMANCE: Run all three independent query blocks in parallel
   const [dailyData, monthlyAggregated, creditCardAccounts] = await Promise.all([
@@ -47,14 +89,7 @@ export const GET = withAuthRequired(async (req, context) => {
         pendingExpense: sql<number>`COALESCE(ABS(SUM(CASE WHEN ${transactions.type} = 'expense' AND ${transactions.status} = 'pending' THEN ${transactions.amount} ELSE 0 END)), 0)`,
       })
       .from(transactions)
-      .where(
-        and(
-          eq(transactions.budgetId, budgetId),
-          gte(transactions.date, startDate),
-          lte(transactions.date, endDate),
-          inArray(transactions.status, ["pending", "cleared", "reconciled"])
-        )
-      )
+      .where(and(...baseDailyConditions))
       .groupBy(sql`EXTRACT(DAY FROM ${transactions.date})`)
       .orderBy(sql`EXTRACT(DAY FROM ${transactions.date})`),
 
@@ -67,20 +102,13 @@ export const GET = withAuthRequired(async (req, context) => {
         expense: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'expense' THEN ${transactions.amount} ELSE 0 END), 0)`,
       })
       .from(transactions)
-      .where(
-        and(
-          eq(transactions.budgetId, budgetId),
-          gte(transactions.date, rangeStartDate),
-          lte(transactions.date, endDate),
-          inArray(transactions.status, ["pending", "cleared", "reconciled"])
-        )
-      )
+      .where(and(...baseMonthlyConditions))
       .groupBy(
         sql`EXTRACT(YEAR FROM ${transactions.date})`,
         sql`EXTRACT(MONTH FROM ${transactions.date})`
       ),
 
-    // 3. Credit card accounts
+    // 3. Credit card accounts (filtered by viewMode)
     db
       .select({
         id: financialAccounts.id,
@@ -90,13 +118,7 @@ export const GET = withAuthRequired(async (req, context) => {
         closingDay: financialAccounts.closingDay,
       })
       .from(financialAccounts)
-      .where(
-        and(
-          eq(financialAccounts.budgetId, budgetId),
-          eq(financialAccounts.type, "credit_card"),
-          eq(financialAccounts.isArchived, false)
-        )
-      ),
+      .where(and(...baseCcConditions)),
   ]);
 
   // Build daily chart data with cumulative balance

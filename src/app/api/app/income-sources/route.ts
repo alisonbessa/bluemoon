@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { incomeSources, budgetMembers, financialAccounts } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
-import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import {
   validationError,
   forbiddenError,
@@ -13,16 +13,45 @@ import {
   cachedResponse,
 } from "@/shared/lib/api/responses";
 import { createIncomeSourceSchema } from "@/shared/lib/validations/income.schema";
+import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
 
 // GET - Get income sources for user's budgets
 export const GET = withAuthRequired(async (req, context) => {
   const { session } = context;
   const { searchParams } = new URL(req.url);
   const budgetId = searchParams.get("budgetId");
+  const viewMode = parseViewMode(searchParams);
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
     return successResponse({ incomeSources: [] });
+  }
+
+  const activeBudgetId = budgetId || budgetIds[0];
+  const userMemberId = await getUserMemberIdInBudget(session.user.id, activeBudgetId);
+
+  // Build conditions
+  const conditions = [
+    budgetId
+      ? and(eq(incomeSources.budgetId, budgetId), inArray(incomeSources.budgetId, budgetIds))
+      : inArray(incomeSources.budgetId, budgetIds),
+    eq(incomeSources.isActive, true),
+  ];
+
+  // View mode filtering on incomeSources.memberId
+  if (userMemberId) {
+    const partnerPrivacy = viewMode === "all"
+      ? await getPartnerPrivacyLevel(session.user.id, activeBudgetId)
+      : undefined;
+    const viewCondition = getViewModeCondition({
+      viewMode,
+      userMemberId,
+      ownerField: incomeSources.memberId,
+      partnerPrivacy,
+    });
+    if (viewCondition) {
+      conditions.push(viewCondition);
+    }
   }
 
   const sources = await db
@@ -34,18 +63,7 @@ export const GET = withAuthRequired(async (req, context) => {
     .from(incomeSources)
     .leftJoin(budgetMembers, eq(incomeSources.memberId, budgetMembers.id))
     .leftJoin(financialAccounts, eq(incomeSources.accountId, financialAccounts.id))
-    .where(
-      budgetId
-        ? and(
-            eq(incomeSources.budgetId, budgetId),
-            inArray(incomeSources.budgetId, budgetIds),
-            eq(incomeSources.isActive, true)
-          )
-        : and(
-            inArray(incomeSources.budgetId, budgetIds),
-            eq(incomeSources.isActive, true)
-          )
-    )
+    .where(and(...conditions.filter(Boolean)))
     .orderBy(incomeSources.displayOrder);
 
   const formattedSources = sources.map((s) => ({
