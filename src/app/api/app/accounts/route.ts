@@ -1,5 +1,6 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
+import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
 import { financialAccounts, budgetMembers, transactions } from "@/db/schema";
 import { eq, and, inArray, or, isNull, gte, lte, sql } from "drizzle-orm";
@@ -149,7 +150,7 @@ export const GET = withAuthRequired(async (req, context) => {
 });
 
 // POST - Create a new account
-export const POST = withAuthRequired(async (req, context) => {
+export const POST = withRateLimit(withAuthRequired(async (req, context) => {
   const { session } = context;
 
   // Require active subscription for creating accounts
@@ -188,4 +189,4 @@ export const POST = withAuthRequired(async (req, context) => {
     .returning();
 
   return successResponse({ account: newAccount }, 201);
-});
+}), rateLimits.api, "app-accounts-post");

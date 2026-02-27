@@ -6,6 +6,7 @@ import { Session } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { plans } from "@/db/schema/plans";
 import { MeResponse } from "@/app/api/app/me/types";
+import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 
 interface WithManagerHandler {
   (
@@ -21,6 +22,7 @@ interface WithManagerHandler {
       >;
       getCurrentPlan: () => Promise<MeResponse["currentPlan"]>;
       getUser: () => Promise<MeResponse["user"]>;
+      getBudgetIds: () => Promise<string[]>;
       params: Promise<Record<string, unknown>>;
     }
   ): Promise<NextResponse | Response>;
@@ -106,11 +108,19 @@ const withAuthRequired = (handler: WithManagerHandler) => {
       return user;
     };
 
+    // Lazy-loaded budget IDs (cached per request to avoid duplicate DB queries)
+    let _budgetIds: string[] | null = null;
+    const getBudgetIds = async () => {
+      if (!_budgetIds) _budgetIds = await getUserBudgetIds(userId);
+      return _budgetIds;
+    };
+
     return await handler(req, {
       ...context,
       session: session,
       getCurrentPlan,
       getUser,
+      getBudgetIds,
     });
   };
 };

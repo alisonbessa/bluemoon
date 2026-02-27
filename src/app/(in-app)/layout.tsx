@@ -16,14 +16,9 @@ import { useUser, useCurrentPlan } from "@/shared/hooks/use-current-user";
 import { useSubscriptionGate } from "@/shared/hooks/use-subscription-gate";
 import { SubscriptionExpiredBanner } from "@/shared/layout/subscription-expired-banner";
 import { mutate as swrMutate } from "swr";
+import { SUBSCRIPTION_EXEMPT_ROLES, SUBSCRIPTION_EXEMPT_PATHS } from "@/shared/lib/constants";
 
 const BUDGET_INITIALIZED_KEY = "hivebudget_budget_initialized";
-
-// Roles that don't require a Stripe subscription
-const SUBSCRIPTION_EXEMPT_ROLES = ["beta", "lifetime", "admin"];
-
-// Pages that don't require an active subscription
-const SUBSCRIPTION_EXEMPT_PATHS = ["/app/choose-plan", "/app/settings", "/app/subscribe"];
 
 function DashboardSkeleton() {
   return (

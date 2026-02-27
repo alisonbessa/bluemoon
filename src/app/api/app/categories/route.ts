@@ -1,5 +1,6 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
+import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
 import { categories, groups } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
@@ -68,7 +69,7 @@ export const GET = withAuthRequired(async (req, context) => {
 });
 
 // POST - Create a new category
-export const POST = withAuthRequired(async (req, context) => {
+export const POST = withRateLimit(withAuthRequired(async (req, context) => {
   const { session } = context;
 
   // Require active subscription for creating categories
@@ -120,4 +121,4 @@ export const POST = withAuthRequired(async (req, context) => {
     .returning();
 
   return successResponse({ category: newCategory }, 201);
-});
+}), rateLimits.api, "app-categories-post");

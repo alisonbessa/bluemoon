@@ -148,41 +148,71 @@ export const GET = withAuthRequired(async (req, context) => {
   }
 
   // Calculate spending per credit card using billing cycle dates
-  const creditCards = await Promise.all(
-    creditCardAccounts.map(async (cc) => {
-      let ccStartDate = startDate;
-      let ccEndDate = endDate;
+  // Optimized: single query with widest date range + client-side filtering per billing cycle
+  let creditCards: { id: string; name: string; icon: string | null; creditLimit: number; spent: number; available: number }[] = [];
+
+  if (creditCardAccounts.length > 0) {
+    // Compute billing cycle ranges per card and find widest range for single query
+    let globalStart = startDate;
+    let globalEnd = endDate;
+    const billingRanges = new Map<string, { start: Date; end: Date }>();
+
+    for (const cc of creditCardAccounts) {
       if (cc.closingDay) {
         const cycle = getBillingCycleDates(cc.closingDay, year, month);
-        ccStartDate = cycle.start;
-        ccEndDate = cycle.end;
+        billingRanges.set(cc.id, cycle);
+        if (cycle.start < globalStart) globalStart = cycle.start;
+        if (cycle.end > globalEnd) globalEnd = cycle.end;
+      } else {
+        billingRanges.set(cc.id, { start: startDate, end: endDate });
       }
+    }
 
-      const [result] = await db
-        .select({
-          spent: sql<number>`COALESCE(ABS(SUM(${transactions.amount})), 0)`,
-        })
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.accountId, cc.id),
-            eq(transactions.type, "expense"),
-            gte(transactions.date, ccStartDate),
-            lte(transactions.date, ccEndDate),
-            inArray(transactions.status, ["pending", "cleared", "reconciled"])
-          )
-        );
+    // Single query fetching all CC expense transactions in the widest range
+    const ccIds = creditCardAccounts.map((cc) => cc.id);
+    const ccTransactions = await db
+      .select({
+        accountId: transactions.accountId,
+        amount: transactions.amount,
+        date: transactions.date,
+      })
+      .from(transactions)
+      .where(
+        and(
+          inArray(transactions.accountId, ccIds),
+          eq(transactions.type, "expense"),
+          gte(transactions.date, globalStart),
+          lte(transactions.date, globalEnd),
+          inArray(transactions.status, ["pending", "cleared", "reconciled"])
+        )
+      );
+
+    // Aggregate per card filtered by its specific billing cycle
+    creditCards = creditCardAccounts.map((cc) => {
+      const range = billingRanges.get(cc.id)!;
+      const startTime = range.start.getTime();
+      const endTime = range.end.getTime();
+
+      let spent = 0;
+      for (const tx of ccTransactions) {
+        if (tx.accountId === cc.id) {
+          const txTime = new Date(tx.date).getTime();
+          if (txTime >= startTime && txTime <= endTime) {
+            spent += Math.abs(Number(tx.amount) || 0);
+          }
+        }
+      }
 
       return {
         id: cc.id,
         name: cc.name,
         icon: cc.icon,
         creditLimit: cc.creditLimit || 0,
-        spent: Number(result?.spent) || 0,
-        available: (cc.creditLimit || 0) - (Number(result?.spent) || 0),
+        spent,
+        available: (cc.creditLimit || 0) - spent,
       };
-    })
-  );
+    });
+  }
 
   return cachedResponse(
     { dailyChartData, monthlyComparison: monthlyData, creditCards },

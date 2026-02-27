@@ -3,8 +3,7 @@ import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { checkPartnerAccess } from "@/shared/lib/users/checkPartnerAccess";
-
-const SUBSCRIPTION_EXEMPT_ROLES = ["beta", "lifetime", "admin"];
+import { SUBSCRIPTION_EXEMPT_ROLES } from "@/shared/lib/constants";
 
 /**
  * Error code returned when a user without active subscription tries a mutation.

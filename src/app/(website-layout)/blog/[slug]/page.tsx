@@ -150,6 +150,7 @@ async function BlogDetailPage({ params }: Props) {
                 src={blog.frontmatter.featuredImage}
                 alt={blog.frontmatter.title}
                 fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 800px"
                 className="object-cover rounded-xl shadow-lg"
               />
             </figure>
@@ -218,7 +219,7 @@ async function BlogDetailPage({ params }: Props) {
           {/* Related Articles */}
           {relatedBlogs.length > 0 && (
             <section className="mt-12 md:mt-16" aria-labelledby="related-articles">
-              <h2 id="related-articles" className="text-2xl font-bold mb-6">Related Articles</h2>
+              <h2 id="related-articles" className="text-2xl font-bold mb-6">Artigos Relacionados</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {relatedBlogs.map((related) => (
                   <article key={related.slug} className="group">
@@ -230,6 +231,7 @@ async function BlogDetailPage({ params }: Props) {
                               src={related.frontmatter.featuredImage}
                               alt={related.frontmatter.title}
                               fill
+                              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
                               className="object-cover shadow-xs"
                             />
                           </figure>
