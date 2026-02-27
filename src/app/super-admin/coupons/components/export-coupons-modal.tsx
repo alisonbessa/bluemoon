@@ -167,7 +167,7 @@ export function ExportCouponsModal({ currentFilter, searchQuery }: ExportCoupons
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
-          <Download className="mr-2 h-4 w-4" />
+          <Download className="h-4 w-4" />
           Exportar
         </Button>
       </DialogTrigger>
@@ -197,7 +197,7 @@ export function ExportCouponsModal({ currentFilter, searchQuery }: ExportCoupons
             </div>
             <DialogFooter>
               <Button onClick={exportCoupons}>
-                <FileDown className="mr-2 h-4 w-4" />
+                <FileDown className="h-4 w-4" />
                 Exportar Cupons
               </Button>
             </DialogFooter>

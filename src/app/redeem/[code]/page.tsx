@@ -127,7 +127,7 @@ export default function RedeemPage({
           <CardFooter className="flex flex-col gap-3">
             <Button asChild className="w-full" size="lg">
               <Link href={`/sign-in?callbackUrl=/redeem/${code}`}>
-                <LogIn className="mr-2 h-4 w-4" />
+                <LogIn className="h-4 w-4" />
                 Entrar para Resgatar
               </Link>
             </Button>
@@ -311,12 +311,12 @@ export default function RedeemPage({
           >
             {isRedeeming ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
                 Ativando...
               </>
             ) : (
               <>
-                <Gift className="mr-2 h-4 w-4" />
+                <Gift className="h-4 w-4" />
                 Ativar {validation.type === "lifetime" ? "Acesso Vitalício" : "Acesso Beta"}
               </>
             )}

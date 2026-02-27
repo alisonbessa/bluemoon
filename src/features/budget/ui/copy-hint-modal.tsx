@@ -41,9 +41,9 @@ export function CopyHintModal({
             className="w-full sm:w-auto"
           >
             {isCopying ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Copy className="mr-2 h-4 w-4" />
+              <Copy className="h-4 w-4" />
             )}
             Copiar de {previousMonthName}
           </Button>

@@ -7,6 +7,7 @@ import stripe from "@/integrations/stripe";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
+import downgradeToDefaultPlan from "@/shared/lib/plans/downgradeToDefaultPlan";
 
 /**
  * POST /api/app/trial/cancel
@@ -57,6 +58,9 @@ export const POST = withAuthRequired(async (_req, { getUser, session }) => {
         .update(users)
         .set({ trialEndsAt: null })
         .where(eq(users.id, session.user.id));
+
+      // Downgrade to free plan and clear stripeSubscriptionId for immediate UI feedback
+      await downgradeToDefaultPlan({ userId: session.user.id });
 
       return NextResponse.json({
         success: true,

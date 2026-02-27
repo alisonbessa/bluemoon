@@ -166,7 +166,7 @@ export function WhatsAppConnectionCard({ onConnected }: WhatsAppConnectionCardPr
                 className="w-full text-destructive hover:text-destructive"
                 onClick={() => setShowDisconnectDialog(true)}
               >
-                <Unlink className="mr-2 h-4 w-4" />
+                <Unlink className="h-4 w-4" />
                 Desconectar WhatsApp
               </Button>
             </div>
@@ -274,9 +274,9 @@ export function WhatsAppConnectionCard({ onConnected }: WhatsAppConnectionCardPr
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDisconnecting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Unlink className="mr-2 h-4 w-4" />
+                <Unlink className="h-4 w-4" />
               )}
               Desconectar
             </AlertDialogAction>

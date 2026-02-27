@@ -64,33 +64,33 @@ export function UserButton({ compact = false }: UserButtonProps) {
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/app" className="cursor-pointer">
-            <LayoutDashboard className="mr-2 h-4 w-4" />
+            <LayoutDashboard className="h-4 w-4" />
             Dashboard
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/app/plan" className="cursor-pointer">
-            <CreditCard className="mr-2 h-4 w-4" />
+            <CreditCard className="h-4 w-4" />
             Gerenciar Plano
           </Link>
         </DropdownMenuItem>
 
         <DropdownMenuItem asChild>
           <Link href="/app/redeem-ltd" className="cursor-pointer">
-            <Ticket className="mr-2 h-4 w-4" />
+            <Ticket className="h-4 w-4" />
             Resgatar Cupom LTD
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/app/profile" className="cursor-pointer">
-            <UserIcon className="mr-2 h-4 w-4" />
+            <UserIcon className="h-4 w-4" />
             Perfil
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/sign-out" className="cursor-pointer">
-            <LogOut className="mr-2 h-4 w-4" />
+            <LogOut className="h-4 w-4" />
             Sair
           </Link>
         </DropdownMenuItem>

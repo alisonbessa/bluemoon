@@ -504,7 +504,7 @@ export default function AccountsPage() {
           action={{
             label: "Adicionar Conta",
             onClick: () => setIsFormOpen(true),
-            icon: <Plus className="mr-2 h-4 w-4" />,
+            icon: <Plus className="h-4 w-4" />,
           }}
         />
       )}

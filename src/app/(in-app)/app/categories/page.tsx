@@ -207,7 +207,7 @@ export default function CategoriesPage() {
           action={{
             label: "Configurar Categorias",
             onClick: () => setIsWizardOpen(true),
-            icon: <Wand2 className="mr-2 h-4 w-4" />,
+            icon: <Wand2 className="h-4 w-4" />,
           }}
         />
       )}

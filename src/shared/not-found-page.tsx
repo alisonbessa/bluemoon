@@ -35,14 +35,14 @@ export function NotFoundPage({
       <div className="flex gap-3">
         {showBackButton && (
           <Button variant="outline" onClick={() => window.history.back()}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" />
             Voltar
           </Button>
         )}
 
         <Button variant="default" asChild>
           <Link href={homeHref}>
-            <Home className="mr-2 h-4 w-4" />
+            <Home className="h-4 w-4" />
             {homeLinkText}
           </Link>
         </Button>

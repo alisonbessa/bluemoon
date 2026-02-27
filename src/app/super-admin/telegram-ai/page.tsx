@@ -211,19 +211,19 @@ export default function TelegramAIPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowSuggestions(true)}>
-            <Lightbulb className="h-4 w-4 sm:mr-2" />
+            <Lightbulb className="h-4 w-4" />
             <span className="hidden sm:inline">Sugestões</span>
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="h-4 w-4 sm:mr-2" />
+            <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Exportar</span>
           </Button>
           <Button variant="outline" size="sm" onClick={() => mutate()}>
-            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <RefreshCw className="h-4 w-4" />
             <span className="hidden sm:inline">Atualizar</span>
           </Button>
           <Button variant="destructive" size="sm" onClick={handleDelete}>
-            <Trash2 className="h-4 w-4 sm:mr-2" />
+            <Trash2 className="h-4 w-4" />
             <span className="hidden sm:inline">Limpar</span>
           </Button>
         </div>

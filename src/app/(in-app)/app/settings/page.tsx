@@ -402,7 +402,7 @@ export default function SettingsPage() {
                     <Button onClick={handleSaveProfile} disabled={isSavingProfile}>
                       {isSavingProfile ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                           Salvando...
                         </>
                       ) : (
@@ -435,7 +435,7 @@ export default function SettingsPage() {
                     className="w-full"
                     onClick={() => setTheme("light")}
                   >
-                    <Sun className="h-4 w-4 sm:mr-2" />
+                    <Sun className="h-4 w-4" />
                     <span className="hidden sm:inline">Claro</span>
                   </Button>
                   <Button
@@ -443,7 +443,7 @@ export default function SettingsPage() {
                     className="w-full"
                     onClick={() => setTheme("dark")}
                   >
-                    <Moon className="h-4 w-4 sm:mr-2" />
+                    <Moon className="h-4 w-4" />
                     <span className="hidden sm:inline">Escuro</span>
                   </Button>
                   <Button
@@ -451,7 +451,7 @@ export default function SettingsPage() {
                     className="w-full"
                     onClick={() => setTheme("system")}
                   >
-                    <Monitor className="h-4 w-4 sm:mr-2" />
+                    <Monitor className="h-4 w-4" />
                     <span className="hidden sm:inline">Sistema</span>
                   </Button>
                 </div>
@@ -571,7 +571,7 @@ export default function SettingsPage() {
                         className="w-full"
                         onClick={() => setShowChangePlanConfirm(true)}
                       >
-                        <Sparkles className="mr-2 h-4 w-4" />
+                        <Sparkles className="h-4 w-4" />
                         Fazer upgrade para Duo
                       </Button>
                       <Button
@@ -596,7 +596,7 @@ export default function SettingsPage() {
                           className="w-full"
                           onClick={() => setShowChangePlanConfirm(true)}
                         >
-                          <ArrowUpDown className="mr-2 h-4 w-4" />
+                          <ArrowUpDown className="h-4 w-4" />
                           Mudar para Solo
                         </Button>
                         <Button
@@ -634,7 +634,7 @@ export default function SettingsPage() {
                       </p>
                       <Button asChild className="w-full" variant="default">
                         <Link href="/app/choose-plan">
-                          <Sparkles className="mr-2 h-4 w-4" />
+                          <Sparkles className="h-4 w-4" />
                           Reativar plano
                         </Link>
                       </Button>
@@ -651,7 +651,7 @@ export default function SettingsPage() {
                       </p>
                       <Button asChild className="w-full" variant="default">
                         <Link href="/app/choose-plan">
-                          <Sparkles className="mr-2 h-4 w-4" />
+                          <Sparkles className="h-4 w-4" />
                           Fazer upgrade
                         </Link>
                       </Button>
@@ -673,7 +673,7 @@ export default function SettingsPage() {
                 className="w-full justify-start"
                 onClick={() => openFeedbackModal("question")}
               >
-                <HelpCircle className="mr-2 h-4 w-4" />
+                <HelpCircle className="h-4 w-4" />
                 Tirar dúvidas
               </Button>
               <Button
@@ -681,7 +681,7 @@ export default function SettingsPage() {
                 className="w-full justify-start"
                 onClick={() => openFeedbackModal("feedback")}
               >
-                <MessageSquare className="mr-2 h-4 w-4" />
+                <MessageSquare className="h-4 w-4" />
                 Enviar sugestão
               </Button>
               <Button
@@ -689,7 +689,7 @@ export default function SettingsPage() {
                 className="w-full justify-start"
                 onClick={() => openFeedbackModal("bug")}
               >
-                <Bug className="mr-2 h-4 w-4" />
+                <Bug className="h-4 w-4" />
                 Reportar bug
               </Button>
               <Button
@@ -697,7 +697,7 @@ export default function SettingsPage() {
                 className="w-full justify-start"
                 onClick={() => setShowOnboardingConfirm(true)}
               >
-                <RefreshCw className="mr-2 h-4 w-4" />
+                <RefreshCw className="h-4 w-4" />
                 Refazer configuração inicial
               </Button>
             </CardContent>
@@ -723,12 +723,12 @@ export default function SettingsPage() {
               >
                 {isExporting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Exportando...
                   </>
                 ) : (
                   <>
-                    <Download className="mr-2 h-4 w-4" />
+                    <Download className="h-4 w-4" />
                     Exportar transações (CSV)
                   </>
                 )}
@@ -741,12 +741,12 @@ export default function SettingsPage() {
               >
                 {isExportingLgpd ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Exportando...
                   </>
                 ) : (
                   <>
-                    <FileDown className="mr-2 h-4 w-4" />
+                    <FileDown className="h-4 w-4" />
                     Exportar todos os dados pessoais (LGPD)
                   </>
                 )}
@@ -757,7 +757,7 @@ export default function SettingsPage() {
                 className="w-full justify-start text-destructive hover:text-destructive"
                 onClick={() => setShowDeleteConfirm(true)}
               >
-                <Trash2 className="mr-2 h-4 w-4" />
+                <Trash2 className="h-4 w-4" />
                 Excluir minha conta
               </Button>
               <p className="text-xs text-muted-foreground">
@@ -773,7 +773,7 @@ export default function SettingsPage() {
             className="w-full text-destructive hover:text-destructive"
             onClick={handleLogout}
           >
-            <LogOut className="mr-2 h-4 w-4" />
+            <LogOut className="h-4 w-4" />
             Sair da conta
           </Button>
         </div>
@@ -830,7 +830,7 @@ export default function SettingsPage() {
             >
               {isDeleting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Excluindo...
                 </>
               ) : (
@@ -861,7 +861,7 @@ export default function SettingsPage() {
             >
               {isCancellingTrial ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Cancelando...
                 </>
               ) : (
@@ -906,7 +906,7 @@ export default function SettingsPage() {
             >
               {isChangingPlan ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Alterando...
                 </>
               ) : (

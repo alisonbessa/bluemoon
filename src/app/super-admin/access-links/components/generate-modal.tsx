@@ -109,7 +109,7 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
     <Dialog open={open} onOpenChange={(isOpen) => isOpen ? setOpen(true) : handleClose()}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="h-4 w-4" />
           Gerar Links
         </Button>
       </DialogTrigger>
@@ -181,7 +181,7 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
                 Cancelar
               </Button>
               <Button onClick={handleGenerate} disabled={isLoading} className="w-full sm:w-auto">
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 Gerar {quantity} Link{quantity > 1 ? "s" : ""}
               </Button>
             </DialogFooter>
@@ -195,7 +195,7 @@ export function GenerateModal({ onSuccess }: GenerateModalProps) {
                 </p>
                 {generatedCodes.length > 1 && (
                   <Button variant="outline" size="sm" onClick={copyAllToClipboard}>
-                    <Copy className="mr-2 h-3 w-3" />
+                    <Copy className="h-3 w-3" />
                     Copiar Todos
                   </Button>
                 )}

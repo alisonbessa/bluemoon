@@ -294,7 +294,7 @@ export default function UserDetailsPage() {
           </p>
           <Button variant="ghost" size="sm" asChild className="mt-4">
             <Link href="/super-admin/users">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-4 w-4" />
               Voltar para Usuários
             </Link>
           </Button>
@@ -322,7 +322,7 @@ export default function UserDetailsPage() {
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" asChild>
             <Link href="/super-admin/users">
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="h-4 w-4" />
               Voltar
             </Link>
           </Button>
@@ -335,12 +335,12 @@ export default function UserDetailsPage() {
               size="sm"
               onClick={() => setIsCreditModalOpen(true)}
             >
-              <CreditCard className="h-4 w-4 sm:mr-2" />
+              <CreditCard className="h-4 w-4" />
               <span className="hidden sm:inline">Gerenciar Créditos</span>
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={handleImpersonate}>
-            <User className="h-4 w-4 sm:mr-2" />
+            <User className="h-4 w-4" />
             <span className="hidden sm:inline">Personificar</span>
           </Button>
           <Button
@@ -348,7 +348,7 @@ export default function UserDetailsPage() {
             size="sm"
             onClick={() => router.push(`/super-admin/users/${id}/delete`)}
           >
-            <Trash2 className="h-4 w-4 sm:mr-2" />
+            <Trash2 className="h-4 w-4" />
             <span className="hidden sm:inline">Excluir Usuário</span>
           </Button>
         </div>
