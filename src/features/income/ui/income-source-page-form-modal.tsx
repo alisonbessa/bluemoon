@@ -41,6 +41,8 @@ interface IncomeSourcePageFormModalProps {
   onClose: () => void;
   onUpdateField: <K extends keyof IncomeFormData>(field: K, value: IncomeFormData[K]) => void;
   onSubmit: () => Promise<void>;
+  /** Current user's member ID - restricts member selector to self only */
+  currentUserMemberId?: string;
 }
 
 export function IncomeSourcePageFormModal({
@@ -54,6 +56,7 @@ export function IncomeSourcePageFormModal({
   onClose,
   onUpdateField,
   onSubmit,
+  currentUserMemberId,
 }: IncomeSourcePageFormModalProps) {
   const isEditing = !!editingSource;
 
@@ -136,7 +139,8 @@ export function IncomeSourcePageFormModal({
             members={members}
             label="Quem Recebe"
             allowNone
-            noneLabel="Nenhum responsável específico"
+            noneLabel="Dupla"
+            currentUserMemberId={currentUserMemberId}
           />
         )}
 

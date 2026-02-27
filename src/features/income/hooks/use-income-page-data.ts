@@ -13,6 +13,7 @@ interface Member {
   name: string;
   type: string;
   color?: string | null;
+  userId?: string | null;
 }
 
 interface Account {

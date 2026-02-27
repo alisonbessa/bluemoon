@@ -35,6 +35,8 @@ interface MemberSelectorProps {
   className?: string;
   /** Hide the selector if there's only one member (Solo plan). Defaults to true */
   hideIfSingleMember?: boolean;
+  /** Current user's member ID - when set, only shows this member (self) in the list */
+  currentUserMemberId?: string;
 }
 
 /**
@@ -69,11 +71,17 @@ export function MemberSelector({
   disabled = false,
   className,
   hideIfSingleMember = true,
+  currentUserMemberId,
 }: MemberSelectorProps) {
   // Hide selector for Solo plans (single member)
   if (hideIfSingleMember && members.length <= 1) {
     return null;
   }
+
+  // When currentUserMemberId is set, only show self (restrict to self or pair)
+  const visibleMembers = currentUserMemberId
+    ? members.filter((m) => m.id === currentUserMemberId)
+    : members;
 
   return (
     <div className={className}>
@@ -92,7 +100,7 @@ export function MemberSelector({
         </SelectTrigger>
         <SelectContent>
           {allowNone && <SelectItem value="none">{noneLabel}</SelectItem>}
-          {members.map((member) => (
+          {visibleMembers.map((member) => (
             <SelectItem key={member.id} value={member.id}>
               <span className="flex items-center gap-2">
                 <span

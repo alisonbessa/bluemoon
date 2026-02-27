@@ -7,6 +7,7 @@ import { Loader2, PiggyBank } from 'lucide-react';
 import { GoalFormModal } from '@/features/goals';
 import { useTutorial } from '@/shared/tutorial/tutorial-provider';
 import { PageHeader } from '@/shared/molecules';
+import { useUser } from '@/shared/hooks';
 
 import {
   useBudgetPeriod,
@@ -42,6 +43,7 @@ import type {
 
 export default function BudgetPage() {
   const router = useRouter();
+  const { user } = useUser();
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
 
   // Period navigation
@@ -351,6 +353,7 @@ export default function BudgetPage() {
         members={members}
         filteredAccounts={incomeSourceForm.filteredAccounts}
         onFieldChange={incomeSourceForm.setFormField}
+        currentUserMemberId={members.find(m => m.userId === user?.id)?.id}
       />
 
       {/* Income Source Delete Dialog */}

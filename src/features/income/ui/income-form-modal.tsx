@@ -43,6 +43,8 @@ interface IncomeFormModalProps {
   accounts: Account[];
   isSubmitting: boolean;
   onSubmit: () => void;
+  /** Current user's member ID - restricts member selector to self only */
+  currentUserMemberId?: string;
 }
 
 export function IncomeFormModal({
@@ -57,6 +59,7 @@ export function IncomeFormModal({
   accounts,
   isSubmitting,
   onSubmit,
+  currentUserMemberId,
 }: IncomeFormModalProps) {
   // Filter accounts based on selected income type
   const allowedTypes = ALLOWED_ACCOUNT_TYPES_BY_INCOME[formData.type] || [];
@@ -167,7 +170,8 @@ export function IncomeFormModal({
             members={members}
             label="Quem Recebe"
             allowNone
-            noneLabel="Selecione (opcional)"
+            noneLabel="Dupla"
+            currentUserMemberId={currentUserMemberId}
           />
         )}
 

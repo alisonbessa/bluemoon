@@ -26,6 +26,7 @@ import {
   type IncomeType,
 } from "@/features/income";
 import { IncomeSourcePageFormModal } from "@/features/income";
+import { useUser } from "@/shared/hooks";
 
 // Grid columns: icon, name, member (optional), day, value
 // Member and Day columns hidden on mobile
@@ -33,6 +34,7 @@ const GRID_COLS_WITH_MEMBER = "24px 1fr 100px 80px 100px";
 const GRID_COLS_NO_MEMBER = "24px 1fr 80px 100px";
 
 export default function IncomePage() {
+  const { user } = useUser();
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
   const { isExpanded, toggleGroup } = useExpandedGroups([
     "salary",
@@ -223,6 +225,7 @@ export default function IncomePage() {
         onClose={form.closeForm}
         onUpdateField={form.updateField}
         onSubmit={form.submit}
+        currentUserMemberId={members.find(m => m.userId === user?.id)?.id}
       />
 
       {/* Delete Confirmation */}
