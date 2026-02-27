@@ -17,7 +17,7 @@ export const budgets = pgTable("budgets", {
   // Privacidade dos gastos pessoais entre membros (Duo)
   privacyMode: text("privacy_mode").$type<PrivacyMode>().default("visible"),
   pendingPrivacyMode: text("pending_privacy_mode").$type<PrivacyMode>(),
-  privacyChangeRequestedBy: text("privacy_change_requested_by").references(() => budgetMembers.id, { onDelete: "set null" }),
+  privacyChangeRequestedBy: text("privacy_change_requested_by"),
 
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
