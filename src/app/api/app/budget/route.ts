@@ -4,6 +4,7 @@ import { db } from "@/db";
 
 const logger = createLogger("api:budget");
 import { budgets, budgetMembers } from "@/db/schema";
+import { privacyModeEnum } from "@/db/schema/budgets";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -47,6 +48,9 @@ export const GET = withAuthRequired(async (request, context) => {
       .select({
         id: budgets.id,
         name: budgets.name,
+        privacyMode: budgets.privacyMode,
+        pendingPrivacyMode: budgets.pendingPrivacyMode,
+        privacyChangeRequestedBy: budgets.privacyChangeRequestedBy,
         createdAt: budgets.createdAt,
       })
       .from(budgets)
@@ -66,10 +70,11 @@ export const GET = withAuthRequired(async (request, context) => {
 
 const updateBudgetSchema = z.object({
   budgetId: z.string().uuid(),
-  name: z.string().min(1).max(100),
+  name: z.string().min(1).max(100).optional(),
+  privacyMode: privacyModeEnum.optional(),
 });
 
-// PATCH - Update budget name
+// PATCH - Update budget settings (name, privacy mode)
 export const PATCH = withAuthRequired(async (request, context) => {
   const { session } = context;
 
@@ -79,7 +84,11 @@ export const PATCH = withAuthRequired(async (request, context) => {
     if (!validation.success) {
       return validationError(validation.error);
     }
-    const { budgetId, name } = validation.data;
+    const { budgetId, name, privacyMode } = validation.data;
+
+    if (!name && !privacyMode) {
+      return errorResponse("Nothing to update", 400);
+    }
 
     // Verify user is owner of this budget
     const membership = await db
@@ -95,13 +104,16 @@ export const PATCH = withAuthRequired(async (request, context) => {
       .limit(1);
 
     if (membership.length === 0) {
-      return forbiddenError("Only budget owners can update the name");
+      return forbiddenError("Only budget owners can update settings");
     }
 
-    // Update budget name
+    const updates: Record<string, unknown> = {};
+    if (name) updates.name = name.trim();
+    if (privacyMode) updates.privacyMode = privacyMode;
+
     const [updated] = await db
       .update(budgets)
-      .set({ name: name.trim() })
+      .set(updates)
       .where(eq(budgets.id, budgetId))
       .returning();
 

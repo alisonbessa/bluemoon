@@ -97,6 +97,7 @@ export async function getUserBudgetInfo(userId: string): Promise<BudgetInfo | nu
     budget: {
       id: membership[0].budget.id,
       name: membership[0].budget.name,
+      privacyMode: membership[0].budget.privacyMode || "visible",
     },
     member: {
       id: membership[0].member.id,
@@ -112,11 +113,14 @@ export async function getUserBudgetInfo(userId: string): Promise<BudgetInfo | nu
       name: c.category.name,
       icon: c.category.icon,
       groupName: c.group.name,
+      memberId: c.category.memberId,
     })),
     incomeSources: budgetIncomeSources.map((s) => ({
       id: s.id,
       name: s.name,
       type: s.type,
+      amount: s.amount,
+      contributionAmount: s.contributionAmount,
     })),
     goals: budgetGoals.map((g) => ({
       id: g.id,
@@ -124,6 +128,7 @@ export async function getUserBudgetInfo(userId: string): Promise<BudgetInfo | nu
       icon: g.icon,
       targetAmount: g.targetAmount,
       currentAmount: g.currentAmount || 0,
+      memberId: g.memberId,
     })),
     accounts: budgetAccounts.map((a) => ({
       id: a.id,
@@ -156,6 +161,7 @@ export function buildUserContext(userId: string, budgetInfo: BudgetInfo): UserCo
     pendingTransactions: budgetInfo.pendingTransactions,
     defaultAccountId: budgetInfo.defaultAccount?.id,
     memberId: budgetInfo.member.id,
+    privacyMode: budgetInfo.budget.privacyMode,
   };
 }
 

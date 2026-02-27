@@ -94,6 +94,7 @@ export function useIncomeSourcePageForm({
       name: source.name,
       type: source.type,
       amount: source.amount,
+      contributionAmount: source.contributionAmount ?? null,
       frequency: source.frequency,
       dayOfMonth: source.dayOfMonth || undefined,
       memberId: source.member?.id,

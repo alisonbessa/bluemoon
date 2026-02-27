@@ -213,10 +213,26 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     completeTutorial();
   };
 
-  const handleConnectMessaging = () => {
+  const handleConnectMessaging = async () => {
     setShowCelebration(false);
-    // Advance tutorial to the settings/messaging steps
-    nextStep();
+    completeTutorial();
+
+    // Fetch WhatsApp connect link and open directly
+    try {
+      const res = await fetch("/api/whatsapp/connect-link");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.code && data.whatsappNumber) {
+          const message = encodeURIComponent(`Olá! Meu código para o HiveBudget é: ${data.code}`);
+          window.open(`https://wa.me/${data.whatsappNumber}?text=${message}`, "_blank");
+        } else {
+          // Fallback: go to settings page
+          router.push("/app/settings");
+        }
+      }
+    } catch {
+      router.push("/app/settings");
+    }
   };
 
   // Redirect to home if user is not authenticated

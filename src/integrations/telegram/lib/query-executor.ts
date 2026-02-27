@@ -54,6 +54,11 @@ export async function handleQueryIntent(
   }
 }
 
+// TODO: [Contribution Model] Update handleBalanceQuery to show contribution-based balance
+// for duo budgets (same logic as messaging/lib/query-executor.ts handleBalanceQuery).
+// When the budget has contribution model enabled, show "Contribuição do casal" instead of
+// "Renda planejada", and show "Saldo compartilhado" with personal reserve info.
+
 /**
  * Handle balance query - show overall month summary
  */

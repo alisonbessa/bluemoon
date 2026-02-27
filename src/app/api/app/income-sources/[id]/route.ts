@@ -83,6 +83,15 @@ export const PATCH = withAuthRequired(async (req, context) => {
     return errorResponse(frequencyValidation.error!, 400);
   }
 
+  // Validate contribution <= amount
+  const effectiveAmount = validation.data.amount ?? existingSource.amount ?? 0;
+  const effectiveContribution = validation.data.contributionAmount !== undefined
+    ? validation.data.contributionAmount
+    : existingSource.contributionAmount;
+  if (effectiveContribution != null && effectiveContribution > effectiveAmount) {
+    return errorResponse("Contribuição não pode ser maior que o valor da renda", 400);
+  }
+
   const updateData = {
     ...validation.data,
     ...(validation.data.name && { name: capitalizeWords(validation.data.name) }),

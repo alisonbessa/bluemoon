@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { transactions, categories, goals, groups, monthlyAllocations, financialAccounts, budgetMembers } from "@/db/schema";
+import { transactions, categories, goals, groups, monthlyAllocations, financialAccounts, budgetMembers, incomeSources } from "@/db/schema";
 import { eq, and, gte, lte, sql, sum } from "drizzle-orm";
 import type { UserContext, ExtractedQueryData, Intent, MessagingAdapter, ChatId } from "./types";
 import { formatCurrency } from "@/shared/lib/formatters";
@@ -58,6 +58,46 @@ export async function handleQueryIntent(
 }
 
 /**
+ * Check if a category belongs to another member (privacy-relevant)
+ */
+function isOtherMemberCategory(
+  category: { memberId?: string | null },
+  userMemberId: string
+): boolean {
+  return category.memberId != null && category.memberId !== userMemberId;
+}
+
+/**
+ * Get visible categories respecting privacy mode
+ */
+function getVisibleCategories(userContext: UserContext): UserContext["categories"] {
+  const { privacyMode, memberId, categories } = userContext;
+  if (privacyMode === "private") {
+    return categories.filter((c) => !isOtherMemberCategory(c, memberId));
+  }
+  return categories;
+}
+
+/**
+ * Get visible goals respecting privacy mode
+ */
+function getVisibleGoals(userContext: UserContext): UserContext["goals"] {
+  const { privacyMode, memberId, goals } = userContext;
+  if (privacyMode === "private") {
+    return goals.filter((g) => g.memberId == null || g.memberId === memberId);
+  }
+  if (privacyMode === "totals_only") {
+    return goals.map((g) => {
+      if (g.memberId != null && g.memberId !== memberId) {
+        return { ...g, targetAmount: 0, currentAmount: 0 };
+      }
+      return g;
+    });
+  }
+  return goals;
+}
+
+/**
  * Handle balance query - show overall month summary
  */
 async function handleBalanceQuery(
@@ -77,6 +117,20 @@ async function handleBalanceQuery(
 
   const summary = await getMonthSummary(budgetId, year, month, isDuo ? userContext.memberId : undefined);
 
+  // Check if contribution model is active (any income source has contributionAmount set)
+  const hasContribution = userContext.incomeSources.some(
+    (s) => s.contributionAmount != null && s.amount != null && s.contributionAmount !== s.amount
+  );
+
+  // Calculate total contribution from income sources
+  const totalContribution = hasContribution
+    ? userContext.incomeSources.reduce((acc, s) => {
+        const amount = s.amount || 0;
+        const contribution = s.contributionAmount ?? amount;
+        return acc + contribution;
+      }, 0)
+    : summary.totalIncome;
+
   const monthName = new Date(year, month - 1).toLocaleDateString("pt-BR", { month: "long" });
 
   let message = `<b>Resumo de ${monthName}/${year}</b>\n\n`;
@@ -90,19 +144,47 @@ async function handleBalanceQuery(
     message += `Suas receitas: ${formatCurrency(summary.myIncome)}\n`;
     message += `Seus gastos: ${formatCurrency(summary.myExpenses)}\n`;
   } else if (isDuo && scope === "couple") {
-    // Couple view: show only total data
-    const balanceEmoji = summary.balance >= 0 ? "+" : "";
-    message += `<b>Números do casal:</b>\n`;
-    message += `Saldo: ${balanceEmoji}${formatCurrency(summary.balance)}\n`;
-    message += `Receitas totais: ${formatCurrency(summary.totalIncome)}\n`;
-    message += `Despesas totais: ${formatCurrency(summary.totalExpenses)}\n`;
+    // Couple view: show contribution-based data when available
+    if (hasContribution) {
+      const contributionBalance = totalContribution - summary.totalExpenses;
+      const balanceEmoji = contributionBalance >= 0 ? "+" : "";
+      message += `<b>Números do casal:</b>\n`;
+      message += `Contribuição do casal: ${formatCurrency(totalContribution)}\n`;
+      message += `Despesas compartilhadas: ${formatCurrency(summary.totalExpenses)}\n`;
+      message += `Saldo compartilhado: ${balanceEmoji}${formatCurrency(contributionBalance)}\n`;
+      const totalIncome = userContext.incomeSources.reduce((acc, s) => acc + (s.amount || 0), 0);
+      const personalReserve = totalIncome - totalContribution;
+      if (personalReserve > 0) {
+        message += `\n<i>(Renda total: ${formatCurrency(totalIncome)} | Reserva pessoal: ${formatCurrency(personalReserve)})</i>\n`;
+      }
+    } else {
+      const balanceEmoji = summary.balance >= 0 ? "+" : "";
+      message += `<b>Números do casal:</b>\n`;
+      message += `Saldo: ${balanceEmoji}${formatCurrency(summary.balance)}\n`;
+      message += `Receitas totais: ${formatCurrency(summary.totalIncome)}\n`;
+      message += `Despesas totais: ${formatCurrency(summary.totalExpenses)}\n`;
+    }
   } else if (isDuo) {
-    // Default for duo: show both
-    const balanceEmoji = summary.balance >= 0 ? "+" : "";
-    message += `<b>Saldo:</b> ${balanceEmoji}${formatCurrency(summary.balance)}\n`;
-    message += `Receitas: ${formatCurrency(summary.totalIncome)}\n`;
-    message += `Despesas totais: ${formatCurrency(summary.totalExpenses)}\n`;
-    message += `Seus gastos: ${formatCurrency(summary.myExpenses)}\n`;
+    // Default for duo: show contribution-based when available
+    if (hasContribution) {
+      const contributionBalance = totalContribution - summary.totalExpenses;
+      const balanceEmoji = contributionBalance >= 0 ? "+" : "";
+      message += `<b>Saldo compartilhado:</b> ${balanceEmoji}${formatCurrency(contributionBalance)}\n`;
+      message += `Contribuição: ${formatCurrency(totalContribution)}\n`;
+      message += `Despesas totais: ${formatCurrency(summary.totalExpenses)}\n`;
+      message += `Seus gastos: ${formatCurrency(summary.myExpenses)}\n`;
+      const totalIncome = userContext.incomeSources.reduce((acc, s) => acc + (s.amount || 0), 0);
+      const personalReserve = totalIncome - totalContribution;
+      if (personalReserve > 0) {
+        message += `\n<i>(Renda total: ${formatCurrency(totalIncome)} | Reserva pessoal: ${formatCurrency(personalReserve)})</i>\n`;
+      }
+    } else {
+      const balanceEmoji = summary.balance >= 0 ? "+" : "";
+      message += `<b>Saldo:</b> ${balanceEmoji}${formatCurrency(summary.balance)}\n`;
+      message += `Receitas: ${formatCurrency(summary.totalIncome)}\n`;
+      message += `Despesas totais: ${formatCurrency(summary.totalExpenses)}\n`;
+      message += `Seus gastos: ${formatCurrency(summary.myExpenses)}\n`;
+    }
   } else {
     // Solo budget
     const balanceEmoji = summary.balance >= 0 ? "+" : "";
@@ -111,10 +193,16 @@ async function handleBalanceQuery(
     message += `Despesas: ${formatCurrency(summary.totalExpenses)}\n`;
   }
 
-  // Top categories
-  if (summary.topCategories.length > 0) {
+  // Top categories (filtered by privacy)
+  const visibleCats = getVisibleCategories(userContext);
+  const visibleCatIds = new Set(visibleCats.map((c) => c.id));
+  const filteredTopCategories = summary.topCategories.filter(
+    (cat) => visibleCatIds.has(cat.categoryId)
+  );
+
+  if (filteredTopCategories.length > 0) {
     message += `\n<b>Maiores gastos:</b>\n`;
-    for (const cat of summary.topCategories.slice(0, 5)) {
+    for (const cat of filteredTopCategories.slice(0, 5)) {
       const icon = cat.categoryIcon || "📁";
       message += `${icon} ${cat.categoryName}: ${formatCurrency(cat.spent)}\n`;
     }
@@ -140,15 +228,16 @@ async function handleCategoryQuery(
     return;
   }
 
-  // Try to match the category
-  const match = matchCategory(categoryName, userContext.categories);
+  // Only match against visible categories (respects privacy)
+  const visibleCategories = getVisibleCategories(userContext);
+  const match = matchCategory(categoryName, visibleCategories);
 
   if (!match) {
     await adapter.sendMessage(
       chatId,
       `Não encontrei a categoria "${categoryName}".\n\n` +
         `Categorias disponíveis:\n` +
-        userContext.categories.map((c) => `- ${c.name}`).join("\n")
+        visibleCategories.map((c) => `- ${c.name}`).join("\n")
     );
     return;
   }
@@ -191,16 +280,19 @@ async function handleGoalQuery(
   goalName: string | undefined,
   userContext: UserContext
 ): Promise<void> {
-  if (!goalName && userContext.goals.length === 0) {
+  // Apply privacy filtering to goals
+  const visibleGoals = getVisibleGoals(userContext);
+
+  if (!goalName && visibleGoals.length === 0) {
     await adapter.sendMessage(chatId, "Você ainda não tem metas cadastradas.");
     return;
   }
 
-  // If no specific goal mentioned, show all goals
+  // If no specific goal mentioned, show all visible goals
   if (!goalName) {
     let message = "<b>Suas Metas</b>\n\n";
 
-    for (const goal of userContext.goals) {
+    for (const goal of visibleGoals) {
       const progress = goal.targetAmount > 0
         ? Math.round((goal.currentAmount / goal.targetAmount) * 100)
         : 0;
@@ -217,15 +309,15 @@ async function handleGoalQuery(
     return;
   }
 
-  // Try to match the goal
-  const match = matchGoal(goalName, userContext.goals);
+  // Try to match the goal (only against visible ones)
+  const match = matchGoal(goalName, visibleGoals);
 
   if (!match) {
     await adapter.sendMessage(
       chatId,
       `Não encontrei a meta "${goalName}".\n\n` +
         `Suas metas:\n` +
-        userContext.goals.map((g) => `- ${g.name}`).join("\n")
+        visibleGoals.map((g) => `- ${g.name}`).join("\n")
     );
     return;
   }

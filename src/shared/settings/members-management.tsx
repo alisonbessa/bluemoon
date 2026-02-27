@@ -44,9 +44,21 @@ import {
   Heart,
   Share2,
   RefreshCw,
+  EyeIcon,
+  EyeOffIcon,
+  ShieldIcon,
 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/shared/ui/radio-group";
 import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
+import type { PrivacyMode } from "@/db/schema/budgets";
+import { PRIVACY_OPTIONS } from "@/shared/lib/privacy";
+
+const PRIVACY_ICONS: Record<PrivacyMode, React.ReactNode> = {
+  visible: <EyeIcon className="h-4 w-4 text-muted-foreground" />,
+  totals_only: <ShieldIcon className="h-4 w-4 text-muted-foreground" />,
+  private: <EyeOffIcon className="h-4 w-4 text-muted-foreground" />,
+};
 
 interface Member {
   id: string;
@@ -96,6 +108,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
   const [budgetName, setBudgetName] = useState<string>("");
   const [editingBudgetName, setEditingBudgetName] = useState<string>("");
   const [isSavingBudgetName, setIsSavingBudgetName] = useState(false);
+  const [selectedPrivacyMode, setSelectedPrivacyMode] = useState<PrivacyMode>("visible");
 
   const fetchData = useCallback(async () => {
     try {
@@ -142,21 +155,27 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
     setIsSavingBudgetName(true);
 
     try {
-      // Only update budget name if it changed
+      // Update budget name if changed, and always set the privacy mode
+      const budgetUpdates: Record<string, string> = { budgetId };
       if (editingBudgetName.trim() && editingBudgetName !== budgetName) {
-        const updateRes = await fetch("/api/app/budget", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ budgetId, name: editingBudgetName.trim() }),
-        });
+        budgetUpdates.name = editingBudgetName.trim();
+      }
+      budgetUpdates.privacyMode = selectedPrivacyMode;
 
-        if (!updateRes.ok) {
-          toast.error("Erro ao atualizar nome do orçamento");
-          setIsSavingBudgetName(false);
-          return;
-        }
+      const updateRes = await fetch("/api/app/budget", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(budgetUpdates),
+      });
 
-        setBudgetName(editingBudgetName.trim());
+      if (!updateRes.ok) {
+        toast.error("Erro ao atualizar orçamento");
+        setIsSavingBudgetName(false);
+        return;
+      }
+
+      if (budgetUpdates.name) {
+        setBudgetName(budgetUpdates.name);
       }
 
       // Now create the invite
@@ -474,7 +493,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-5 py-4">
             <div className="space-y-2">
               <Label htmlFor="budget-name">Nome do Orçamento</Label>
               <Input
@@ -486,6 +505,43 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
               <p className="text-xs text-muted-foreground">
                 Este nome aparecerá no convite e na página de aceitar convite.
               </p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <div>
+                <Label>Privacidade dos gastos pessoais</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Controle o que vocês veem dos gastos e metas pessoais um do outro. Ambos podem solicitar mudanças depois.
+                </p>
+              </div>
+              <RadioGroup
+                value={selectedPrivacyMode}
+                onValueChange={(v) => setSelectedPrivacyMode(v as PrivacyMode)}
+                className="space-y-2"
+              >
+                {PRIVACY_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className={cn(
+                      "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
+                      selectedPrivacyMode === option.value && "border-primary bg-primary/5"
+                    )}
+                  >
+                    <RadioGroupItem value={option.value} className="mt-0.5" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5">
+                        {PRIVACY_ICONS[option.value]}
+                        <span className="font-medium text-sm">{option.label}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {option.description}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+              </RadioGroup>
             </div>
           </div>
 

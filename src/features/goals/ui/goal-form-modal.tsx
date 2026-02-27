@@ -6,6 +6,8 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { CurrencyInput } from "@/shared/ui/currency-input";
 import { IconPicker } from "@/shared/ui/icon-color-picker";
+import { Users } from "lucide-react";
+import { cn } from "@/shared/lib/utils";
 import { toast } from "sonner";
 
 // Colors for random selection
@@ -23,6 +25,13 @@ interface Goal {
   targetAmount: number;
   targetDate: string;
   accountId?: string | null;
+  memberId?: string | null;
+}
+
+interface Member {
+  id: string;
+  name: string;
+  color?: string | null;
 }
 
 interface Account {
@@ -36,6 +45,7 @@ interface GoalFormModalProps {
   onOpenChange: (open: boolean) => void;
   budgetId: string;
   editingGoal?: Goal | null;
+  members?: Member[];
   onSuccess?: () => void;
 }
 
@@ -48,6 +58,7 @@ export function GoalFormModal({
   onOpenChange,
   budgetId,
   editingGoal,
+  members = [],
   onSuccess,
 }: GoalFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,6 +75,7 @@ export function GoalFormModal({
     initialAmount: 0, // only for creation
     targetDate: editingGoal?.targetDate?.split("T")[0] || "",
     accountId: editingGoal?.accountId || "",
+    memberId: editingGoal?.memberId ?? undefined as string | undefined,
   });
 
   // Fetch accounts when modal opens
@@ -87,6 +99,7 @@ export function GoalFormModal({
         initialAmount: 0,
         targetDate: editingGoal.targetDate?.split("T")[0] || "",
         accountId: editingGoal.accountId || "",
+        memberId: editingGoal.memberId ?? undefined,
       });
     } else {
       setFormData({
@@ -97,6 +110,7 @@ export function GoalFormModal({
         initialAmount: 0,
         targetDate: "",
         accountId: "",
+        memberId: undefined,
       });
     }
   }, [editingGoal, open, randomColor]);
@@ -110,6 +124,7 @@ export function GoalFormModal({
       initialAmount: 0,
       targetDate: "",
       accountId: "",
+      memberId: undefined,
     });
   };
 
@@ -141,6 +156,7 @@ export function GoalFormModal({
         initialAmount: formData.initialAmount,
         targetDate: formData.targetDate,
         accountId: formData.accountId,
+        memberId: formData.memberId || null,
         budgetId,
       };
 
@@ -190,6 +206,49 @@ export function GoalFormModal({
       submitLabel={editingGoal ? "Salvar" : "Criar"}
     >
       <div className="grid gap-4">
+        {/* Goal type selector (only for Duo budgets) */}
+        {members.length > 1 && (
+          <div className="grid gap-2">
+            <Label>Tipo de meta</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {/* Shared option */}
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, memberId: undefined })}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all text-left",
+                  !formData.memberId
+                    ? "border-violet-500 bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300 dark:border-violet-400"
+                    : "border-muted hover:border-muted-foreground/30 text-muted-foreground"
+                )}
+              >
+                <Users className="h-4 w-4 shrink-0" />
+                <span>Conjunta</span>
+              </button>
+              {/* Per-member options */}
+              {members.map((member) => (
+                <button
+                  key={member.id}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, memberId: member.id })}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all text-left",
+                    formData.memberId === member.id
+                      ? "border-violet-500 bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300 dark:border-violet-400"
+                      : "border-muted hover:border-muted-foreground/30 text-muted-foreground"
+                  )}
+                >
+                  <span
+                    className="h-3 w-3 rounded-full shrink-0"
+                    style={{ backgroundColor: member.color || '#6366f1' }}
+                  />
+                  <span className="truncate">Só {member.name.split(' ')[0]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Row 1: Name */}
         <div className="grid gap-2">
           <Label htmlFor="goal-name">Nome da meta</Label>
@@ -208,7 +267,7 @@ export function GoalFormModal({
         />
 
         {/* Row 2: Target Amount + Initial Amount */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className={`grid gap-4 ${!editingGoal ? 'grid-cols-2' : ''}`}>
           <div className="grid gap-2">
             <Label htmlFor="goal-targetAmount">Valor alvo</Label>
             <CurrencyInput

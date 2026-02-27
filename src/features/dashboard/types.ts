@@ -20,10 +20,16 @@ export interface Budget {
   name: string;
 }
 
+export type DashboardViewMode = "shared" | "complete";
+
 export interface MonthSummary {
   income: { planned: number; received: number };
+  /** Contribution totals - how much of the income goes to the shared budget */
+  contribution: { planned: number };
   expenses: { allocated: number; spent: number };
   available: number;
+  /** Whether any income source has contribution != total amount */
+  hasContributionModel: boolean;
 }
 
 export interface Goal {

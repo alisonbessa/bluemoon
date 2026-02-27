@@ -6,6 +6,7 @@ import { optimisticMutate } from '@/shared/lib/swr/optimistic';
 
 interface GoalsResponse {
   goals: Goal[];
+  privacyMode?: string;
 }
 
 const GOALS_KEY = '/api/app/goals';

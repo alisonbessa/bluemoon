@@ -9,6 +9,7 @@ import type {
   DailyChartData,
   MonthlyChartData,
   CreditCard,
+  DashboardViewMode,
 } from '../types';
 
 interface BudgetsResponse {
@@ -16,8 +17,9 @@ interface BudgetsResponse {
 }
 
 interface AllocationsResponse {
-  income?: { totals: { planned: number; received: number } };
+  income?: { totals: { planned: number; contributionPlanned: number; received: number } };
   totals?: { allocated: number; spent: number };
+  hasContributionModel?: boolean;
 }
 
 interface CommitmentsResponse {
@@ -58,14 +60,20 @@ export function useDashboardData(year: number, month: number) {
   const { data: allocationsData, isLoading: allocationsLoading } =
     useSWR<AllocationsResponse>(allocationsKey);
 
+  const hasContributionModel = allocationsData?.hasContributionModel ?? false;
+
   // Calculate month summary from allocations
   const monthSummary: MonthSummary | null = allocationsData
     ? {
         income: allocationsData.income?.totals ?? { planned: 0, received: 0 },
+        contribution: {
+          planned: allocationsData.income?.totals?.contributionPlanned ?? allocationsData.income?.totals?.planned ?? 0,
+        },
         expenses: allocationsData.totals ?? { allocated: 0, spent: 0 },
         available:
           (allocationsData.income?.totals?.planned ?? 0) -
           (allocationsData.totals?.allocated ?? 0),
+        hasContributionModel,
       }
     : null;
 
@@ -99,6 +107,7 @@ export function useDashboardData(year: number, month: number) {
     budgets,
     primaryBudgetId,
     monthSummary,
+    hasContributionModel,
     commitments: commitmentsData?.commitments ?? [],
     goals: goalsData?.goals ?? [],
     dailyChartData: statsData?.dailyChartData ?? [],

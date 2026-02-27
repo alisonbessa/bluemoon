@@ -19,6 +19,7 @@ export async function GET(
       expiresAt: invites.expiresAt,
       budgetId: invites.budgetId,
       budgetName: budgets.name,
+      budgetPrivacyMode: budgets.privacyMode,
       invitedByName: users.name,
       invitedByEmail: users.email,
     })
@@ -51,6 +52,7 @@ export async function GET(
       budget: {
         id: invite.budgetId,
         name: invite.budgetName,
+        privacyMode: invite.budgetPrivacyMode || "visible",
       },
       invitedBy: {
         name: invite.invitedByName,

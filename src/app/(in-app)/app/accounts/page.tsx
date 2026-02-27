@@ -63,7 +63,7 @@ export default function AccountsPage() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const [includeInvestments, setIncludeInvestments] = useState(false);
-  const [ownershipFilter, setOwnershipFilter] = useState<'all' | 'mine' | 'shared'>('all');
+  const [ownershipFilter, setOwnershipFilter] = useState<'mine' | 'shared'>('mine');
   const { isExpanded, toggleGroup } = useExpandedGroups([], { accordion: true });
 
   // Get current user's member id by matching member.userId with current user's id
@@ -151,7 +151,6 @@ export default function AccountsPage() {
 
   // Filter accounts by ownership
   const filterByOwnership = (account: Account) => {
-    if (ownershipFilter === 'all') return true;
     if (ownershipFilter === 'mine') return account.ownerId === currentUserMemberId;
     if (ownershipFilter === 'shared') return !account.ownerId;
     return true;
@@ -243,17 +242,6 @@ export default function AccountsPage() {
           {/* Right: Ownership filter */}
           {hasMixedOwnership && (
             <div className="flex items-center gap-0.5 bg-muted rounded-md p-0.5">
-              <button
-                onClick={() => setOwnershipFilter('all')}
-                className={cn(
-                  'px-2 py-0.5 rounded text-xs font-medium transition-colors',
-                  ownershipFilter === 'all'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                Todos
-              </button>
               <button
                 onClick={() => setOwnershipFilter('mine')}
                 className={cn(

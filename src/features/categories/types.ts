@@ -24,6 +24,7 @@ export interface Category {
   dueDay?: number | null;
   groupId: string;
   budgetId: string;
+  memberId?: string | null;
 }
 
 export interface RecurringBillSummary {
@@ -33,6 +34,8 @@ export interface RecurringBillSummary {
   frequency: string;
   dueDay: number | null;
   dueMonth: number | null;
+  isAutoDebit?: boolean;
+  isVariable?: boolean;
   account: { id: string; name: string; icon: string | null } | null;
 }
 

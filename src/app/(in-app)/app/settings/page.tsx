@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { MessagingConnectionCard } from "@/integrations/messaging/MessagingConnectionCard";
 import { MembersManagement } from "@/shared/settings/members-management";
+import { PrivacySettings } from "@/shared/settings/privacy-settings";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -77,7 +78,7 @@ export default function SettingsPage() {
   const [feedbackType, setFeedbackType] = useState<"question" | "bug" | "feedback">("question");
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
-  const { startTutorial, notifyActionCompleted, isActive: isTutorialActive, setCondition } = useTutorial();
+  const { startTutorial, setCondition } = useTutorial();
   const router = useRouter();
 
   // Computed properties for plan/trial status
@@ -463,14 +464,17 @@ export default function SettingsPage() {
           {budgetId && (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2 && (
             <MembersManagement budgetId={budgetId} />
           )}
+
+          {/* Privacy Settings - Only show for Duo plans */}
+          {budgetId && (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2 && (
+            <PrivacySettings budgetId={budgetId} />
+          )}
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6 min-w-0">
           {/* Messaging Integration */}
-          <MessagingConnectionCard
-            onConnected={isTutorialActive ? () => notifyActionCompleted("hasMessagingConnected") : undefined}
-          />
+          <MessagingConnectionCard />
 
           {/* Plan */}
           <Card>

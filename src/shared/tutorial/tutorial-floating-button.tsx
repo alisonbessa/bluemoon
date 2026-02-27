@@ -11,6 +11,8 @@ export function TutorialFloatingButton() {
     currentStep,
     stepIndex,
     totalSteps,
+    pageStepIndex,
+    pageStepsTotal,
     isWaitingForAction,
     goToNextPage,
     skipTutorial,
@@ -112,7 +114,7 @@ export function TutorialFloatingButton() {
                 {isLastStep ? "Concluir Tutorial" : "Próxima Etapa"}
               </span>
               <span className="text-primary-foreground/70 text-sm">
-                ({stepIndex + 1}/{totalSteps})
+                ({pageStepIndex + 1}/{pageStepsTotal})
               </span>
             </div>
             <button
@@ -139,7 +141,7 @@ export function TutorialFloatingButton() {
         {isExpanded && (
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">
-              Passo {stepIndex + 1} de {totalSteps}
+              Passo {pageStepIndex + 1} de {pageStepsTotal}
             </span>
             <button
               onClick={(e) => {
