@@ -32,6 +32,7 @@ import { formatCurrency, formatCurrencyCompact } from "@/shared/lib/formatters";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 import { useAccounts, useBudgets, useMembers, useUser } from "@/shared/hooks";
 import { useCurrentUser } from "@/shared/hooks/use-current-user";
+import { useViewMode } from "@/shared/providers/view-mode-provider";
 
 const GRID_COLS = "24px 1fr 100px 100px 120px";
 
@@ -51,6 +52,7 @@ export default function AccountsPage() {
   const { members, isLoading: membersLoading } = useMembers();
   const { user, isLoading: userLoading } = useUser();
   const { currentPlan } = useCurrentUser();
+  const { viewMode, setViewMode } = useViewMode();
 
   const isLoading = accountsLoading || budgetsLoading || membersLoading || userLoading;
 
@@ -100,7 +102,18 @@ export default function AccountsPage() {
       throw new Error(error.message || error.error || "Erro ao criar conta");
     }
 
+    const createdAccount = await response.json();
     toast.success("Conta criada com sucesso!");
+
+    // Switch view mode to match the created account's ownership
+    if (isDuoPlan) {
+      const isSharedAccount = !createdAccount.account?.ownerId && !data.ownerId;
+      const targetView = isSharedAccount ? "shared" : "mine";
+      if (viewMode !== targetView && viewMode !== "all") {
+        setViewMode(targetView);
+      }
+    }
+
     mutateAccounts();
 
     // Notify tutorial that user created an account
@@ -509,7 +522,10 @@ export default function AccountsPage() {
         members={members}
         allowSharedOwnership={isDuoPlan}
         currentUserMemberId={currentUserMemberId}
-        initialData={preselectedType ? { type: preselectedType as "checking" | "savings" | "credit_card" | "cash" | "investment" | "benefit" } : undefined}
+        initialData={{
+          ...(preselectedType ? { type: preselectedType as "checking" | "savings" | "credit_card" | "cash" | "investment" | "benefit" } : {}),
+          ...(isDuoPlan && viewMode !== "shared" && currentUserMemberId ? { ownerId: currentUserMemberId } : {}),
+        }}
       />
 
       {editingAccount && (
