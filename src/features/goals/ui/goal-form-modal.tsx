@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { FormModalWrapper, AccountSelector } from "@/shared/molecules";
+import { FormModalWrapper, AccountSelector, MemberSelector } from "@/shared/molecules";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { CurrencyInput } from "@/shared/ui/currency-input";
@@ -23,6 +23,13 @@ interface Goal {
   targetAmount: number;
   targetDate: string;
   accountId?: string | null;
+  memberId?: string | null;
+}
+
+interface Member {
+  id: string;
+  name: string;
+  color?: string | null;
 }
 
 interface Account {
@@ -36,6 +43,7 @@ interface GoalFormModalProps {
   onOpenChange: (open: boolean) => void;
   budgetId: string;
   editingGoal?: Goal | null;
+  members?: Member[];
   onSuccess?: () => void;
 }
 
@@ -48,6 +56,7 @@ export function GoalFormModal({
   onOpenChange,
   budgetId,
   editingGoal,
+  members = [],
   onSuccess,
 }: GoalFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,6 +73,7 @@ export function GoalFormModal({
     initialAmount: 0, // only for creation
     targetDate: editingGoal?.targetDate?.split("T")[0] || "",
     accountId: editingGoal?.accountId || "",
+    memberId: editingGoal?.memberId ?? undefined as string | undefined,
   });
 
   // Fetch accounts when modal opens
@@ -87,6 +97,7 @@ export function GoalFormModal({
         initialAmount: 0,
         targetDate: editingGoal.targetDate?.split("T")[0] || "",
         accountId: editingGoal.accountId || "",
+        memberId: editingGoal.memberId ?? undefined,
       });
     } else {
       setFormData({
@@ -97,6 +108,7 @@ export function GoalFormModal({
         initialAmount: 0,
         targetDate: "",
         accountId: "",
+        memberId: undefined,
       });
     }
   }, [editingGoal, open, randomColor]);
@@ -110,6 +122,7 @@ export function GoalFormModal({
       initialAmount: 0,
       targetDate: "",
       accountId: "",
+      memberId: undefined,
     });
   };
 
@@ -141,6 +154,7 @@ export function GoalFormModal({
         initialAmount: formData.initialAmount,
         targetDate: formData.targetDate,
         accountId: formData.accountId,
+        memberId: formData.memberId || null,
         budgetId,
       };
 
@@ -205,6 +219,18 @@ export function GoalFormModal({
         <IconPicker
           icon={formData.icon}
           onIconChange={(icon) => setFormData({ ...formData, icon })}
+        />
+
+        {/* Member selector (only shown for Duo budgets) */}
+        <MemberSelector
+          value={formData.memberId}
+          onChange={(value) => setFormData({ ...formData, memberId: value })}
+          members={members}
+          label="Tipo de meta"
+          allowNone
+          noneLabel="Meta conjunta (do casal)"
+          placeholder="Selecione..."
+          hideIfSingleMember
         />
 
         {/* Row 2: Target Amount + Initial Amount */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/shared/ui/button";
 import { Progress } from "@/shared/ui/progress";
 import {
@@ -11,12 +11,13 @@ import {
   TrendingUp,
   Trophy,
   Archive,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/shared/lib/formatters";
 // canvas-confetti is loaded dynamically only when a goal is completed
 import { GoalFormModal, ContributeModal } from "@/features/goals";
-import { useGoals, useBudgets, useAccounts } from "@/shared/hooks";
+import { useGoals, useBudgets, useAccounts, useMembers } from "@/shared/hooks";
 import type { Goal } from "@/types";
 import {
   PageHeader,
@@ -47,9 +48,16 @@ export default function GoalsPage() {
   const { goals, isLoading: goalsLoading, mutate: mutateGoals } = useGoals();
   const { budgets, isLoading: budgetsLoading } = useBudgets();
   const { accounts, isLoading: accountsLoading, mutate: mutateAccounts } = useAccounts();
+  const { members, isLoading: membersLoading } = useMembers();
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
 
-  const isLoading = goalsLoading || budgetsLoading || accountsLoading;
+  const isDuo = members.length > 1;
+  const membersMap = useMemo(
+    () => new Map(members.map((m) => [m.id, m])),
+    [members]
+  );
+
+  const isLoading = goalsLoading || budgetsLoading || accountsLoading || membersLoading;
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
@@ -193,7 +201,27 @@ export default function GoalsPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">{goal.icon}</span>
                   <div>
-                    <h3 className="font-semibold">{goal.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">{goal.name}</h3>
+                      {isDuo && (
+                        goal.memberId ? (
+                          <span
+                            className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                            style={{
+                              backgroundColor: `${membersMap.get(goal.memberId)?.color || '#6366f1'}20`,
+                              color: membersMap.get(goal.memberId)?.color || '#6366f1',
+                            }}
+                          >
+                            {membersMap.get(goal.memberId)?.name || 'Individual'}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300 font-medium">
+                            <Users className="h-2.5 w-2.5" />
+                            Conjunta
+                          </span>
+                        )
+                      )}
+                    </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3" />
                       <span>até {formatDate(goal.targetDate)}</span>
@@ -306,7 +334,12 @@ export default function GoalsPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{goal.icon}</span>
                     <div>
-                      <h3 className="font-medium text-sm">{goal.name}</h3>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="font-medium text-sm">{goal.name}</h3>
+                        {isDuo && !goal.memberId && (
+                          <Users className="h-3 w-3 text-violet-500" />
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {formatCurrency(goal.targetAmount)} • Concluída em{" "}
                         {goal.completedAt
@@ -333,6 +366,7 @@ export default function GoalsPage() {
           }}
           budgetId={budgets[0].id}
           editingGoal={editingGoal}
+          members={members}
           onSuccess={handleFormSuccess}
         />
       )}

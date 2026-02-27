@@ -66,7 +66,7 @@ export const POST = withAuthRequired(async (req, context) => {
     return validationError(validation.error);
   }
 
-  const { budgetId, targetDate, initialAmount, accountId, ...goalData } = validation.data;
+  const { budgetId, targetDate, initialAmount, accountId, memberId, ...goalData } = validation.data;
 
   // Check user has access to budget
   const budgetIds = await getUserBudgetIds(session.user.id);
@@ -86,6 +86,7 @@ export const POST = withAuthRequired(async (req, context) => {
       ...goalData,
       name: capitalizeWords(goalData.name),
       budgetId,
+      memberId: memberId ?? null,
       accountId,
       targetDate: new Date(targetDate),
       currentAmount: initialAmount || 0,

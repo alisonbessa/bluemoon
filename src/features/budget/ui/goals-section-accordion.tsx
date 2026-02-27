@@ -19,6 +19,7 @@ interface GoalLocal {
   monthlyTarget: number;
   monthsRemaining: number;
   isCompleted: boolean;
+  memberId?: string | null;
 }
 
 interface GoalsSectionAccordionProps {
