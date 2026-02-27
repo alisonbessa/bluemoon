@@ -3,7 +3,7 @@ import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionReq
 import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
 import { goals, financialAccounts } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, or, isNull } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import {
@@ -44,6 +44,7 @@ export const GET = withAuthRequired(async (req, context) => {
   }
 
   // View mode filtering via the linked account's ownerId
+  // Goals with NULL accountId (unlinked) should be visible in "mine" view
   if (userMemberId) {
     const partnerPrivacy = viewMode === "all"
       ? await getPartnerPrivacyLevel(session.user.id, activeBudgetId)
@@ -55,7 +56,8 @@ export const GET = withAuthRequired(async (req, context) => {
       partnerPrivacy,
     });
     if (viewCondition) {
-      conditions.push(viewCondition);
+      // Include goals with no linked account (NULL accountId → LEFT JOIN produces NULL ownerId)
+      conditions.push(or(viewCondition, isNull(goals.accountId))!);
     }
   }
 

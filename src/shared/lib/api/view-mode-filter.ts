@@ -19,34 +19,43 @@ export function parseViewMode(searchParams: URLSearchParams): ViewMode {
 /**
  * Build a SQL condition for filtering by viewMode.
  *
- * - "mine": ownerField = userMemberId (personal items)
+ * - "mine": ownerField = userMemberId (+ shared items when includeSharedInMine is true)
  * - "shared": ownerField IS NULL (shared items)
- * - "all": no filtering (or excludes partner data when privacy = "private")
+ * - "all": no filtering, or excludes partner data when privacy = "private" or "totals_only"
+ *
+ * @param includeSharedInMine - When true, "mine" mode also includes NULL (shared) records.
+ *   Use for entities where NULL means "shared with everyone" and should be visible
+ *   in personal view (e.g. categories). Do NOT use for entities where NULL means "unowned"
+ *   and belongs in the "shared" view (e.g. accounts, transactions).
  */
 export function getViewModeCondition(opts: {
   viewMode: ViewMode;
   userMemberId: string;
   ownerField: PgColumn;
   partnerPrivacy?: PrivacyLevel;
+  includeSharedInMine?: boolean;
 }): SQL | undefined {
-  const { viewMode, userMemberId, ownerField, partnerPrivacy } = opts;
+  const { viewMode, userMemberId, ownerField, partnerPrivacy, includeSharedInMine } = opts;
 
   switch (viewMode) {
     case "mine":
-      return eq(ownerField, userMemberId);
+      return includeSharedInMine
+        ? or(eq(ownerField, userMemberId), isNull(ownerField))!
+        : eq(ownerField, userMemberId);
 
     case "shared":
       return isNull(ownerField);
 
     case "all":
-      // If partner set privacy to "private", only show own + shared (exclude partner personal data)
-      if (partnerPrivacy === "private") {
-        return or(eq(ownerField, userMemberId), isNull(ownerField));
+      // "private" or "totals_only": exclude partner's individual records (own + shared only)
+      // For "totals_only", partner aggregate totals are handled separately per-endpoint
+      if (partnerPrivacy === "private" || partnerPrivacy === "totals_only") {
+        return or(eq(ownerField, userMemberId), isNull(ownerField))!;
       }
-      // "all_visible" or "totals_only" — return all data (totals_only is handled at the presentation layer)
+      // "all_visible": no filter, show everything
       return undefined;
 
     default:
-      return or(eq(ownerField, userMemberId), isNull(ownerField));
+      return or(eq(ownerField, userMemberId), isNull(ownerField))!;
   }
 }

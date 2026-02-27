@@ -45,11 +45,23 @@ export const GET = withAuthRequired(async (req, context) => {
     : undefined;
 
   // Build category visibility condition based on viewMode
+  // Categories with NULL memberId are shared — visible in "mine" view
   const categoryViewCondition = userMemberId
     ? getViewModeCondition({
         viewMode,
         userMemberId,
         ownerField: categories.memberId,
+        partnerPrivacy,
+        includeSharedInMine: true,
+      })
+    : undefined;
+
+  // Build transaction visibility condition for spending queries
+  const txViewCondition = userMemberId
+    ? getViewModeCondition({
+        viewMode,
+        userMemberId,
+        ownerField: transactions.memberId,
         partnerPrivacy,
       })
     : undefined;
@@ -89,7 +101,7 @@ export const GET = withAuthRequired(async (req, context) => {
         )
       ),
 
-    // Get spending per category for this month
+    // Get spending per category for this month (filtered by viewMode)
     db
       .select({
         categoryId: transactions.categoryId,
@@ -101,7 +113,8 @@ export const GET = withAuthRequired(async (req, context) => {
           eq(transactions.budgetId, budgetId),
           gte(transactions.date, startDate),
           lte(transactions.date, endDate),
-          inArray(transactions.status, ["pending", "cleared", "reconciled"])
+          inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+          ...(txViewCondition ? [txViewCondition] : [])
         )
       )
       .groupBy(transactions.categoryId),
@@ -459,7 +472,7 @@ export const GET = withAuthRequired(async (req, context) => {
     return g;
   });
 
-  // Get total income/expense from ALL transactions (even without incomeSourceId or categoryId)
+  // Get total income/expense from transactions (filtered by viewMode)
   // Separate confirmed (cleared/reconciled) from pending for accurate reporting
   const [transactionTotals] = await db
     .select({
@@ -476,7 +489,8 @@ export const GET = withAuthRequired(async (req, context) => {
         eq(transactions.budgetId, budgetId),
         gte(transactions.date, startDate),
         lte(transactions.date, endDate),
-        inArray(transactions.status, ["pending", "cleared", "reconciled"])
+        inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+        ...(txViewCondition ? [txViewCondition] : [])
       )
     );
 

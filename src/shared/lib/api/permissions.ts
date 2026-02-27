@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { budgetMembers } from "@/db/schema";
-import { eq, and, ne } from "drizzle-orm";
+import { eq, and, ne, inArray } from "drizzle-orm";
 import type { PrivacyLevel } from "@/db/schema/budget-members";
 
 export type MemberType = "owner" | "partner" | "child" | "pet";
@@ -110,41 +110,25 @@ export async function getUserMemberIdInBudget(
 
 /**
  * Get partner's privacy level in a budget.
- * Returns the privacy level of the other member (partner) in the same budget.
- * Returns "all_visible" if no partner is found (safe default).
+ * Finds the other adult member (owner or partner) in the same budget
+ * and returns their privacy level. Single query instead of two sequential ones.
+ * Returns "all_visible" if no partner is found (safe default for Solo plans).
  */
 export async function getPartnerPrivacyLevel(
   userId: string,
   budgetId: string
 ): Promise<PrivacyLevel> {
-  const partner = await db
+  const [otherAdult] = await db
     .select({ privacyLevel: budgetMembers.privacyLevel })
     .from(budgetMembers)
     .where(
       and(
         eq(budgetMembers.budgetId, budgetId),
         ne(budgetMembers.userId, userId),
-        // Only consider owner/partner members (not children/pets)
-        eq(budgetMembers.type, "partner")
+        inArray(budgetMembers.type, ["owner", "partner"])
       )
     )
     .limit(1);
 
-  // If the current user is the partner, look for the owner instead
-  if (!partner[0]) {
-    const owner = await db
-      .select({ privacyLevel: budgetMembers.privacyLevel })
-      .from(budgetMembers)
-      .where(
-        and(
-          eq(budgetMembers.budgetId, budgetId),
-          ne(budgetMembers.userId, userId),
-          eq(budgetMembers.type, "owner")
-        )
-      )
-      .limit(1);
-    return (owner[0]?.privacyLevel as PrivacyLevel) || "all_visible";
-  }
-
-  return (partner[0].privacyLevel as PrivacyLevel) || "all_visible";
+  return (otherAdult?.privacyLevel as PrivacyLevel) || "all_visible";
 }
