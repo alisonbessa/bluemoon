@@ -197,11 +197,14 @@ export interface UserContext {
     name: string;
     icon?: string | null;
     groupName?: string;
+    memberId?: string | null;
   }>;
   incomeSources: Array<{
     id: string;
     name: string;
     type: string;
+    amount?: number;
+    contributionAmount?: number | null;
   }>;
   goals: Array<{
     id: string;
@@ -209,6 +212,7 @@ export interface UserContext {
     icon?: string | null;
     targetAmount: number;
     currentAmount: number;
+    memberId?: string | null;
   }>;
   accounts: Array<{
     id: string;
@@ -224,12 +228,14 @@ export interface UserContext {
   pendingTransactions: PendingTransaction[];
   defaultAccountId?: string;
   memberId: string;
+  privacyMode?: string;
 }
 
 export interface BudgetInfo {
   budget: {
     id: string;
     name: string;
+    privacyMode?: string;
   };
   member: {
     id: string;
@@ -245,11 +251,14 @@ export interface BudgetInfo {
     name: string;
     icon?: string | null;
     groupName?: string;
+    memberId?: string | null;
   }>;
   incomeSources: Array<{
     id: string;
     name: string;
     type: string;
+    amount?: number;
+    contributionAmount?: number | null;
   }>;
   goals: Array<{
     id: string;
@@ -257,6 +266,7 @@ export interface BudgetInfo {
     icon?: string | null;
     targetAmount: number;
     currentAmount: number;
+    memberId?: string | null;
   }>;
   accounts: Array<{
     id: string;

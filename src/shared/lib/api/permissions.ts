@@ -1,7 +1,8 @@
 import { db } from "@/db";
-import { budgetMembers } from "@/db/schema";
-import { eq, and, ne, inArray } from "drizzle-orm";
+import { budgetMembers, budgets } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import type { PrivacyLevel } from "@/db/schema/budget-members";
+import type { PrivacyMode } from "@/db/schema/budgets";
 
 export type MemberType = "owner" | "partner" | "child" | "pet";
 
@@ -110,25 +111,31 @@ export async function getUserMemberIdInBudget(
 
 /**
  * Get partner's privacy level in a budget.
- * Finds the other adult member (owner or partner) in the same budget
- * and returns their privacy level. Single query instead of two sequential ones.
- * Returns "all_visible" if no partner is found (safe default for Solo plans).
+ * Uses the budget-level privacyMode field and maps it to PrivacyLevel.
+ * Returns "all_visible" if not set (safe default).
  */
 export async function getPartnerPrivacyLevel(
-  userId: string,
+  _userId: string,
   budgetId: string
 ): Promise<PrivacyLevel> {
-  const [otherAdult] = await db
-    .select({ privacyLevel: budgetMembers.privacyLevel })
-    .from(budgetMembers)
-    .where(
-      and(
-        eq(budgetMembers.budgetId, budgetId),
-        ne(budgetMembers.userId, userId),
-        inArray(budgetMembers.type, ["owner", "partner"])
-      )
-    )
+  const [budget] = await db
+    .select({ privacyMode: budgets.privacyMode })
+    .from(budgets)
+    .where(eq(budgets.id, budgetId))
     .limit(1);
 
-  return (otherAdult?.privacyLevel as PrivacyLevel) || "all_visible";
+  return mapPrivacyModeToLevel(budget?.privacyMode);
+}
+
+/**
+ * Map budget-level PrivacyMode to viewMode-compatible PrivacyLevel.
+ * Budget uses: visible | totals_only | private
+ * ViewMode filter uses: all_visible | totals_only | private
+ */
+function mapPrivacyModeToLevel(mode: PrivacyMode | null | undefined): PrivacyLevel {
+  switch (mode) {
+    case "totals_only": return "totals_only";
+    case "private": return "private";
+    default: return "all_visible";
+  }
 }

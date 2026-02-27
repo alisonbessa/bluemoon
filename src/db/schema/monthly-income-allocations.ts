@@ -21,6 +21,7 @@ export const monthlyIncomeAllocations = pgTable("monthly_income_allocations", {
 
   // Valor em centavos - override do valor padrão da fonte de renda
   planned: integer("planned").notNull().default(0),
+  contributionPlanned: integer("contribution_planned"), // Override mensal da contribuição (null = usa padrão da income source)
 
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),

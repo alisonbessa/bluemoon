@@ -33,8 +33,15 @@
     {
       "idx": 4,
       "version": "7",
+      "when": 1772150400000,
+      "tag": "0004_contribution_model",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
       "when": 1772232497473,
-      "tag": "0004_add-privacy-level",
+      "tag": "0005_add-privacy-level",
       "breakpoints": true
     }
   ]

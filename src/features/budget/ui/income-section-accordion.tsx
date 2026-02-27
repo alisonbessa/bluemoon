@@ -10,57 +10,26 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import { cn } from '@/shared/lib/utils';
 import { AccordionContent } from '@/shared/ui/accordion-content';
-import { formatCurrency, INCOME_TYPE_CONFIG, FREQUENCY_LABELS } from '../types';
+import {
+  formatCurrency,
+  INCOME_TYPE_CONFIG,
+  FREQUENCY_LABELS,
+  type IncomeSource,
+  type IncomeSourceData,
+  type IncomeMemberGroup,
+  type IncomeData,
+} from '../types';
 import type { MobileViewMode } from '../hooks';
 
-// Local types that match what the budget page provides
-// These are more permissive to allow compatibility with the page's local types
-interface MemberLocal {
-  id: string;
-  name: string;
-  color: string | null;
-}
-
-interface IncomeSourceLocal {
-  id: string;
-  name: string;
-  type: 'salary' | 'benefit' | 'freelance' | 'rental' | 'investment' | 'other';
-  amount: number;
-  frequency: 'monthly' | 'biweekly' | 'weekly';
-  dayOfMonth?: number | null;
-  memberId: string | null;
-  member?: { id: string; name: string; color?: string | null } | null;
-  account?: { id: string; name: string; icon?: string | null } | null;
-  isAutoConfirm?: boolean;
-}
-
-interface IncomeSourceDataLocal {
-  incomeSource: IncomeSourceLocal;
-  planned: number;
-  defaultAmount: number;
-  received: number;
-}
-
-interface IncomeMemberGroupLocal {
-  member: MemberLocal | null;
-  sources: IncomeSourceDataLocal[];
-  totals: { planned: number; received: number };
-}
-
-interface IncomeDataLocal {
-  byMember: IncomeMemberGroupLocal[];
-  totals: { planned: number; received: number };
-}
-
 interface IncomeSectionAccordionProps {
-  incomeData: IncomeDataLocal;
+  incomeData: IncomeData;
   isExpanded: boolean;
   onToggle: () => void;
   expandedMembers: string[];
   onToggleMember: (memberId: string) => void;
-  onEditIncome: (item: IncomeSourceDataLocal) => void;
-  onEditIncomeSource: (source: IncomeSourceLocal) => void;
-  onDeleteIncomeSource: (source: IncomeSourceLocal) => void;
+  onEditIncome: (item: IncomeSourceData) => void;
+  onEditIncomeSource: (source: IncomeSource) => void;
+  onDeleteIncomeSource: (source: IncomeSource) => void;
   onAddIncomeSource: (preselectedMemberId?: string) => void;
   mobileViewMode?: MobileViewMode;
 }
@@ -234,12 +203,12 @@ export function IncomeSectionAccordion({
 }
 
 interface IncomeMemberSectionProps {
-  memberGroup: IncomeMemberGroupLocal;
+  memberGroup: IncomeMemberGroup;
   isExpanded: boolean;
   onToggle: () => void;
-  onEditIncome: (item: IncomeSourceDataLocal) => void;
-  onEditSource: (source: IncomeSourceLocal) => void;
-  onDeleteSource: (source: IncomeSourceLocal) => void;
+  onEditIncome: (item: IncomeSourceData) => void;
+  onEditSource: (source: IncomeSource) => void;
+  onDeleteSource: (source: IncomeSource) => void;
   onAddSource: () => void;
   mobileViewMode?: MobileViewMode;
 }
@@ -368,7 +337,7 @@ function IncomeMemberSection({
 }
 
 interface IncomeSourceRowProps {
-  item: IncomeSourceDataLocal;
+  item: IncomeSourceData;
   indent: boolean;
   onEditIncome: () => void;
   onEditSource: () => void;

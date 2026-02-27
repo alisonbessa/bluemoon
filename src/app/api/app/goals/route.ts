@@ -2,7 +2,7 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
-import { goals, financialAccounts } from "@/db/schema";
+import { goals, financialAccounts, budgets } from "@/db/schema";
 import { eq, and, inArray, or, isNull } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
@@ -68,13 +68,48 @@ export const GET = withAuthRequired(async (req, context) => {
     .where(and(...conditions))
     .orderBy(goals.displayOrder);
 
-  // Add calculated metrics to each goal
-  const goalsWithMetrics = userGoals.map(({ goal }) => ({
-    ...goal,
-    ...calculateGoalMetrics(goal),
-  }));
+  // Get budget-level privacy mode for server-side enforcement
+  let privacyMode = "visible";
+  if (activeBudgetId) {
+    const [budget] = await db
+      .select({ privacyMode: budgets.privacyMode })
+      .from(budgets)
+      .where(eq(budgets.id, activeBudgetId))
+      .limit(1);
+    privacyMode = budget?.privacyMode || "visible";
+  }
 
-  return cachedResponse({ goals: goalsWithMetrics }, { maxAge: 30, staleWhileRevalidate: 120 });
+  // Server-side privacy enforcement
+  const goalsWithMetrics = userGoals
+    .map(({ goal }) => {
+      const isOtherMemberGoal = goal.memberId !== null && goal.memberId !== userMemberId;
+
+      // "private": completely exclude other member's individual goals
+      if (privacyMode === "private" && isOtherMemberGoal) {
+        return null;
+      }
+
+      const metrics = calculateGoalMetrics(goal);
+
+      // "totals_only": redact amounts for other member's goals
+      if (privacyMode === "totals_only" && isOtherMemberGoal) {
+        return {
+          ...goal,
+          ...metrics,
+          targetAmount: 0,
+          currentAmount: 0,
+          remaining: 0,
+          monthlyTarget: 0,
+          progress: 0,
+          isOtherMemberGoal,
+        };
+      }
+
+      return { ...goal, ...metrics, isOtherMemberGoal };
+    })
+    .filter(Boolean);
+
+  return cachedResponse({ goals: goalsWithMetrics, privacyMode }, { maxAge: 30, staleWhileRevalidate: 120 });
 });
 
 // POST - Create a new goal
@@ -92,7 +127,7 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     return validationError(validation.error);
   }
 
-  const { budgetId, targetDate, initialAmount, accountId, ...goalData } = validation.data;
+  const { budgetId, targetDate, initialAmount, accountId, memberId, ...goalData } = validation.data;
 
   // Check user has access to budget
   const budgetIds = await getUserBudgetIds(session.user.id);
@@ -112,6 +147,7 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
       ...goalData,
       name: capitalizeWords(goalData.name),
       budgetId,
+      memberId: memberId ?? null,
       accountId,
       targetDate: new Date(targetDate),
       currentAmount: initialAmount || 0,

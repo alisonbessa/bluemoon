@@ -45,6 +45,8 @@ interface RecurringBillSummary {
   accountId: string;
   isAutoDebit: boolean;
   isVariable: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
 }
 
 interface UnifiedExpenseFormProps {
@@ -88,6 +90,8 @@ export function UnifiedExpenseForm({
   const [dueMonth, setDueMonth] = useState<number | undefined>();
   const [isAutoDebit, setIsAutoDebit] = useState(false);
   const [isVariable, setIsVariable] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset form when opening/closing or switching mode
@@ -105,6 +109,8 @@ export function UnifiedExpenseForm({
         setDueMonth(editingBill.dueMonth ?? undefined);
         setIsAutoDebit(editingBill.isAutoDebit);
         setIsVariable(editingBill.isVariable);
+        setStartDate(editingBill.startDate ? format(new Date(editingBill.startDate), 'yyyy-MM-dd') : '');
+        setEndDate(editingBill.endDate ? format(new Date(editingBill.endDate), 'yyyy-MM-dd') : '');
       } else {
         // New expense
         setName('');
@@ -118,6 +124,8 @@ export function UnifiedExpenseForm({
         setDueMonth(undefined);
         setIsAutoDebit(false);
         setIsVariable(false);
+        setStartDate('');
+        setEndDate('');
       }
     }
   }, [isOpen, editingBill, defaultCategoryId, defaultIsRecurring, accounts]);
@@ -168,6 +176,8 @@ export function UnifiedExpenseForm({
             dueMonth: frequency === 'yearly' ? dueMonth : null,
             isAutoDebit,
             isVariable,
+            startDate: startDate || null,
+            endDate: endDate || null,
           }),
         });
 
@@ -422,39 +432,63 @@ export function UnifiedExpenseForm({
           placeholder="Selecione uma conta"
         />
 
-        {/* Opções extras (só recorrente) */}
+        {/* Período e opções extras (só recorrente) */}
         {isRecurring && (
-          <div className="grid gap-3 rounded-lg border p-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="expense-autoDebit" className="text-sm">
-                  Débito automático
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Confirmar automaticamente no vencimento
-                </p>
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="expense-startDate">Data de início</Label>
+                <Input
+                  id="expense-startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
               </div>
-              <Switch
-                id="expense-autoDebit"
-                checked={isAutoDebit}
-                onCheckedChange={setIsAutoDebit}
-              />
+              <div className="grid gap-2">
+                <Label htmlFor="expense-endDate">Data de fim</Label>
+                <Input
+                  id="expense-endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate || undefined}
+                />
+              </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="expense-variable" className="text-sm">
-                  Valor variável
-                </Label>
-                <p className="text-xs text-muted-foreground">O valor é uma estimativa</p>
+            <div className="grid gap-3 rounded-lg border p-3">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="expense-autoDebit" className="text-sm">
+                    Débito automático
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Confirmar automaticamente no vencimento
+                  </p>
+                </div>
+                <Switch
+                  id="expense-autoDebit"
+                  checked={isAutoDebit}
+                  onCheckedChange={setIsAutoDebit}
+                />
               </div>
-              <Switch
-                id="expense-variable"
-                checked={isVariable}
-                onCheckedChange={setIsVariable}
-              />
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="expense-variable" className="text-sm">
+                    Valor variável
+                  </Label>
+                  <p className="text-xs text-muted-foreground">O valor é uma estimativa</p>
+                </div>
+                <Switch
+                  id="expense-variable"
+                  checked={isVariable}
+                  onCheckedChange={setIsVariable}
+                />
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </FormModalWrapper>

@@ -26,7 +26,21 @@ export const createRecurringBillSchema = z
     dueMonth: z.number().int().min(1).max(12).optional().nullable(),
     isAutoDebit: z.boolean().default(false),
     isVariable: z.boolean().default(false),
+    startDate: z.coerce.date().optional().nullable(),
+    endDate: z.coerce.date().optional().nullable(),
   })
+  .refine(
+    (data) => {
+      if (data.startDate && data.endDate && data.endDate < data.startDate) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Data de fim deve ser posterior à data de início",
+      path: ["endDate"],
+    }
+  )
   .refine(
     (data) => {
       // Yearly requires dueMonth
@@ -94,6 +108,8 @@ export const updateRecurringBillSchema = z.object({
   isVariable: z.boolean().optional(),
   isActive: z.boolean().optional(),
   displayOrder: z.number().int().min(0).optional(),
+  startDate: z.coerce.date().optional().nullable(),
+  endDate: z.coerce.date().optional().nullable(),
 });
 
 /**

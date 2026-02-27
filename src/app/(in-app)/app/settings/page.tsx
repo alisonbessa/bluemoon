@@ -78,7 +78,7 @@ export default function SettingsPage() {
   const [feedbackType, setFeedbackType] = useState<"question" | "bug" | "feedback">("question");
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
-  const { startTutorial, notifyActionCompleted, isActive: isTutorialActive, setCondition } = useTutorial();
+  const { startTutorial, setCondition } = useTutorial();
   const router = useRouter();
 
   // Computed properties for plan/trial status
@@ -467,14 +467,17 @@ export default function SettingsPage() {
               <PrivacySettings budgetId={budgetId} />
             </>
           )}
+
+          {/* Privacy Settings - Only show for Duo plans */}
+          {budgetId && (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2 && (
+            <PrivacySettings budgetId={budgetId} />
+          )}
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6 min-w-0">
           {/* Messaging Integration */}
-          <MessagingConnectionCard
-            onConnected={isTutorialActive ? () => notifyActionCompleted("hasMessagingConnected") : undefined}
-          />
+          <MessagingConnectionCard />
 
           {/* Plan */}
           <Card>

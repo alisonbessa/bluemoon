@@ -26,10 +26,29 @@ export const createIncomeSourceSchema = z
       .int("Amount must be in cents (integer)")
       .min(0, "Amount must be non-negative")
       .max(MAX_CENTS, "Amount exceeds maximum allowed"),
+    contributionAmount: z
+      .number()
+      .int("Contribution must be in cents (integer)")
+      .min(0, "Contribution must be non-negative")
+      .max(MAX_CENTS, "Contribution exceeds maximum allowed")
+      .optional()
+      .nullable(),
     frequency: incomeFrequencyEnum.default("monthly"),
     dayOfMonth: z.number().int().min(0).max(31).optional().nullable(),
     isAutoConfirm: z.boolean().optional().default(false),
   })
+  .refine(
+    (data) => {
+      if (data.contributionAmount != null) {
+        return data.contributionAmount <= data.amount;
+      }
+      return true;
+    },
+    {
+      message: "Contribuição não pode ser maior que o valor da renda",
+      path: ["contributionAmount"],
+    }
+  )
   .refine(
     (data) => {
       // Weekly dayOfMonth should be 0-6 (day of week)
@@ -78,6 +97,7 @@ export const updateIncomeSourceSchema = z.object({
     .optional(),
   type: incomeTypeEnum.optional(),
   amount: z.number().int().min(0).max(MAX_CENTS).optional(),
+  contributionAmount: z.number().int().min(0).max(MAX_CENTS).optional().nullable(),
   frequency: incomeFrequencyEnum.optional(),
   dayOfMonth: z.number().int().min(0).max(31).optional().nullable(),
   isAutoConfirm: z.boolean().optional(),

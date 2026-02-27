@@ -1,18 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
-import { Loader2, PiggyBank } from 'lucide-react';
+import { Loader2, PiggyBank, User } from 'lucide-react';
 import { GoalFormModal } from '@/features/goals';
 import { useTutorial } from '@/shared/tutorial/tutorial-provider';
 import { PageHeader } from '@/shared/molecules';
-import { useUser } from '@/shared/hooks';
+import { useUser } from '@/shared/hooks/use-current-user';
 
 import {
   useBudgetPeriod,
   useBudgetUIState,
   useBudgetPageData,
+  useBudgetViewFilter,
   useAllocationForm,
   useCategoryForm,
   useIncomeAllocationForm,
@@ -35,6 +36,8 @@ import {
   CopyAllocationsModal,
   CopyHintModal,
 } from '@/features/budget/ui';
+
+import { formatCurrency } from '@/shared/lib/formatters';
 
 import type {
   IncomeSource,
@@ -67,12 +70,51 @@ export default function BudgetPage() {
     totals,
     incomeData,
     totalIncome,
+    totalContribution,
+    hasContributionModel,
     totalGoals,
     hasPreviousMonthData,
     goals,
     isLoading,
     refreshData,
   } = useBudgetPageData(currentYear, currentMonth);
+
+  // Filter data based on shared/personal view mode
+  const {
+    isPersonalView,
+    filteredGroupsData,
+    filteredTotals,
+    filteredIncomeData,
+    effectiveTotalIncome,
+  } = useBudgetViewFilter({
+    groupsData,
+    totals,
+    incomeData,
+    totalIncome,
+    totalContribution,
+    hasContributionModel,
+    budgetViewMode: uiState.budgetViewMode,
+  });
+
+  // Current user for member matching
+  const userMemberId = useMemo(
+    () => members.find((m) => m.userId === user?.id)?.id ?? null,
+    [members, user?.id]
+  );
+
+  // Filter goals by view mode (shared vs personal)
+  const filteredGoals = useMemo(() => {
+    if (!hasContributionModel) return goals;
+    if (isPersonalView) {
+      return goals.filter((g) => g.memberId === userMemberId);
+    }
+    return goals.filter((g) => !g.memberId);
+  }, [goals, hasContributionModel, isPersonalView, userMemberId]);
+
+  const filteredTotalGoals = useMemo(
+    () => filteredGoals.reduce((sum, g) => sum + (g.monthlyTarget || 0), 0),
+    [filteredGoals]
+  );
 
   // Local UI state
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
@@ -189,9 +231,9 @@ export default function BudgetPage() {
           year={currentYear}
           month={currentMonth}
           onMonthChange={handleMonthChange}
-          totalIncome={totalIncome}
-          totalAllocated={totals.allocated}
-          totalGoals={totalGoals}
+          totalIncome={effectiveTotalIncome}
+          totalAllocated={filteredTotals.allocated}
+          totalGoals={filteredTotalGoals}
         />
 
         <BudgetFilters
@@ -201,15 +243,18 @@ export default function BudgetPage() {
           isCopying={budgetActions.isCopying}
           mobileViewMode={uiState.mobileViewMode}
           onViewModeChange={uiState.setMobileViewMode}
+          hasContributionModel={hasContributionModel}
+          budgetViewMode={uiState.budgetViewMode}
+          onBudgetViewModeChange={uiState.setBudgetViewMode}
         />
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
         {/* Income Section */}
-        {incomeData && (
+        {filteredIncomeData && (
           <IncomeSectionAccordion
-            incomeData={incomeData}
+            incomeData={filteredIncomeData}
             isExpanded={uiState.isIncomeExpanded}
             onToggle={uiState.toggleIncomeSection}
             expandedMembers={uiState.expandedIncomeMembers}
@@ -223,10 +268,10 @@ export default function BudgetPage() {
         )}
 
         {/* Expenses Section */}
-        {groupsData.length > 0 ? (
+        {filteredGroupsData.length > 0 ? (
           <ExpensesSectionAccordion
-            groupsData={groupsData}
-            totals={totals}
+            groupsData={filteredGroupsData}
+            totals={filteredTotals}
             budgetId={budgetId || ''}
             accounts={accounts}
             isExpanded={uiState.isExpensesExpanded}
@@ -240,6 +285,14 @@ export default function BudgetPage() {
             onBillsChange={refreshData}
             mobileViewMode={uiState.mobileViewMode}
           />
+        ) : isPersonalView ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <User className="h-12 w-12 text-muted-foreground" />
+            <h3 className="font-semibold">Nenhuma categoria pessoal</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              Categorias pessoais são criadas automaticamente (ex: Prazeres) ou você pode criar novas na página de categorias.
+            </p>
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <PiggyBank className="h-12 w-12 text-muted-foreground" />
@@ -250,14 +303,26 @@ export default function BudgetPage() {
           </div>
         )}
 
-        {/* Goals Section */}
+        {/* Goals Section - shown in both views, filtered by member */}
         <GoalsSectionAccordion
-          goals={goals}
-          totalGoals={totalGoals}
+          goals={filteredGoals}
+          totalGoals={filteredTotalGoals}
           isExpanded={uiState.isGoalsExpanded}
           onToggle={uiState.toggleGoalsSection}
           onAddGoal={() => setIsGoalFormOpen(true)}
         />
+
+        {/* Personal reserve summary - only in personal view */}
+        {isPersonalView && effectiveTotalIncome > 0 && (
+          <div className="px-3 sm:px-4 py-4 border-b">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <User className="h-4 w-4" />
+              <span>
+                Sua reserva pessoal: <strong className="text-foreground">{formatCurrency(effectiveTotalIncome)}</strong> por mês
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modals */}
@@ -391,6 +456,7 @@ export default function BudgetPage() {
         open={isGoalFormOpen}
         onOpenChange={setIsGoalFormOpen}
         budgetId={budgetId || ''}
+        members={members}
         onSuccess={refreshData}
       />
     </div>

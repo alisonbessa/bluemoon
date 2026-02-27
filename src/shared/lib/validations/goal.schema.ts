@@ -8,6 +8,7 @@ const MAX_CENTS = 1_000_000_000;
  */
 export const createGoalSchema = z.object({
   budgetId: z.string().uuid("Invalid budget ID"),
+  memberId: z.string().uuid("Invalid member ID").nullable().optional(), // null = shared goal
   accountId: z.string().uuid("Invalid account ID"), // Account where goal savings are stored
   name: z
     .string()
@@ -28,6 +29,7 @@ export const createGoalSchema = z.object({
  * Schema for updating a goal
  */
 export const updateGoalSchema = z.object({
+  memberId: z.string().uuid("Invalid member ID").nullable().optional(),
   name: z
     .string()
     .min(1, "Goal name is required")

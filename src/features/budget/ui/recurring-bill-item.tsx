@@ -4,18 +4,7 @@ import { Pencil, Trash2, Calendar, Wallet, Zap, TrendingUp } from 'lucide-react'
 import { formatCurrency } from '@/shared/lib/formatters';
 import { cn } from '@/shared/lib/utils';
 import { Badge } from '@/shared/ui/badge';
-
-interface RecurringBillSummary {
-  id: string;
-  name: string;
-  amount: number;
-  frequency: string;
-  dueDay: number | null;
-  dueMonth: number | null;
-  isAutoDebit?: boolean;
-  isVariable?: boolean;
-  account: { id: string; name: string; icon: string | null } | null;
-}
+import type { RecurringBillSummary } from '../types';
 
 interface RecurringBillItemProps {
   bill: RecurringBillSummary;

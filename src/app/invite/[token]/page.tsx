@@ -18,10 +18,21 @@ import {
   LogIn,
   Home,
   AlertCircle,
+  EyeIcon,
+  EyeOffIcon,
+  ShieldIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
+import { PRIVACY_MAP } from "@/shared/lib/privacy";
+import type { PrivacyMode } from "@/db/schema/budgets";
+
+const PRIVACY_ICONS: Record<PrivacyMode, React.ReactNode> = {
+  visible: <EyeIcon className="h-4 w-4" />,
+  totals_only: <ShieldIcon className="h-4 w-4" />,
+  private: <EyeOffIcon className="h-4 w-4" />,
+};
 
 interface InviteInfo {
   id: string;
@@ -32,6 +43,7 @@ interface InviteInfo {
   budget: {
     id: string;
     name: string;
+    privacyMode?: string;
   };
   invitedBy: {
     name: string | null;
@@ -166,8 +178,10 @@ export default function AcceptInvitePage({
   const isAlreadyAccepted = invite.status === "accepted";
   const isCancelled = invite.status === "cancelled";
 
-  // Show success state
+  // Show success state with privacy info
   if (acceptResult?.success) {
+    const mode = (invite.budget.privacyMode || "visible") as PrivacyMode;
+    const privacyInfo = PRIVACY_MAP[mode];
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
         <Card className="w-full max-w-md">
@@ -177,11 +191,23 @@ export default function AcceptInvitePage({
             </div>
             <CardTitle>Bem-vindo(a) ao orçamento!</CardTitle>
             <CardDescription>
-              Você agora faz parte do orçamento "{invite.budget.name}"
+              Você agora faz parte do orçamento &quot;{invite.budget.name}&quot;
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center">
-            <Button onClick={() => router.push("/app")}>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border bg-muted/50 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium mb-1">
+                {PRIVACY_ICONS[mode]}
+                <span>Privacidade: {privacyInfo.label}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {privacyInfo.description}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Vocês podem alterar isso em Configurações (requer aceite de ambos).
+              </p>
+            </div>
+            <Button className="w-full" onClick={() => router.push("/app")}>
               <Home className="h-4 w-4" />
               Ir para o Dashboard
             </Button>
@@ -266,12 +292,29 @@ export default function AcceptInvitePage({
 
         <CardContent>
           {/* Budget Info */}
-          <div className="rounded-lg border bg-muted/50 p-4 mb-6">
+          <div className="rounded-lg border bg-muted/50 p-4 mb-4">
             <div className="text-center">
               <p className="text-sm text-muted-foreground">Orçamento</p>
               <p className="text-lg font-semibold">{invite.budget.name}</p>
             </div>
           </div>
+
+          {/* Privacy Info */}
+          {!isExpired && !isCancelled && !isAlreadyAccepted && invite.budget.privacyMode && (() => {
+            const m = invite.budget.privacyMode as PrivacyMode;
+            const info = PRIVACY_MAP[m];
+            return info ? (
+              <div className="rounded-lg border bg-muted/50 p-3 mb-6">
+                <div className="flex items-center gap-2 text-sm font-medium mb-0.5">
+                  {PRIVACY_ICONS[m]}
+                  <span>Privacidade: {info.label}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {info.description}
+                </p>
+              </div>
+            ) : null;
+          })()}
 
           {/* Actions */}
           {isExpired || isCancelled || isAlreadyAccepted ? (

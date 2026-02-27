@@ -1,7 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
-import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus, recurringBills, financialAccounts } from "@/db/schema";
+import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus, recurringBills, financialAccounts, budgets } from "@/db/schema";
 import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
 import { ensurePendingTransactionsForMonth } from "@/shared/lib/budget/pending-transactions";
 import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
@@ -36,8 +36,14 @@ export const GET = withAuthRequired(async (req, context) => {
   // This is idempotent - it only creates transactions that don't exist yet
   await ensurePendingTransactionsForMonth(budgetId, year, month);
 
-  // Get user's member ID for visibility filtering
+  // Get user's member ID and budget privacy mode for visibility filtering
   const userMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
+  const [budgetRow] = await db
+    .select({ privacyMode: budgets.privacyMode })
+    .from(budgets)
+    .where(eq(budgets.id, budgetId))
+    .limit(1);
+  const privacyMode = budgetRow?.privacyMode || "visible";
 
   // Get partner privacy level for "all" view mode
   const partnerPrivacy = viewMode === "all" && userMemberId
@@ -233,17 +239,7 @@ export const GET = withAuthRequired(async (req, context) => {
   }
 
   // Group bills by categoryId
-  const billsMap = new Map<string, Array<{
-    id: string;
-    name: string;
-    amount: number;
-    frequency: string;
-    dueDay: number | null;
-    dueMonth: number | null;
-    isAutoDebit: boolean;
-    isVariable: boolean;
-    account: { id: string; name: string; icon: string | null } | null;
-  }>>();
+  const billsMap = new Map<string, RecurringBillSummary[]>();
 
   for (const { bill, account } of bills) {
     if (!billsMap.has(bill.categoryId)) {
@@ -258,6 +254,8 @@ export const GET = withAuthRequired(async (req, context) => {
       dueMonth: bill.dueMonth,
       isAutoDebit: bill.isAutoDebit ?? false,
       isVariable: bill.isVariable ?? false,
+      startDate: bill.startDate,
+      endDate: bill.endDate,
       account: account?.id ? { id: account.id, name: account.name, icon: account.icon } : null,
     });
   }
@@ -272,6 +270,8 @@ export const GET = withAuthRequired(async (req, context) => {
     dueMonth: number | null;
     isAutoDebit: boolean;
     isVariable: boolean;
+    startDate: Date | null;
+    endDate: Date | null;
     account: { id: string; name: string; icon: string | null } | null;
   };
 
@@ -314,7 +314,29 @@ export const GET = withAuthRequired(async (req, context) => {
     // Check if this category belongs to another member (not the current user)
     const isOtherMemberCategory = category.memberId !== null && category.memberId !== userMemberId;
 
+    // Server-side privacy enforcement
+    // "private": completely exclude other member's personal categories
+    if (privacyMode === "private" && isOtherMemberCategory) {
+      continue;
+    }
+
     const groupData = groupedData.get(group.id)!;
+
+    // "totals_only": redact amounts for other member's categories
+    if (privacyMode === "totals_only" && isOtherMemberCategory) {
+      groupData.categories.push({
+        category,
+        allocated: 0,
+        carriedOver: 0,
+        spent: 0,
+        available: 0,
+        isOtherMemberCategory,
+        recurringBills: [],
+      });
+      // Don't add to group totals - amounts are hidden
+      continue;
+    }
+
     groupData.categories.push({
       category,
       allocated,
@@ -406,7 +428,7 @@ export const GET = withAuthRequired(async (req, context) => {
   ]);
 
   const incomeAllocationsMap = new Map(
-    incomeAllocations.map((a) => [a.incomeSourceId, a.planned])
+    incomeAllocations.map((a) => [a.incomeSourceId, a])
   );
 
   const incomeReceivedMap = new Map(
@@ -419,10 +441,12 @@ export const GET = withAuthRequired(async (req, context) => {
     sources: Array<{
       incomeSource: typeof incomeSources.$inferSelect;
       planned: number;
+      contributionPlanned: number;
       defaultAmount: number;
+      defaultContribution: number;
       received: number;
     }>;
-    totals: { planned: number; received: number };
+    totals: { planned: number; contributionPlanned: number; received: number };
   }>();
 
   for (const { incomeSource, member } of budgetIncomeSources) {
@@ -432,7 +456,7 @@ export const GET = withAuthRequired(async (req, context) => {
       incomeByMember.set(memberId, {
         member,
         sources: [],
-        totals: { planned: 0, received: 0 },
+        totals: { planned: 0, contributionPlanned: 0, received: 0 },
       });
     }
 
@@ -442,32 +466,45 @@ export const GET = withAuthRequired(async (req, context) => {
       incomeSource.frequency === "weekly" ? 4 :
       incomeSource.frequency === "biweekly" ? 2 : 1;
     const defaultMonthlyAmount = (incomeSource.amount || 0) * frequencyMultiplier;
+    const defaultMonthlyContribution = incomeSource.contributionAmount != null
+      ? incomeSource.contributionAmount * frequencyMultiplier
+      : defaultMonthlyAmount;
+
+    const monthlyAlloc = incomeAllocationsMap.get(incomeSource.id);
 
     // Use monthly allocation if it exists, otherwise use calculated monthly amount
-    const planned = incomeAllocationsMap.has(incomeSource.id)
-      ? incomeAllocationsMap.get(incomeSource.id)!
-      : defaultMonthlyAmount;
+    const planned = monthlyAlloc?.planned ?? defaultMonthlyAmount;
+
+    // Contribution: monthly override > income source default > full amount (100%)
+    const contributionPlanned = monthlyAlloc?.contributionPlanned
+      ?? (incomeSource.contributionAmount != null ? defaultMonthlyContribution : planned);
+
     const received = incomeReceivedMap.get(incomeSource.id) || 0;
 
     const memberData = incomeByMember.get(memberId)!;
     memberData.sources.push({
       incomeSource,
       planned,
-      defaultAmount: defaultMonthlyAmount, // Monthly amount considering frequency
+      contributionPlanned,
+      defaultAmount: defaultMonthlyAmount,
+      defaultContribution: defaultMonthlyContribution,
       received,
     });
     memberData.totals.planned += planned;
+    memberData.totals.contributionPlanned += contributionPlanned;
     memberData.totals.received += received;
   }
 
   // Calculate total income from income sources
   const incomeTotals = {
     planned: 0,
+    contributionPlanned: 0,
     received: 0,
   };
 
   const incomeGroups = Array.from(incomeByMember.values()).map((g) => {
     incomeTotals.planned += g.totals.planned;
+    incomeTotals.contributionPlanned += g.totals.contributionPlanned;
     incomeTotals.received += g.totals.received;
     return g;
   });
@@ -538,6 +575,8 @@ export const GET = withAuthRequired(async (req, context) => {
         totalReceived: totalIncome,
       },
     },
+    // Whether any income source has a contribution different from total amount
+    hasContributionModel: incomeTotals.contributionPlanned !== incomeTotals.planned,
   });
 });
 

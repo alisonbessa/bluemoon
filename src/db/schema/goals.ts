@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
+import { budgetMembers } from "./budget-members";
 import { financialAccounts } from "./accounts";
 import { transactions } from "./transactions";
 
@@ -20,6 +21,8 @@ export const goals = pgTable("goals", {
   budgetId: text("budget_id")
     .references(() => budgets.id, { onDelete: "cascade" })
     .notNull(),
+  // Membro dono da meta (null = meta conjunta do casal)
+  memberId: text("member_id").references(() => budgetMembers.id, { onDelete: "cascade" }),
   // Conta onde o dinheiro da meta é guardado (ex: poupança, investimento)
   accountId: text("account_id")
     .references(() => financialAccounts.id, { onDelete: "set null" }),
@@ -41,6 +44,10 @@ export const goalsRelations = relations(goals, ({ one, many }) => ({
   budget: one(budgets, {
     fields: [goals.budgetId],
     references: [budgets.id],
+  }),
+  member: one(budgetMembers, {
+    fields: [goals.memberId],
+    references: [budgetMembers.id],
   }),
   account: one(financialAccounts, {
     fields: [goals.accountId],

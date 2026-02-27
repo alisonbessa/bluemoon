@@ -11,77 +11,26 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { AccordionContent } from '@/shared/ui/accordion-content';
 import { CategoryWithBills } from './category-with-bills';
-import { formatCurrency } from '../types';
+import {
+  formatCurrency,
+  type Category,
+  type GroupData,
+  type Account,
+} from '../types';
 import type { MobileViewMode } from '../hooks';
 
-// Local types that match what the budget page provides
-interface CategoryLocal {
-  id: string;
-  name: string;
-  icon?: string | null;
-  behavior: 'set_aside' | 'refill_up';
-  plannedAmount: number;
-}
-
-interface RecurringBillSummaryLocal {
-  id: string;
-  name: string;
-  amount: number;
-  frequency: string;
-  dueDay: number | null;
-  dueMonth: number | null;
-  isAutoDebit?: boolean;
-  isVariable?: boolean;
-  account: { id: string; name: string; icon: string | null } | null;
-}
-
-interface CategoryAllocationLocal {
-  category: CategoryLocal;
-  allocated: number;
-  carriedOver: number;
-  spent: number;
-  available: number;
-  isOtherMemberCategory?: boolean;
-  recurringBills?: RecurringBillSummaryLocal[];
-}
-
-interface GroupLocal {
-  id: string;
-  code: string;
-  name: string;
-  icon?: string | null;
-  displayOrder: number;
-}
-
-interface GroupDataLocal {
-  group: GroupLocal;
-  categories: CategoryAllocationLocal[];
-  totals: {
-    allocated: number;
-    spent: number;
-    available: number;
-  };
-}
-
-interface AccountLocal {
-  id: string;
-  name: string;
-  type: string;
-  icon?: string | null;
-}
-
 interface ExpensesSectionAccordionProps {
-  groupsData: GroupDataLocal[];
+  groupsData: GroupData[];
   totals: { allocated: number; spent: number; available: number };
   budgetId: string;
-  accounts: AccountLocal[];
+  accounts: Account[];
   isExpanded: boolean;
   onToggle: () => void;
   expandedGroups: string[];
   onToggleGroup: (groupId: string) => void;
-  onEditAllocation: (category: CategoryLocal, allocated: number) => void;
-  onEditCategory: (category: CategoryLocal) => void;
-  onDeleteCategory: (category: CategoryLocal) => void;
+  onEditAllocation: (category: Category, allocated: number) => void;
+  onEditCategory: (category: Category) => void;
+  onDeleteCategory: (category: Category) => void;
   onAddCategory: (groupId: string, groupCode: string) => void;
   onBillsChange: () => void;
   mobileViewMode?: MobileViewMode;

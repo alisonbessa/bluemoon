@@ -35,6 +35,7 @@ export const incomeSources = pgTable("income_sources", {
   name: text("name").notNull(), // "Salário João", "VR Maria"
   type: text("type").$type<IncomeType>().notNull().default("salary"),
   amount: integer("amount").notNull().default(0), // Em centavos
+  contributionAmount: integer("contribution_amount"), // Em centavos - quanto contribui pro orçamento compartilhado (null = 100%)
 
   // Recorrência
   frequency: text("frequency").$type<IncomeFrequency>().notNull().default("monthly"),

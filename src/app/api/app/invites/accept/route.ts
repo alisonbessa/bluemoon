@@ -117,6 +117,12 @@ export const POST = withAuthRequired(async (req, context) => {
     })
     .returning();
 
+  // Assign the owner's plan to the invited user so they share the same features
+  await db
+    .update(users)
+    .set({ planId: owner.planId })
+    .where(eq(users.id, session.user.id));
+
   // Create a "Prazeres" category for the new partner
   const pleasuresGroup = await db
     .select()

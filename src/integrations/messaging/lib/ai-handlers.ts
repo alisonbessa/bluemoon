@@ -27,6 +27,17 @@ import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib
 import type { GroupCode } from "@/db/schema/groups";
 
 /**
+ * Get categories visible to this user (filters out other member's personal categories when private)
+ */
+function getVisibleCategories(userContext: UserContext): UserContext["categories"] {
+  const { privacyMode, memberId, categories } = userContext;
+  if (privacyMode === "private") {
+    return categories.filter((c) => c.memberId == null || c.memberId === memberId);
+  }
+  return categories;
+}
+
+/**
  * Get a user-friendly label for a payment method hint.
  * e.g. "cartão" → "Qual cartão?", "pix" → "Qual conta para o Pix?"
  */
@@ -67,7 +78,9 @@ export async function handleExpenseIntent(
   initialMessagesToDelete: MessageId[] = [],
   logId: string | null = null
 ): Promise<void> {
-  const { budgetId, memberId, defaultAccountId, categories, accounts, currentYear, currentMonth } = userContext;
+  const { budgetId, memberId, defaultAccountId, accounts, currentYear, currentMonth } = userContext;
+  // Only show/match categories this user can see (respects privacy mode)
+  const categories = getVisibleCategories(userContext);
 
   if (!defaultAccountId) {
     await adapter.sendMessage(
@@ -103,7 +116,7 @@ export async function handleExpenseIntent(
     accountName = accounts.find(a => a.id === defaultAccountId)?.name || "Conta padrão";
   }
 
-  // Try to match category
+  // Try to match category (using privacy-filtered list)
   const categoryMatch = matchCategory(data?.categoryHint, categories);
   const categoryId = categoryMatch?.category.id;
   const categoryName = categoryMatch?.category.name;

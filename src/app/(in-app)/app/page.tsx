@@ -21,6 +21,8 @@ import {
   ReceiptIcon,
   SettingsIcon,
   TargetIcon,
+  UsersIcon,
+  EyeIcon,
 } from "lucide-react";
 import { Progress } from "@/shared/ui/progress";
 import { MonthSelector } from "@/shared/ui/month-selector";
@@ -50,6 +52,7 @@ import Link from "next/link";
 import { useUser } from "@/shared/hooks/use-current-user";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { PageTitle } from "@/shared/ui/typography";
+import type { DashboardViewMode } from "@/features/dashboard/types";
 
 function DashboardSkeleton() {
   return (
@@ -79,10 +82,14 @@ function AppHomepage() {
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
 
+  // View mode: "shared" shows contribution-based saldo, "complete" shows full income
+  const [viewMode, setViewMode] = useState<DashboardViewMode>("shared");
+
   // Dashboard data via SWR
   const {
     budgets,
     monthSummary,
+    hasContributionModel,
     goals,
     dailyChartData,
     monthlyChartData,
@@ -93,6 +100,14 @@ function AppHomepage() {
   } = useDashboardData(currentYear, currentMonth);
 
   const isLoading = userLoading || dataLoading;
+
+  // In "shared" mode with contribution model, use contribution as income base
+  const effectiveIncomePlanned = viewMode === "shared" && hasContributionModel
+    ? (monthSummary?.contribution.planned ?? 0)
+    : (monthSummary?.income.planned ?? 0);
+  const effectiveIncomeReceived = viewMode === "shared" && hasContributionModel
+    ? Math.round((monthSummary?.income.received ?? 0) * (monthSummary?.contribution.planned ?? 0) / Math.max(monthSummary?.income.planned ?? 1, 1))
+    : (monthSummary?.income.received ?? 0);
 
   const handleMonthChange = (year: number, month: number) => {
     setCurrentYear(year);
@@ -133,6 +148,30 @@ function AppHomepage() {
         />
       </div>
 
+      {/* View Mode Toggle - only visible when contribution model is active */}
+      {hasContributionModel && (
+        <div className="flex items-center gap-2">
+          <Button
+            variant={viewMode === "shared" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("shared")}
+            className="gap-1.5"
+          >
+            <UsersIcon className="h-3.5 w-3.5" />
+            Compartilhado
+          </Button>
+          <Button
+            variant={viewMode === "complete" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("complete")}
+            className="gap-1.5"
+          >
+            <EyeIcon className="h-3.5 w-3.5" />
+            Visão completa
+          </Button>
+        </div>
+      )}
+
       {/* Quick Stats */}
       <SummaryCardGrid
         data-tutorial="dashboard-summary"
@@ -140,20 +179,20 @@ function AppHomepage() {
           {
             id: "balance",
             icon: <WalletIcon className="h-full w-full text-muted-foreground" />,
-            label: "Saldo do Mês",
-            value: formatCurrency((monthSummary?.income.received ?? 0) - (monthSummary?.expenses.spent ?? 0)),
-            valueColor: ((monthSummary?.income.received ?? 0) - (monthSummary?.expenses.spent ?? 0)) >= 0 ? "positive" : "negative",
-            subtitle: `Planejado ${formatCurrency((monthSummary?.income.planned ?? 0) - (monthSummary?.expenses.allocated ?? 0))}`,
+            label: viewMode === "shared" && hasContributionModel ? "Saldo Compartilhado" : "Saldo do Mês",
+            value: formatCurrency(effectiveIncomeReceived - (monthSummary?.expenses.spent ?? 0)),
+            valueColor: (effectiveIncomeReceived - (monthSummary?.expenses.spent ?? 0)) >= 0 ? "positive" : "negative",
+            subtitle: `Planejado ${formatCurrency(effectiveIncomePlanned - (monthSummary?.expenses.allocated ?? 0))}`,
           },
           {
             id: "income",
             icon: <TrendingUpIcon className="h-full w-full text-green-500" />,
-            label: "Receitas do Mês",
-            value: formatCurrency(monthSummary?.income.received ?? 0),
+            label: viewMode === "shared" && hasContributionModel ? "Contribuição do Mês" : "Receitas do Mês",
+            value: formatCurrency(effectiveIncomeReceived),
             valueColor: "positive",
-            subtitle: monthSummary?.income.received === monthSummary?.income.planned
+            subtitle: effectiveIncomeReceived === effectiveIncomePlanned
               ? "Meta atingida!"
-              : `Faltam ${formatCurrency(Math.max(0, (monthSummary?.income.planned ?? 0) - (monthSummary?.income.received ?? 0)))}`,
+              : `Faltam ${formatCurrency(Math.max(0, effectiveIncomePlanned - effectiveIncomeReceived))}`,
           },
           {
             id: "expenses",

@@ -33,6 +33,7 @@ interface IncomeSourceFormData {
   name: string;
   type: IncomeType;
   amount: number;
+  contributionAmount?: number | null;
   frequency: IncomeFrequency;
   dayOfMonth?: number;
   memberId?: string;
@@ -144,6 +145,37 @@ export function IncomeSourceFormModal({
             id="incomeSourceDayOfMonth"
           />
         </div>
+
+        {/* Contribuição ao orçamento - only for Duo (multiple members) */}
+        {members.length > 1 && (
+          <div className="grid gap-2">
+            <Label>Contribuição ao orçamento</Label>
+            <CurrencyInput
+              value={formData.contributionAmount ?? formData.amount}
+              onChange={(value) => onFieldChange('contributionAmount', value === formData.amount ? null : value)}
+              className={
+                formData.contributionAmount != null && formData.contributionAmount > formData.amount
+                  ? 'border-destructive'
+                  : ''
+              }
+            />
+            {formData.contributionAmount != null && formData.contributionAmount < formData.amount && (
+              <p className="text-xs text-muted-foreground">
+                Reserva pessoal: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((formData.amount - formData.contributionAmount) / 100)}
+              </p>
+            )}
+            {formData.contributionAmount != null && formData.contributionAmount > formData.amount && (
+              <p className="text-xs text-destructive">
+                Contribuição não pode ser maior que o valor da renda
+              </p>
+            )}
+            {formData.contributionAmount == null && (
+              <p className="text-xs text-muted-foreground">
+                100% da renda vai para o orçamento compartilhado
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Responsável */}
         {members.length > 1 && (

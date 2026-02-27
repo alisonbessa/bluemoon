@@ -35,6 +35,7 @@ export const upsertIncomeAllocationSchema = z.object({
   year: z.number().int().min(2020).max(2100),
   month: z.number().int().min(1).max(12),
   planned: z.number().int().min(0).max(MAX_CENTS),
+  contributionPlanned: z.number().int().min(0).max(MAX_CENTS).optional().nullable(),
 });
 
 // Export inferred types

@@ -25,6 +25,7 @@ export interface IncomeSource {
   name: string;
   type: IncomeType;
   amount: number;
+  contributionAmount?: number | null;
   frequency: IncomeFrequency;
   dayOfMonth?: number | null;
   memberId: string | null;
@@ -36,14 +37,16 @@ export interface IncomeSource {
 export interface IncomeSourceData {
   incomeSource: IncomeSource;
   planned: number;
+  contributionPlanned: number;
   defaultAmount: number;
+  defaultContribution: number;
   received: number;
 }
 
 export interface IncomeMemberGroup {
   member: Member | null;
   sources: IncomeSourceData[];
-  totals: { planned: number; received: number };
+  totals: { planned: number; contributionPlanned: number; received: number };
 }
 
 export interface IncomeData {
@@ -55,6 +58,7 @@ export interface IncomeSourceFormData {
   name: string;
   type: IncomeType;
   amount: number;
+  contributionAmount?: number | null;
   frequency: IncomeFrequency;
   dayOfMonth?: number;
   memberId?: string;
@@ -69,6 +73,7 @@ export interface IncomeFormData {
   name: string;
   type: IncomeType;
   amount: number;
+  contributionAmount?: number | null;
   frequency: IncomeFrequency;
   dayOfMonth?: number;
   memberId?: string;
