@@ -45,10 +45,11 @@ export async function POST(request: NextRequest) {
       .then((users) => users[0]);
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: "An account with this email already exists" },
-        { status: 400 }
-      );
+      // Return same response as success to prevent email enumeration
+      return NextResponse.json({
+        success: true,
+        message: "Check your email to complete account setup"
+      });
     }
 
     // Create signup token

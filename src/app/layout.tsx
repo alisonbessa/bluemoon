@@ -9,6 +9,7 @@ import { CookieConsent } from "@/shared/components/cookie-consent";
 // This ensures build succeeds in all environments
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com"),
   title: {
     template: `%s | ${appConfig.projectName}`,
     absolute: appConfig.projectName,
@@ -38,8 +39,11 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className="font-sans antialiased bg-background" suppressHydrationWarning>
+        <a href="#main-content" className="skip-to-content">
+          Pular para o conteúdo
+        </a>
         <Providers>
-          {children}
+          <div id="main-content">{children}</div>
           <CookieConsent />
         </Providers>
         <SpeedInsights />

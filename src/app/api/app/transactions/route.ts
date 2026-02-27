@@ -1,5 +1,6 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
+import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
 import { transactions, financialAccounts, categories, incomeSources, budgetMembers } from "@/db/schema";
 import { eq, and, inArray, desc, gte, lte, sql } from "drizzle-orm";
@@ -10,6 +11,7 @@ import {
   forbiddenError,
   successResponse,
   errorResponse,
+  safePagination,
 } from "@/shared/lib/api/responses";
 import {
   getFirstInstallmentDate,
@@ -26,8 +28,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const categoryId = searchParams.get("categoryId");
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
-  const limit = parseInt(searchParams.get("limit") || "50");
-  const offset = parseInt(searchParams.get("offset") || "0");
+  const { limit, offset } = safePagination(searchParams);
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
@@ -84,7 +85,7 @@ export const GET = withAuthRequired(async (req, context) => {
 });
 
 // POST - Create a new transaction (with installment support)
-export const POST = withAuthRequired(async (req, context) => {
+export const POST = withRateLimit(withAuthRequired(async (req, context) => {
   const { session } = context;
 
   // Require active subscription for creating transactions
@@ -341,4 +342,4 @@ export const POST = withAuthRequired(async (req, context) => {
   });
 
   return successResponse({ transaction: newTransaction }, 201);
-});
+}), rateLimits.api, "app-transactions-post");

@@ -21,14 +21,6 @@ export function StructuredData({ type = "WebSite", data = {} }: StructuredDataPr
           name: appConfig.projectName,
           url: baseUrl,
           description: appConfig.description,
-          potentialAction: {
-            "@type": "SearchAction",
-            target: {
-              "@type": "EntryPoint",
-              urlTemplate: `${baseUrl}/search?q={search_term_string}`,
-            },
-            "query-input": "required name=search_term_string",
-          },
           publisher: {
             "@type": "Organization",
             name: appConfig.projectName,
@@ -55,13 +47,6 @@ export function StructuredData({ type = "WebSite", data = {} }: StructuredDataPr
             "@type": "Organization",
             name: appConfig.projectName,
             url: baseUrl,
-          },
-          aggregateRating: {
-            "@type": "AggregateRating",
-            ratingValue: "4.8",
-            ratingCount: "127",
-            bestRating: "5",
-            worstRating: "1",
           },
           featureList: [
             "Gestão de Transações",

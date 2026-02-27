@@ -1,5 +1,6 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
+import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
 import { incomeSources, budgetMembers, financialAccounts } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
@@ -9,6 +10,7 @@ import {
   validationError,
   forbiddenError,
   successResponse,
+  cachedResponse,
 } from "@/shared/lib/api/responses";
 import { createIncomeSourceSchema } from "@/shared/lib/validations/income.schema";
 
@@ -63,14 +65,14 @@ export const GET = withAuthRequired(async (req, context) => {
     return acc + monthlyAmount;
   }, 0);
 
-  return successResponse({
+  return cachedResponse({
     incomeSources: formattedSources,
     totalMonthlyIncome,
-  });
+  }, { maxAge: 60, staleWhileRevalidate: 300 });
 });
 
 // POST - Create a new income source
-export const POST = withAuthRequired(async (req, context) => {
+export const POST = withRateLimit(withAuthRequired(async (req, context) => {
   const { session } = context;
 
   // Require active subscription for creating income sources
@@ -109,4 +111,4 @@ export const POST = withAuthRequired(async (req, context) => {
     .returning();
 
   return successResponse({ incomeSource: newSource }, 201);
-});
+}), rateLimits.api, "app-income-sources-post");

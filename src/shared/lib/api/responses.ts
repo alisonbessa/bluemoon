@@ -105,6 +105,20 @@ export function successResponse<T>(data: T, status: number = 200) {
 }
 
 /**
+ * Parse pagination params with safe limits to prevent abuse
+ */
+export function safePagination(
+  searchParams: URLSearchParams,
+  defaults: { limit?: number; maxLimit?: number } = {}
+): { limit: number; offset: number } {
+  const { limit: defaultLimit = 50, maxLimit = 100 } = defaults;
+  return {
+    limit: Math.min(Math.max(parseInt(searchParams.get("limit") || String(defaultLimit)) || defaultLimit, 1), maxLimit),
+    offset: Math.max(parseInt(searchParams.get("offset") || "0") || 0, 0),
+  };
+}
+
+/**
  * Create a success response with cache headers
  */
 export function cachedResponse<T>(
