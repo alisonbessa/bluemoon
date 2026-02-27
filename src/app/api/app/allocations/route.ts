@@ -1,7 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
-import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus, recurringBills, financialAccounts } from "@/db/schema";
+import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus, recurringBills, financialAccounts, budgets } from "@/db/schema";
 import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
 import { ensurePendingTransactionsForMonth } from "@/shared/lib/budget/pending-transactions";
 import { getUserBudgetIds, getUserMemberIdInBudget } from "@/shared/lib/api/permissions";
@@ -34,8 +34,14 @@ export const GET = withAuthRequired(async (req, context) => {
   // This is idempotent - it only creates transactions that don't exist yet
   await ensurePendingTransactionsForMonth(budgetId, year, month);
 
-  // Get user's member ID for visibility filtering
+  // Get user's member ID and budget privacy mode for visibility filtering
   const userMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
+  const [budgetRow] = await db
+    .select({ privacyMode: budgets.privacyMode })
+    .from(budgets)
+    .where(eq(budgets.id, budgetId))
+    .limit(1);
+  const privacyMode = budgetRow?.privacyMode || "visible";
 
   // Calculate date range for this month
   const startDate = new Date(year, month - 1, 1);
@@ -283,7 +289,29 @@ export const GET = withAuthRequired(async (req, context) => {
     // Check if this category belongs to another member (not the current user)
     const isOtherMemberCategory = category.memberId !== null && category.memberId !== userMemberId;
 
+    // Server-side privacy enforcement
+    // "private": completely exclude other member's personal categories
+    if (privacyMode === "private" && isOtherMemberCategory) {
+      continue;
+    }
+
     const groupData = groupedData.get(group.id)!;
+
+    // "totals_only": redact amounts for other member's categories
+    if (privacyMode === "totals_only" && isOtherMemberCategory) {
+      groupData.categories.push({
+        category,
+        allocated: 0,
+        carriedOver: 0,
+        spent: 0,
+        available: 0,
+        isOtherMemberCategory,
+        recurringBills: [],
+      });
+      // Don't add to group totals - amounts are hidden
+      continue;
+    }
+
     groupData.categories.push({
       category,
       allocated,

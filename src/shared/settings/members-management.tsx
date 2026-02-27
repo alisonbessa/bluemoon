@@ -44,9 +44,14 @@ import {
   Heart,
   Share2,
   RefreshCw,
+  EyeIcon,
+  EyeOffIcon,
+  ShieldIcon,
 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/shared/ui/radio-group";
 import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
+import type { PrivacyMode } from "@/db/schema/budgets";
 
 interface Member {
   id: string;
@@ -96,6 +101,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
   const [budgetName, setBudgetName] = useState<string>("");
   const [editingBudgetName, setEditingBudgetName] = useState<string>("");
   const [isSavingBudgetName, setIsSavingBudgetName] = useState(false);
+  const [selectedPrivacyMode, setSelectedPrivacyMode] = useState<PrivacyMode>("visible");
 
   const fetchData = useCallback(async () => {
     try {
@@ -142,21 +148,27 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
     setIsSavingBudgetName(true);
 
     try {
-      // Only update budget name if it changed
+      // Update budget name if changed, and always set the privacy mode
+      const budgetUpdates: Record<string, string> = { budgetId };
       if (editingBudgetName.trim() && editingBudgetName !== budgetName) {
-        const updateRes = await fetch("/api/app/budget", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ budgetId, name: editingBudgetName.trim() }),
-        });
+        budgetUpdates.name = editingBudgetName.trim();
+      }
+      budgetUpdates.privacyMode = selectedPrivacyMode;
 
-        if (!updateRes.ok) {
-          toast.error("Erro ao atualizar nome do orçamento");
-          setIsSavingBudgetName(false);
-          return;
-        }
+      const updateRes = await fetch("/api/app/budget", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(budgetUpdates),
+      });
 
-        setBudgetName(editingBudgetName.trim());
+      if (!updateRes.ok) {
+        toast.error("Erro ao atualizar orçamento");
+        setIsSavingBudgetName(false);
+        return;
+      }
+
+      if (budgetUpdates.name) {
+        setBudgetName(budgetUpdates.name);
       }
 
       // Now create the invite
@@ -474,7 +486,7 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-5 py-4">
             <div className="space-y-2">
               <Label htmlFor="budget-name">Nome do Orçamento</Label>
               <Input
@@ -486,6 +498,74 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
               <p className="text-xs text-muted-foreground">
                 Este nome aparecerá no convite e na página de aceitar convite.
               </p>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <div>
+                <Label>Privacidade dos gastos pessoais</Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Controle o que vocês veem dos gastos e metas pessoais um do outro. Ambos podem solicitar mudanças depois.
+                </p>
+              </div>
+              <RadioGroup
+                value={selectedPrivacyMode}
+                onValueChange={(v) => setSelectedPrivacyMode(v as PrivacyMode)}
+                className="space-y-2"
+              >
+                <label
+                  className={cn(
+                    "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
+                    selectedPrivacyMode === "visible" && "border-primary bg-primary/5"
+                  )}
+                >
+                  <RadioGroupItem value="visible" className="mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <EyeIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium text-sm">Tudo visível</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Ambos veem todos os gastos e metas pessoais
+                    </p>
+                  </div>
+                </label>
+                <label
+                  className={cn(
+                    "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
+                    selectedPrivacyMode === "totals_only" && "border-primary bg-primary/5"
+                  )}
+                >
+                  <RadioGroupItem value="totals_only" className="mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <ShieldIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium text-sm">Apenas totais</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Só o total gasto pelo parceiro é visível, sem detalhes
+                    </p>
+                  </div>
+                </label>
+                <label
+                  className={cn(
+                    "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
+                    selectedPrivacyMode === "private" && "border-primary bg-primary/5"
+                  )}
+                >
+                  <RadioGroupItem value="private" className="mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <EyeOffIcon className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium text-sm">Privado</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Gastos e metas pessoais ficam completamente ocultos
+                    </p>
+                  </div>
+                </label>
+              </RadioGroup>
             </div>
           </div>
 

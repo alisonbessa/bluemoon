@@ -85,14 +85,8 @@ export const PATCH = withAuthRequired(async (request, context) => {
       )
       .limit(1);
 
-    // Apply directly without confirmation if:
-    // - No partner (Solo budget), OR
-    // - Initial setup (privacy was never explicitly changed from default)
-    const isInitialSetup = budget.privacyMode === "visible"
-      && !budget.pendingPrivacyMode
-      && !budget.privacyChangeRequestedBy;
-
-    if (!partner || isInitialSetup) {
+    // If no partner (Solo budget), apply directly
+    if (!partner) {
       const [updated] = await db
         .update(budgets)
         .set({

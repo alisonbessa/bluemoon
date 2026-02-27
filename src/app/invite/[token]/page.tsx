@@ -25,7 +25,24 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
-import { cn } from "@/shared/lib/utils";
+
+const PRIVACY_LABELS: Record<string, { label: string; description: string; icon: React.ReactNode }> = {
+  visible: {
+    label: "Tudo visível",
+    description: "Ambos veem todos os gastos e metas pessoais um do outro",
+    icon: <EyeIcon className="h-4 w-4" />,
+  },
+  totals_only: {
+    label: "Apenas totais",
+    description: "Só o total gasto pelo parceiro é visível, sem detalhes",
+    icon: <ShieldIcon className="h-4 w-4" />,
+  },
+  private: {
+    label: "Privado",
+    description: "Gastos e metas pessoais ficam completamente ocultos",
+    icon: <EyeOffIcon className="h-4 w-4" />,
+  },
+};
 
 interface InviteInfo {
   id: string;
@@ -36,6 +53,7 @@ interface InviteInfo {
   budget: {
     id: string;
     name: string;
+    privacyMode?: string;
   };
   invitedBy: {
     name: string | null;
@@ -170,14 +188,41 @@ export default function AcceptInvitePage({
   const isAlreadyAccepted = invite.status === "accepted";
   const isCancelled = invite.status === "cancelled";
 
-  // Show success state with privacy setup
+  // Show success state with privacy info
   if (acceptResult?.success) {
+    const privacyInfo = PRIVACY_LABELS[invite.budget.privacyMode || "visible"] || PRIVACY_LABELS.visible;
     return (
-      <PrivacySetupStep
-        budgetId={acceptResult.budgetId!}
-        budgetName={invite.budget.name}
-        onComplete={() => router.push("/app")}
-      />
+      <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto h-12 w-12 rounded-full bg-green-100 dark:bg-green-950/30 flex items-center justify-center mb-4">
+              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+            <CardTitle>Bem-vindo(a) ao orçamento!</CardTitle>
+            <CardDescription>
+              Você agora faz parte do orçamento &quot;{invite.budget.name}&quot;
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border bg-muted/50 p-3">
+              <div className="flex items-center gap-2 text-sm font-medium mb-1">
+                {privacyInfo.icon}
+                <span>Privacidade: {privacyInfo.label}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {privacyInfo.description}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Vocês podem alterar isso em Configurações (requer aceite de ambos).
+              </p>
+            </div>
+            <Button className="w-full" onClick={() => router.push("/app")}>
+              <Home className="h-4 w-4" />
+              Ir para o Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -256,12 +301,25 @@ export default function AcceptInvitePage({
 
         <CardContent>
           {/* Budget Info */}
-          <div className="rounded-lg border bg-muted/50 p-4 mb-6">
+          <div className="rounded-lg border bg-muted/50 p-4 mb-4">
             <div className="text-center">
               <p className="text-sm text-muted-foreground">Orçamento</p>
               <p className="text-lg font-semibold">{invite.budget.name}</p>
             </div>
           </div>
+
+          {/* Privacy Info */}
+          {!isExpired && !isCancelled && !isAlreadyAccepted && invite.budget.privacyMode && (
+            <div className="rounded-lg border bg-muted/50 p-3 mb-6">
+              <div className="flex items-center gap-2 text-sm font-medium mb-0.5">
+                {PRIVACY_LABELS[invite.budget.privacyMode]?.icon}
+                <span>Privacidade: {PRIVACY_LABELS[invite.budget.privacyMode]?.label}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {PRIVACY_LABELS[invite.budget.privacyMode]?.description}
+              </p>
+            </div>
+          )}
 
           {/* Actions */}
           {isExpired || isCancelled || isAlreadyAccepted ? (
@@ -319,113 +377,6 @@ export default function AcceptInvitePage({
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-const PRIVACY_OPTIONS = [
-  {
-    value: "visible" as const,
-    label: "Tudo visível",
-    description: "Vocês veem todos os gastos e metas pessoais um do outro",
-    icon: <EyeIcon className="h-5 w-5" />,
-  },
-  {
-    value: "totals_only" as const,
-    label: "Apenas totais",
-    description: "Apenas o total gasto pelo parceiro é visível, sem detalhes",
-    icon: <ShieldIcon className="h-5 w-5" />,
-  },
-  {
-    value: "private" as const,
-    label: "Privado",
-    description: "Gastos e metas pessoais ficam completamente ocultos",
-    icon: <EyeOffIcon className="h-5 w-5" />,
-  },
-];
-
-function PrivacySetupStep({
-  budgetId,
-  budgetName,
-  onComplete,
-}: {
-  budgetId: string;
-  budgetName: string;
-  onComplete: () => void;
-}) {
-  const [selected, setSelected] = useState<string>("visible");
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await fetch("/api/app/budget/privacy", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ budgetId, privacyMode: selected }),
-      });
-    } catch {
-      // Non-blocking - default "visible" is fine
-    } finally {
-      setIsSaving(false);
-      onComplete();
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto h-12 w-12 rounded-full bg-green-100 dark:bg-green-950/30 flex items-center justify-center mb-4">
-            <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-          </div>
-          <CardTitle>Bem-vindo(a) ao orçamento!</CardTitle>
-          <CardDescription>
-            Você agora faz parte do orçamento &quot;{budgetName}&quot;.
-            Como vocês querem lidar com a privacidade?
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {PRIVACY_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setSelected(option.value)}
-              className={cn(
-                "w-full flex items-start gap-3 rounded-lg border-2 p-3 text-left transition-all",
-                selected === option.value
-                  ? "border-primary bg-primary/5"
-                  : "border-muted hover:border-muted-foreground/30"
-              )}
-            >
-              <div className={cn(
-                "mt-0.5 shrink-0",
-                selected === option.value ? "text-primary" : "text-muted-foreground"
-              )}>
-                {option.icon}
-              </div>
-              <div>
-                <span className="font-medium text-sm">{option.label}</span>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {option.description}
-                </p>
-              </div>
-            </button>
-          ))}
-
-          <Button
-            className="w-full mt-4"
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            {isSaving ? "Salvando..." : "Continuar"}
-          </Button>
-
-          <p className="text-xs text-center text-muted-foreground">
-            Vocês podem alterar isso depois em Configurações
-          </p>
         </CardContent>
       </Card>
     </div>

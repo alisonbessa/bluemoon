@@ -57,15 +57,35 @@ export const GET = withAuthRequired(async (req, context) => {
     userMemberId = await getUserMemberIdInBudget(session.user.id, targetBudgetId);
   }
 
-  // Add calculated metrics and privacy flag to each goal
-  const goalsWithMetrics = userGoals.map((goal) => {
-    const isOtherMemberGoal = goal.memberId !== null && goal.memberId !== userMemberId;
-    return {
-      ...goal,
-      ...calculateGoalMetrics(goal),
-      isOtherMemberGoal,
-    };
-  });
+  // Server-side privacy enforcement
+  const goalsWithMetrics = userGoals
+    .map((goal) => {
+      const isOtherMemberGoal = goal.memberId !== null && goal.memberId !== userMemberId;
+
+      // "private": completely exclude other member's individual goals
+      if (privacyMode === "private" && isOtherMemberGoal) {
+        return null;
+      }
+
+      const metrics = calculateGoalMetrics(goal);
+
+      // "totals_only": redact amounts for other member's goals
+      if (privacyMode === "totals_only" && isOtherMemberGoal) {
+        return {
+          ...goal,
+          ...metrics,
+          targetAmount: 0,
+          currentAmount: 0,
+          remaining: 0,
+          monthlyTarget: 0,
+          progress: 0,
+          isOtherMemberGoal,
+        };
+      }
+
+      return { ...goal, ...metrics, isOtherMemberGoal };
+    })
+    .filter(Boolean);
 
   return cachedResponse({ goals: goalsWithMetrics, privacyMode }, { maxAge: 30, staleWhileRevalidate: 120 });
 });

@@ -17,19 +17,19 @@ const PRIVACY_OPTIONS: Array<{
   {
     value: "visible",
     label: "Tudo visivel",
-    description: "Ambos veem todos os gastos pessoais do outro",
+    description: "Ambos veem todos os gastos e metas pessoais um do outro",
     icon: <EyeIcon className="h-4 w-4" />,
   },
   {
     value: "totals_only",
     label: "Apenas totais",
-    description: "Voce ve apenas o total gasto pelo parceiro, sem detalhes",
+    description: "So o total gasto pelo parceiro e visivel, sem detalhes",
     icon: <ShieldIcon className="h-4 w-4" />,
   },
   {
     value: "private",
     label: "Privado",
-    description: "Gastos pessoais ficam completamente ocultos entre os membros",
+    description: "Gastos e metas pessoais ficam completamente ocultos entre os membros",
     icon: <EyeOffIcon className="h-4 w-4" />,
   },
 ];
