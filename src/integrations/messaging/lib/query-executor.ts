@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { transactions, categories, goals, groups, monthlyAllocations, financialAccounts, budgetMembers } from "@/db/schema";
+import { transactions, categories, goals, groups, monthlyAllocations, financialAccounts, budgetMembers, incomeSources } from "@/db/schema";
 import { eq, and, gte, lte, sql, sum } from "drizzle-orm";
 import type { UserContext, ExtractedQueryData, Intent, MessagingAdapter, ChatId } from "./types";
 import { formatCurrency } from "@/shared/lib/formatters";
@@ -77,6 +77,20 @@ async function handleBalanceQuery(
 
   const summary = await getMonthSummary(budgetId, year, month, isDuo ? userContext.memberId : undefined);
 
+  // Check if contribution model is active (any income source has contributionAmount set)
+  const hasContribution = userContext.incomeSources.some(
+    (s) => s.contributionAmount != null && s.amount != null && s.contributionAmount !== s.amount
+  );
+
+  // Calculate total contribution from income sources
+  const totalContribution = hasContribution
+    ? userContext.incomeSources.reduce((acc, s) => {
+        const amount = s.amount || 0;
+        const contribution = s.contributionAmount ?? amount;
+        return acc + contribution;
+      }, 0)
+    : summary.totalIncome;
+
   const monthName = new Date(year, month - 1).toLocaleDateString("pt-BR", { month: "long" });
 
   let message = `<b>Resumo de ${monthName}/${year}</b>\n\n`;
@@ -90,19 +104,47 @@ async function handleBalanceQuery(
     message += `Suas receitas: ${formatCurrency(summary.myIncome)}\n`;
     message += `Seus gastos: ${formatCurrency(summary.myExpenses)}\n`;
   } else if (isDuo && scope === "couple") {
-    // Couple view: show only total data
-    const balanceEmoji = summary.balance >= 0 ? "+" : "";
-    message += `<b>Números do casal:</b>\n`;
-    message += `Saldo: ${balanceEmoji}${formatCurrency(summary.balance)}\n`;
-    message += `Receitas totais: ${formatCurrency(summary.totalIncome)}\n`;
-    message += `Despesas totais: ${formatCurrency(summary.totalExpenses)}\n`;
+    // Couple view: show contribution-based data when available
+    if (hasContribution) {
+      const contributionBalance = totalContribution - summary.totalExpenses;
+      const balanceEmoji = contributionBalance >= 0 ? "+" : "";
+      message += `<b>Números do casal:</b>\n`;
+      message += `Contribuição do casal: ${formatCurrency(totalContribution)}\n`;
+      message += `Despesas compartilhadas: ${formatCurrency(summary.totalExpenses)}\n`;
+      message += `Saldo compartilhado: ${balanceEmoji}${formatCurrency(contributionBalance)}\n`;
+      const totalIncome = userContext.incomeSources.reduce((acc, s) => acc + (s.amount || 0), 0);
+      const personalReserve = totalIncome - totalContribution;
+      if (personalReserve > 0) {
+        message += `\n<i>(Renda total: ${formatCurrency(totalIncome)} | Reserva pessoal: ${formatCurrency(personalReserve)})</i>\n`;
+      }
+    } else {
+      const balanceEmoji = summary.balance >= 0 ? "+" : "";
+      message += `<b>Números do casal:</b>\n`;
+      message += `Saldo: ${balanceEmoji}${formatCurrency(summary.balance)}\n`;
+      message += `Receitas totais: ${formatCurrency(summary.totalIncome)}\n`;
+      message += `Despesas totais: ${formatCurrency(summary.totalExpenses)}\n`;
+    }
   } else if (isDuo) {
-    // Default for duo: show both
-    const balanceEmoji = summary.balance >= 0 ? "+" : "";
-    message += `<b>Saldo:</b> ${balanceEmoji}${formatCurrency(summary.balance)}\n`;
-    message += `Receitas: ${formatCurrency(summary.totalIncome)}\n`;
-    message += `Despesas totais: ${formatCurrency(summary.totalExpenses)}\n`;
-    message += `Seus gastos: ${formatCurrency(summary.myExpenses)}\n`;
+    // Default for duo: show contribution-based when available
+    if (hasContribution) {
+      const contributionBalance = totalContribution - summary.totalExpenses;
+      const balanceEmoji = contributionBalance >= 0 ? "+" : "";
+      message += `<b>Saldo compartilhado:</b> ${balanceEmoji}${formatCurrency(contributionBalance)}\n`;
+      message += `Contribuição: ${formatCurrency(totalContribution)}\n`;
+      message += `Despesas totais: ${formatCurrency(summary.totalExpenses)}\n`;
+      message += `Seus gastos: ${formatCurrency(summary.myExpenses)}\n`;
+      const totalIncome = userContext.incomeSources.reduce((acc, s) => acc + (s.amount || 0), 0);
+      const personalReserve = totalIncome - totalContribution;
+      if (personalReserve > 0) {
+        message += `\n<i>(Renda total: ${formatCurrency(totalIncome)} | Reserva pessoal: ${formatCurrency(personalReserve)})</i>\n`;
+      }
+    } else {
+      const balanceEmoji = summary.balance >= 0 ? "+" : "";
+      message += `<b>Saldo:</b> ${balanceEmoji}${formatCurrency(summary.balance)}\n`;
+      message += `Receitas: ${formatCurrency(summary.totalIncome)}\n`;
+      message += `Despesas totais: ${formatCurrency(summary.totalExpenses)}\n`;
+      message += `Seus gastos: ${formatCurrency(summary.myExpenses)}\n`;
+    }
   } else {
     // Solo budget
     const balanceEmoji = summary.balance >= 0 ? "+" : "";

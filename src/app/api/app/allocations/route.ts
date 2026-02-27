@@ -364,7 +364,7 @@ export const GET = withAuthRequired(async (req, context) => {
   ]);
 
   const incomeAllocationsMap = new Map(
-    incomeAllocations.map((a) => [a.incomeSourceId, a.planned])
+    incomeAllocations.map((a) => [a.incomeSourceId, a])
   );
 
   const incomeReceivedMap = new Map(
@@ -377,10 +377,12 @@ export const GET = withAuthRequired(async (req, context) => {
     sources: Array<{
       incomeSource: typeof incomeSources.$inferSelect;
       planned: number;
+      contributionPlanned: number;
       defaultAmount: number;
+      defaultContribution: number;
       received: number;
     }>;
-    totals: { planned: number; received: number };
+    totals: { planned: number; contributionPlanned: number; received: number };
   }>();
 
   for (const { incomeSource, member } of budgetIncomeSources) {
@@ -390,7 +392,7 @@ export const GET = withAuthRequired(async (req, context) => {
       incomeByMember.set(memberId, {
         member,
         sources: [],
-        totals: { planned: 0, received: 0 },
+        totals: { planned: 0, contributionPlanned: 0, received: 0 },
       });
     }
 
@@ -400,32 +402,45 @@ export const GET = withAuthRequired(async (req, context) => {
       incomeSource.frequency === "weekly" ? 4 :
       incomeSource.frequency === "biweekly" ? 2 : 1;
     const defaultMonthlyAmount = (incomeSource.amount || 0) * frequencyMultiplier;
+    const defaultMonthlyContribution = incomeSource.contributionAmount != null
+      ? incomeSource.contributionAmount * frequencyMultiplier
+      : defaultMonthlyAmount;
+
+    const monthlyAlloc = incomeAllocationsMap.get(incomeSource.id);
 
     // Use monthly allocation if it exists, otherwise use calculated monthly amount
-    const planned = incomeAllocationsMap.has(incomeSource.id)
-      ? incomeAllocationsMap.get(incomeSource.id)!
-      : defaultMonthlyAmount;
+    const planned = monthlyAlloc?.planned ?? defaultMonthlyAmount;
+
+    // Contribution: monthly override > income source default > full amount (100%)
+    const contributionPlanned = monthlyAlloc?.contributionPlanned
+      ?? (incomeSource.contributionAmount != null ? defaultMonthlyContribution : planned);
+
     const received = incomeReceivedMap.get(incomeSource.id) || 0;
 
     const memberData = incomeByMember.get(memberId)!;
     memberData.sources.push({
       incomeSource,
       planned,
-      defaultAmount: defaultMonthlyAmount, // Monthly amount considering frequency
+      contributionPlanned,
+      defaultAmount: defaultMonthlyAmount,
+      defaultContribution: defaultMonthlyContribution,
       received,
     });
     memberData.totals.planned += planned;
+    memberData.totals.contributionPlanned += contributionPlanned;
     memberData.totals.received += received;
   }
 
   // Calculate total income from income sources
   const incomeTotals = {
     planned: 0,
+    contributionPlanned: 0,
     received: 0,
   };
 
   const incomeGroups = Array.from(incomeByMember.values()).map((g) => {
     incomeTotals.planned += g.totals.planned;
+    incomeTotals.contributionPlanned += g.totals.contributionPlanned;
     incomeTotals.received += g.totals.received;
     return g;
   });
@@ -495,6 +510,8 @@ export const GET = withAuthRequired(async (req, context) => {
         totalReceived: totalIncome,
       },
     },
+    // Whether any income source has a contribution different from total amount
+    hasContributionModel: incomeTotals.contributionPlanned !== incomeTotals.planned,
   });
 });
 

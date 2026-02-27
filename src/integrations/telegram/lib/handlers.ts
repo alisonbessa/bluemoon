@@ -34,6 +34,11 @@ import { formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import { markLogAsConfirmed, markLogAsCancelled } from "./ai-logger";
 import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 
+// TODO: [Contribution Model] When implementing contribution model for Telegram:
+// 1. Pass userContext (with privacyMode, contributionAmount) to query executor
+// 2. Update balance responses to show contribution-based data for duo budgets
+// 3. See messaging/lib/query-executor.ts for reference implementation
+
 const logger = createLogger("telegram:handlers");
 
 // Get or create telegram user state

@@ -17,7 +17,12 @@ export function buildParsePrompt(message: string, userContext: UserContext): str
   const { categories, incomeSources, goals, accounts, pendingTransactions, currentMonth, currentYear } = userContext;
 
   const categoryList = categories.map((c) => c.name).join(", ") || "Nenhuma";
-  const incomeSourceList = incomeSources.map((s) => s.name).join(", ") || "Nenhuma";
+  const incomeSourceList = incomeSources.map((s) => {
+    if (s.contributionAmount != null && s.contributionAmount !== s.amount) {
+      return `${s.name} (contribui R$ ${(s.contributionAmount / 100).toFixed(2)} de R$ ${((s.amount ?? 0) / 100).toFixed(2)})`;
+    }
+    return s.name;
+  }).join(", ") || "Nenhuma";
   const goalList = goals.map((g) => g.name).join(", ") || "Nenhuma";
   // Include account type to help AI distinguish between accounts with similar names
   const accountList = accounts

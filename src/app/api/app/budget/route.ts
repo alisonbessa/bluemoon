@@ -47,6 +47,9 @@ export const GET = withAuthRequired(async (request, context) => {
       .select({
         id: budgets.id,
         name: budgets.name,
+        privacyMode: budgets.privacyMode,
+        pendingPrivacyMode: budgets.pendingPrivacyMode,
+        privacyChangeRequestedBy: budgets.privacyChangeRequestedBy,
         createdAt: budgets.createdAt,
       })
       .from(budgets)

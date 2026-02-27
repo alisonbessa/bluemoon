@@ -202,6 +202,8 @@ export interface UserContext {
     id: string;
     name: string;
     type: string;
+    amount?: number;
+    contributionAmount?: number | null;
   }>;
   goals: Array<{
     id: string;
@@ -224,12 +226,14 @@ export interface UserContext {
   pendingTransactions: PendingTransaction[];
   defaultAccountId?: string;
   memberId: string;
+  privacyMode?: string;
 }
 
 export interface BudgetInfo {
   budget: {
     id: string;
     name: string;
+    privacyMode?: string;
   };
   member: {
     id: string;
@@ -250,6 +254,8 @@ export interface BudgetInfo {
     id: string;
     name: string;
     type: string;
+    amount?: number;
+    contributionAmount?: number | null;
   }>;
   goals: Array<{
     id: string;

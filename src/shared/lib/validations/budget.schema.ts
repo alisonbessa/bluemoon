@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { privacyModeEnum } from "@/db/schema/budgets";
 
 /**
  * Schema for creating a new budget
@@ -23,6 +24,7 @@ export const updateBudgetSchema = z.object({
     .optional(),
   description: z.string().optional().nullable(),
   currency: z.string().optional(),
+  privacyMode: privacyModeEnum.optional(),
 });
 
 // Export inferred types
