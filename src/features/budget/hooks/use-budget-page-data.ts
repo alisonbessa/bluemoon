@@ -33,6 +33,7 @@ interface AccountsResponse {
 
 interface GoalsResponse {
   goals: Goal[];
+  privacyMode?: string;
 }
 
 /**
@@ -97,9 +98,17 @@ export function useBudgetPageData(year: number, month: number) {
       0
     );
   }, [incomeData]);
+  const privacyMode = goalsData?.privacyMode ?? 'visible';
   const goals = useMemo(
-    () => goalsData?.goals?.filter((g) => !g.isCompleted) ?? [],
-    [goalsData?.goals]
+    () => {
+      const all = goalsData?.goals?.filter((g) => !g.isCompleted) ?? [];
+      // When privacy is "private", hide other member's individual goals
+      if (privacyMode === 'private') {
+        return all.filter((g) => !g.isOtherMemberGoal);
+      }
+      return all;
+    },
+    [goalsData?.goals, privacyMode]
   );
 
   // Calculate total monthly goals allocation

@@ -1,10 +1,10 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
-import { goals } from "@/db/schema";
+import { goals, budgets } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
-import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import { getUserBudgetIds, getUserMemberIdInBudget } from "@/shared/lib/api/permissions";
 import {
   validationError,
   forbiddenError,
@@ -42,13 +42,32 @@ export const GET = withAuthRequired(async (req, context) => {
     .where(and(...conditions))
     .orderBy(goals.displayOrder);
 
-  // Add calculated metrics to each goal
-  const goalsWithMetrics = userGoals.map((goal) => ({
-    ...goal,
-    ...calculateGoalMetrics(goal),
-  }));
+  // Get privacy mode and user's member ID for the target budget
+  const targetBudgetId = budgetId || budgetIds[0];
+  let privacyMode = "visible";
+  let userMemberId: string | null = null;
 
-  return cachedResponse({ goals: goalsWithMetrics }, { maxAge: 30, staleWhileRevalidate: 120 });
+  if (targetBudgetId) {
+    const [budget] = await db
+      .select({ privacyMode: budgets.privacyMode })
+      .from(budgets)
+      .where(eq(budgets.id, targetBudgetId))
+      .limit(1);
+    privacyMode = budget?.privacyMode || "visible";
+    userMemberId = await getUserMemberIdInBudget(session.user.id, targetBudgetId);
+  }
+
+  // Add calculated metrics and privacy flag to each goal
+  const goalsWithMetrics = userGoals.map((goal) => {
+    const isOtherMemberGoal = goal.memberId !== null && goal.memberId !== userMemberId;
+    return {
+      ...goal,
+      ...calculateGoalMetrics(goal),
+      isOtherMemberGoal,
+    };
+  });
+
+  return cachedResponse({ goals: goalsWithMetrics, privacyMode }, { maxAge: 30, staleWhileRevalidate: 120 });
 });
 
 // POST - Create a new goal

@@ -6,6 +6,7 @@ import { optimisticMutate } from '@/shared/lib/swr/optimistic';
 
 interface GoalsResponse {
   goals: Goal[];
+  privacyMode?: string;
 }
 
 const GOALS_KEY = '/api/app/goals';
@@ -21,6 +22,7 @@ export function useGoals() {
   );
 
   const goals = data?.goals ?? [];
+  const privacyMode = data?.privacyMode ?? 'visible';
 
   /**
    * Archive a goal with optimistic update
@@ -96,6 +98,7 @@ export function useGoals() {
 
   return {
     goals,
+    privacyMode,
     isLoading,
     error,
     mutate,

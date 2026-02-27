@@ -31,6 +31,7 @@ export interface Goal {
   isCompleted: boolean;
   completedAt?: string | null;
   isArchived: boolean;
+  isOtherMemberGoal?: boolean;
   displayOrder: number;
   createdAt: string;
   updatedAt: string;

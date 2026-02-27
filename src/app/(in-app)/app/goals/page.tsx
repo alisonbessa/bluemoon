@@ -45,7 +45,7 @@ function formatFullDate(dateString: string): string {
 
 export default function GoalsPage() {
   // SWR hooks for cached data fetching
-  const { goals, isLoading: goalsLoading, mutate: mutateGoals } = useGoals();
+  const { goals, privacyMode, isLoading: goalsLoading, mutate: mutateGoals } = useGoals();
   const { budgets, isLoading: budgetsLoading } = useBudgets();
   const { accounts, isLoading: accountsLoading, mutate: mutateAccounts } = useAccounts();
   const { members, isLoading: membersLoading } = useMembers();
@@ -163,8 +163,16 @@ export default function GoalsPage() {
     }
   };
 
-  const activeGoals = goals.filter((g) => !g.isArchived && !g.isCompleted);
-  const completedGoals = goals.filter((g) => g.isCompleted && !g.isArchived);
+  // Filter out other member's individual goals when privacy is "private"
+  const visibleGoals = useMemo(() => {
+    if (privacyMode === "private") {
+      return goals.filter((g) => !g.isOtherMemberGoal);
+    }
+    return goals;
+  }, [goals, privacyMode]);
+
+  const activeGoals = visibleGoals.filter((g) => !g.isArchived && !g.isCompleted);
+  const completedGoals = visibleGoals.filter((g) => g.isCompleted && !g.isArchived);
 
   if (isLoading) {
     return <LoadingState fullHeight />;
