@@ -460,17 +460,12 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Members Management - Only show for Duo plans (maxBudgetMembers >= 2) */}
+          {/* Members Management & Privacy - Only show for Duo plans (maxBudgetMembers >= 2) */}
           {budgetId && (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2 && (
             <>
               <MembersManagement budgetId={budgetId} />
               <PrivacySettings budgetId={budgetId} />
             </>
-          )}
-
-          {/* Privacy Settings - Only show for Duo plans */}
-          {budgetId && (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2 && (
-            <PrivacySettings budgetId={budgetId} />
           )}
         </div>
 

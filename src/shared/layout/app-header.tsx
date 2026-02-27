@@ -8,6 +8,7 @@ import { Button } from "@/shared/ui/button";
 import { appConfig } from "@/shared/lib/config";
 import { useViewMode, type ViewMode } from "@/shared/providers/view-mode-provider";
 import { cn } from "@/shared/lib/utils";
+import { usePathname } from "next/navigation";
 
 const viewModeOptions: { value: ViewMode; label: string; shortLabel: string }[] = [
   { value: "mine", label: "Meu", shortLabel: "Meu" },
@@ -17,8 +18,9 @@ const viewModeOptions: { value: ViewMode; label: string; shortLabel: string }[] 
 
 function ViewModeToggle() {
   const { viewMode, setViewMode, isDuoPlan } = useViewMode();
+  const pathname = usePathname();
 
-  if (!isDuoPlan) return null;
+  if (!isDuoPlan || pathname === "/app/settings") return null;
 
   return (
     <div className="flex items-center rounded-lg border bg-muted/50 p-0.5">

@@ -156,7 +156,7 @@ export function ScheduledTransactionsList({
   const totalUnpaid = scheduled.filter((s) => !s.isPaid).length;
 
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5" />

@@ -26,7 +26,7 @@ export function ResponsiveButton({
   return (
     <Button className={cn(responsiveWidth, className)} {...props}>
       {icon}
-      {children}
+      <span>{children}</span>
     </Button>
   );
 }
