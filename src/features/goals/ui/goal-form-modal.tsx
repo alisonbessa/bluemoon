@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { FormModalWrapper, AccountSelector, MemberSelector } from "@/shared/molecules";
+import { FormModalWrapper, AccountSelector } from "@/shared/molecules";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { CurrencyInput } from "@/shared/ui/currency-input";
 import { IconPicker } from "@/shared/ui/icon-color-picker";
+import { Users } from "lucide-react";
+import { cn } from "@/shared/lib/utils";
 import { toast } from "sonner";
 
 // Colors for random selection
@@ -204,6 +206,49 @@ export function GoalFormModal({
       submitLabel={editingGoal ? "Salvar" : "Criar"}
     >
       <div className="grid gap-4">
+        {/* Goal type selector (only for Duo budgets) */}
+        {members.length > 1 && (
+          <div className="grid gap-2">
+            <Label>Tipo de meta</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {/* Shared option */}
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, memberId: undefined })}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all text-left",
+                  !formData.memberId
+                    ? "border-violet-500 bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300 dark:border-violet-400"
+                    : "border-muted hover:border-muted-foreground/30 text-muted-foreground"
+                )}
+              >
+                <Users className="h-4 w-4 shrink-0" />
+                <span>Conjunta</span>
+              </button>
+              {/* Per-member options */}
+              {members.map((member) => (
+                <button
+                  key={member.id}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, memberId: member.id })}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm font-medium transition-all text-left",
+                    formData.memberId === member.id
+                      ? "border-violet-500 bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300 dark:border-violet-400"
+                      : "border-muted hover:border-muted-foreground/30 text-muted-foreground"
+                  )}
+                >
+                  <span
+                    className="h-3 w-3 rounded-full shrink-0"
+                    style={{ backgroundColor: member.color || '#6366f1' }}
+                  />
+                  <span className="truncate">Só {member.name.split(' ')[0]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Row 1: Name */}
         <div className="grid gap-2">
           <Label htmlFor="goal-name">Nome da meta</Label>
@@ -219,18 +264,6 @@ export function GoalFormModal({
         <IconPicker
           icon={formData.icon}
           onIconChange={(icon) => setFormData({ ...formData, icon })}
-        />
-
-        {/* Member selector (only shown for Duo budgets) */}
-        <MemberSelector
-          value={formData.memberId}
-          onChange={(value) => setFormData({ ...formData, memberId: value })}
-          members={members}
-          label="Tipo de meta"
-          allowNone
-          noneLabel="Meta conjunta (do casal)"
-          placeholder="Selecione..."
-          hideIfSingleMember
         />
 
         {/* Row 2: Target Amount + Initial Amount */}
