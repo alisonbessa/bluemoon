@@ -22,7 +22,6 @@ export function useGoals() {
   );
 
   const goals = data?.goals ?? [];
-  const privacyMode = data?.privacyMode ?? 'visible';
 
   /**
    * Archive a goal with optimistic update
@@ -98,7 +97,6 @@ export function useGoals() {
 
   return {
     goals,
-    privacyMode,
     isLoading,
     error,
     mutate,

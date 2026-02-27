@@ -98,17 +98,10 @@ export function useBudgetPageData(year: number, month: number) {
       0
     );
   }, [incomeData]);
-  const privacyMode = goalsData?.privacyMode ?? 'visible';
+  // Server already filters goals based on privacyMode (private/totals_only)
   const goals = useMemo(
-    () => {
-      const all = goalsData?.goals?.filter((g) => !g.isCompleted) ?? [];
-      // When privacy is "private", hide other member's individual goals
-      if (privacyMode === 'private') {
-        return all.filter((g) => !g.isOtherMemberGoal);
-      }
-      return all;
-    },
-    [goalsData?.goals, privacyMode]
+    () => goalsData?.goals?.filter((g) => !g.isCompleted) ?? [],
+    [goalsData?.goals]
   );
 
   // Calculate total monthly goals allocation

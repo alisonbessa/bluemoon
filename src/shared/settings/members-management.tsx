@@ -52,6 +52,13 @@ import { RadioGroup, RadioGroupItem } from "@/shared/ui/radio-group";
 import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
 import type { PrivacyMode } from "@/db/schema/budgets";
+import { PRIVACY_OPTIONS } from "@/shared/lib/privacy";
+
+const PRIVACY_ICONS: Record<PrivacyMode, React.ReactNode> = {
+  visible: <EyeIcon className="h-4 w-4 text-muted-foreground" />,
+  totals_only: <ShieldIcon className="h-4 w-4 text-muted-foreground" />,
+  private: <EyeOffIcon className="h-4 w-4 text-muted-foreground" />,
+};
 
 interface Member {
   id: string;
@@ -514,57 +521,26 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
                 onValueChange={(v) => setSelectedPrivacyMode(v as PrivacyMode)}
                 className="space-y-2"
               >
-                <label
-                  className={cn(
-                    "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
-                    selectedPrivacyMode === "visible" && "border-primary bg-primary/5"
-                  )}
-                >
-                  <RadioGroupItem value="visible" className="mt-0.5" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <EyeIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">Tudo visível</span>
+                {PRIVACY_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className={cn(
+                      "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
+                      selectedPrivacyMode === option.value && "border-primary bg-primary/5"
+                    )}
+                  >
+                    <RadioGroupItem value={option.value} className="mt-0.5" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5">
+                        {PRIVACY_ICONS[option.value]}
+                        <span className="font-medium text-sm">{option.label}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {option.description}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Ambos veem todos os gastos e metas pessoais
-                    </p>
-                  </div>
-                </label>
-                <label
-                  className={cn(
-                    "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
-                    selectedPrivacyMode === "totals_only" && "border-primary bg-primary/5"
-                  )}
-                >
-                  <RadioGroupItem value="totals_only" className="mt-0.5" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <ShieldIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">Apenas totais</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Só o total gasto pelo parceiro é visível, sem detalhes
-                    </p>
-                  </div>
-                </label>
-                <label
-                  className={cn(
-                    "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
-                    selectedPrivacyMode === "private" && "border-primary bg-primary/5"
-                  )}
-                >
-                  <RadioGroupItem value="private" className="mt-0.5" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <EyeOffIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">Privado</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Gastos e metas pessoais ficam completamente ocultos
-                    </p>
-                  </div>
-                </label>
+                  </label>
+                ))}
               </RadioGroup>
             </div>
           </div>

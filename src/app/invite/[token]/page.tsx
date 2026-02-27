@@ -25,23 +25,13 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
+import { PRIVACY_MAP } from "@/shared/lib/privacy";
+import type { PrivacyMode } from "@/db/schema/budgets";
 
-const PRIVACY_LABELS: Record<string, { label: string; description: string; icon: React.ReactNode }> = {
-  visible: {
-    label: "Tudo visível",
-    description: "Ambos veem todos os gastos e metas pessoais um do outro",
-    icon: <EyeIcon className="h-4 w-4" />,
-  },
-  totals_only: {
-    label: "Apenas totais",
-    description: "Só o total gasto pelo parceiro é visível, sem detalhes",
-    icon: <ShieldIcon className="h-4 w-4" />,
-  },
-  private: {
-    label: "Privado",
-    description: "Gastos e metas pessoais ficam completamente ocultos",
-    icon: <EyeOffIcon className="h-4 w-4" />,
-  },
+const PRIVACY_ICONS: Record<PrivacyMode, React.ReactNode> = {
+  visible: <EyeIcon className="h-4 w-4" />,
+  totals_only: <ShieldIcon className="h-4 w-4" />,
+  private: <EyeOffIcon className="h-4 w-4" />,
 };
 
 interface InviteInfo {
@@ -190,7 +180,8 @@ export default function AcceptInvitePage({
 
   // Show success state with privacy info
   if (acceptResult?.success) {
-    const privacyInfo = PRIVACY_LABELS[invite.budget.privacyMode || "visible"] || PRIVACY_LABELS.visible;
+    const mode = (invite.budget.privacyMode || "visible") as PrivacyMode;
+    const privacyInfo = PRIVACY_MAP[mode];
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
         <Card className="w-full max-w-md">
@@ -206,7 +197,7 @@ export default function AcceptInvitePage({
           <CardContent className="space-y-4">
             <div className="rounded-lg border bg-muted/50 p-3">
               <div className="flex items-center gap-2 text-sm font-medium mb-1">
-                {privacyInfo.icon}
+                {PRIVACY_ICONS[mode]}
                 <span>Privacidade: {privacyInfo.label}</span>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -309,17 +300,21 @@ export default function AcceptInvitePage({
           </div>
 
           {/* Privacy Info */}
-          {!isExpired && !isCancelled && !isAlreadyAccepted && invite.budget.privacyMode && (
-            <div className="rounded-lg border bg-muted/50 p-3 mb-6">
-              <div className="flex items-center gap-2 text-sm font-medium mb-0.5">
-                {PRIVACY_LABELS[invite.budget.privacyMode]?.icon}
-                <span>Privacidade: {PRIVACY_LABELS[invite.budget.privacyMode]?.label}</span>
+          {!isExpired && !isCancelled && !isAlreadyAccepted && invite.budget.privacyMode && (() => {
+            const m = invite.budget.privacyMode as PrivacyMode;
+            const info = PRIVACY_MAP[m];
+            return info ? (
+              <div className="rounded-lg border bg-muted/50 p-3 mb-6">
+                <div className="flex items-center gap-2 text-sm font-medium mb-0.5">
+                  {PRIVACY_ICONS[m]}
+                  <span>Privacidade: {info.label}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {info.description}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {PRIVACY_LABELS[invite.budget.privacyMode]?.description}
-              </p>
-            </div>
-          )}
+            ) : null;
+          })()}
 
           {/* Actions */}
           {isExpired || isCancelled || isAlreadyAccepted ? (

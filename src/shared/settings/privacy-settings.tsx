@@ -7,32 +7,13 @@ import { Badge } from "@/shared/ui/badge";
 import { EyeIcon, EyeOffIcon, ShieldIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { PrivacyMode } from "@/db/schema/budgets";
+import { PRIVACY_OPTIONS, PRIVACY_MAP } from "@/shared/lib/privacy";
 
-const PRIVACY_OPTIONS: Array<{
-  value: PrivacyMode;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-}> = [
-  {
-    value: "visible",
-    label: "Tudo visivel",
-    description: "Ambos veem todos os gastos e metas pessoais um do outro",
-    icon: <EyeIcon className="h-4 w-4" />,
-  },
-  {
-    value: "totals_only",
-    label: "Apenas totais",
-    description: "So o total gasto pelo parceiro e visivel, sem detalhes",
-    icon: <ShieldIcon className="h-4 w-4" />,
-  },
-  {
-    value: "private",
-    label: "Privado",
-    description: "Gastos e metas pessoais ficam completamente ocultos entre os membros",
-    icon: <EyeOffIcon className="h-4 w-4" />,
-  },
-];
+const PRIVACY_ICONS: Record<PrivacyMode, React.ReactNode> = {
+  visible: <EyeIcon className="h-4 w-4" />,
+  totals_only: <ShieldIcon className="h-4 w-4" />,
+  private: <EyeOffIcon className="h-4 w-4" />,
+};
 
 interface PrivacySettingsProps {
   budgetId: string;
@@ -74,7 +55,7 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
       });
 
       if (!response.ok) {
-        throw new Error("Erro ao solicitar mudanca");
+        throw new Error("Erro ao solicitar mudança");
       }
 
       const data = await response.json();
@@ -88,7 +69,7 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
         toast.success("Solicitacao enviada ao parceiro por email!");
       }
     } catch {
-      toast.error("Erro ao solicitar mudanca de privacidade");
+      toast.error("Erro ao solicitar mudança de privacidade");
     } finally {
       setIsSaving(false);
     }
@@ -118,7 +99,7 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
           Privacidade dos gastos pessoais
         </CardTitle>
         <CardDescription>
-          Controle a visibilidade dos gastos pessoais entre os membros do orcamento
+          Controle a visibilidade dos gastos pessoais entre os membros do orçamento
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -128,7 +109,7 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
               Pendente
             </Badge>
             <span className="text-sm text-amber-700 dark:text-amber-400">
-              Mudanca para &ldquo;{PRIVACY_OPTIONS.find((o) => o.value === pendingMode)?.label}&rdquo; aguardando confirmacao do parceiro
+              Mudança para &ldquo;{PRIVACY_MAP[pendingMode]?.label}&rdquo; aguardando confirmação do parceiro
             </span>
           </div>
         )}
@@ -148,7 +129,7 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
               disabled={isActive || isSaving}
             >
               <div className="flex items-start gap-3 w-full">
-                <div className="mt-0.5 shrink-0">{option.icon}</div>
+                <div className="mt-0.5 shrink-0">{PRIVACY_ICONS[option.value]}</div>
                 <div className="text-left">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{option.label}</span>
@@ -171,7 +152,7 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
         {isSaving && (
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Enviando solicitacao...
+            Enviando solicitação...
           </div>
         )}
       </CardContent>
