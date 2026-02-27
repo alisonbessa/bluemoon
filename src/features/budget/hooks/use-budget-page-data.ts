@@ -16,6 +16,7 @@ interface AllocationsResponse {
   totals: { allocated: number; spent: number; available: number };
   income: IncomeData | null;
   hasPreviousMonthData: boolean;
+  hasContributionModel: boolean;
 }
 
 interface BudgetsResponse {
@@ -86,6 +87,16 @@ export function useBudgetPageData(year: number, month: number) {
   const incomeData = allocationsData?.income ?? null;
   const totalIncome = incomeData?.totals?.planned ?? 0;
   const hasPreviousMonthData = allocationsData?.hasPreviousMonthData ?? false;
+  const hasContributionModel = allocationsData?.hasContributionModel ?? false;
+
+  // Calculate total contribution from all income sources
+  const totalContribution = useMemo(() => {
+    if (!incomeData) return 0;
+    return incomeData.byMember.reduce(
+      (sum, m) => sum + m.totals.contributionPlanned,
+      0
+    );
+  }, [incomeData]);
   const goals = useMemo(
     () => goalsData?.goals?.filter((g) => !g.isCompleted) ?? [],
     [goalsData?.goals]
@@ -117,6 +128,8 @@ export function useBudgetPageData(year: number, month: number) {
     totals,
     incomeData,
     totalIncome,
+    totalContribution,
+    hasContributionModel,
     totalGoals,
     hasPreviousMonthData,
     goals,

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
-import { Loader2, PiggyBank } from 'lucide-react';
+import { Loader2, PiggyBank, User } from 'lucide-react';
 import { GoalFormModal } from '@/features/goals';
 import { useTutorial } from '@/shared/tutorial/tutorial-provider';
 import { PageHeader } from '@/shared/molecules';
@@ -35,9 +35,12 @@ import {
   CopyHintModal,
 } from '@/features/budget/ui';
 
+import { formatCurrency } from '@/shared/lib/formatters';
+
 import type {
   IncomeSource,
   IncomeSourceData,
+  GroupData,
 } from '@/features/budget/types';
 
 export default function BudgetPage() {
@@ -65,12 +68,129 @@ export default function BudgetPage() {
     totals,
     incomeData,
     totalIncome,
+    totalContribution,
+    hasContributionModel,
     totalGoals,
     hasPreviousMonthData,
     goals,
     isLoading,
     refreshData,
   } = useBudgetPageData(currentYear, currentMonth);
+
+  const isPersonalView = hasContributionModel && uiState.budgetViewMode === 'personal';
+
+  // Filter expenses data based on view mode
+  const filteredGroupsData = useMemo(() => {
+    if (!hasContributionModel) return groupsData;
+
+    if (isPersonalView) {
+      // Personal view: only show categories that belong to the current user (memberId !== null and not other member)
+      return groupsData
+        .map((g) => {
+          const personalCategories = g.categories.filter(
+            (c) => c.category.memberId != null && !c.isOtherMemberCategory
+          );
+          if (personalCategories.length === 0) return null;
+          return {
+            ...g,
+            categories: personalCategories,
+            totals: {
+              allocated: personalCategories.reduce((sum, c) => sum + c.allocated + c.carriedOver, 0),
+              spent: personalCategories.reduce((sum, c) => sum + c.spent, 0),
+              available: personalCategories.reduce((sum, c) => sum + c.available, 0),
+            },
+          };
+        })
+        .filter((g): g is GroupData => g !== null);
+    }
+
+    // Shared view: only show shared categories (memberId === null)
+    return groupsData
+      .map((g) => {
+        const sharedCategories = g.categories.filter(
+          (c) => c.category.memberId == null
+        );
+        if (sharedCategories.length === 0) return null;
+        return {
+          ...g,
+          categories: sharedCategories,
+          totals: {
+            allocated: sharedCategories.reduce((sum, c) => sum + c.allocated + c.carriedOver, 0),
+            spent: sharedCategories.reduce((sum, c) => sum + c.spent, 0),
+            available: sharedCategories.reduce((sum, c) => sum + c.available, 0),
+          },
+        };
+      })
+      .filter((g): g is GroupData => g !== null);
+  }, [groupsData, hasContributionModel, isPersonalView]);
+
+  // Calculate filtered totals for expenses
+  const filteredTotals = useMemo(() => {
+    if (!hasContributionModel) return totals;
+    return {
+      allocated: filteredGroupsData.reduce((sum, g) => sum + g.totals.allocated, 0),
+      spent: filteredGroupsData.reduce((sum, g) => sum + g.totals.spent, 0),
+      available: filteredGroupsData.reduce((sum, g) => sum + g.totals.available, 0),
+    };
+  }, [filteredGroupsData, hasContributionModel, totals]);
+
+  // Transform income data based on view mode
+  const filteredIncomeData = useMemo(() => {
+    if (!incomeData || !hasContributionModel) return incomeData;
+
+    if (isPersonalView) {
+      // Personal view: show personal reserve (planned - contributionPlanned)
+      const transformedByMember = incomeData.byMember.map((memberGroup) => ({
+        ...memberGroup,
+        sources: memberGroup.sources.map((s) => ({
+          ...s,
+          planned: s.planned - (s.contributionPlanned ?? s.planned),
+          defaultAmount: s.defaultAmount - (s.defaultContribution ?? s.defaultAmount),
+        })),
+        totals: {
+          ...memberGroup.totals,
+          planned: memberGroup.totals.planned - (memberGroup.totals.contributionPlanned ?? memberGroup.totals.planned),
+        },
+      }));
+      return {
+        ...incomeData,
+        byMember: transformedByMember,
+        totals: {
+          ...incomeData.totals,
+          planned: incomeData.totals.planned - totalContribution,
+        },
+      };
+    }
+
+    // Shared view: show contribution amounts
+    const transformedByMember = incomeData.byMember.map((memberGroup) => ({
+      ...memberGroup,
+      sources: memberGroup.sources.map((s) => ({
+        ...s,
+        planned: s.contributionPlanned ?? s.planned,
+        defaultAmount: s.defaultContribution ?? s.defaultAmount,
+      })),
+      totals: {
+        ...memberGroup.totals,
+        planned: memberGroup.totals.contributionPlanned ?? memberGroup.totals.planned,
+      },
+    }));
+    return {
+      ...incomeData,
+      byMember: transformedByMember,
+      totals: {
+        ...incomeData.totals,
+        planned: totalContribution,
+      },
+    };
+  }, [incomeData, hasContributionModel, isPersonalView, totalContribution]);
+
+  // Calculate effective total income for header based on view mode
+  const effectiveTotalIncome = useMemo(() => {
+    if (!hasContributionModel) return totalIncome;
+    if (isPersonalView) return totalIncome - totalContribution;
+    return totalContribution;
+  }, [hasContributionModel, isPersonalView, totalIncome, totalContribution]);
 
   // Local UI state
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
@@ -187,9 +307,9 @@ export default function BudgetPage() {
           year={currentYear}
           month={currentMonth}
           onMonthChange={handleMonthChange}
-          totalIncome={totalIncome}
-          totalAllocated={totals.allocated}
-          totalGoals={totalGoals}
+          totalIncome={effectiveTotalIncome}
+          totalAllocated={filteredTotals.allocated}
+          totalGoals={isPersonalView ? 0 : totalGoals}
         />
 
         <BudgetFilters
@@ -199,15 +319,18 @@ export default function BudgetPage() {
           isCopying={budgetActions.isCopying}
           mobileViewMode={uiState.mobileViewMode}
           onViewModeChange={uiState.setMobileViewMode}
+          hasContributionModel={hasContributionModel}
+          budgetViewMode={uiState.budgetViewMode}
+          onBudgetViewModeChange={uiState.setBudgetViewMode}
         />
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
         {/* Income Section */}
-        {incomeData && (
+        {filteredIncomeData && (
           <IncomeSectionAccordion
-            incomeData={incomeData}
+            incomeData={filteredIncomeData}
             isExpanded={uiState.isIncomeExpanded}
             onToggle={uiState.toggleIncomeSection}
             expandedMembers={uiState.expandedIncomeMembers}
@@ -221,10 +344,10 @@ export default function BudgetPage() {
         )}
 
         {/* Expenses Section */}
-        {groupsData.length > 0 ? (
+        {filteredGroupsData.length > 0 ? (
           <ExpensesSectionAccordion
-            groupsData={groupsData}
-            totals={totals}
+            groupsData={filteredGroupsData}
+            totals={filteredTotals}
             budgetId={budgetId || ''}
             accounts={accounts}
             isExpanded={uiState.isExpensesExpanded}
@@ -238,6 +361,14 @@ export default function BudgetPage() {
             onBillsChange={refreshData}
             mobileViewMode={uiState.mobileViewMode}
           />
+        ) : isPersonalView ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-4">
+            <User className="h-12 w-12 text-muted-foreground" />
+            <h3 className="font-semibold">Nenhuma categoria pessoal</h3>
+            <p className="text-sm text-muted-foreground text-center max-w-md">
+              Categorias pessoais são criadas automaticamente (ex: Prazeres) ou você pode criar novas na página de categorias.
+            </p>
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <PiggyBank className="h-12 w-12 text-muted-foreground" />
@@ -248,14 +379,28 @@ export default function BudgetPage() {
           </div>
         )}
 
-        {/* Goals Section */}
-        <GoalsSectionAccordion
-          goals={goals}
-          totalGoals={totalGoals}
-          isExpanded={uiState.isGoalsExpanded}
-          onToggle={uiState.toggleGoalsSection}
-          onAddGoal={() => setIsGoalFormOpen(true)}
-        />
+        {/* Goals Section - only in shared view */}
+        {!isPersonalView && (
+          <GoalsSectionAccordion
+            goals={goals}
+            totalGoals={totalGoals}
+            isExpanded={uiState.isGoalsExpanded}
+            onToggle={uiState.toggleGoalsSection}
+            onAddGoal={() => setIsGoalFormOpen(true)}
+          />
+        )}
+
+        {/* Personal reserve summary - only in personal view */}
+        {isPersonalView && effectiveTotalIncome > 0 && (
+          <div className="px-3 sm:px-4 py-4 border-b">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <User className="h-4 w-4" />
+              <span>
+                Sua reserva pessoal: <strong className="text-foreground">{formatCurrency(effectiveTotalIncome)}</strong> por mês
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modals */}

@@ -21,6 +21,7 @@ interface CategoryLocal {
   icon?: string | null;
   behavior: 'set_aside' | 'refill_up';
   plannedAmount: number;
+  memberId?: string | null;
 }
 
 interface RecurringBillSummaryLocal {

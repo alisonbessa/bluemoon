@@ -37,14 +37,16 @@ interface IncomeSourceLocal {
 interface IncomeSourceDataLocal {
   incomeSource: IncomeSourceLocal;
   planned: number;
+  contributionPlanned?: number;
   defaultAmount: number;
+  defaultContribution?: number;
   received: number;
 }
 
 interface IncomeMemberGroupLocal {
   member: MemberLocal | null;
   sources: IncomeSourceDataLocal[];
-  totals: { planned: number; received: number };
+  totals: { planned: number; contributionPlanned?: number; received: number };
 }
 
 interface IncomeDataLocal {

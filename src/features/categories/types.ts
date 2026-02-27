@@ -24,6 +24,7 @@ export interface Category {
   dueDay?: number | null;
   groupId: string;
   budgetId: string;
+  memberId?: string | null;
 }
 
 export interface RecurringBillSummary {
