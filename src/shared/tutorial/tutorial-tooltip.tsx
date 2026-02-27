@@ -132,7 +132,7 @@ export function TutorialTooltip({ spotlightRect }: TutorialTooltipProps) {
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-2">
           <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
-            {stepIndex + 1}
+            {pageStepIndex + 1}
           </span>
           <h3 className="font-semibold text-foreground">{currentStep.title}</h3>
         </div>
