@@ -1,6 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
+import { useViewMode } from '@/shared/providers/view-mode-provider';
 import type { Account } from '../types';
 import { optimisticMutate } from '@/shared/lib/swr/optimistic';
 
@@ -8,17 +9,19 @@ interface AccountsResponse {
   accounts: Account[];
 }
 
-const ACCOUNTS_KEY = '/api/app/accounts';
+const BASE_KEY = '/api/app/accounts';
 
 /**
  * Hook for fetching and caching accounts data
  * Uses SWR for automatic caching and deduplication
  * Includes optimistic mutation methods
+ * SWR key includes viewMode so data re-fetches on view change
  */
 export function useAccounts() {
-  const { data, error, isLoading, mutate } = useSWR<AccountsResponse>(
-    ACCOUNTS_KEY
-  );
+  const { viewMode, isDuoPlan } = useViewMode();
+  const swrKey = isDuoPlan ? `${BASE_KEY}?viewMode=${viewMode}` : BASE_KEY;
+
+  const { data, error, isLoading, mutate } = useSWR<AccountsResponse>(swrKey);
 
   const accounts = data?.accounts ?? [];
 
@@ -37,12 +40,12 @@ export function useAccounts() {
     };
 
     return optimisticMutate<AccountsResponse>({
-      key: ACCOUNTS_KEY,
+      key: swrKey,
       optimisticUpdate: (current) => ({
         accounts: [...(current?.accounts ?? []), optimisticAccount],
       }),
       action: async () => {
-        const response = await fetch(ACCOUNTS_KEY, {
+        const response = await fetch(BASE_KEY, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newAccount),
@@ -64,14 +67,14 @@ export function useAccounts() {
     updates: Partial<Account>
   ) => {
     return optimisticMutate<AccountsResponse>({
-      key: ACCOUNTS_KEY,
+      key: swrKey,
       optimisticUpdate: (current) => ({
         accounts: (current?.accounts ?? []).map((account) =>
           account.id === id ? { ...account, ...updates } : account
         ),
       }),
       action: async () => {
-        const response = await fetch(`${ACCOUNTS_KEY}/${id}`, {
+        const response = await fetch(`${BASE_KEY}/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),
@@ -90,12 +93,12 @@ export function useAccounts() {
    */
   const deleteAccount = async (id: string) => {
     return optimisticMutate<AccountsResponse>({
-      key: ACCOUNTS_KEY,
+      key: swrKey,
       optimisticUpdate: (current) => ({
         accounts: (current?.accounts ?? []).filter((account) => account.id !== id),
       }),
       action: async () => {
-        const response = await fetch(`${ACCOUNTS_KEY}/${id}`, {
+        const response = await fetch(`${BASE_KEY}/${id}`, {
           method: 'DELETE',
         });
         if (!response.ok) {
@@ -112,6 +115,8 @@ export function useAccounts() {
     isLoading,
     error,
     mutate,
+    viewMode,
+    isDuoPlan,
     // Optimistic mutations
     createAccount,
     updateAccount,
@@ -123,13 +128,15 @@ export function useAccounts() {
  * Get only active (non-archived) accounts
  */
 export function useActiveAccounts() {
-  const { accounts, isLoading, error, mutate, createAccount, updateAccount, deleteAccount } = useAccounts();
+  const { accounts, isLoading, error, mutate, viewMode, isDuoPlan, createAccount, updateAccount, deleteAccount } = useAccounts();
 
   return {
     accounts: accounts.filter((a) => !a.isArchived),
     isLoading,
     error,
     mutate,
+    viewMode,
+    isDuoPlan,
     createAccount,
     updateAccount,
     deleteAccount,

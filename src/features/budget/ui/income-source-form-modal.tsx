@@ -59,6 +59,8 @@ interface IncomeSourceFormModalProps {
   // Reference data
   members: Member[];
   filteredAccounts: Account[];
+  /** Current user's member ID - restricts member selector to self only */
+  currentUserMemberId?: string;
 }
 
 /**
@@ -75,6 +77,7 @@ export function IncomeSourceFormModal({
   errors,
   members,
   filteredAccounts,
+  currentUserMemberId,
 }: IncomeSourceFormModalProps) {
   return (
     <FormModalWrapper
@@ -181,6 +184,8 @@ export function IncomeSourceFormModal({
             onChange={(value) => onFieldChange('memberId', value)}
             members={members}
             label="Quem Recebe"
+            noneLabel="Dupla"
+            currentUserMemberId={currentUserMemberId}
           />
         )}
 

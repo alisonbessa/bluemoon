@@ -9,6 +9,7 @@ import {
   CelebrationModal,
   useTutorial,
 } from "@/shared/tutorial";
+import { ViewModeProvider } from "@/shared/providers/view-mode-provider";
 import { FloatingFeedbackButton } from "@/shared/components/floating-feedback-button";
 import React, { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -318,7 +319,9 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={<DashboardSkeleton />}>
       <TutorialProvider>
-        <AppLayoutContent>{children}</AppLayoutContent>
+        <ViewModeProvider>
+          <AppLayoutContent>{children}</AppLayoutContent>
+        </ViewModeProvider>
       </TutorialProvider>
     </Suspense>
   );

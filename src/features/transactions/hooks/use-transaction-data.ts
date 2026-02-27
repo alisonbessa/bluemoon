@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { getWeek } from "date-fns";
 import { toast } from "sonner";
 import { type PeriodValue } from "@/shared/ui/period-navigator";
+import { useViewMode } from "@/shared/providers/view-mode-provider";
 import type { Transaction, Category, Account, IncomeSource, Budget } from "../types";
 
 interface UseTransactionDataReturn {
@@ -28,6 +29,8 @@ interface UseTransactionDataReturn {
 
 export function useTransactionData(): UseTransactionDataReturn {
   const today = new Date();
+  const { viewMode, isDuoPlan } = useViewMode();
+  const vm = isDuoPlan ? `&viewMode=${viewMode}` : '';
 
   // Period state
   const [periodValue, setPeriodValue] = useState<PeriodValue>({
@@ -64,12 +67,12 @@ export function useTransactionData(): UseTransactionDataReturn {
       const [transactionsRes, categoriesRes, accountsRes, budgetsRes, incomeSourcesRes] =
         await Promise.all([
           fetch(
-            `/api/app/transactions?limit=500&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+            `/api/app/transactions?limit=500&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}${vm}`
           ),
           fetch("/api/app/categories"),
-          fetch("/api/app/accounts"),
+          fetch(`/api/app/accounts${isDuoPlan ? `?viewMode=${viewMode}` : ''}`),
           fetch("/api/app/budgets"),
-          fetch("/api/app/income-sources"),
+          fetch(`/api/app/income-sources${isDuoPlan ? `?viewMode=${viewMode}` : ''}`),
         ]);
 
       if (transactionsRes.ok) {
@@ -102,7 +105,7 @@ export function useTransactionData(): UseTransactionDataReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [periodValue]);
+  }, [periodValue, viewMode, isDuoPlan, vm]);
 
   useEffect(() => {
     fetchData();

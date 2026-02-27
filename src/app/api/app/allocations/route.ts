@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus, recurringBills, financialAccounts, budgets } from "@/db/schema";
 import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
 import { ensurePendingTransactionsForMonth } from "@/shared/lib/budget/pending-transactions";
-import { getUserBudgetIds, getUserMemberIdInBudget } from "@/shared/lib/api/permissions";
+import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import {
   validationError,
   forbiddenError,
@@ -12,6 +12,7 @@ import {
   errorResponse,
 } from "@/shared/lib/api/responses";
 import { upsertAllocationSchema } from "@/shared/lib/validations";
+import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
 
 // GET - Get allocations for a specific month with spending data
 export const GET = withAuthRequired(async (req, context) => {
@@ -20,6 +21,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const budgetId = searchParams.get("budgetId");
   const year = parseInt(searchParams.get("year") || new Date().getFullYear().toString());
   const month = parseInt(searchParams.get("month") || (new Date().getMonth() + 1).toString());
+  const viewMode = parseViewMode(searchParams);
 
   if (!budgetId) {
     return errorResponse("budgetId is required", 400);
@@ -43,13 +45,40 @@ export const GET = withAuthRequired(async (req, context) => {
     .limit(1);
   const privacyMode = budgetRow?.privacyMode || "visible";
 
+  // Get partner privacy level for "all" view mode
+  const partnerPrivacy = viewMode === "all" && userMemberId
+    ? await getPartnerPrivacyLevel(session.user.id, budgetId)
+    : undefined;
+
+  // Build category visibility condition based on viewMode
+  // Categories with NULL memberId are shared — visible in "mine" view
+  const categoryViewCondition = userMemberId
+    ? getViewModeCondition({
+        viewMode,
+        userMemberId,
+        ownerField: categories.memberId,
+        partnerPrivacy,
+        includeSharedInMine: true,
+      })
+    : undefined;
+
+  // Build transaction visibility condition for spending queries
+  const txViewCondition = userMemberId
+    ? getViewModeCondition({
+        viewMode,
+        userMemberId,
+        ownerField: transactions.memberId,
+        partnerPrivacy,
+      })
+    : undefined;
+
   // Calculate date range for this month
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
 
   // PERFORMANCE: Run independent queries in parallel
   const [budgetCategories, allocations, spending, bills] = await Promise.all([
-    // Get all categories with their groups
+    // Get categories with their groups (filtered by viewMode)
     db
       .select({
         category: categories,
@@ -60,7 +89,8 @@ export const GET = withAuthRequired(async (req, context) => {
       .where(
         and(
           eq(categories.budgetId, budgetId),
-          eq(categories.isArchived, false)
+          eq(categories.isArchived, false),
+          ...(categoryViewCondition ? [categoryViewCondition] : [])
         )
       )
       .orderBy(groups.displayOrder, categories.displayOrder),
@@ -77,7 +107,7 @@ export const GET = withAuthRequired(async (req, context) => {
         )
       ),
 
-    // Get spending per category for this month
+    // Get spending per category for this month (filtered by viewMode)
     db
       .select({
         categoryId: transactions.categoryId,
@@ -89,7 +119,8 @@ export const GET = withAuthRequired(async (req, context) => {
           eq(transactions.budgetId, budgetId),
           gte(transactions.date, startDate),
           lte(transactions.date, endDate),
-          inArray(transactions.status, ["pending", "cleared", "reconciled"])
+          inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+          ...(txViewCondition ? [txViewCondition] : [])
         )
       )
       .groupBy(transactions.categoryId),
@@ -338,21 +369,32 @@ export const GET = withAuthRequired(async (req, context) => {
 
   // PERFORMANCE: Run income-related queries in parallel
   const [budgetIncomeSources, incomeAllocations, incomeReceived] = await Promise.all([
-    // Get income sources with member data
-    db
-      .select({
-        incomeSource: incomeSources,
-        member: budgetMembers,
-      })
-      .from(incomeSources)
-      .leftJoin(budgetMembers, eq(incomeSources.memberId, budgetMembers.id))
-      .where(
-        and(
-          eq(incomeSources.budgetId, budgetId),
-          eq(incomeSources.isActive, true)
+    // Get income sources with member data (filtered by viewMode)
+    (() => {
+      const incomeViewCondition = userMemberId
+        ? getViewModeCondition({
+            viewMode,
+            userMemberId,
+            ownerField: incomeSources.memberId,
+            partnerPrivacy,
+          })
+        : undefined;
+      return db
+        .select({
+          incomeSource: incomeSources,
+          member: budgetMembers,
+        })
+        .from(incomeSources)
+        .leftJoin(budgetMembers, eq(incomeSources.memberId, budgetMembers.id))
+        .where(
+          and(
+            eq(incomeSources.budgetId, budgetId),
+            eq(incomeSources.isActive, true),
+            ...(incomeViewCondition ? [incomeViewCondition] : [])
+          )
         )
-      )
-      .orderBy(incomeSources.displayOrder),
+        .orderBy(incomeSources.displayOrder);
+    })(),
 
     // Get monthly income allocations (overrides for this month)
     db
@@ -467,7 +509,7 @@ export const GET = withAuthRequired(async (req, context) => {
     return g;
   });
 
-  // Get total income/expense from ALL transactions (even without incomeSourceId or categoryId)
+  // Get total income/expense from transactions (filtered by viewMode)
   // Separate confirmed (cleared/reconciled) from pending for accurate reporting
   const [transactionTotals] = await db
     .select({
@@ -484,7 +526,8 @@ export const GET = withAuthRequired(async (req, context) => {
         eq(transactions.budgetId, budgetId),
         gte(transactions.date, startDate),
         lte(transactions.date, endDate),
-        inArray(transactions.status, ["pending", "cleared", "reconciled"])
+        inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+        ...(txViewCondition ? [txViewCondition] : [])
       )
     );
 

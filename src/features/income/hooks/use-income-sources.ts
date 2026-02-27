@@ -1,20 +1,24 @@
 'use client';
 
 import useSWR from 'swr';
+import { useViewMode } from '@/shared/providers/view-mode-provider';
 import type { IncomeSource } from '../types';
 
 interface IncomeSourcesResponse {
   incomeSources: IncomeSource[];
 }
 
+const BASE_KEY = '/api/app/income-sources';
+
 /**
  * Hook for fetching and caching income sources data
  * Uses SWR for automatic caching and deduplication
  */
 export function useIncomeSources() {
-  const { data, error, isLoading, mutate } = useSWR<IncomeSourcesResponse>(
-    '/api/app/income-sources'
-  );
+  const { viewMode, isDuoPlan } = useViewMode();
+  const swrKey = isDuoPlan ? `${BASE_KEY}?viewMode=${viewMode}` : BASE_KEY;
+
+  const { data, error, isLoading, mutate } = useSWR<IncomeSourcesResponse>(swrKey);
 
   return {
     incomeSources: data?.incomeSources ?? [],

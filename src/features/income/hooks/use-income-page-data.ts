@@ -1,6 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
+import { useViewMode } from '@/shared/providers/view-mode-provider';
 import type { IncomeSource, IncomeType } from '../types';
 
 interface Budget {
@@ -13,6 +14,7 @@ interface Member {
   name: string;
   type: string;
   color?: string | null;
+  userId?: string | null;
 }
 
 interface Account {
@@ -57,6 +59,9 @@ export interface IncomePageData {
  * Combines budgets, members, accounts, and income sources
  */
 export function useIncomePageData(): IncomePageData {
+  const { viewMode, isDuoPlan } = useViewMode();
+  const vmParam = isDuoPlan ? `?viewMode=${viewMode}` : '';
+
   const { data: budgetsData, error: budgetsError, isLoading: budgetsLoading } = useSWR<BudgetsResponse>(
     '/api/app/budgets'
   );
@@ -66,11 +71,11 @@ export function useIncomePageData(): IncomePageData {
   );
 
   const { data: accountsData, error: accountsError, isLoading: accountsLoading } = useSWR<AccountsResponse>(
-    '/api/app/accounts'
+    `/api/app/accounts${vmParam}`
   );
 
   const { data: incomeData, error: incomeError, isLoading: incomeLoading, mutate: mutateIncome } = useSWR<IncomeSourcesResponse>(
-    '/api/app/income-sources'
+    `/api/app/income-sources${vmParam}`
   );
 
   const budgets = budgetsData?.budgets ?? [];

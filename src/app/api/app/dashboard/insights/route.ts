@@ -7,12 +7,13 @@ import {
   monthlyAllocations,
 } from "@/db/schema";
 import { eq, and, inArray, gte, lte, sql, desc } from "drizzle-orm";
-import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import {
   forbiddenError,
   cachedResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
+import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
 
 // GET - Get monthly insights data
 export const GET = withAuthRequired(async (req, context) => {
@@ -26,6 +27,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const month = parseInt(
     searchParams.get("month") || (new Date().getMonth() + 1).toString()
   );
+  const viewMode = parseViewMode(searchParams);
 
   if (!budgetId) {
     return errorResponse("budgetId is required", 400);
@@ -35,6 +37,18 @@ export const GET = withAuthRequired(async (req, context) => {
   if (!budgetIds.includes(budgetId)) {
     return forbiddenError("Budget not found or access denied");
   }
+
+  // Get user's member ID and partner privacy for view mode filtering
+  const userMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
+  const partnerPrivacy = viewMode === "all" && userMemberId
+    ? await getPartnerPrivacyLevel(session.user.id, budgetId)
+    : undefined;
+
+  // Build transaction view mode condition
+  const txViewCondition = userMemberId
+    ? getViewModeCondition({ viewMode, userMemberId, ownerField: transactions.memberId, partnerPrivacy })
+    : undefined;
+  const txViewConditions = txViewCondition ? [txViewCondition] : [];
 
   // Date ranges
   const startDate = new Date(year, month - 1, 1);
@@ -62,7 +76,7 @@ export const GET = withAuthRequired(async (req, context) => {
     currentAllocations,
     categorySpending,
   ] = await Promise.all([
-    // 1. Current month totals
+    // 1. Current month totals (filtered by viewMode)
     db
       .select({
         totalIncome: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'income' THEN ${transactions.amount} ELSE 0 END), 0)`,
@@ -77,11 +91,12 @@ export const GET = withAuthRequired(async (req, context) => {
           eq(transactions.budgetId, budgetId),
           gte(transactions.date, startDate),
           lte(transactions.date, endDate),
-          inArray(transactions.status, ["pending", "cleared", "reconciled"])
+          inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+          ...txViewConditions
         )
       ),
 
-    // 2. Previous month totals
+    // 2. Previous month totals (filtered by viewMode)
     db
       .select({
         totalIncome: sql<number>`COALESCE(SUM(CASE WHEN ${transactions.type} = 'income' THEN ${transactions.amount} ELSE 0 END), 0)`,
@@ -95,11 +110,12 @@ export const GET = withAuthRequired(async (req, context) => {
           eq(transactions.budgetId, budgetId),
           gte(transactions.date, prevStartDate),
           lte(transactions.date, prevEndDate),
-          inArray(transactions.status, ["pending", "cleared", "reconciled"])
+          inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+          ...txViewConditions
         )
       ),
 
-    // 3. Top categories by spending (current month)
+    // 3. Top categories by spending (current month, filtered by viewMode)
     db
       .select({
         categoryId: transactions.categoryId,
@@ -119,7 +135,8 @@ export const GET = withAuthRequired(async (req, context) => {
           eq(transactions.type, "expense"),
           gte(transactions.date, startDate),
           lte(transactions.date, endDate),
-          inArray(transactions.status, ["pending", "cleared", "reconciled"])
+          inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+          ...txViewConditions
         )
       )
       .groupBy(
@@ -133,7 +150,7 @@ export const GET = withAuthRequired(async (req, context) => {
       .orderBy(desc(sql`ABS(SUM(${transactions.amount}))`))
       .limit(5),
 
-    // 4. Top categories by spending (previous month, for comparison)
+    // 4. Top categories by spending (previous month, for comparison, filtered by viewMode)
     db
       .select({
         categoryId: transactions.categoryId,
@@ -146,7 +163,8 @@ export const GET = withAuthRequired(async (req, context) => {
           eq(transactions.type, "expense"),
           gte(transactions.date, prevStartDate),
           lte(transactions.date, prevEndDate),
-          inArray(transactions.status, ["pending", "cleared", "reconciled"])
+          inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+          ...txViewConditions
         )
       )
       .groupBy(transactions.categoryId),
@@ -167,7 +185,7 @@ export const GET = withAuthRequired(async (req, context) => {
         )
       ),
 
-    // 6. All category spending for over-budget detection
+    // 6. All category spending for over-budget detection (filtered by viewMode)
     db
       .select({
         categoryId: transactions.categoryId,
@@ -184,7 +202,8 @@ export const GET = withAuthRequired(async (req, context) => {
           eq(transactions.type, "expense"),
           gte(transactions.date, startDate),
           lte(transactions.date, endDate),
-          inArray(transactions.status, ["pending", "cleared", "reconciled"])
+          inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+          ...txViewConditions
         )
       )
       .groupBy(

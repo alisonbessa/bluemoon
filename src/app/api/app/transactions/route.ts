@@ -4,7 +4,7 @@ import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
 import { transactions, financialAccounts, categories, incomeSources, budgetMembers } from "@/db/schema";
 import { eq, and, inArray, desc, gte, lte, sql } from "drizzle-orm";
-import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import { createTransactionSchema } from "@/shared/lib/validations/transaction.schema";
 import {
   validationError,
@@ -17,6 +17,7 @@ import {
   getFirstInstallmentDate,
   calculateInstallmentDates,
 } from "@/shared/lib/billing-cycle";
+import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
 
 // GET - Get transactions for user's budgets
 export const GET = withAuthRequired(async (req, context) => {
@@ -28,6 +29,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const categoryId = searchParams.get("categoryId");
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
+  const viewMode = parseViewMode(searchParams);
   const { limit, offset } = safePagination(searchParams);
 
   const budgetIds = await getUserBudgetIds(session.user.id);
@@ -35,12 +37,31 @@ export const GET = withAuthRequired(async (req, context) => {
     return successResponse({ transactions: [], total: 0 });
   }
 
+  const activeBudgetId = budgetId || budgetIds[0];
+  const userMemberId = await getUserMemberIdInBudget(session.user.id, activeBudgetId);
+
   // Build conditions
   const conditions = [
     budgetId
       ? and(eq(transactions.budgetId, budgetId), inArray(transactions.budgetId, budgetIds))
       : inArray(transactions.budgetId, budgetIds),
   ];
+
+  // View mode filtering on transactions.memberId
+  if (userMemberId) {
+    const partnerPrivacy = viewMode === "all"
+      ? await getPartnerPrivacyLevel(session.user.id, activeBudgetId)
+      : undefined;
+    const viewCondition = getViewModeCondition({
+      viewMode,
+      userMemberId,
+      ownerField: transactions.memberId,
+      partnerPrivacy,
+    });
+    if (viewCondition) {
+      conditions.push(viewCondition);
+    }
+  }
 
   if (accountId) {
     conditions.push(eq(transactions.accountId, accountId));

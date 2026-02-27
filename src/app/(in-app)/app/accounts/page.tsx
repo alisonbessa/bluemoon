@@ -508,6 +508,7 @@ export default function AccountsPage() {
         mode="create"
         members={members}
         allowSharedOwnership={isDuoPlan}
+        currentUserMemberId={currentUserMemberId}
         initialData={preselectedType ? { type: preselectedType as "checking" | "savings" | "credit_card" | "cash" | "investment" | "benefit" } : undefined}
       />
 
@@ -530,6 +531,7 @@ export default function AccountsPage() {
           mode="edit"
           members={members}
           allowSharedOwnership={isDuoPlan}
+          currentUserMemberId={currentUserMemberId}
         />
       )}
 

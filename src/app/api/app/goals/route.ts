@@ -2,10 +2,10 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
-import { goals, budgets } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { goals, financialAccounts, budgets } from "@/db/schema";
+import { eq, and, inArray, or, isNull } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
-import { getUserBudgetIds, getUserMemberIdInBudget } from "@/shared/lib/api/permissions";
+import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import {
   validationError,
   forbiddenError,
@@ -14,18 +14,24 @@ import {
 } from "@/shared/lib/api/responses";
 import { createGoalSchema } from "@/shared/lib/validations/goal.schema";
 import { calculateGoalMetrics } from "@/shared/lib/goals/calculate-metrics";
+import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
 
 // GET - Get goals for user's budgets
+// Goals are filtered by viewMode via their linked account's ownerId
 export const GET = withAuthRequired(async (req, context) => {
   const { session } = context;
   const { searchParams } = new URL(req.url);
   const budgetId = searchParams.get("budgetId");
   const includeArchived = searchParams.get("includeArchived") === "true";
+  const viewMode = parseViewMode(searchParams);
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
     return successResponse({ goals: [] });
   }
+
+  const activeBudgetId = budgetId || budgetIds[0];
+  const userMemberId = await getUserMemberIdInBudget(session.user.id, activeBudgetId);
 
   const conditions = [inArray(goals.budgetId, budgetIds)];
 
@@ -37,30 +43,45 @@ export const GET = withAuthRequired(async (req, context) => {
     conditions.push(eq(goals.isArchived, false));
   }
 
+  // View mode filtering via the linked account's ownerId
+  // Goals with NULL accountId (unlinked) should be visible in "mine" view
+  if (userMemberId) {
+    const partnerPrivacy = viewMode === "all"
+      ? await getPartnerPrivacyLevel(session.user.id, activeBudgetId)
+      : undefined;
+    const viewCondition = getViewModeCondition({
+      viewMode,
+      userMemberId,
+      ownerField: financialAccounts.ownerId,
+      partnerPrivacy,
+    });
+    if (viewCondition) {
+      // Include goals with no linked account (NULL accountId → LEFT JOIN produces NULL ownerId)
+      conditions.push(or(viewCondition, isNull(goals.accountId))!);
+    }
+  }
+
   const userGoals = await db
-    .select()
+    .select({ goal: goals })
     .from(goals)
+    .leftJoin(financialAccounts, eq(goals.accountId, financialAccounts.id))
     .where(and(...conditions))
     .orderBy(goals.displayOrder);
 
-  // Get privacy mode and user's member ID for the target budget
-  const targetBudgetId = budgetId || budgetIds[0];
+  // Get budget-level privacy mode for server-side enforcement
   let privacyMode = "visible";
-  let userMemberId: string | null = null;
-
-  if (targetBudgetId) {
+  if (activeBudgetId) {
     const [budget] = await db
       .select({ privacyMode: budgets.privacyMode })
       .from(budgets)
-      .where(eq(budgets.id, targetBudgetId))
+      .where(eq(budgets.id, activeBudgetId))
       .limit(1);
     privacyMode = budget?.privacyMode || "visible";
-    userMemberId = await getUserMemberIdInBudget(session.user.id, targetBudgetId);
   }
 
   // Server-side privacy enforcement
   const goalsWithMetrics = userGoals
-    .map((goal) => {
+    .map(({ goal }) => {
       const isOtherMemberGoal = goal.memberId !== null && goal.memberId !== userMemberId;
 
       // "private": completely exclude other member's individual goals

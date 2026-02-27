@@ -7,6 +7,9 @@ import { z } from "zod";
 export const memberTypeEnum = z.enum(["owner", "partner", "child", "pet"]);
 export type MemberType = z.infer<typeof memberTypeEnum>;
 
+export const privacyLevelEnum = z.enum(["all_visible", "totals_only", "private"]);
+export type PrivacyLevel = z.infer<typeof privacyLevelEnum>;
+
 export const budgetMembers = pgTable("budget_members", {
   id: text("id")
     .primaryKey()
@@ -19,6 +22,7 @@ export const budgetMembers = pgTable("budget_members", {
   type: text("type").$type<MemberType>().notNull().default("owner"),
   color: text("color").default("#6366f1"), // For UI identification
   monthlyPleasureBudget: integer("monthly_pleasure_budget").default(0), // Monthly "Prazeres" budget in cents
+  privacyLevel: text("privacy_level").$type<PrivacyLevel>().notNull().default("all_visible"), // Controls what partner sees of personal data in "Tudo" view
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
 }, (table) => [

@@ -37,7 +37,13 @@ export const GET = withAuthRequired(async (req, context) => {
         : inArray(budgetMembers.budgetId, budgetIds)
     );
 
-  return successResponse({ members });
+  // Strip privacyLevel from other members to prevent data leakage
+  const sanitizedMembers = members.map((m) => ({
+    ...m,
+    privacyLevel: m.userId === session.user.id ? m.privacyLevel : undefined,
+  }));
+
+  return successResponse({ members: sanitizedMembers });
 });
 
 // POST - Add a dependent (child/pet) to budget

@@ -46,6 +46,7 @@ import type {
 
 export default function BudgetPage() {
   const router = useRouter();
+  const { user } = useUser();
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
 
   // Period navigation
@@ -96,7 +97,6 @@ export default function BudgetPage() {
   });
 
   // Current user for member matching
-  const { user } = useUser();
   const userMemberId = useMemo(
     () => members.find((m) => m.userId === user?.id)?.id ?? null,
     [members, user?.id]
@@ -418,6 +418,7 @@ export default function BudgetPage() {
         members={members}
         filteredAccounts={incomeSourceForm.filteredAccounts}
         onFieldChange={incomeSourceForm.setFormField}
+        currentUserMemberId={members.find(m => m.userId === user?.id)?.id}
       />
 
       {/* Income Source Delete Dialog */}

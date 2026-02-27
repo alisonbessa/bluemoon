@@ -2,12 +2,13 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { categories, groups, monthlyAllocations } from "@/db/schema";
 import { eq, and, gte, lte, isNotNull } from "drizzle-orm";
-import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import {
   forbiddenError,
   successResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
+import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
 
 // GET - Get upcoming commitments (categories with targetDate in the next 30 days)
 export const GET = withAuthRequired(async (req, context) => {
@@ -15,6 +16,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const { searchParams } = new URL(req.url);
   const budgetId = searchParams.get("budgetId");
   const daysAhead = parseInt(searchParams.get("days") || "30");
+  const viewMode = parseViewMode(searchParams);
 
   if (!budgetId) {
     return errorResponse("budgetId is required", 400);
@@ -25,11 +27,28 @@ export const GET = withAuthRequired(async (req, context) => {
     return forbiddenError("Budget not found or access denied");
   }
 
+  // Get user's member ID and partner privacy for view mode filtering
+  const userMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
+  const partnerPrivacy = viewMode === "all" && userMemberId
+    ? await getPartnerPrivacyLevel(session.user.id, budgetId)
+    : undefined;
+
+  // Categories with NULL memberId are shared — visible in "mine" view
+  const categoryViewCondition = userMemberId
+    ? getViewModeCondition({
+        viewMode,
+        userMemberId,
+        ownerField: categories.memberId,
+        partnerPrivacy,
+        includeSharedInMine: true,
+      })
+    : undefined;
+
   const now = new Date();
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + daysAhead);
 
-  // Get categories with targetDate in the upcoming period
+  // Get categories with targetDate in the upcoming period (filtered by viewMode)
   const upcomingCommitments = await db
     .select({
       category: categories,
@@ -43,7 +62,8 @@ export const GET = withAuthRequired(async (req, context) => {
         eq(categories.isArchived, false),
         isNotNull(categories.targetDate),
         gte(categories.targetDate, now),
-        lte(categories.targetDate, futureDate)
+        lte(categories.targetDate, futureDate),
+        ...(categoryViewCondition ? [categoryViewCondition] : [])
       )
     )
     .orderBy(categories.targetDate);

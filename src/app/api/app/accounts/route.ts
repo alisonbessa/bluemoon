@@ -8,6 +8,7 @@ import { capitalizeWords } from "@/shared/lib/utils";
 import {
   getUserBudgetIds,
   getUserMemberIdInBudget,
+  getPartnerPrivacyLevel,
 } from "@/shared/lib/api/permissions";
 import {
   validationError,
@@ -17,13 +18,15 @@ import {
 } from "@/shared/lib/api/responses";
 import { createAccountSchema } from "@/shared/lib/validations/account.schema";
 import { getBillingCycleDates } from "@/shared/lib/billing-cycle";
+import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
 
 // GET - Get accounts for user's budgets
-// Only returns accounts owned by the user OR shared accounts (ownerId is null)
+// Supports viewMode query param: mine | shared | all
 export const GET = withAuthRequired(async (req, context) => {
   const { session } = context;
   const { searchParams } = new URL(req.url);
   const budgetId = searchParams.get("budgetId");
+  const viewMode = parseViewMode(searchParams);
 
   const budgetIds = await getUserBudgetIds(session.user.id);
 
@@ -40,12 +43,25 @@ export const GET = withAuthRequired(async (req, context) => {
     ? and(eq(financialAccounts.budgetId, budgetId), inArray(financialAccounts.budgetId, budgetIds))
     : inArray(financialAccounts.budgetId, budgetIds);
 
-  // Visibility condition: owned by user OR shared (ownerId is null)
-  const visibilityCondition = userMemberId
-    ? or(eq(financialAccounts.ownerId, userMemberId), isNull(financialAccounts.ownerId))
-    : isNull(financialAccounts.ownerId);
+  // View mode filtering
+  let visibilityCondition;
+  if (userMemberId) {
+    const partnerPrivacy = viewMode === "all"
+      ? await getPartnerPrivacyLevel(session.user.id, activeBudgetId)
+      : undefined;
+    visibilityCondition = getViewModeCondition({
+      viewMode,
+      userMemberId,
+      ownerField: financialAccounts.ownerId,
+      partnerPrivacy,
+    });
+  } else {
+    visibilityCondition = isNull(financialAccounts.ownerId);
+  }
 
-  const whereCondition = and(budgetCondition, visibilityCondition);
+  const whereCondition = visibilityCondition
+    ? and(budgetCondition, visibilityCondition)
+    : budgetCondition;
 
   const userAccounts = await db
     .select({

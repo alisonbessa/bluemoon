@@ -1,6 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
+import { useViewMode } from '@/shared/providers/view-mode-provider';
 import type { Goal } from '@/types';
 import { optimisticMutate } from '@/shared/lib/swr/optimistic';
 
@@ -9,7 +10,7 @@ interface GoalsResponse {
   privacyMode?: string;
 }
 
-const GOALS_KEY = '/api/app/goals';
+const BASE_KEY = '/api/app/goals';
 
 /**
  * Hook for fetching and caching goals data
@@ -17,9 +18,10 @@ const GOALS_KEY = '/api/app/goals';
  * Includes optimistic mutation methods
  */
 export function useGoals() {
-  const { data, error, isLoading, mutate } = useSWR<GoalsResponse>(
-    GOALS_KEY
-  );
+  const { viewMode, isDuoPlan } = useViewMode();
+  const swrKey = isDuoPlan ? `${BASE_KEY}?viewMode=${viewMode}` : BASE_KEY;
+
+  const { data, error, isLoading, mutate } = useSWR<GoalsResponse>(swrKey);
 
   const goals = data?.goals ?? [];
 
@@ -28,14 +30,14 @@ export function useGoals() {
    */
   const archiveGoal = async (id: string) => {
     return optimisticMutate<GoalsResponse>({
-      key: GOALS_KEY,
+      key: swrKey,
       optimisticUpdate: (current) => ({
         goals: (current?.goals ?? []).map((goal) =>
           goal.id === id ? { ...goal, isArchived: true } : goal
         ),
       }),
       action: async () => {
-        const response = await fetch(`${GOALS_KEY}/${id}`, {
+        const response = await fetch(`${BASE_KEY}/${id}`, {
           method: 'DELETE',
         });
         if (!response.ok) {
@@ -65,7 +67,7 @@ export function useGoals() {
     const willComplete = newCurrentAmount >= goal.targetAmount;
 
     return optimisticMutate<GoalsResponse>({
-      key: GOALS_KEY,
+      key: swrKey,
       optimisticUpdate: (current) => ({
         goals: (current?.goals ?? []).map((g) =>
           g.id === id
@@ -81,7 +83,7 @@ export function useGoals() {
         ),
       }),
       action: async () => {
-        const response = await fetch(`${GOALS_KEY}/${id}/contribute`, {
+        const response = await fetch(`${BASE_KEY}/${id}/contribute`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount, year, month, fromAccountId }),
@@ -91,7 +93,7 @@ export function useGoals() {
           throw new Error(error.message || 'Erro ao contribuir');
         }
       },
-      successMessage: willComplete ? '🎉 Parabéns! Meta atingida!' : 'Contribuição registrada!',
+      successMessage: willComplete ? 'Meta atingida!' : 'Contribuição registrada!',
     });
   };
 

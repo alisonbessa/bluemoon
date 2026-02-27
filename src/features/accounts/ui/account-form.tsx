@@ -27,6 +27,8 @@ interface AccountFormProps {
    * Set explicitly to true for Duo plans even before partner joins.
    */
   allowSharedOwnership?: boolean;
+  /** Current user's member ID - used to filter owner options to self only */
+  currentUserMemberId?: string;
 }
 
 const ACCOUNT_TYPES: { value: AccountType; label: string; icon: string }[] = [
@@ -48,6 +50,7 @@ export function AccountForm({
   mode = "create",
   members = [],
   allowSharedOwnership,
+  currentUserMemberId,
 }: AccountFormProps) {
   // Show owner selector if explicitly allowed or if there are multiple members
   const showOwnerSelector = allowSharedOwnership ?? members.length > 1;
@@ -266,7 +269,7 @@ export function AccountForm({
                   </span>
                 </SelectItem>
                 {members
-                  .filter((member) => member.type !== "pet")
+                  .filter((member) => member.type !== "pet" && (!currentUserMemberId || member.id === currentUserMemberId))
                   .map((member) => (
                     <SelectItem key={member.id} value={member.id}>
                       <span className="flex items-center gap-2">
