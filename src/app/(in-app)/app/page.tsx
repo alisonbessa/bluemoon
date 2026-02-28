@@ -30,6 +30,7 @@ import dynamic from "next/dynamic";
 import {
   CreditCardSpending,
   ScheduledTransactionsList,
+  SharedExpensesBalance,
   useDashboardData,
 } from "@/features/dashboard";
 
@@ -301,6 +302,15 @@ function AppHomepage() {
         monthlyData={monthlyChartData}
         isLoading={chartsLoading}
       />
+
+      {/* Shared Expenses Balance - Duo plans only, non-unified */}
+      {budgets.length > 0 && (
+        <SharedExpensesBalance
+          budgetId={budgets[0].id}
+          year={currentYear}
+          month={currentMonth}
+        />
+      )}
 
       {/* Credit Card Spending */}
       <CreditCardSpending

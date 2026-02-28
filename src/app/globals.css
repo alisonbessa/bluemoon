@@ -191,6 +191,18 @@
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
+    text-box-trim: both;
+    text-box-edge: cap alphabetic;
+  }
+  button,
+  [role="button"],
+  a,
+  select,
+  summary,
+  [type="button"],
+  [type="submit"],
+  [type="reset"] {
+    cursor: pointer;
   }
 
   /* Custom scrollbar styles */

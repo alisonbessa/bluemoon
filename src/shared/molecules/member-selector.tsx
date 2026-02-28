@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
+import { useViewMode } from '@/shared/providers/view-mode-provider';
 
 interface Member {
   id: string;
@@ -73,8 +74,10 @@ export function MemberSelector({
   hideIfSingleMember = true,
   currentUserMemberId,
 }: MemberSelectorProps) {
-  // Hide selector for Solo plans (single member)
-  if (hideIfSingleMember && members.length <= 1) {
+  const { isUnifiedPrivacy } = useViewMode();
+
+  // Hide selector for Solo plans (single member) or unified privacy
+  if ((hideIfSingleMember && members.length <= 1) || isUnifiedPrivacy) {
     return null;
   }
 
