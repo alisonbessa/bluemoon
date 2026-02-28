@@ -17,10 +17,10 @@ const viewModeOptions: { value: ViewMode; label: string; shortLabel: string }[] 
 ];
 
 function ViewModeToggle() {
-  const { viewMode, setViewMode, isDuoPlan } = useViewMode();
+  const { viewMode, setViewMode, isDuoPlan, isUnifiedPrivacy } = useViewMode();
   const pathname = usePathname();
 
-  if (!isDuoPlan || pathname === "/app/settings") return null;
+  if (!isDuoPlan || isUnifiedPrivacy || pathname === "/app/settings") return null;
 
   return (
     <div className="flex items-center rounded-lg border bg-muted/50 p-0.5">
