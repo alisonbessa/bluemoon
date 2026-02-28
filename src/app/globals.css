@@ -191,6 +191,8 @@
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
+    text-box-trim: both;
+    text-box-edge: cap alphabetic;
   }
   button,
   [role="button"],
