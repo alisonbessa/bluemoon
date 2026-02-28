@@ -10,7 +10,7 @@ export const PRIVACY_OPTIONS: PrivacyOption[] = [
   {
     value: "visible",
     label: "Tudo visível",
-    description: "Ambos veem todos os gastos e metas pessoais um do outro",
+    description: "Ambos veem tudo um do outro, incluindo transações individuais",
   },
   {
     value: "unified",
@@ -20,7 +20,7 @@ export const PRIVACY_OPTIONS: PrivacyOption[] = [
   {
     value: "private",
     label: "Privado",
-    description: "Gastos e metas pessoais ficam completamente ocultos",
+    description: "Contas, metas e transações pessoais ficam completamente ocultos",
   },
 ];
 

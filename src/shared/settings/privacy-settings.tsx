@@ -96,15 +96,15 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <ShieldIcon className="h-5 w-5 text-muted-foreground" />
-          Privacidade dos gastos pessoais
+          Privacidade
         </CardTitle>
         <CardDescription>
-          Controle a visibilidade dos gastos pessoais entre os membros do orçamento
+          Controle o que cada membro vê do outro no orçamento
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {pendingMode && (
-          <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+          <div className="flex flex-wrap items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
             <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-400 shrink-0">
               Pendente
             </Badge>
@@ -122,16 +122,16 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
             <Button
               key={option.value}
               variant={isActive ? "default" : "outline"}
-              className={`w-full justify-start h-auto py-3 px-4 ${
+              className={`w-full justify-start h-auto py-3 px-4 whitespace-normal ${
                 isActive ? "" : "hover:bg-muted/50"
               }`}
               onClick={() => handleRequestChange(option.value)}
               disabled={isActive || isSaving}
             >
-              <div className="flex items-start gap-3 w-full">
+              <div className="flex items-start gap-3 w-full min-w-0">
                 <div className="mt-0.5 shrink-0">{PRIVACY_ICONS[option.value]}</div>
-                <div className="text-left">
-                  <div className="flex items-center gap-2">
+                <div className="text-left min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <span className="font-medium">{option.label}</span>
                     {isActive && (
                       <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Atual</Badge>
@@ -140,7 +140,7 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500 text-amber-600">Pendente</Badge>
                     )}
                   </div>
-                  <span className="text-xs font-normal text-muted-foreground">
+                  <span className="text-xs font-normal text-muted-foreground block">
                     {option.description}
                   </span>
                 </div>
