@@ -40,12 +40,19 @@ export async function parseUserMessage(
       generationConfig: {
         temperature: 0.1, // Low temperature for consistent parsing
         maxOutputTokens: 1024,
+        responseMimeType: "application/json",
       },
     });
 
     const prompt = buildParsePrompt(message, userContext);
     const result = await model.generateContent(prompt);
-    const responseText = result.response.text().trim();
+    let responseText = result.response.text().trim();
+
+    // Strip markdown code fences if present (fallback for older models)
+    const codeFenceMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeFenceMatch) {
+      responseText = codeFenceMatch[1].trim();
+    }
 
     // Parse JSON response
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
