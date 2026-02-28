@@ -257,9 +257,9 @@ export function BudgetExample() {
         <div className="mx-auto max-w-6xl">
           {/* Header */}
           <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold md:text-4xl">Exemplo Prático</h2>
+            <h2 className="text-3xl font-bold md:text-4xl">Na prática: R$ 5.000 de salário</h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Veja como funciona na prática, passo a passo
+              Veja como um mês inteiro funciona com o HiveBudget
             </p>
           </div>
 

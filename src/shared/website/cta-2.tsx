@@ -10,16 +10,16 @@ export function CTA2() {
       <div className="mx-auto max-w-(--breakpoint-xl) px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Pronto para assumir o controle?
+            O próximo mês pode ser diferente
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Junte-se a centenas de famílias brasileiras que já estão organizando
-            suas finanças com o HiveBudget.
+            Famílias brasileiras já estão planejando seu dinheiro com o HiveBudget.
+            Comece hoje e veja a diferença no primeiro mês.
           </p>
           <div className="mt-8 flex justify-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm">
               <Users className="h-4 w-4 text-primary" />
-              <span>Famílias usando HiveBudget</span>
+              <span>30 dias grátis para testar</span>
             </div>
           </div>
           <div className="mt-8">

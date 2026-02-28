@@ -15,13 +15,13 @@ const Hero2 = () => {
             Feito para o Brasil
           </Badge>
           <h1 className="text-3xl font-extrabold lg:text-6xl">
-            Defina o destino de cada{" "}
-            <span className="text-primary">real</span>
+            Seu dinheiro com{" "}
+            <span className="text-primary">destino certo</span>
           </h1>
           <p className="text-balance text-muted-foreground lg:text-lg">
-            Planeje seu orçamento antes de gastar, não depois.
-            Controle parcelamentos, cartões de crédito e registre gastos
-            rapidamente por mensagem. Perfeito para casais e famílias.
+            Pare de descobrir no fim do mês para onde o dinheiro foi.
+            Planeje cada real antes de gastar, controle cartões e parcelamentos,
+            e registre tudo por mensagem. Para casais e famílias que querem sair do vermelho.
           </p>
         </div>
 
@@ -49,7 +49,7 @@ const Hero2 = () => {
             <Link href="#pricing">Começar Grátis</Link>
           </Button>
           <Button size="lg" variant="outline" asChild>
-            <Link href="#features">Ver Funcionalidades</Link>
+            <Link href="#como-funciona">Como Funciona</Link>
           </Button>
         </div>
 
@@ -96,7 +96,7 @@ const Hero2 = () => {
               <span className="font-semibold">5.0</span>
             </div>
             <p className="text-left font-medium text-muted-foreground">
-              Famílias organizando suas finanças
+              de quem já assumiu o controle
             </p>
           </div>
         </div>

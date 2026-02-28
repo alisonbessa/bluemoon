@@ -159,8 +159,8 @@ export default function ChoosePlanPage() {
           </h1>
           <p className="text-muted-foreground text-lg">
             {isReturningUser
-              ? "Reative seu plano para continuar gerenciando suas financas."
-              : `Comece com ${trialDays} dias gratis. Cancele a qualquer momento.`}
+              ? "Reative seu plano para continuar gerenciando suas finanças."
+              : `Comece com ${trialDays} dias grátis. Cancele a qualquer momento.`}
           </p>
         </div>
 
@@ -247,7 +247,7 @@ export default function ChoosePlanPage() {
                   size="lg"
                   onClick={() => handleSelectPlan("solo")}
                 >
-                  {isReturningUser ? "Reativar com Solo" : "Comecar trial gratis"}
+                  {isReturningUser ? "Reativar com Solo" : "Começar trial grátis"}
                 </Button>
               </CardFooter>
             </Card>
@@ -272,7 +272,7 @@ export default function ChoosePlanPage() {
                   <CardTitle className="text-2xl">{duoPlan.name}</CardTitle>
                 </div>
                 <CardDescription>
-                  Ideal para casais e parceiros que compartilham financas
+                  Ideal para casais e parceiros que compartilham finanças
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-1">
@@ -285,12 +285,12 @@ export default function ChoosePlanPage() {
                         : duoPlan.pricing.monthly?.priceFormatted}
                     </span>
                     <span className="text-muted-foreground">
-                      /{isYearly ? "ano" : "mes"}
+                      /{isYearly ? "ano" : "mês"}
                     </span>
                   </div>
                   {isYearly && duoPlan.pricing.yearly?.monthlyEquivalent && (
                     <p className="text-sm text-muted-foreground mt-1">
-                      {duoPlan.pricing.yearly.monthlyEquivalent}/mes
+                      {duoPlan.pricing.yearly.monthlyEquivalent}/mês
                       {getYearlySavings(duoPlan) && (
                         <Badge variant="outline" className="ml-2 text-xs">
                           {getYearlySavings(duoPlan)}% off
@@ -316,7 +316,7 @@ export default function ChoosePlanPage() {
                   size="lg"
                   onClick={() => handleSelectPlan("duo")}
                 >
-                  {isReturningUser ? "Reativar com Duo" : "Comecar trial gratis"}
+                  {isReturningUser ? "Reativar com Duo" : "Começar trial grátis"}
                 </Button>
               </CardFooter>
             </Card>
@@ -328,15 +328,15 @@ export default function ChoosePlanPage() {
           <p className="text-sm text-muted-foreground">
             {isReturningUser ? (
               <>
-                Seus dados continuam salvos e serao acessiveis assim que reativar.
+                Seus dados continuam salvos e serão acessíveis assim que reativar.
                 <br />
-                A cobranca sera imediata, sem novo periodo de trial.
+                A cobrança será imediata, sem novo período de trial.
               </>
             ) : (
               <>
-                Seu cartao sera salvo mas voce so sera cobrado apos {trialDays} dias.
+                Seu cartão será salvo mas você só será cobrado após {trialDays} dias.
                 <br />
-                Cancele a qualquer momento durante o trial sem nenhuma cobranca.
+                Cancele a qualquer momento durante o trial sem nenhuma cobrança.
               </>
             )}
           </p>

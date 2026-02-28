@@ -9,7 +9,7 @@ const coupleFeatures = [
   {
     icon: Heart,
     title: "Orçamento compartilhado",
-    description: "Gastos da casa visíveis para os dois, decisões tomadas em conjunto",
+    description: "Gastos da casa visíveis para os dois. Decisões financeiras tomadas em conjunto.",
   },
   {
     icon: Lock,
@@ -50,11 +50,11 @@ export function ForCouples() {
             {/* Content */}
             <div className="order-1 lg:order-2">
               <h2 className="text-3xl font-bold md:text-4xl mb-4">
-                Perfeito para quem divide a vida
+                Dinheiro a dois, sem estresse
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Gerencie dinheiro junto sem perder a privacidade. Cada um com seu
-                espaço, decisões grandes tomadas em conjunto.
+                Orçamento compartilhado com privacidade individual. Vocês decidem
+                juntos o que importa — sem abrir mão do espaço pessoal.
               </p>
 
               <div className="grid gap-6 sm:grid-cols-2">
