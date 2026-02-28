@@ -1643,10 +1643,10 @@ async function handleTextMessage(
     await adapter.sendMessage(
       phoneNumber,
       `Sua assinatura do HiveBudget expirou.\n\n` +
-        `Seus dados estao seguros no app, mas para continuar registrando pelo WhatsApp, ` +
-        `e preciso reativar seu plano.\n\n` +
+        `Seus dados estão seguros no app, mas para continuar registrando pelo WhatsApp, ` +
+        `é preciso reativar seu plano.\n\n` +
         `Reative em: ${appUrl}/app/choose-plan\n\n` +
-        `Enquanto isso, voce pode visualizar seus dados no app.`
+        `Enquanto isso, você pode visualizar seus dados no app.`
     );
     return;
   }

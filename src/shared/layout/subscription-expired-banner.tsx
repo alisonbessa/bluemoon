@@ -18,7 +18,7 @@ export function SubscriptionExpiredBanner() {
           <p className="text-sm text-amber-800 dark:text-amber-200 truncate">
             <span className="font-medium">Sua assinatura expirou.</span>{" "}
             <span className="hidden sm:inline">
-              Seus dados estao seguros. Reative para voltar a registrar transacoes.
+              Seus dados estão seguros. Reative para voltar a registrar transações.
             </span>
             <span className="sm:hidden">
               Reative para continuar.
