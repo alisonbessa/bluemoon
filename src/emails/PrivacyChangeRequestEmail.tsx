@@ -27,14 +27,14 @@ export default function PrivacyChangeRequestEmail({
   rejectUrl,
 }: PrivacyChangeRequestEmailProps) {
   return (
-    <Layout previewText={`${requesterName} quer alterar a privacidade dos gastos pessoais`}>
+    <Layout previewText={`${requesterName} quer alterar a privacidade do orçamento`}>
       <Text className="text-foreground text-[16px] leading-[24px]">
         Oi! 👋
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">
         <strong>{requesterName}</strong> está solicitando uma mudança na
-        privacidade dos gastos pessoais no orçamento{" "}
+        privacidade do orçamento{" "}
         <strong>&ldquo;{budgetName}&rdquo;</strong>.
       </Text>
 
@@ -52,9 +52,9 @@ export default function PrivacyChangeRequestEmail({
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[20px] ml-4">
-        <strong>Tudo visível:</strong> Ambos veem todos os gastos pessoais do outro<br />
-        <strong>Apenas totais:</strong> Você vê apenas o total gasto, sem detalhes<br />
-        <strong>Privado:</strong> Gastos pessoais ficam completamente ocultos
+        <strong>Tudo visível:</strong> Ambos veem tudo um do outro, incluindo transações individuais<br />
+        <strong>Unificado:</strong> Tudo junto como plano solo — só os detalhes das compras individuais ficam ocultos<br />
+        <strong>Privado:</strong> Contas, metas e transações pessoais ficam completamente ocultos
       </Text>
 
       <Section className="mt-6 text-center">

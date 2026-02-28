@@ -21,6 +21,7 @@ export const GET = withAuthRequired(async (req, context) => {
       name: budgets.name,
       description: budgets.description,
       currency: budgets.currency,
+      privacyMode: budgets.privacyMode,
       createdAt: budgets.createdAt,
       memberType: budgetMembers.type,
     })

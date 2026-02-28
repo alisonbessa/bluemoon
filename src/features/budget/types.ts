@@ -13,6 +13,7 @@ export interface Budget {
   name: string;
   description?: string | null;
   currency: string;
+  privacyMode?: string | null;
   createdAt: Date;
 }
 
