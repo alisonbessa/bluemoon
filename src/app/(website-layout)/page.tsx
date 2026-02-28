@@ -64,7 +64,7 @@ const faqItems = [
   {
     question: "Como funciona o período de teste?",
     answer:
-      "Você testa todas as funcionalidades por 30 dias gratuitamente. Se não quiser continuar, basta cancelar antes do fim do período - sem cobrança nenhuma.",
+      "Você testa todas as funcionalidades por 30 dias gratuitamente. Se não quiser continuar, basta cancelar antes do fim do período — sem cobrança nenhuma.",
   },
   {
     question: "Quantos membros posso adicionar?",
@@ -143,7 +143,7 @@ export default function WebsiteHomepage() {
 
       <CTA1 />
 
-      <TextRevealByWord text="Com o HiveBudget, finalmente consegui entender para onde ia meu dinheiro. Hoje, eu e minha esposa planejamos juntos e não brigamos mais por gastos surpresa." />
+      <TextRevealByWord text="Pela primeira vez, eu sei para onde cada real vai. Não é sobre gastar menos — é sobre gastar com intenção." />
 
       <div className="relative bg-background">
         <TelegramFeature />

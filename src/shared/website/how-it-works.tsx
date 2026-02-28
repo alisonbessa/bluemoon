@@ -10,7 +10,7 @@ const steps = [
     icon: DollarSign,
     title: "Planeje seu dinheiro",
     description:
-      "Informe suas rendas e distribua cada real para categorias (alimentação, moradia, lazer). Atribua ANTES de gastar.",
+      "Recebeu o salário? Distribua cada real para categorias como alimentação, moradia e lazer. Tudo definido antes de gastar.",
     color: "emerald",
     badge: "Planejamento",
   },
@@ -19,7 +19,7 @@ const steps = [
     icon: Target,
     title: "Registre seus gastos",
     description:
-      "Conforme você gasta no dia a dia, registre as despesas. Cada gasto é deduzido do valor planejado da categoria.",
+      "Gastou? Mande uma mensagem rápida ou registre no app. Cada gasto é deduzido automaticamente da categoria.",
     color: "blue",
     badge: "Acompanhamento",
   },
@@ -28,7 +28,7 @@ const steps = [
     icon: TrendingUp,
     title: "Compare planejado vs. real",
     description:
-      "Veja dashboards claros mostrando quanto você planejou gastar e quanto realmente gastou. Identifique onde está desviando.",
+      "Dashboards mostram onde você planejou gastar e onde realmente gastou. Sem achismo, com dados reais.",
     color: "purple",
     badge: "Acompanhamento",
   },
@@ -37,7 +37,7 @@ const steps = [
     icon: CheckCircle,
     title: "Ajuste e melhore",
     description:
-      "Analise os relatórios e ajuste o planejamento do próximo mês. Aprenda seus padrões de consumo e melhore continuamente.",
+      "Mês a mês, você entende seus padrões e ajusta o planejamento. Cada mês fica mais fácil que o anterior.",
     color: "amber",
     badge: "Melhoria",
   },
@@ -50,10 +50,10 @@ const HowItWorks: React.FC = () => {
         {/* Header */}
         <div className="mb-16 text-center">
           <h2 className="mb-4 text-3xl font-bold text-gray-900 dark:text-white md:text-4xl">
-            Veja como funciona na prática
+            4 passos para nunca mais se perder
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-gray-600 dark:text-gray-300">
-            Planeje primeiro, acompanhe depois. É assim que você toma controle do seu dinheiro.
+            Planeje antes, gaste com consciência. Simples assim.
           </p>
         </div>
 
@@ -116,10 +116,10 @@ const HowItWorks: React.FC = () => {
         {/* Bottom CTA */}
         <div className="mt-16 text-center">
           <p className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-            Planeje primeiro, gaste depois.
+            Planeje primeiro. Gaste com consciência.
           </p>
           <p className="text-gray-600 dark:text-gray-300">
-            É o método mais eficaz para ter controle financeiro. Sem planilhas complicadas, sem surpresas.
+            O método mais eficaz para sair do vermelho. Sem planilhas, sem surpresas.
           </p>
         </div>
       </div>

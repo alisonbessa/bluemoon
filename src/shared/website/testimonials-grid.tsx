@@ -46,10 +46,10 @@ export function TestimonialsGrid() {
           {/* Header */}
           <div className="mb-12 text-center">
             <h2 className="text-3xl font-bold md:text-4xl">
-              O que nossos usuários dizem
+              Quem usa, recomenda
             </h2>
             <p className="mt-4 text-muted-foreground">
-              Histórias reais de pessoas que transformaram sua relação com o dinheiro
+              Pessoas reais que mudaram sua relação com o dinheiro
             </p>
           </div>
 

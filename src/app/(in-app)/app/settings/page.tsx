@@ -629,10 +629,10 @@ export default function SettingsPage() {
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">
-                        Sua assinatura foi cancelada. Voce esta no modo somente leitura.
+                        Sua assinatura foi cancelada. Você está no modo somente leitura.
                       </p>
                       <p className="text-xs text-muted-foreground mb-4">
-                        Seus dados estao seguros. Reative para voltar a registrar transacoes.
+                        Seus dados estão seguros. Reative para voltar a registrar transações.
                       </p>
                       <Button asChild className="w-full" variant="default">
                         <Link href="/app/choose-plan">

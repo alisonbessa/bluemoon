@@ -22,12 +22,11 @@ export function TelegramFeature() {
           <div className="grid gap-12 md:grid-cols-2 md:items-center">
             <div className="space-y-6">
               <h2 className="text-3xl font-bold md:text-4xl">
-                Controle por Mensagem
+                Gastou? Manda uma mensagem.
               </h2>
               <p className="text-lg text-muted-foreground">
-                Registre gastos sem abrir nenhum app. Mande uma mensagem, foto
-                do comprovante ou até áudio para o nosso assistente inteligente
-                no seu app de mensagens favorito.
+                Sem abrir app. Sem formulário. Mande um texto, foto do comprovante
+                ou áudio pelo seu app de mensagens. Nossa IA entende e registra tudo.
               </p>
 
               <ul className="space-y-3">

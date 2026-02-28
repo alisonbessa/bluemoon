@@ -6,38 +6,38 @@ import { Card, CardContent } from "@/shared/ui/card";
 const problems = [
   {
     emoji: "😰",
-    text: "Chega no fim do mês sem saber onde foi o dinheiro",
+    text: "Fim do mês chega e o dinheiro simplesmente sumiu",
   },
   {
     emoji: "📊",
-    text: "Já tentou planilha mas abandonou depois de 2 semanas",
+    text: "Planilha abandonada na segunda semana (de novo)",
   },
   {
     emoji: "💸",
-    text: "Apps que só mostram o que você JÁ gastou, não ajudam a planejar",
+    text: "Apps que só mostram o estrago depois que já aconteceu",
   },
   {
     emoji: "🤷",
-    text: "Difícil organizar gastos quando divide conta com alguém",
+    text: "Briga com parceiro(a) por causa de gastos não combinados",
   },
 ];
 
 const solutions = [
   {
     emoji: "✅",
-    text: "Define para onde cada real vai ANTES de gastar",
+    text: "Cada real tem um destino definido ANTES de você gastar",
   },
   {
     emoji: "✅",
-    text: "Acompanha tudo pelo celular ou por mensagem, sem complicação",
+    text: "Registra em 5 segundos por mensagem — sem abrir app",
   },
   {
     emoji: "✅",
-    text: "Vê dashboards visuais que fazem sentido de verdade",
+    text: "Dashboards que mostram a verdade sobre seu dinheiro",
   },
   {
     emoji: "✅",
-    text: "Divide orçamentos com parceiro(a) ou família facilmente",
+    text: "Orçamento compartilhado com parceiro(a) sem perder privacidade",
   },
 ];
 
@@ -47,7 +47,7 @@ export function PainPoints() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-12 text-center text-3xl font-bold md:text-4xl">
-            Você conhece essa situação?
+            Se identificou com algum desses?
           </h2>
 
           <div className="grid gap-8 md:grid-cols-2">

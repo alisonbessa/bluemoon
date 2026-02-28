@@ -72,10 +72,10 @@ const MonthlyAnnualPricing = () => {
             30 dias grátis
           </Badge>
           <h2 className="mb-4 text-4xl tracking-tight font-bold lg:text-5xl">
-            Preços Simples e Acessíveis
+            Menos que um cafezinho por dia
           </h2>
           <p className="text-muted-foreground text-lg">
-            Comece grátis por 30 dias. Cancele quando quiser.
+            Teste tudo por 30 dias grátis. Sem cartão na hora de criar a conta.
           </p>
         </div>
 

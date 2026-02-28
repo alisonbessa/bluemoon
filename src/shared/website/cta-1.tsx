@@ -13,11 +13,11 @@ const CTA1 = () => {
               <Wallet className="h-full w-7" /> Controle Total
             </div>
             <h2 className="text-4xl sm:text-5xl font-bold max-w-2xl mx-auto">
-              Saiba exatamente para onde vai cada centavo do seu dinheiro
+              Chega de surpresa no fim do mês
             </h2>
             <p className="text-lg text-primary-foreground/80 max-w-xl mx-auto">
-              Com o método de orçamento baseado em zero, você dá uma função para cada real
-              antes de gastar. Nunca mais termine o mês sem saber para onde foi o dinheiro.
+              Cada real ganha uma função antes de sair da sua conta.
+              É o orçamento base zero: você decide para onde o dinheiro vai, não descobre depois.
             </p>
             <div className="flex flex-col justify-center gap-2 sm:flex-row">
               <Button
@@ -25,7 +25,7 @@ const CTA1 = () => {
                 className="bg-background text-primary hover:bg-background/90"
                 asChild
               >
-                <Link href="#pricing">Começar Agora</Link>
+                <Link href="#pricing">Testar 30 dias grátis</Link>
               </Button>
               <Button
                 size="lg"
