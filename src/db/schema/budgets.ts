@@ -3,7 +3,7 @@ import { users } from "./user";
 import { relations } from "drizzle-orm";
 import { z } from "zod";
 
-export const privacyModeEnum = z.enum(["visible", "totals_only", "private"]);
+export const privacyModeEnum = z.enum(["visible", "unified", "private"]);
 export type PrivacyMode = z.infer<typeof privacyModeEnum>;
 
 export const budgets = pgTable("budgets", {

@@ -63,6 +63,9 @@ export const GET = withAuthRequired(async (req, context) => {
     : undefined;
 
   // Build transaction visibility condition for spending queries
+  // Note: NOT using isTransactionFilter here — in unified mode, spending totals
+  // per category should include ALL transactions (partner's too) for accurate budgeting.
+  // Only the transaction LIST endpoint hides individual partner transactions.
   const txViewCondition = userMemberId
     ? getViewModeCondition({
         viewMode,
@@ -320,22 +323,8 @@ export const GET = withAuthRequired(async (req, context) => {
       continue;
     }
 
+    // "unified" and "visible": show everything with real amounts
     const groupData = groupedData.get(group.id)!;
-
-    // "totals_only": redact amounts for other member's categories
-    if (privacyMode === "totals_only" && isOtherMemberCategory) {
-      groupData.categories.push({
-        category,
-        allocated: 0,
-        carriedOver: 0,
-        spent: 0,
-        available: 0,
-        isOtherMemberCategory,
-        recurringBills: [],
-      });
-      // Don't add to group totals - amounts are hidden
-      continue;
-    }
 
     groupData.categories.push({
       category,

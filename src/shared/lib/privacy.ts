@@ -13,9 +13,9 @@ export const PRIVACY_OPTIONS: PrivacyOption[] = [
     description: "Ambos veem todos os gastos e metas pessoais um do outro",
   },
   {
-    value: "totals_only",
-    label: "Apenas totais",
-    description: "Só o total gasto pelo parceiro é visível, sem detalhes",
+    value: "unified",
+    label: "Unificado",
+    description: "Tudo junto como plano solo — só os detalhes das compras individuais ficam ocultos",
   },
   {
     value: "private",
