@@ -91,20 +91,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
       const metrics = calculateGoalMetrics(goal);
 
-      // "totals_only": redact amounts for other member's goals
-      if (privacyMode === "totals_only" && isOtherMemberGoal) {
-        return {
-          ...goal,
-          ...metrics,
-          targetAmount: 0,
-          currentAmount: 0,
-          remaining: 0,
-          monthlyTarget: 0,
-          progress: 0,
-          isOtherMemberGoal,
-        };
-      }
-
+      // "unified" and "visible": show everything with real amounts
       return { ...goal, ...metrics, isOtherMemberGoal };
     })
     .filter(Boolean);

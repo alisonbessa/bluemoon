@@ -57,6 +57,7 @@ export const GET = withAuthRequired(async (req, context) => {
       userMemberId,
       ownerField: transactions.memberId,
       partnerPrivacy,
+      isTransactionFilter: true,
     });
     if (viewCondition) {
       conditions.push(viewCondition);

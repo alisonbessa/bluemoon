@@ -102,7 +102,7 @@ export function useBudgetPageData(year: number, month: number) {
       0
     );
   }, [incomeData]);
-  // Server already filters goals based on privacyMode (private/totals_only)
+  // Server already filters goals based on privacyMode (private/unified)
   const goals = useMemo(
     () => goalsData?.goals?.filter((g) => !g.isCompleted) ?? [],
     [goalsData?.goals]

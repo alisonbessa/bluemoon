@@ -21,12 +21,15 @@ export function parseViewMode(searchParams: URLSearchParams): ViewMode {
  *
  * - "mine": ownerField = userMemberId (+ shared items when includeSharedInMine is true)
  * - "shared": ownerField IS NULL (shared items)
- * - "all": no filtering, or excludes partner data when privacy = "private" or "totals_only"
+ * - "all": no filtering, or excludes partner data based on privacy level
  *
  * @param includeSharedInMine - When true, "mine" mode also includes NULL (shared) records.
  *   Use for entities where NULL means "shared with everyone" and should be visible
  *   in personal view (e.g. categories). Do NOT use for entities where NULL means "unowned"
  *   and belongs in the "shared" view (e.g. accounts, transactions).
+ * @param isTransactionFilter - When true and privacy is "unified", filter out partner's
+ *   individual records. In unified mode only transaction details are hidden;
+ *   accounts, goals, categories etc. remain fully visible.
  */
 export function getViewModeCondition(opts: {
   viewMode: ViewMode;
@@ -34,8 +37,9 @@ export function getViewModeCondition(opts: {
   ownerField: PgColumn;
   partnerPrivacy?: PrivacyLevel;
   includeSharedInMine?: boolean;
+  isTransactionFilter?: boolean;
 }): SQL | undefined {
-  const { viewMode, userMemberId, ownerField, partnerPrivacy, includeSharedInMine } = opts;
+  const { viewMode, userMemberId, ownerField, partnerPrivacy, includeSharedInMine, isTransactionFilter } = opts;
 
   switch (viewMode) {
     case "mine":
@@ -47,12 +51,15 @@ export function getViewModeCondition(opts: {
       return isNull(ownerField);
 
     case "all":
-      // "private" or "totals_only": exclude partner's individual records (own + shared only)
-      // For "totals_only", partner aggregate totals are handled separately per-endpoint
-      if (partnerPrivacy === "private" || partnerPrivacy === "totals_only") {
+      // "private": exclude partner's individual records everywhere
+      if (partnerPrivacy === "private") {
         return or(eq(ownerField, userMemberId), isNull(ownerField))!;
       }
-      // "all_visible": no filter, show everything
+      // "unified": only hide partner's individual transactions; everything else visible
+      if (partnerPrivacy === "unified" && isTransactionFilter) {
+        return or(eq(ownerField, userMemberId), isNull(ownerField))!;
+      }
+      // "all_visible" or "unified" (non-transaction): no filter, show everything
       return undefined;
 
     default:

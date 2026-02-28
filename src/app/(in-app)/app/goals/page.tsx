@@ -163,7 +163,7 @@ export default function GoalsPage() {
     }
   };
 
-  // Server already filters goals based on privacyMode (private/totals_only)
+  // Server already filters goals based on privacyMode (private/unified)
   const activeGoals = goals.filter((g) => !g.isArchived && !g.isCompleted);
   const completedGoals = goals.filter((g) => g.isCompleted && !g.isArchived);
 

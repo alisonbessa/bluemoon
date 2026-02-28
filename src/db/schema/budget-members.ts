@@ -7,7 +7,7 @@ import { z } from "zod";
 export const memberTypeEnum = z.enum(["owner", "partner", "child", "pet"]);
 export type MemberType = z.infer<typeof memberTypeEnum>;
 
-export const privacyLevelEnum = z.enum(["all_visible", "totals_only", "private"]);
+export const privacyLevelEnum = z.enum(["all_visible", "unified", "private"]);
 export type PrivacyLevel = z.infer<typeof privacyLevelEnum>;
 
 export const budgetMembers = pgTable("budget_members", {

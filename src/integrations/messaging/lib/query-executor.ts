@@ -86,14 +86,8 @@ function getVisibleGoals(userContext: UserContext): UserContext["goals"] {
   if (privacyMode === "private") {
     return goals.filter((g) => g.memberId == null || g.memberId === memberId);
   }
-  if (privacyMode === "totals_only") {
-    return goals.map((g) => {
-      if (g.memberId != null && g.memberId !== memberId) {
-        return { ...g, targetAmount: 0, currentAmount: 0 };
-      }
-      return g;
-    });
-  }
+  // "unified": show all goals with real amounts (like Solo)
+  // Only individual transaction details are hidden in unified mode
   return goals;
 }
 

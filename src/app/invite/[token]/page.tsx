@@ -30,7 +30,7 @@ import type { PrivacyMode } from "@/db/schema/budgets";
 
 const PRIVACY_ICONS: Record<PrivacyMode, React.ReactNode> = {
   visible: <EyeIcon className="h-4 w-4" />,
-  totals_only: <ShieldIcon className="h-4 w-4" />,
+  unified: <ShieldIcon className="h-4 w-4" />,
   private: <EyeOffIcon className="h-4 w-4" />,
 };
 

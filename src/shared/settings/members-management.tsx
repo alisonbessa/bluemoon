@@ -56,7 +56,7 @@ import { PRIVACY_OPTIONS } from "@/shared/lib/privacy";
 
 const PRIVACY_ICONS: Record<PrivacyMode, React.ReactNode> = {
   visible: <EyeIcon className="h-4 w-4 text-muted-foreground" />,
-  totals_only: <ShieldIcon className="h-4 w-4 text-muted-foreground" />,
+  unified: <ShieldIcon className="h-4 w-4 text-muted-foreground" />,
   private: <EyeOffIcon className="h-4 w-4 text-muted-foreground" />,
 };
 

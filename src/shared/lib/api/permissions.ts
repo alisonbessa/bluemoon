@@ -129,12 +129,12 @@ export async function getPartnerPrivacyLevel(
 
 /**
  * Map budget-level PrivacyMode to viewMode-compatible PrivacyLevel.
- * Budget uses: visible | totals_only | private
- * ViewMode filter uses: all_visible | totals_only | private
+ * Budget uses: visible | unified | private
+ * ViewMode filter uses: all_visible | unified | private
  */
 function mapPrivacyModeToLevel(mode: PrivacyMode | null | undefined): PrivacyLevel {
   switch (mode) {
-    case "totals_only": return "totals_only";
+    case "unified": return "unified";
     case "private": return "private";
     default: return "all_visible";
   }

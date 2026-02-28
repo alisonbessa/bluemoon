@@ -5,7 +5,7 @@ import { appConfig } from "@/shared/lib/config";
 
 const PRIVACY_MODE_LABELS: Record<string, string> = {
   visible: "Tudo visível",
-  totals_only: "Apenas totais visíveis",
+  unified: "Unificado",
   private: "Completamente privado",
 };
 
