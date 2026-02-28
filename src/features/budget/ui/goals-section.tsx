@@ -93,7 +93,7 @@ export function GoalsSection({ goals }: GoalsSectionProps) {
               </div>
               <div className="text-right text-xs tabular-nums text-muted-foreground">
                 {goal.monthsRemaining > 0
-                  ? `${goal.monthsRemaining} ${goal.monthsRemaining === 1 ? 'mes' : 'meses'}`
+                  ? `${goal.monthsRemaining} ${goal.monthsRemaining === 1 ? 'mês' : 'meses'}`
                   : 'Vencida'}
               </div>
             </Link>
