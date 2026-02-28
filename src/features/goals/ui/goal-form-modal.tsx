@@ -8,6 +8,7 @@ import { CurrencyInput } from "@/shared/ui/currency-input";
 import { IconPicker } from "@/shared/ui/icon-color-picker";
 import { Users } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
+import { useViewMode } from "@/shared/providers/view-mode-provider";
 import { toast } from "sonner";
 
 // Colors for random selection
@@ -61,6 +62,7 @@ export function GoalFormModal({
   members = [],
   onSuccess,
 }: GoalFormModalProps) {
+  const { isUnifiedPrivacy } = useViewMode();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
 
@@ -206,8 +208,8 @@ export function GoalFormModal({
       submitLabel={editingGoal ? "Salvar" : "Criar"}
     >
       <div className="grid gap-4">
-        {/* Goal type selector (only for Duo budgets) */}
-        {members.length > 1 && (
+        {/* Goal type selector (only for Duo budgets, hidden in unified privacy) */}
+        {members.length > 1 && !isUnifiedPrivacy && (
           <div className="grid gap-2">
             <Label>Tipo de meta</Label>
             <div className="grid grid-cols-2 gap-2">

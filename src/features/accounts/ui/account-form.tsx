@@ -12,6 +12,7 @@ import {
 } from "@/shared/ui/select";
 import { FormModalWrapper } from "@/shared/molecules";
 import { formatAmount, formatCurrencyFromDigits, parseCurrency } from "@/shared/lib/formatters";
+import { useViewMode } from "@/shared/providers/view-mode-provider";
 import type { AccountType, AccountFormData, AccountOwner } from "../types";
 
 interface AccountFormProps {
@@ -52,8 +53,10 @@ export function AccountForm({
   allowSharedOwnership,
   currentUserMemberId,
 }: AccountFormProps) {
+  const { isUnifiedPrivacy } = useViewMode();
   // Show owner selector if explicitly allowed or if there are multiple members
-  const showOwnerSelector = allowSharedOwnership ?? members.length > 1;
+  // Hide in unified privacy mode (all accounts are treated as shared)
+  const showOwnerSelector = !isUnifiedPrivacy && (allowSharedOwnership ?? members.length > 1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState<AccountFormData>({
