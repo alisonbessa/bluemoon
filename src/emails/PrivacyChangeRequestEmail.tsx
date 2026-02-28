@@ -53,7 +53,7 @@ export default function PrivacyChangeRequestEmail({
 
       <Text className="text-foreground text-[14px] leading-[20px] ml-4">
         <strong>Tudo visível:</strong> Ambos veem todos os gastos pessoais do outro<br />
-        <strong>Apenas totais:</strong> Você vê apenas o total gasto, sem detalhes<br />
+        <strong>Unificado:</strong> Tudo junto como plano solo — só os detalhes das compras individuais ficam ocultos<br />
         <strong>Privado:</strong> Gastos pessoais ficam completamente ocultos
       </Text>
 
