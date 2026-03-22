@@ -9,6 +9,7 @@ import { CTA2 } from "@/shared/website/cta-2";
 import { WebPageJsonLd, ArticleJsonLd, BreadcrumbJsonLd } from "@/shared/seo/json-ld";
 import { appConfig } from "@/shared/lib/config";
 import sanitizeHtml from "sanitize-html";
+import { TableOfContents } from "./table-of-contents";
 import { db } from "@/db";
 import { blogPosts } from "@/db/schema/blog-posts";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -174,7 +175,7 @@ async function BlogDetailPage({ params }: Props) {
   const publishedDate = post.publishedAt?.toISOString() || post.createdAt.toISOString();
 
   return (
-    <article className="max-w-6xl mx-auto py-6 md:py-10 px-4">
+    <article className="max-w-6xl mx-auto pt-20 pb-6 md:pb-10 px-4">
       <WebPageJsonLd
         useAppDir
         id={`${process.env.NEXT_PUBLIC_APP_URL}/blog/${post.slug}`}
@@ -380,24 +381,7 @@ async function BlogDetailPage({ params }: Props) {
         {headings.length > 0 && (
           <aside className="hidden lg:block">
             <div className="sticky top-20 space-y-6">
-              <nav aria-label="Índice">
-                <h2 className="font-semibold mb-3 text-sm">Índice</h2>
-                <ul className="space-y-2">
-                  {headings.map((heading) => (
-                    <li
-                      key={heading.id}
-                      style={{ paddingLeft: `${(heading.level - 2) * 16}px` }}
-                    >
-                      <a
-                        href={`#${heading.id}`}
-                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        {heading.text}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
+              <TableOfContents headings={headings} />
             </div>
           </aside>
         )}

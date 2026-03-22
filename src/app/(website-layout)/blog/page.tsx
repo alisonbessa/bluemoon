@@ -63,7 +63,7 @@ export default async function BlogListPage() {
   }
 
   return (
-    <article className="max-w-6xl mx-auto py-10 px-4">
+    <article className="max-w-6xl mx-auto pt-20 pb-10 px-4">
       <WebPageJsonLd
         useAppDir
         id={`${process.env.NEXT_PUBLIC_APP_URL}/blog`}
