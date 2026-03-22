@@ -81,7 +81,13 @@ export function StructuredData({ type = "WebSite", data = {} }: StructuredDataPr
             postalCode: appConfig.legal.address.postalCode,
             addressCountry: "BR",
           },
-          sameAs: [appConfig.social.instagram].filter(Boolean),
+          sameAs: [
+            appConfig.social.instagram,
+            appConfig.social.twitter,
+            appConfig.social.linkedin,
+            appConfig.social.facebook,
+            appConfig.social.youtube,
+          ].filter(Boolean),
           ...data,
         };
 
@@ -90,7 +96,7 @@ export function StructuredData({ type = "WebSite", data = {} }: StructuredDataPr
           ...baseData,
           headline: data.title || appConfig.projectName,
           description: data.description || appConfig.description,
-          image: data.image || `${baseUrl}/images/og-image.png`,
+          image: data.image || `${baseUrl}/images/og.png`,
           author: {
             "@type": "Organization",
             name: appConfig.projectName,

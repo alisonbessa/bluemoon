@@ -28,10 +28,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/contact",
     "/join-waitlist",
     "/blog",
-    "/pricing",
+    "/beta",
   ].map((route) => ({
     url: `${baseUrl}${route}`,
-    lastModified: new Date(),
+    lastModified: new Date("2026-03-22"),
     changeFrequency: "monthly" as const,
     priority: route === "" ? 1 : 0.8,
   }));

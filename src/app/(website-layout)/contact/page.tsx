@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { appConfig } from "@/shared/lib/config";
 import { Mail, MapPin, Phone } from "lucide-react";
-import { WebPageJsonLd } from "next-seo";
+import { WebPageJsonLd } from "@/shared/seo/json-ld";
 import Link from "next/link";
 
 const formSchema = z.object({

@@ -4,7 +4,7 @@ import { Tag } from "lucide-react";
 import { Metadata } from "next";
 import { CTA2 } from "@/shared/website/cta-2";
 import { appConfig } from "@/shared/lib/config";
-import { WebPageJsonLd, BreadcrumbJsonLd } from "next-seo";
+import { WebPageJsonLd, BreadcrumbJsonLd } from "@/shared/seo/json-ld";
 import { notFound } from "next/navigation";
 import { db } from "@/db";
 import { blogPosts } from "@/db/schema/blog-posts";
@@ -115,6 +115,7 @@ export default async function BlogListPage() {
                         src={post.featuredImage}
                         alt={post.title}
                         fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover shadow-xs"
                       />
                     </figure>

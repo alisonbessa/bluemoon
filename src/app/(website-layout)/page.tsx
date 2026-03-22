@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     url: process.env.NEXT_PUBLIC_APP_URL,
     images: [
       {
-        url: "/images/og-image.png",
+        url: "/images/og.png",
         width: 1200,
         height: 630,
         alt: "HiveBudget - Dashboard de Planejamento Financeiro Colaborativo",
@@ -70,10 +70,10 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "HiveBudget - Controle Financeiro Colaborativo",
     description: "Organize suas finanças em grupo. Comece grátis!",
-    images: ["/images/og-image.png"],
+    images: ["/images/og.png"],
   },
   alternates: {
-    canonical: "/",
+    canonical: process.env.NEXT_PUBLIC_APP_URL,
   },
 };
 

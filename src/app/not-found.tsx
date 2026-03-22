@@ -1,4 +1,9 @@
 import { NotFoundPage } from "@/shared/not-found-page";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Página não encontrada",
+};
 
 export default function RootNotFound() {
   return (

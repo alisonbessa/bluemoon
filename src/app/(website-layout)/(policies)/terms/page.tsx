@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { appConfig } from "@/shared/lib/config";
-import { WebPageJsonLd } from "next-seo";
+import { WebPageJsonLd } from "@/shared/seo/json-ld";
 
 export async function generateMetadata(): Promise<Metadata> {
   const policy = await getPolicyBySlug("terms");
