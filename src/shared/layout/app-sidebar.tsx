@@ -13,6 +13,9 @@ import {
   SettingsIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
+  UserIcon,
+  UsersIcon,
+  LayersIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -29,6 +32,19 @@ import {
 } from "@/shared/ui/sidebar";
 import { UserButton } from "@/shared/layout/user-button";
 import { Button } from "@/shared/ui/button";
+import { useViewMode, type ViewMode } from "@/shared/providers/view-mode-provider";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/shared/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu";
+import { ChevronsUpDownIcon, CheckIcon } from "lucide-react";
 
 const navItems = [
   {
@@ -74,6 +90,95 @@ const navItems = [
     tutorialId: "nav-settings",
   },
 ];
+
+const viewModeOptions: {
+  value: ViewMode;
+  label: string;
+  icon: typeof UserIcon;
+}[] = [
+  { value: "mine", label: "Pessoal", icon: UserIcon },
+  { value: "shared", label: "Compartilhado", icon: UsersIcon },
+  { value: "all", label: "Tudo", icon: LayersIcon },
+];
+
+function ViewModeSelector() {
+  const { viewMode, setViewMode, isDuoPlan, isUnifiedPrivacy } = useViewMode();
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
+  const pathname = usePathname();
+
+  if (!isDuoPlan || isUnifiedPrivacy || pathname === "/app/settings") return null;
+
+  const activeOption = viewModeOptions.find((o) => o.value === viewMode)!;
+  const ActiveIcon = activeOption.icon;
+
+  if (isCollapsed) {
+    return (
+      <div className="flex justify-center py-1">
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center justify-center size-8 rounded-md hover:bg-muted transition-colors">
+                  <ActiveIcon className="size-4" />
+                </button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right">{activeOption.label}</TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent side="right" align="start">
+            {viewModeOptions.map((option) => {
+              const Icon = option.icon;
+              return (
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => setViewMode(option.value)}
+                >
+                  <Icon className="size-4 mr-2" />
+                  {option.label}
+                  {viewMode === option.value && (
+                    <CheckIcon className="size-3.5 ml-auto text-primary" />
+                  )}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-2 py-1">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="flex w-full items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm hover:bg-muted/50 transition-colors">
+            <ActiveIcon className="size-4 text-muted-foreground" />
+            <span className="flex-1 text-left font-medium text-sm">{activeOption.label}</span>
+            <ChevronsUpDownIcon className="size-3.5 text-muted-foreground" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-[--radix-dropdown-menu-trigger-width]">
+          {viewModeOptions.map((option) => {
+            const Icon = option.icon;
+            return (
+              <DropdownMenuItem
+                key={option.value}
+                onClick={() => setViewMode(option.value)}
+              >
+                <Icon className="size-4 mr-2" />
+                {option.label}
+                {viewMode === option.value && (
+                  <CheckIcon className="size-3.5 ml-auto text-primary" />
+                )}
+              </DropdownMenuItem>
+            );
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
 
 function SidebarToggle() {
   const { state, toggleSidebar } = useSidebar();
@@ -131,7 +236,9 @@ export function AppSidebar() {
         <SidebarToggle />
       </SidebarHeader>
 
-      <SidebarContent className="pt-2">
+      <SidebarContent className="pt-0">
+        {/* View Mode Selector */}
+        <ViewModeSelector />
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>

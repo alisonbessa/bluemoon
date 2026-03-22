@@ -33,13 +33,12 @@ export type {
   RecurringBillSummary,
 } from '@/features/categories';
 
-export {
-  GROUP_DEFAULT_BEHAVIORS,
-  MONTH_NAMES_PT,
-} from '@/features/categories';
+export const MONTH_NAMES_PT = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
 
-// Alias for backward compatibility
-export { MONTH_NAMES_PT as monthNamesFull } from '@/features/categories';
+export { MONTH_NAMES_PT as monthNamesFull };
 
 // Re-export from central types - Income domain
 export type {

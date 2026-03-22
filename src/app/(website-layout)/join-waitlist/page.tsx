@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 
 export default function JoinWaitlistPage() {
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden relative">
+    <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center overflow-hidden relative">
       <AnimatedGridPattern
         numSquares={30}
         maxOpacity={0.1}

@@ -88,7 +88,7 @@ export default function SettingsPage() {
           <MessagingConnectionCard />
           <PlanCard
             user={user}
-            currentPlan={currentPlan}
+            currentPlan={currentPlan ?? null}
             hasBudget={hasBudget}
             mutateUser={mutateUser}
           />
