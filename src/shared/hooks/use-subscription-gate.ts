@@ -10,7 +10,8 @@ export type SubscriptionStatus =
   | "expired"       // Had subscription before, now cancelled (returning user)
   | "none"          // Never had a subscription (new user)
   | "partner"       // Access through partner relationship
-  | "exempt";       // Exempt role (beta, lifetime, admin)
+  | "exempt"        // Exempt role (beta, lifetime, admin) with plan chosen
+  | "needs_plan";   // Beta user who hasn't chosen Solo/Duo yet
 
 interface SubscriptionGate {
   /** Whether the user can only view data (no mutations) */
@@ -29,8 +30,10 @@ interface SubscriptionGate {
  * Hook to determine subscription-based access level.
  * Users without active subscriptions get read-only access to their data.
  */
+const PLAN_CODENAMES = ["solo", "duo"];
+
 export function useSubscriptionGate(): SubscriptionGate {
-  const { user, hasPartnerAccess, hasBudget, isLoading } = useCurrentUser();
+  const { user, currentPlan, hasPartnerAccess, hasBudget, isLoading } = useCurrentUser();
 
   if (isLoading || !user) {
     return {
@@ -44,6 +47,17 @@ export function useSubscriptionGate(): SubscriptionGate {
 
   // Check exempt roles
   if (user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role)) {
+    // Beta users must choose a plan (Solo/Duo) before getting full access
+    if (user.role === "beta" && (!currentPlan || !PLAN_CODENAMES.includes(currentPlan.codename ?? ""))) {
+      return {
+        isReadOnly: false,
+        hasFullAccess: false,
+        status: "needs_plan",
+        isReturningUser: false,
+        isLoading: false,
+      };
+    }
+
     return {
       isReadOnly: false,
       hasFullAccess: true,
