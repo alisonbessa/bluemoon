@@ -31,11 +31,11 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://vercel.live https://*.vercel-scripts.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://vercel.live https://*.vercel-scripts.com https://www.googletagmanager.com https://www.google-analytics.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://use.typekit.net",
-      "connect-src 'self' https://api.stripe.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://vercel.live wss://ws-us3.pusher.com",
+      "connect-src 'self' https://api.stripe.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://vercel.live wss://ws-us3.pusher.com https://www.google-analytics.com https://analytics.google.com",
       "frame-src https://js.stripe.com https://vercel.live",
       "object-src 'none'",
       "base-uri 'self'",
@@ -63,6 +63,11 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: `${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com`,
+      },
+      // Allow Vercel Blob images (blog uploads)
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
       },
     ],
   },
