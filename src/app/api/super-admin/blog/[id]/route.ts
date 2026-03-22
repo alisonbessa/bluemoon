@@ -36,7 +36,14 @@ export const PUT = withSuperAdminAuthRequired(async (req, context) => {
   try {
     const { id } = (await context.params) as { id: string };
     const data = await req.json();
-    const validatedData = blogPostFormSchema.parse(data);
+    const result = blogPostFormSchema.safeParse(data);
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Dados inválidos", details: result.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+    const validatedData = result.data;
 
     const updatedPost = await db
       .update(blogPosts)

@@ -8,6 +8,7 @@ import { cn } from "@/shared/lib/utils";
 import { CTA2 } from "@/shared/website/cta-2";
 import { WebPageJsonLd, ArticleJsonLd, BreadcrumbJsonLd } from "next-seo";
 import { appConfig } from "@/shared/lib/config";
+import DOMPurify from "isomorphic-dompurify";
 import { db } from "@/db";
 import { blogPosts } from "@/db/schema/blog-posts";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -150,7 +151,13 @@ async function BlogDetailPage({ params }: Props) {
 
   const relatedPosts = await getRelatedPosts(post.id, post.tags);
   const headings = extractHeadings(post.content);
-  const contentWithIds = addIdsToHeadings(post.content);
+  const sanitizedContent = DOMPurify.sanitize(post.content, {
+    ADD_TAGS: ["iframe"],
+    ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "target"],
+    FORBID_TAGS: ["script", "style"],
+    FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"],
+  });
+  const contentWithIds = addIdsToHeadings(sanitizedContent);
 
   const publishedDate = post.publishedAt?.toISOString() || post.createdAt.toISOString();
 

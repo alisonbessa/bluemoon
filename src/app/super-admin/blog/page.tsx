@@ -37,7 +37,6 @@ import {
   Pencil,
   Trash2,
   Loader2,
-  Eye,
   ExternalLink,
 } from "lucide-react";
 import Link from "next/link";

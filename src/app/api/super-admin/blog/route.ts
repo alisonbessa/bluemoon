@@ -11,8 +11,8 @@ const logger = createLogger("api:admin:blog");
 export const GET = withSuperAdminAuthRequired(async (req) => {
   try {
     const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1") || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20") || 20));
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "";
 
@@ -66,7 +66,14 @@ export const GET = withSuperAdminAuthRequired(async (req) => {
 export const POST = withSuperAdminAuthRequired(async (req) => {
   try {
     const data = await req.json();
-    const validatedData = blogPostFormSchema.parse(data);
+    const result = blogPostFormSchema.safeParse(data);
+    if (!result.success) {
+      return NextResponse.json(
+        { error: "Dados inválidos", details: result.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+    const validatedData = result.data;
 
     const newPost = await db
       .insert(blogPosts)

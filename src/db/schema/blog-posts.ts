@@ -35,5 +35,6 @@ export const blogPosts = pgTable(
     index("idx_blog_posts_slug").on(table.slug),
     index("idx_blog_posts_status").on(table.status),
     index("idx_blog_posts_published_at").on(table.publishedAt),
+    index("idx_blog_posts_status_published").on(table.status, table.publishedAt),
   ]
 );

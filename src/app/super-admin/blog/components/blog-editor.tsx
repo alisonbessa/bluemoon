@@ -125,6 +125,18 @@ export function BlogEditor({ content, onChange }: BlogEditorProps) {
       return;
     }
 
+    // Validate URL to prevent javascript: and data: protocol injection
+    try {
+      const parsed = new URL(url, window.location.origin);
+      if (!["http:", "https:", "mailto:"].includes(parsed.protocol)) {
+        toast.error("URL inválida. Use links http://, https:// ou mailto:");
+        return;
+      }
+    } catch {
+      toast.error("URL inválida");
+      return;
+    }
+
     editor
       .chain()
       .focus()
