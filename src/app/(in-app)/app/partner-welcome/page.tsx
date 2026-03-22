@@ -3,20 +3,50 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import useSWR from "swr";
 import { Button } from "@/shared/ui/button";
 import { Card, CardContent } from "@/shared/ui/card";
 import { appConfig } from "@/shared/lib/config";
+import { PRIVACY_MAP } from "@/shared/lib/privacy";
 import {
   ArrowRight,
   Wallet,
   Shield,
+  Eye,
+  Lock,
   MessageCircle,
   Users,
 } from "lucide-react";
 
+interface BudgetsResponse {
+  budgets: { id: string; name: string; privacyMode?: string }[];
+}
+
+const PRIVACY_ICONS = {
+  visible: Eye,
+  unified: Users,
+  private: Lock,
+};
+
+const PRIVACY_PARTNER_DESCRIPTIONS = {
+  visible:
+    "Vocês podem ver tudo um do outro: transações, contas e metas. Transparência total.",
+  unified:
+    "Vocês veem o orçamento junto, como se fosse uma conta só. Os detalhes das compras individuais ficam privados.",
+  private:
+    "Cada um tem total privacidade sobre contas, metas e transações pessoais. Só o que é compartilhado aparece para os dois.",
+};
+
 export default function PartnerWelcomePage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
+
+  const { data: budgetsData } = useSWR<BudgetsResponse>("/api/app/budgets");
+  const budget = budgetsData?.budgets?.[0];
+  const privacyMode = (budget?.privacyMode || "visible") as "visible" | "unified" | "private";
+  const privacyInfo = PRIVACY_MAP[privacyMode];
+  const PrivacyIcon = PRIVACY_ICONS[privacyMode] || Shield;
+  const privacyDescription = PRIVACY_PARTNER_DESCRIPTIONS[privacyMode];
 
   const handleFinish = () => {
     localStorage.setItem("hivebudget_partner_welcome_done", "true");
@@ -39,7 +69,7 @@ export default function PartnerWelcomePage() {
             </h2>
             <p className="text-muted-foreground">
               Seu parceiro(a) já configurou o básico. Agora vocês vão
-              gerenciar o dinheiro juntos, cada um com seu espaço.
+              gerenciar o dinheiro juntos.
             </p>
           </div>
           <div className="text-left space-y-4">
@@ -57,12 +87,16 @@ export default function PartnerWelcomePage() {
             </Card>
             <Card>
               <CardContent className="p-4 flex items-start gap-3">
-                <Shield className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <PrivacyIcon className="h-5 w-5 text-primary mt-0.5 shrink-0" />
                 <div>
-                  <p className="font-medium text-sm">Privacidade individual</p>
+                  <p className="font-medium text-sm">
+                    Privacidade: {privacyInfo?.label || "Visível"}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    Vocês compartilham o orçamento, mas cada um tem
-                    categorias pessoais que só você vê.
+                    {privacyDescription}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Vocês podem alterar isso em Configurações (requer aceite de ambos).
                   </p>
                 </div>
               </CardContent>
