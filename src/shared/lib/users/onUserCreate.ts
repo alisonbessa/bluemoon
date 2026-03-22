@@ -5,6 +5,7 @@ import { render } from "@react-email/components";
 import { eq } from "drizzle-orm";
 import { appConfig } from "../config";
 import Welcome from "@/emails/Welcome";
+import WelcomeBeta from "@/emails/WelcomeBeta";
 import sendMail from "../email/sendMail";
 import { enableCredits, onRegisterCredits } from "../credits/config";
 import { type CreditType } from "../credits/credits";
@@ -67,14 +68,24 @@ const onUserCreate = async (newUser: {
 
   // Envia email de boas-vindas
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const userName = newUser.name || "Usuário";
+  const dashboardUrl = `${baseUrl}/app`;
 
-  const html = await render(
-    Welcome({
-      userName: newUser.name || "Usuário",
-      dashboardUrl: `${baseUrl}/app`,
-    })
-  );
-  await sendMail(newUser.email!, `Bem-vindo ao ${appConfig.projectName}!`, html);
+  if (appConfig.waitlistMode) {
+    const html = await render(WelcomeBeta({ userName, dashboardUrl }));
+    await sendMail(
+      newUser.email!,
+      `Bem-vindo ao time de beta testers do ${appConfig.projectName}!`,
+      html
+    );
+  } else {
+    const html = await render(Welcome({ userName, dashboardUrl }));
+    await sendMail(
+      newUser.email!,
+      `Bem-vindo ao ${appConfig.projectName}!`,
+      html
+    );
+  }
 };
 
 export default onUserCreate;

@@ -3,6 +3,10 @@ import { z } from "zod";
 import { db } from "@/db";
 import { waitlist } from "@/db/schema/waitlist";
 import { checkRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
+import { render } from "@react-email/components";
+import sendMail from "@/shared/lib/email/sendMail";
+import WaitlistConfirmation from "@/emails/WaitlistConfirmation";
+import { appConfig } from "@/shared/lib/config";
 
 const waitlistSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -28,6 +32,24 @@ export async function POST(request: NextRequest) {
         betaTester: body.betaTester || false,
       })
       .returning();
+
+    // Send confirmation email
+    try {
+      const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const html = await render(
+        WaitlistConfirmation({
+          userName: body.name,
+          siteUrl,
+        })
+      );
+      await sendMail(
+        body.email,
+        `Você está na lista de espera do ${appConfig.projectName}!`,
+        html
+      );
+    } catch {
+      // Don't fail the waitlist signup if email fails
+    }
 
     return NextResponse.json(entry[0], { status: 201 });
   } catch (error) {

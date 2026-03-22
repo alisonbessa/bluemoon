@@ -248,9 +248,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Only redirect users with status "none" (no subscription, no budget)
-    // All other statuses (active, trialing, expired, partner, exempt) can stay
-    if (subscriptionStatus === "none") {
+    // Redirect users who need to choose a plan:
+    // - "none": new user, never had a subscription
+    // - "needs_plan": beta user who hasn't chosen Solo/Duo yet
+    if (subscriptionStatus === "none" || subscriptionStatus === "needs_plan") {
       router.replace("/app/choose-plan");
     }
   }, [isLoading, user, subscriptionStatus, pathname, router]);

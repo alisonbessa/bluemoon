@@ -22,6 +22,8 @@ import getSubscribeUrl, {
   DEFAULT_TRIAL_PERIOD_DAYS,
 } from "@/shared/lib/plans/getSubscribeUrl";
 import { useSubscriptionGate } from "@/shared/hooks/use-subscription-gate";
+import { useUser } from "@/shared/hooks/use-current-user";
+import { mutate } from "swr";
 
 interface PlanPricing {
   price: number | null;
@@ -54,7 +56,9 @@ interface PlansResponse {
 export default function ChoosePlanPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isReturningUser } = useSubscriptionGate();
+  const { isReturningUser, status: subscriptionStatus } = useSubscriptionGate();
+  const { user } = useUser();
+  const isBetaUser = user?.role === "beta";
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -75,7 +79,8 @@ export default function ChoosePlanPage() {
         setTrialDays(data.trialDays);
 
         // If plan was pre-selected from landing page, auto-redirect to Stripe
-        if (preSelectedPlan && preSelectedBilling) {
+        // Skip auto-redirect for beta users (they don't use Stripe)
+        if (preSelectedPlan && preSelectedBilling && !isBetaUser) {
           const validPlans = ["solo", "duo"];
           const validBilling = ["monthly", "yearly"];
 
@@ -99,7 +104,24 @@ export default function ChoosePlanPage() {
     fetchPlans();
   }, [preSelectedPlan, preSelectedBilling, router]);
 
-  const handleSelectPlan = (codename: string) => {
+  const handleSelectPlan = async (codename: string) => {
+    if (isBetaUser) {
+      setIsRedirecting(true);
+      try {
+        const response = await fetch("/api/app/plans/select", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ codename }),
+        });
+        if (!response.ok) throw new Error("Erro ao selecionar plano");
+        await mutate("/api/app/me");
+        router.push("/app");
+      } catch {
+        setIsRedirecting(false);
+      }
+      return;
+    }
+
     const url = getSubscribeUrl({
       codename,
       type: isYearly ? PlanType.YEARLY : PlanType.MONTHLY,
@@ -155,40 +177,48 @@ export default function ChoosePlanPage() {
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold mb-2">
-            {isReturningUser ? "Bem-vindo de volta!" : "Escolha seu plano"}
+            {isBetaUser
+              ? "Como você quer usar o HiveBudget?"
+              : isReturningUser
+                ? "Bem-vindo de volta!"
+                : "Escolha seu plano"}
           </h1>
           <p className="text-muted-foreground text-lg">
-            {isReturningUser
-              ? "Reative seu plano para continuar gerenciando suas finanças."
-              : `Comece com ${trialDays} dias grátis. Cancele a qualquer momento.`}
+            {isBetaUser
+              ? "Escolha o plano que combina com você. Ambos são gratuitos durante o beta."
+              : isReturningUser
+                ? "Reative seu plano para continuar gerenciando suas finanças."
+                : `Comece com ${trialDays} dias grátis. Cancele a qualquer momento.`}
           </p>
         </div>
 
-        {/* Billing Toggle */}
-        <div className="flex items-center justify-center gap-4 mb-8">
-          <Label
-            htmlFor="billing-toggle"
-            className={!isYearly ? "font-semibold" : "text-muted-foreground"}
-          >
-            Mensal
-          </Label>
-          <Switch
-            id="billing-toggle"
-            checked={isYearly}
-            onCheckedChange={setIsYearly}
-          />
-          <div className="flex items-center gap-2">
+        {/* Billing Toggle - hidden for beta users */}
+        {!isBetaUser && (
+          <div className="flex items-center justify-center gap-4 mb-8">
             <Label
               htmlFor="billing-toggle"
-              className={isYearly ? "font-semibold" : "text-muted-foreground"}
+              className={!isYearly ? "font-semibold" : "text-muted-foreground"}
             >
-              Anual
+              Mensal
             </Label>
-            <Badge variant="secondary" className="text-xs">
-              Economize até 20%
-            </Badge>
+            <Switch
+              id="billing-toggle"
+              checked={isYearly}
+              onCheckedChange={setIsYearly}
+            />
+            <div className="flex items-center gap-2">
+              <Label
+                htmlFor="billing-toggle"
+                className={isYearly ? "font-semibold" : "text-muted-foreground"}
+              >
+                Anual
+              </Label>
+              <Badge variant="secondary" className="text-xs">
+                Economize até 20%
+              </Badge>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Plans Grid */}
         <div className="grid md:grid-cols-2 gap-6">
@@ -208,28 +238,36 @@ export default function ChoosePlanPage() {
               </CardHeader>
               <CardContent className="flex-1">
                 {/* Price */}
-                <div className="mb-6">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold">
-                      {isYearly
-                        ? soloPlan.pricing.yearly?.priceFormatted
-                        : soloPlan.pricing.monthly?.priceFormatted}
-                    </span>
-                    <span className="text-muted-foreground">
-                      /{isYearly ? "ano" : "mês"}
-                    </span>
+                {isBetaUser ? (
+                  <div className="mb-6">
+                    <Badge variant="secondary" className="text-sm px-3 py-1">
+                      Grátis durante o beta
+                    </Badge>
                   </div>
-                  {isYearly && soloPlan.pricing.yearly?.monthlyEquivalent && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {soloPlan.pricing.yearly.monthlyEquivalent}/mês
-                      {getYearlySavings(soloPlan) && (
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          {getYearlySavings(soloPlan)}% off
-                        </Badge>
-                      )}
-                    </p>
-                  )}
-                </div>
+                ) : (
+                  <div className="mb-6">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-bold">
+                        {isYearly
+                          ? soloPlan.pricing.yearly?.priceFormatted
+                          : soloPlan.pricing.monthly?.priceFormatted}
+                      </span>
+                      <span className="text-muted-foreground">
+                        /{isYearly ? "ano" : "mês"}
+                      </span>
+                    </div>
+                    {isYearly && soloPlan.pricing.yearly?.monthlyEquivalent && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {soloPlan.pricing.yearly.monthlyEquivalent}/mês
+                        {getYearlySavings(soloPlan) && (
+                          <Badge variant="outline" className="ml-2 text-xs">
+                            {getYearlySavings(soloPlan)}% off
+                          </Badge>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Features */}
                 <ul className="space-y-3">
@@ -246,8 +284,17 @@ export default function ChoosePlanPage() {
                   className="w-full"
                   size="lg"
                   onClick={() => handleSelectPlan("solo")}
+                  disabled={isRedirecting}
                 >
-                  {isReturningUser ? "Reativar com Solo" : "Começar trial grátis"}
+                  {isRedirecting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : isBetaUser ? (
+                    "Escolher Solo"
+                  ) : isReturningUser ? (
+                    "Reativar com Solo"
+                  ) : (
+                    "Começar trial grátis"
+                  )}
                 </Button>
               </CardFooter>
             </Card>
@@ -260,7 +307,7 @@ export default function ChoosePlanPage() {
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                 <Badge className="px-3 py-1">
                   <Sparkles className="h-3 w-3 mr-1" />
-                  Mais popular
+                  {isBetaUser ? "Para casais" : "Mais popular"}
                 </Badge>
               </div>
 
@@ -277,28 +324,36 @@ export default function ChoosePlanPage() {
               </CardHeader>
               <CardContent className="flex-1">
                 {/* Price */}
-                <div className="mb-6">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold">
-                      {isYearly
-                        ? duoPlan.pricing.yearly?.priceFormatted
-                        : duoPlan.pricing.monthly?.priceFormatted}
-                    </span>
-                    <span className="text-muted-foreground">
-                      /{isYearly ? "ano" : "mês"}
-                    </span>
+                {isBetaUser ? (
+                  <div className="mb-6">
+                    <Badge variant="secondary" className="text-sm px-3 py-1">
+                      Grátis durante o beta
+                    </Badge>
                   </div>
-                  {isYearly && duoPlan.pricing.yearly?.monthlyEquivalent && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {duoPlan.pricing.yearly.monthlyEquivalent}/mês
-                      {getYearlySavings(duoPlan) && (
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          {getYearlySavings(duoPlan)}% off
-                        </Badge>
-                      )}
-                    </p>
-                  )}
-                </div>
+                ) : (
+                  <div className="mb-6">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-bold">
+                        {isYearly
+                          ? duoPlan.pricing.yearly?.priceFormatted
+                          : duoPlan.pricing.monthly?.priceFormatted}
+                      </span>
+                      <span className="text-muted-foreground">
+                        /{isYearly ? "ano" : "mês"}
+                      </span>
+                    </div>
+                    {isYearly && duoPlan.pricing.yearly?.monthlyEquivalent && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {duoPlan.pricing.yearly.monthlyEquivalent}/mês
+                        {getYearlySavings(duoPlan) && (
+                          <Badge variant="outline" className="ml-2 text-xs">
+                            {getYearlySavings(duoPlan)}% off
+                          </Badge>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Features */}
                 <ul className="space-y-3">
@@ -315,18 +370,33 @@ export default function ChoosePlanPage() {
                   className="w-full"
                   size="lg"
                   onClick={() => handleSelectPlan("duo")}
+                  disabled={isRedirecting}
                 >
-                  {isReturningUser ? "Reativar com Duo" : "Começar trial grátis"}
+                  {isRedirecting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : isBetaUser ? (
+                    "Escolher Duo"
+                  ) : isReturningUser ? (
+                    "Reativar com Duo"
+                  ) : (
+                    "Começar trial grátis"
+                  )}
                 </Button>
               </CardFooter>
             </Card>
           )}
         </div>
 
-        {/* Trial Info */}
+        {/* Trial/Beta Info */}
         <div className="mt-8 text-center">
           <p className="text-sm text-muted-foreground">
-            {isReturningUser ? (
+            {isBetaUser ? (
+              <>
+                Acesso completo e gratuito enquanto a plataforma estiver em beta.
+                <br />
+                Você poderá mudar de plano depois, se quiser.
+              </>
+            ) : isReturningUser ? (
               <>
                 Seus dados continuam salvos e serão acessíveis assim que reativar.
                 <br />
