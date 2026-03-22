@@ -7,7 +7,8 @@ import { checkRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 const waitlistSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email"),
-  twitterAccount: z.string().optional(),
+  instagramAccount: z.string().optional(),
+  betaTester: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -23,7 +24,8 @@ export async function POST(request: NextRequest) {
       .values({
         name: body.name,
         email: body.email,
-        twitterAccount: body.twitterAccount || null,
+        instagramAccount: body.instagramAccount || null,
+        betaTester: body.betaTester || false,
       })
       .returning();
 

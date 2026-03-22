@@ -16,15 +16,16 @@ export const GET = withSuperAdminAuthRequired(async () => {
       .orderBy(desc(waitlist.createdAt));
 
     // Convert to CSV format
-    const csvHeader = "Name,Email,Twitter Account,Joined Date\n";
+    const csvHeader = "Name,Email,Instagram Account,Beta Tester,Joined Date\n";
     const csvRows = entries.map((entry) => {
       const name = (entry.name || "").replace(/,/g, ""); // Remove commas from fields
       const email = (entry.email || "").replace(/,/g, "");
-      const twitter = entry.twitterAccount?.replace(/,/g, "") || "";
+      const instagram = entry.instagramAccount?.replace(/,/g, "") || "";
+      const beta = entry.betaTester ? "Yes" : "No";
       const date = entry.createdAt
         ? new Date(entry.createdAt).toLocaleDateString()
         : "";
-      return `${name},${email},${twitter},${date}`;
+      return `${name},${email},${instagram},${beta},${date}`;
     });
     const csvContent = csvHeader + csvRows.join("\n");
 

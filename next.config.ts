@@ -34,7 +34,7 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://vercel.live https://*.vercel-scripts.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
-      "font-src 'self' data:",
+      "font-src 'self' data: https://use.typekit.net",
       "connect-src 'self' https://api.stripe.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://vercel.live wss://ws-us3.pusher.com",
       "frame-src https://js.stripe.com https://vercel.live",
       "object-src 'none'",

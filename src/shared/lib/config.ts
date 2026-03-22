@@ -1,6 +1,7 @@
 import { AppConfigPublic } from "./types";
 
 export const appConfig: AppConfigPublic = {
+  waitlistMode: process.env.NEXT_PUBLIC_WAITLIST_MODE === "true",
   projectName: "HiveBudget",
   projectSlug: "hivebudget",
   keywords: [

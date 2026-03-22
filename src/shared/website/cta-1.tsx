@@ -2,6 +2,7 @@ import { Wallet } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/shared/ui/button";
+import { appConfig } from "@/shared/lib/config";
 
 const CTA1 = () => {
   return (
@@ -25,7 +26,9 @@ const CTA1 = () => {
                 className="bg-background text-primary hover:bg-background/90"
                 asChild
               >
-                <Link href="#pricing">Testar 30 dias grátis</Link>
+                <Link href={appConfig.waitlistMode ? "/join-waitlist" : "#pricing"}>
+                  {appConfig.waitlistMode ? "Entrar na Lista de Espera" : "Testar 30 dias grátis"}
+                </Link>
               </Button>
               <Button
                 size="lg"

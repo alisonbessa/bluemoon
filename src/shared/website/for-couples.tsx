@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/shared/ui/button";
 import { Heart, Lock, Target, Eye } from "lucide-react";
+import { appConfig } from "@/shared/lib/config";
 
 const coupleFeatures = [
   {
@@ -78,10 +79,14 @@ export function ForCouples() {
 
               <div className="mt-8">
                 <Button size="lg" asChild>
-                  <Link href="/sign-up?plan=duo&billing=monthly">Começar com meu parceiro(a)</Link>
+                  <Link href={appConfig.waitlistMode ? "/join-waitlist" : "/sign-up?plan=duo&billing=monthly"}>
+                    {appConfig.waitlistMode ? "Entrar na Lista de Espera" : "Começar com meu parceiro(a)"}
+                  </Link>
                 </Button>
                 <p className="mt-3 text-sm text-muted-foreground">
-                  Apenas quem cria a conta paga. O parceiro(a) entra grátis.
+                  {appConfig.waitlistMode
+                    ? "Estamos quase lá! Seja avisado quando lançarmos."
+                    : "Apenas quem cria a conta paga. O parceiro(a) entra grátis."}
                 </p>
               </div>
             </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { appConfig } from "@/shared/lib/config";
 import { Button } from "@/shared/ui/button";
 import { Menu } from "lucide-react";
@@ -11,8 +12,8 @@ const navItems: { label: string; href: string }[] = [
   // { label: "Pricing", href: "/#pricing" },
 ];
 
-const CTAText = "Começar";
-const CTAHref = "/#pricing";
+const CTAText = appConfig.waitlistMode ? "Lista de Espera" : "Começar";
+const CTAHref = appConfig.waitlistMode ? "/join-waitlist" : "/#pricing";
 
 const signInEnabled = process.env.NEXT_PUBLIC_SIGNIN_ENABLED === "true";
 
@@ -25,7 +26,14 @@ export function Header() {
         <div className="flex h-14 items-center justify-between">
           {/* Logo */}
           <div className="flex items-center">
-            <Link href="/" className="flex items-center space-x-2">
+            <Link href="/" className="flex items-center gap-2">
+              <Image
+                src="/assets/logo.png"
+                alt={appConfig.projectName}
+                width={28}
+                height={28}
+                className="rounded-md"
+              />
               <span className="text-lg font-bold">{appConfig.projectName}</span>
             </Link>
           </div>

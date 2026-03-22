@@ -3,6 +3,7 @@ export interface AppConfigPublic {
   projectSlug: string;
   description: string;
   keywords: string[];
+  waitlistMode: boolean;
   auth: {
     enablePasswordAuth?: boolean;
   };
