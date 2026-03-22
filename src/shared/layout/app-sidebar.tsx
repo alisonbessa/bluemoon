@@ -32,6 +32,7 @@ import {
 } from "@/shared/ui/sidebar";
 import { UserButton } from "@/shared/layout/user-button";
 import { Button } from "@/shared/ui/button";
+import { QuickAddTransaction } from "@/shared/layout/quick-add-transaction";
 import { useViewMode, type ViewMode } from "@/shared/providers/view-mode-provider";
 import {
   Tooltip,
@@ -239,6 +240,8 @@ export function AppSidebar() {
       <SidebarContent className="pt-0">
         {/* View Mode Selector */}
         <ViewModeSelector />
+        {/* Quick Add Transaction */}
+        <QuickAddTransaction />
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
