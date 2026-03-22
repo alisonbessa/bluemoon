@@ -11,6 +11,7 @@ interface UseTransactionFormOptions {
   accounts: Account[];
   budgets: Budget[];
   onSuccess: () => void;
+  memberId?: string;
 }
 
 interface UseTransactionFormReturn {
@@ -33,7 +34,7 @@ interface UseTransactionFormReturn {
 export function useTransactionForm(
   options: UseTransactionFormOptions
 ): UseTransactionFormReturn {
-  const { accounts, budgets, onSuccess } = options;
+  const { accounts, budgets, onSuccess, memberId } = options;
 
   const [isOpen, setIsOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -116,6 +117,7 @@ export function useTransactionForm(
           formData.type === "transfer" ? formData.toAccountId || undefined : undefined,
         date: new Date(formData.date).toISOString(),
         status: "cleared", // Manual transactions are confirmed by default
+        memberId: memberId || undefined,
         // Installment fields (only for new credit card expenses)
         ...(canBeInstallment && formData.isInstallment
           ? {
@@ -165,7 +167,7 @@ export function useTransactionForm(
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, budgets, accounts, editingTransaction, applyToSeries, onSuccess]);
+  }, [formData, budgets, accounts, editingTransaction, applyToSeries, onSuccess, memberId]);
 
   return {
     // State
