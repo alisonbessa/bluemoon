@@ -98,6 +98,8 @@ function AppHomepage() {
     isLoading: dataLoading,
     chartsLoading,
     goalsLoading,
+    viewMode: dataViewMode,
+    isDuoPlan,
   } = useDashboardData(currentYear, currentMonth);
 
   const isLoading = userLoading || dataLoading;
@@ -301,6 +303,8 @@ function AppHomepage() {
         dailyData={dailyChartData}
         monthlyData={monthlyChartData}
         isLoading={chartsLoading}
+        budgetId={budgets[0]?.id}
+        viewModeParam={isDuoPlan ? `&viewMode=${dataViewMode}` : ""}
       />
 
       {/* Shared Expenses Balance - Duo plans only, non-unified */}

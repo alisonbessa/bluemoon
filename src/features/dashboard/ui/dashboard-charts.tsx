@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import useSWR from "swr";
 import {
   Card,
   CardContent,
@@ -58,10 +59,21 @@ interface MonthlyData {
   expense: number;
 }
 
+interface CategoryOption {
+  id: string;
+  name: string;
+}
+
+interface CategoriesResponse {
+  flatCategories: CategoryOption[];
+}
+
 interface DashboardChartsProps {
   dailyData: DailyData[];
   monthlyData: MonthlyData[];
   isLoading?: boolean;
+  budgetId?: string;
+  viewModeParam?: string;
 }
 
 const dailyChartConfig = {
@@ -108,29 +120,46 @@ export function DashboardCharts({
   dailyData,
   monthlyData,
   isLoading,
+  budgetId,
+  viewModeParam = "",
 }: DashboardChartsProps) {
+  // Fetch categories for the filter dropdown
+  const { data: categoriesData } = useSWR<CategoriesResponse>("/api/app/categories");
+  const categories = categoriesData?.flatCategories ?? [];
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("12months");
   const [showPending, setShowPending] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  // Re-fetch monthly data when category filter is active
+  const now = new Date();
+  const filteredStatsKey = categoryFilter !== "all" && budgetId
+    ? `/api/app/dashboard/stats?budgetId=${budgetId}&year=${now.getFullYear()}&month=${now.getMonth() + 1}${viewModeParam}&categoryId=${categoryFilter}`
+    : null;
+
+  const { data: filteredStatsData } = useSWR<{ monthlyComparison: MonthlyData[] }>(filteredStatsKey);
+
+  // Use filtered data when category filter is active, otherwise use prop data
+  const activeMonthlyData = useMemo(
+    () => categoryFilter !== "all" && filteredStatsData?.monthlyComparison
+      ? filteredStatsData.monthlyComparison
+      : monthlyData,
+    [categoryFilter, filteredStatsData, monthlyData]
+  );
 
   // Filter monthly data based on selected period
   const getFilteredMonthlyData = () => {
-    const now = new Date();
     const currentYear = now.getFullYear();
 
     switch (periodFilter) {
       case "thisYear":
-        // Filter to show only months from the current year
-        return monthlyData.filter((item) => item.year === currentYear);
+        return activeMonthlyData.filter((item) => item.year === currentYear);
       case "3months":
-        // Show last 3 months from the data
-        return monthlyData.slice(-3);
+        return activeMonthlyData.slice(-3);
       case "6months":
-        // Show last 6 months from the data
-        return monthlyData.slice(-6);
+        return activeMonthlyData.slice(-6);
       case "12months":
       default:
-        // Show all data from API (last 12 months)
-        return monthlyData;
+        return activeMonthlyData;
     }
   };
 
@@ -285,17 +314,34 @@ export function DashboardCharts({
                 Receitas e despesas por período
               </CardDescription>
             </div>
-            <Select value={periodFilter} onValueChange={(value: PeriodFilter) => setPeriodFilter(value)}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="3months">Últimos 3 meses</SelectItem>
-                <SelectItem value="6months">Últimos 6 meses</SelectItem>
-                <SelectItem value="12months">Últimos 12 meses</SelectItem>
-                <SelectItem value="thisYear">Este ano</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              {categories.length > 0 && (
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <Select value={periodFilter} onValueChange={(value: PeriodFilter) => setPeriodFilter(value)}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3months">Últimos 3 meses</SelectItem>
+                  <SelectItem value="6months">Últimos 6 meses</SelectItem>
+                  <SelectItem value="12months">Últimos 12 meses</SelectItem>
+                  <SelectItem value="thisYear">Este ano</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

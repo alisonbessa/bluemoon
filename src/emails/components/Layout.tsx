@@ -46,16 +46,24 @@ export const Layout = ({ children, previewText }: LayoutProps) => {
       >
         <Body className="bg-background my-auto mx-auto font-sans">
           <Container className="border border-solid border-border rounded my-[40px] mx-auto p-[20px] max-w-[465px]">
-            <div className="flex justify-center items-center">
-              <Img
-                src={`${baseUrl}/assets/logo.png`}
-                width="20"
-                height="20"
-                alt={`${appConfig.projectName} Logo`}
-                className="my-0 mx-0"
-              />
-              <Text className="text-foreground ">{appConfig.projectName}</Text>
-            </div>
+            <table cellPadding="0" cellSpacing="0" style={{ margin: "0 auto" }}>
+              <tr>
+                <td style={{ verticalAlign: "middle", paddingRight: "8px" }}>
+                  <Img
+                    src={`${baseUrl}/assets/logo.png`}
+                    width="24"
+                    height="24"
+                    alt={`${appConfig.projectName} Logo`}
+                    style={{ display: "block", borderRadius: "4px" }}
+                  />
+                </td>
+                <td style={{ verticalAlign: "middle" }}>
+                  <Text className="text-foreground font-bold" style={{ margin: 0 }}>
+                    {appConfig.projectName}
+                  </Text>
+                </td>
+              </tr>
+            </table>
             {children}
             <Hr className="border border-solid border-border my-[26px] mx-0 w-full" />
             <Img
