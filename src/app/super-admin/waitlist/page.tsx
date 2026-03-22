@@ -27,7 +27,8 @@ interface WaitlistEntry {
   id: number;
   name: string;
   email: string;
-  twitterAccount: string | null;
+  instagramAccount: string | null;
+  betaTester: boolean | null;
   createdAt: string;
 }
 
@@ -144,7 +145,8 @@ export default function WaitlistPage() {
             <TableRow>
               <TableHead className="min-w-[150px]">Name</TableHead>
               <TableHead className="min-w-[200px]">Email</TableHead>
-              <TableHead className="min-w-[120px]">Twitter</TableHead>
+              <TableHead className="min-w-[120px]">Instagram</TableHead>
+              <TableHead className="min-w-[80px]">Beta</TableHead>
               <TableHead className="min-w-[120px]">Joined</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -152,19 +154,19 @@ export default function WaitlistPage() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={6} className="text-center">
                   Loading...
                 </TableCell>
               </TableRow>
             ) : error ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-red-500">
+                <TableCell colSpan={6} className="text-center text-red-500">
                   Error loading waitlist entries
                 </TableCell>
               </TableRow>
             ) : data?.entries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={6} className="text-center">
                   No entries found
                 </TableCell>
               </TableRow>
@@ -173,7 +175,14 @@ export default function WaitlistPage() {
                 <TableRow key={entry.id}>
                   <TableCell className="font-medium">{entry.name}</TableCell>
                   <TableCell>{entry.email}</TableCell>
-                  <TableCell>{entry.twitterAccount || "-"}</TableCell>
+                  <TableCell>{entry.instagramAccount || "-"}</TableCell>
+                  <TableCell>
+                    {entry.betaTester ? (
+                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                        Sim
+                      </span>
+                    ) : "-"}
+                  </TableCell>
                   <TableCell>{formatDate(entry.createdAt)}</TableCell>
                   <TableCell>
                     <DropdownMenu>

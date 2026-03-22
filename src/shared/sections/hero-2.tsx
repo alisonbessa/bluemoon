@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Avatar, AvatarImage } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
+import { appConfig } from "@/shared/lib/config";
 
 const Hero2 = () => {
   return (
@@ -46,12 +47,21 @@ const Hero2 = () => {
 
         <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
           <Button size="lg" asChild>
-            <Link href="#pricing">Começar Grátis</Link>
+            <Link href={appConfig.waitlistMode ? "/join-waitlist" : "#pricing"}>
+              {appConfig.waitlistMode ? "Entrar na Lista de Espera" : "Começar Grátis"}
+            </Link>
           </Button>
           <Button size="lg" variant="outline" asChild>
-            <Link href="#como-funciona">Como Funciona</Link>
+            <Link href={appConfig.waitlistMode ? "/beta" : "#como-funciona"}>
+              {appConfig.waitlistMode ? "Quero ser Beta Tester" : "Como Funciona"}
+            </Link>
           </Button>
         </div>
+        {appConfig.waitlistMode && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Beta testers usam a plataforma gratuitamente e ganham desconto no lançamento.
+          </p>
+        )}
 
         <div className="mx-auto mt-10 flex w-fit flex-col items-center gap-4 sm:flex-row">
           <span className="mx-4 inline-flex items-center -space-x-4">

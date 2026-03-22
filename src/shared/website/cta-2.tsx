@@ -3,6 +3,7 @@
 import { Button } from "@/shared/ui/button";
 import Link from "next/link";
 import { Users } from "lucide-react";
+import { appConfig } from "@/shared/lib/config";
 
 export function CTA2() {
   return (
@@ -24,11 +25,15 @@ export function CTA2() {
           </div>
           <div className="mt-8">
             <Button size="lg" asChild>
-              <Link href="#pricing">Começar Grátis</Link>
+              <Link href={appConfig.waitlistMode ? "/join-waitlist" : "#pricing"}>
+                {appConfig.waitlistMode ? "Entrar na Lista de Espera" : "Começar Grátis"}
+              </Link>
             </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
-            30 dias grátis. Cancele quando quiser.
+            {appConfig.waitlistMode
+              ? "Estamos quase lá! Entre na lista de espera."
+              : "30 dias grátis. Cancele quando quiser."}
           </p>
         </div>
       </div>

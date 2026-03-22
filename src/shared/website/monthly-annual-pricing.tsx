@@ -8,6 +8,7 @@ import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/shared/ui/radio-group";
+import { appConfig } from "@/shared/lib/config";
 
 type Plan = {
   name: string;
@@ -69,13 +70,15 @@ const MonthlyAnnualPricing = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mx-auto mb-20 max-w-(--breakpoint-md) text-center">
           <Badge variant="secondary" className="mb-4">
-            30 dias grátis
+            {appConfig.waitlistMode ? "Em breve" : "30 dias grátis"}
           </Badge>
           <h2 className="mb-4 text-4xl tracking-tight font-bold lg:text-5xl">
             Menos que um cafezinho por dia
           </h2>
           <p className="text-muted-foreground text-lg">
-            Teste tudo por 30 dias grátis. Sem cartão na hora de criar a conta.
+            {appConfig.waitlistMode
+              ? "Entre na lista de espera e seja avisado no lançamento."
+              : "Teste tudo por 30 dias grátis. Sem cartão na hora de criar a conta."}
           </p>
         </div>
 
@@ -209,8 +212,8 @@ const MonthlyAnnualPricing = () => {
                     </div>
 
                     <Button size="lg" className="mt-8 w-full" asChild>
-                      <Link href={`/sign-up?plan=${key}&billing=${isAnnually ? "yearly" : "monthly"}`}>
-                        Começar 30 dias grátis
+                      <Link href={appConfig.waitlistMode ? "/join-waitlist" : `/sign-up?plan=${key}&billing=${isAnnually ? "yearly" : "monthly"}`}>
+                        {appConfig.waitlistMode ? "Entrar na Lista de Espera" : "Começar 30 dias grátis"}
                       </Link>
                     </Button>
                   </div>
@@ -220,8 +223,26 @@ const MonthlyAnnualPricing = () => {
           </div>
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
-            Sem compromisso. Cancele a qualquer momento.
+            {appConfig.waitlistMode
+              ? "Avisaremos por email quando a plataforma estiver disponível."
+              : "Sem compromisso. Cancele a qualquer momento."}
           </p>
+
+          {appConfig.waitlistMode && (
+            <div className="mt-8 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-6 text-center">
+              <p className="text-lg font-semibold mb-2">
+                Quer experimentar agora?
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Seja um Beta Tester: use a plataforma gratuitamente durante o
+                desenvolvimento e ganhe um super desconto de lançamento. Em
+                troca, nos ajude com seu feedback.
+              </p>
+              <Button size="lg" variant="outline" asChild>
+                <Link href="/beta">Quero ser Beta Tester</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </section>

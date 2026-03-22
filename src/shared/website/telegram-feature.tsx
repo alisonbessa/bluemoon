@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/shared/ui/button";
 import { Check } from "lucide-react";
 import { ImagePlaceholder } from "@/shared/ui/image-placeholder";
+import { appConfig } from "@/shared/lib/config";
 
 const features = [
   "Registre gastos por texto: 'gastei 80 no mercado'",
@@ -40,7 +41,9 @@ export function TelegramFeature() {
 
               <div className="pt-4">
                 <Button size="lg" asChild>
-                  <Link href="#pricing">Experimentar 30 dias grátis</Link>
+                  <Link href={appConfig.waitlistMode ? "/join-waitlist" : "#pricing"}>
+                    {appConfig.waitlistMode ? "Entrar na Lista de Espera" : "Experimentar 30 dias grátis"}
+                  </Link>
                 </Button>
               </div>
             </div>

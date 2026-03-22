@@ -10,6 +10,9 @@ import { enableCredits, onRegisterCredits } from "../credits/config";
 import { type CreditType } from "../credits/credits";
 import { addCredits } from "../credits/recalculate";
 import { addDays } from "date-fns";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("onUserCreate");
 
 const onUserCreate = async (newUser: {
   id: string;
@@ -27,6 +30,19 @@ const onUserCreate = async (newUser: {
       .update(users)
       .set({ planId: defaultPlan[0].id })
       .where(eq(users.id, newUser.id));
+  }
+
+  // In waitlist mode, all new signups are beta testers
+  if (appConfig.waitlistMode) {
+    try {
+      await db
+        .update(users)
+        .set({ role: "beta" })
+        .where(eq(users.id, newUser.id));
+      logger.info(`Beta tester role assigned to ${newUser.email}`);
+    } catch (error) {
+      logger.error("Error assigning beta tester role", error);
+    }
   }
 
   if (enableCredits) {

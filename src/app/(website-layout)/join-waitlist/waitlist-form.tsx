@@ -21,13 +21,13 @@ import Link from "next/link";
 const formSchema = z.object({
   name: z.string().min(2, "O nome deve ter pelo menos 2 caracteres"),
   email: z.string().email("Por favor, insira um email válido"),
-  twitterAccount: z.string().optional(),
+  instagramAccount: z.string().optional(),
 });
 
 type FormValues = {
   name: string;
   email: string;
-  twitterAccount?: string;
+  instagramAccount?: string;
 };
 
 export default function WaitlistForm() {
@@ -39,7 +39,7 @@ export default function WaitlistForm() {
     defaultValues: {
       name: "",
       email: "",
-      twitterAccount: "",
+      instagramAccount: "",
     },
   });
 
@@ -102,10 +102,10 @@ export default function WaitlistForm() {
 
         <FormField
           control={form.control}
-          name="twitterAccount"
+          name="instagramAccount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Conta no Twitter (Opcional)</FormLabel>
+              <FormLabel>Conta no Instagram (Opcional)</FormLabel>
               <FormControl>
                 <Input placeholder="@seuusuario" {...field} />
               </FormControl>
