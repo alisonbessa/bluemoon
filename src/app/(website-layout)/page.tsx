@@ -13,6 +13,28 @@ import { TelegramFeature } from "@/shared/website/telegram-feature";
 import { ForCouples } from "@/shared/website/for-couples";
 import { TestimonialsGrid } from "@/shared/website/testimonials-grid";
 
+function FAQPageSchema({ items }: { items: { question: string; answer: string }[] }) {
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+
 export const metadata: Metadata = {
   title: "HiveBudget - Controle Financeiro Colaborativo para Casais e Famílias",
   description:
@@ -124,6 +146,7 @@ export default function WebsiteHomepage() {
       <StructuredData type="WebSite" />
       <StructuredData type="SoftwareApplication" />
       <StructuredData type="Organization" />
+      <FAQPageSchema items={faqItems} />
 
       <div className="relative bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950/30 dark:via-purple-950/20 dark:to-pink-950/20">
         <Hero2 />

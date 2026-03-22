@@ -1,9 +1,25 @@
 import { MetadataRoute } from "next";
-import { getAllBlogs } from "@/shared/lib/mdx/blogs";
+import { db } from "@/db";
+import { blogPosts } from "@/db/schema/blog-posts";
+import { eq, desc } from "drizzle-orm";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL!;
-  const blogs = await getAllBlogs();
+
+  let posts: { slug: string; publishedAt: Date | null; updatedAt: Date | null }[] = [];
+  try {
+    posts = await db
+      .select({
+        slug: blogPosts.slug,
+        publishedAt: blogPosts.publishedAt,
+        updatedAt: blogPosts.updatedAt,
+      })
+      .from(blogPosts)
+      .where(eq(blogPosts.status, "published"))
+      .orderBy(desc(blogPosts.publishedAt));
+  } catch {
+    // Table may not exist yet
+  }
 
   // Static pages
   const staticPages = [
@@ -31,9 +47,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
 
   // Blog pages
-  const blogPages = blogs.map((blog) => ({
-    url: `${baseUrl}/blog/${blog.slug}`,
-    lastModified: new Date(blog.frontmatter.createdDate),
+  const blogPages = posts.map((post) => ({
+    url: `${baseUrl}/blog/${post.slug}`,
+    lastModified: post.updatedAt || post.publishedAt || new Date(),
     changeFrequency: "weekly" as const,
     priority: 0.6,
   }));
