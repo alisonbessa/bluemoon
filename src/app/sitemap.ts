@@ -6,15 +6,20 @@ import { eq, desc } from "drizzle-orm";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL!;
 
-  const posts = await db
-    .select({
-      slug: blogPosts.slug,
-      publishedAt: blogPosts.publishedAt,
-      updatedAt: blogPosts.updatedAt,
-    })
-    .from(blogPosts)
-    .where(eq(blogPosts.status, "published"))
-    .orderBy(desc(blogPosts.publishedAt));
+  let posts: { slug: string; publishedAt: Date | null; updatedAt: Date | null }[] = [];
+  try {
+    posts = await db
+      .select({
+        slug: blogPosts.slug,
+        publishedAt: blogPosts.publishedAt,
+        updatedAt: blogPosts.updatedAt,
+      })
+      .from(blogPosts)
+      .where(eq(blogPosts.status, "published"))
+      .orderBy(desc(blogPosts.publishedAt));
+  } catch {
+    // Table may not exist yet
+  }
 
   // Static pages
   const staticPages = [

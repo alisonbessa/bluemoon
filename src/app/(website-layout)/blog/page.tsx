@@ -43,11 +43,16 @@ export const metadata: Metadata = {
 };
 
 async function getPublishedPosts() {
-  return db
-    .select()
-    .from(blogPosts)
-    .where(eq(blogPosts.status, "published"))
-    .orderBy(desc(blogPosts.publishedAt));
+  try {
+    return await db
+      .select()
+      .from(blogPosts)
+      .where(eq(blogPosts.status, "published"))
+      .orderBy(desc(blogPosts.publishedAt));
+  } catch {
+    // Table may not exist yet during first build
+    return [];
+  }
 }
 
 export default async function BlogListPage() {

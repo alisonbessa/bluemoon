@@ -8,7 +8,7 @@ import { cn } from "@/shared/lib/utils";
 import { CTA2 } from "@/shared/website/cta-2";
 import { WebPageJsonLd, ArticleJsonLd, BreadcrumbJsonLd } from "next-seo";
 import { appConfig } from "@/shared/lib/config";
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 import { db } from "@/db";
 import { blogPosts } from "@/db/schema/blog-posts";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -133,12 +133,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export async function generateStaticParams() {
-  const posts = await db
-    .select({ slug: blogPosts.slug })
-    .from(blogPosts)
-    .where(eq(blogPosts.status, "published"));
+  try {
+    const posts = await db
+      .select({ slug: blogPosts.slug })
+      .from(blogPosts)
+      .where(eq(blogPosts.status, "published"));
 
-  return posts.map((post) => ({ slug: post.slug }));
+    return posts.map((post) => ({ slug: post.slug }));
+  } catch {
+    // Table may not exist yet during first build
+    return [];
+  }
 }
 
 async function BlogDetailPage({ params }: Props) {
@@ -151,11 +156,16 @@ async function BlogDetailPage({ params }: Props) {
 
   const relatedPosts = await getRelatedPosts(post.id, post.tags);
   const headings = extractHeadings(post.content);
-  const sanitizedContent = DOMPurify.sanitize(post.content, {
-    ADD_TAGS: ["iframe"],
-    ADD_ATTR: ["allow", "allowfullscreen", "frameborder", "scrolling", "target"],
-    FORBID_TAGS: ["script", "style"],
-    FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover"],
+  const sanitizedContent = sanitizeHtml(post.content, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img", "iframe", "h1", "h2", "h3", "h4", "h5", "h6"]),
+    allowedAttributes: {
+      ...sanitizeHtml.defaults.allowedAttributes,
+      iframe: ["src", "width", "height", "allow", "allowfullscreen", "frameborder", "scrolling"],
+      img: ["src", "alt", "width", "height", "loading"],
+      a: ["href", "target", "rel"],
+      "*": ["id", "class"],
+    },
+    disallowedTagsMode: "discard",
   });
   const contentWithIds = addIdsToHeadings(sanitizedContent);
 
