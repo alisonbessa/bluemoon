@@ -1,4 +1,3 @@
-import { getAllBlogs } from "@/shared/lib/mdx/blogs";
 import Image from "next/image";
 import Link from "next/link";
 import { Tag } from "lucide-react";
@@ -7,18 +6,23 @@ import { CTA2 } from "@/shared/website/cta-2";
 import { appConfig } from "@/shared/lib/config";
 import { WebPageJsonLd, BreadcrumbJsonLd } from "next-seo";
 import { notFound } from "next/navigation";
+import { db } from "@/db";
+import { blogPosts } from "@/db/schema/blog-posts";
+import { eq, desc } from "drizzle-orm";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: `Blog | ${appConfig.projectName}`,
-  description: `Discover how to use ${appConfig.projectName}`,
+  description: `Dicas e artigos sobre planejamento financeiro, orçamento familiar e controle de gastos com o ${appConfig.projectName}.`,
   openGraph: {
     title: `Blog | ${appConfig.projectName}`,
-    description: `Discover how to use ${appConfig.projectName}`,
+    description: `Dicas e artigos sobre planejamento financeiro, orçamento familiar e controle de gastos.`,
     type: "website",
     url: `${process.env.NEXT_PUBLIC_APP_URL}/blog`,
     images: [
       {
-        url: `${process.env.NEXT_PUBLIC_APP_URL}/images/og.png`,
+        url: `${process.env.NEXT_PUBLIC_APP_URL}/api/og?title=Blog&description=Artigos+sobre+finan%C3%A7as+pessoais`,
         width: 1200,
         height: 630,
         alt: "Blog",
@@ -28,18 +32,28 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: `Blog | ${appConfig.projectName}`,
-    description: `Discover how to use ${appConfig.projectName}`,
-    images: [`${process.env.NEXT_PUBLIC_APP_URL}/images/og.png`],
+    description: `Dicas e artigos sobre planejamento financeiro e controle de gastos.`,
+    images: [
+      `${process.env.NEXT_PUBLIC_APP_URL}/api/og?title=Blog&description=Artigos+sobre+finan%C3%A7as+pessoais`,
+    ],
   },
   alternates: {
     canonical: `${process.env.NEXT_PUBLIC_APP_URL}/blog`,
   },
 };
 
-export default async function BlogListPage() {
-  const blogs = await getAllBlogs();
+async function getPublishedPosts() {
+  return db
+    .select()
+    .from(blogPosts)
+    .where(eq(blogPosts.status, "published"))
+    .orderBy(desc(blogPosts.publishedAt));
+}
 
-  if (blogs.length === 0) {
+export default async function BlogListPage() {
+  const posts = await getPublishedPosts();
+
+  if (posts.length === 0) {
     return notFound();
   }
 
@@ -49,7 +63,7 @@ export default async function BlogListPage() {
         useAppDir
         id={`${process.env.NEXT_PUBLIC_APP_URL}/blog`}
         title={`Blog | ${appConfig.projectName}`}
-        description={`Discover how to use ${appConfig.projectName}`}
+        description={`Dicas e artigos sobre planejamento financeiro e controle de gastos com o ${appConfig.projectName}.`}
         isAccessibleForFree={true}
         publisher={{
           "@type": "Organization",
@@ -75,25 +89,26 @@ export default async function BlogListPage() {
 
       {/* Hero Section */}
       <header className="text-center mb-16">
-        <h1 className="text-4xl font-bold mb-4">Articles</h1>
+        <h1 className="text-4xl font-bold mb-4">Blog</h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Discover how to use {appConfig.projectName} to get most out of it.
+          Dicas práticas sobre planejamento financeiro, orçamento familiar e
+          como organizar suas finanças com o {appConfig.projectName}.
         </p>
       </header>
 
       {/* Blog Posts Grid */}
       <main>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {blogs.map((blog) => (
-            <article key={blog.slug} className="flex flex-col">
-              <Link href={`/blog/${blog.slug}`} className="group">
+          {posts.map((post) => (
+            <article key={post.id} className="flex flex-col">
+              <Link href={`/blog/${post.slug}`} className="group">
                 <div className="border rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 h-full">
                   {/* Featured Image */}
-                  {blog.frontmatter.featuredImage && (
+                  {post.featuredImage && (
                     <figure className="relative w-full h-48">
                       <Image
-                        src={blog.frontmatter.featuredImage}
-                        alt={blog.frontmatter.title}
+                        src={post.featuredImage}
+                        alt={post.title}
                         fill
                         className="object-cover shadow-xs"
                       />
@@ -104,16 +119,18 @@ export default async function BlogListPage() {
                   <div className="p-6">
                     <header>
                       <h2 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
-                        {blog.frontmatter.title}
+                        {post.title}
                       </h2>
                     </header>
-                    <p className="text-foreground/60 mb-4 line-clamp-2">
-                      {blog.frontmatter.description}
-                    </p>
+                    {post.description && (
+                      <p className="text-foreground/60 mb-4 line-clamp-2">
+                        {post.description}
+                      </p>
+                    )}
 
                     {/* Tags */}
                     <footer className="flex flex-wrap gap-2">
-                      {blog.frontmatter.tags.map((tag) => (
+                      {post.tags.map((tag) => (
                         <span
                           key={tag}
                           className="inline-flex items-center text-xs text-foreground/60 bg-foreground/10 px-3 py-1 rounded-full"
