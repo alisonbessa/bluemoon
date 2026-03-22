@@ -114,6 +114,16 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     // If user already has a budget or completed onboarding, mark as initialized
     if (hasBudget || user.onboardingCompletedAt) {
       localStorage.setItem(BUDGET_INITIALIZED_KEY, "true");
+
+      // Partners who haven't completed onboarding get a welcome page
+      if (hasPartnerAccess && !user.onboardingCompletedAt && !pathname?.startsWith("/app/partner-welcome")) {
+        const partnerWelcomeDone = localStorage.getItem("hivebudget_partner_welcome_done") === "true";
+        if (!partnerWelcomeDone) {
+          router.replace("/app/partner-welcome");
+          return;
+        }
+      }
+
       return;
     }
 

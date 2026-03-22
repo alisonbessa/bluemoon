@@ -20,6 +20,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const year = parseInt(searchParams.get("year") || new Date().getFullYear().toString());
   const month = parseInt(searchParams.get("month") || (new Date().getMonth() + 1).toString());
   const viewMode = parseViewMode(searchParams);
+  const categoryId = searchParams.get("categoryId");
 
   if (!budgetId) {
     return errorResponse("budgetId is required", 400);
@@ -68,6 +69,7 @@ export const GET = withAuthRequired(async (req, context) => {
     lte(transactions.date, endDate),
     inArray(transactions.status, ["pending", "cleared", "reconciled"]),
     ...(txViewCondition ? [txViewCondition] : []),
+    ...(categoryId ? [eq(transactions.categoryId, categoryId)] : []),
   ];
 
   const baseCcConditions = [

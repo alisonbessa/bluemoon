@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequired";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
-import { and, isNotNull, ne, eq } from "drizzle-orm";
+import { and, ne, eq, or, isNull } from "drizzle-orm";
 import stripe from "@/integrations/stripe";
 import { render } from "@react-email/components";
 import MigrationToBeta from "@/emails/MigrationToBeta";
@@ -38,9 +38,8 @@ export const POST = withSuperAdminAuthRequired(async () => {
       .from(users)
       .where(
         and(
-          isNotNull(users.stripeSubscriptionId),
-          ne(users.role, "beta"),
-          ne(users.role, "admin")
+          or(isNull(users.role), ne(users.role, "beta")),
+          or(isNull(users.role), ne(users.role, "admin"))
         )
       );
 

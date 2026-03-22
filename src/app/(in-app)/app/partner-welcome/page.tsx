@@ -1,0 +1,209 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { Button } from "@/shared/ui/button";
+import { Card, CardContent } from "@/shared/ui/card";
+import { appConfig } from "@/shared/lib/config";
+import {
+  ArrowRight,
+  Wallet,
+  Shield,
+  MessageCircle,
+  Users,
+} from "lucide-react";
+
+export default function PartnerWelcomePage() {
+  const router = useRouter();
+  const [step, setStep] = useState(0);
+
+  const handleFinish = () => {
+    localStorage.setItem("hivebudget_partner_welcome_done", "true");
+    router.push("/app");
+  };
+
+  const steps = [
+    // Step 0: Welcome
+    {
+      content: (
+        <div className="text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+              <Users className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold mb-2">
+              Bem-vindo ao orçamento compartilhado!
+            </h2>
+            <p className="text-muted-foreground">
+              Seu parceiro(a) já configurou o básico. Agora vocês vão
+              gerenciar o dinheiro juntos, cada um com seu espaço.
+            </p>
+          </div>
+          <div className="text-left space-y-4">
+            <Card>
+              <CardContent className="p-4 flex items-start gap-3">
+                <Wallet className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-sm">Cada real tem uma função</p>
+                  <p className="text-xs text-muted-foreground">
+                    O orçamento define para onde o dinheiro vai antes de
+                    vocês gastarem. Sem surpresas no fim do mês.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 flex items-start gap-3">
+                <Shield className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium text-sm">Privacidade individual</p>
+                  <p className="text-xs text-muted-foreground">
+                    Vocês compartilham o orçamento, mas cada um tem
+                    categorias pessoais que só você vê.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <Button size="lg" className="w-full" onClick={() => setStep(1)}>
+            Próximo
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+    // Step 1: What's already configured
+    {
+      content: (
+        <div className="text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+              <Wallet className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold mb-2">O que já está pronto</h2>
+            <p className="text-muted-foreground">
+              Seu parceiro(a) já configurou as categorias, contas e fontes
+              de renda do orçamento. Você pode ajustar tudo depois em
+              Planejamento.
+            </p>
+          </div>
+          <div className="text-left space-y-3">
+            <div className="rounded-lg bg-muted/50 p-4">
+              <p className="text-sm font-medium mb-2">Você pode:</p>
+              <ul className="text-sm text-muted-foreground space-y-2">
+                <li>
+                  Registrar gastos pelo app ou por mensagem (WhatsApp/Telegram)
+                </li>
+                <li>
+                  Ver o orçamento compartilhado e acompanhar o progresso
+                </li>
+                <li>
+                  Adicionar suas próprias contas (cartão, banco)
+                </li>
+                <li>
+                  Criar metas pessoais ou compartilhadas
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              size="lg"
+              className="flex-1"
+              onClick={() => setStep(0)}
+            >
+              Voltar
+            </Button>
+            <Button size="lg" className="flex-1" onClick={() => setStep(2)}>
+              Próximo
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ),
+    },
+    // Step 2: Quick start
+    {
+      content: (
+        <div className="text-center space-y-6">
+          <div className="flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+              <MessageCircle className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Comece agora!</h2>
+            <p className="text-muted-foreground">
+              A forma mais rápida de registrar gastos é por mensagem.
+              Conecte o WhatsApp ou Telegram nas configurações.
+            </p>
+          </div>
+          <div className="text-left space-y-3">
+            <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 p-4">
+              <p className="text-sm font-medium mb-2">
+                Dica: registre seu primeiro gasto!
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Use o botão roxo &quot;+ Nova Transação&quot; no menu
+                lateral ou pressione Ctrl+N de qualquer página.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              size="lg"
+              className="flex-1"
+              onClick={() => setStep(1)}
+            >
+              Voltar
+            </Button>
+            <Button size="lg" className="flex-1" onClick={handleFinish}>
+              Ir para o Dashboard
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <Image
+            src="/assets/logo.png"
+            alt={appConfig.projectName}
+            width={32}
+            height={32}
+            className="rounded-lg"
+          />
+          <span className="text-xl font-bold">{appConfig.projectName}</span>
+        </div>
+
+        {/* Step indicator */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className={`h-2 rounded-full transition-all ${
+                i === step ? "w-8 bg-primary" : "w-2 bg-muted"
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Step content */}
+        {steps[step].content}
+      </div>
+    </div>
+  );
+}
