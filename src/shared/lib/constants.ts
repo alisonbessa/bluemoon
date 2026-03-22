@@ -8,6 +8,7 @@ export const SUBSCRIPTION_EXEMPT_ROLES: string[] = ["beta", "lifetime", "admin"]
  */
 export const SUBSCRIPTION_EXEMPT_PATHS: string[] = [
   "/app/choose-plan",
+  "/app/setup",
   "/app/settings",
   "/app/subscribe",
 ];
