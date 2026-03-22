@@ -79,13 +79,13 @@ export function ForCouples() {
 
               <div className="mt-8">
                 <Button size="lg" asChild>
-                  <Link href={appConfig.waitlistMode ? "/join-waitlist" : "/sign-up?plan=duo&billing=monthly"}>
-                    {appConfig.waitlistMode ? "Entrar na Lista de Espera" : "Começar com meu parceiro(a)"}
+                  <Link href={appConfig.waitlistMode ? "/beta" : "/sign-up?plan=duo&billing=monthly"}>
+                    {appConfig.waitlistMode ? "Começar Grátis em Casal" : "Começar com meu parceiro(a)"}
                   </Link>
                 </Button>
                 <p className="mt-3 text-sm text-muted-foreground">
                   {appConfig.waitlistMode
-                    ? "Estamos quase lá! Seja avisado quando lançarmos."
+                    ? "Gratuito durante o beta. O parceiro(a) entra sem custo."
                     : "Apenas quem cria a conta paga. O parceiro(a) entra grátis."}
                 </p>
               </div>
