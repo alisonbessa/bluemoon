@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   try {
     // Verify request origin
     if (!verifyTelegramRequest(request)) {
-      console.warn("[Telegram Webhook] Invalid secret token");
+      logger.warn("Invalid secret token");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

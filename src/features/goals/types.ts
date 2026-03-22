@@ -36,3 +36,20 @@ export interface Goal {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CreateGoalInput {
+  budgetId: string;
+  accountId: string;
+  name: string;
+  icon?: string;
+  color?: string;
+  targetAmount: number;
+  initialAmount?: number;
+  targetDate?: Date | string;
+}
+
+export interface GoalContribution {
+  goalId: string;
+  amount: number;
+  description?: string;
+}

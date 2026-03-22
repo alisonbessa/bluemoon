@@ -3,9 +3,9 @@
 // Re-exports from @/types with module-specific extensions
 // =============================================================================
 
-import type { AccountSimple } from "@/types/account";
-import type { CategorySimple } from "@/types/category";
-import type { IncomeSourceSimple } from "@/types/income";
+import type { AccountSimple } from "@/features/accounts";
+import type { CategorySimple } from "@/features/categories";
+import type { IncomeSourceSimple } from "@/features/income";
 
 /**
  * Re-export simplified types for backward compatibility
@@ -94,3 +94,23 @@ export const TYPE_FILTER_LABELS: Record<string, string> = {
   expense: "Despesas",
   transfer: "Transferências",
 };
+
+// Transaction status and source types
+export type TransactionStatus = 'pending' | 'cleared' | 'reconciled';
+export type TransactionSource = 'web' | 'telegram' | 'import';
+
+export interface CreateTransactionInput {
+  budgetId: string;
+  accountId: string;
+  categoryId?: string;
+  incomeSourceId?: string;
+  memberId?: string;
+  toAccountId?: string;
+  type: 'income' | 'expense' | 'transfer';
+  amount: number;
+  description?: string;
+  notes?: string;
+  date: string | Date;
+  isInstallment?: boolean;
+  totalInstallments?: number;
+}

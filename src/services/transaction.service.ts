@@ -6,7 +6,7 @@
  */
 
 import type { Transaction } from "@/features/transactions";
-import type { CreateTransactionInput } from "@/types";
+import type { CreateTransactionInput } from "@/features/transactions";
 import { apiFetch } from "@/shared/lib/api/client";
 
 interface TransactionResponse {

@@ -5,15 +5,10 @@
  * Follows Clean Architecture by separating data access from UI.
  */
 
-import type {
-  Budget,
-  GroupData,
-  IncomeData,
-  Goal,
-  Category,
-  IncomeSource,
-  IncomeSourceFormData,
-} from '@/types';
+import type { Budget } from '@/features/budget';
+import type { GroupData, Category } from '@/features/categories';
+import type { IncomeData, IncomeSource, IncomeSourceFormData } from '@/features/income';
+import type { Goal } from '@/features/goals';
 
 interface AllocationResponse {
   groups: GroupData[];

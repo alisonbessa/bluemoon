@@ -10,7 +10,7 @@ import {
 import { Button } from '@/shared/ui/button';
 import { Progress } from '@/shared/ui/progress';
 import { formatCurrency } from '@/shared/lib/formatters';
-import type { Goal } from '@/types';
+import type { Goal } from '@/features/goals';
 
 interface GoalCardProps {
   goal: Goal;

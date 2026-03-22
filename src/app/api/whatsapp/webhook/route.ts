@@ -47,11 +47,11 @@ export async function POST(request: NextRequest) {
       for (const change of entry.changes || []) {
         const msgs = change.value?.messages;
         if (msgs?.length) {
-          console.log("[whatsapp:webhook] Messages received:", msgs.map((m: { from: string; type: string; id: string }) => ({
+          logger.info("Messages received", { messages: msgs.map((m: { from: string; type: string; id: string }) => ({
             from: m.from,
             type: m.type,
             id: m.id,
-          })));
+          })) });
         }
       }
     }

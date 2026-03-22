@@ -5,7 +5,7 @@
  * Follows Clean Architecture by separating data access from UI.
  */
 
-import type { Goal } from "@/types";
+import type { Goal } from "@/features/goals";
 import type { GoalFormData } from "@/features/goals";
 import { apiFetch } from "@/shared/lib/api/client";
 
