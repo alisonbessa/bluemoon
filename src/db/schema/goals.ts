@@ -74,7 +74,7 @@ export const goalContributions = pgTable(
       .references(() => transactions.id, { onDelete: "set null" }),
     year: integer("year").notNull(),
     month: integer("month").notNull(), // 1-12
-    amount: integer("amount").notNull(), // Valor contribuído em centavos
+    amount: bigint("amount", { mode: "number" }).notNull(), // Valor contribuído em centavos
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   }
 );

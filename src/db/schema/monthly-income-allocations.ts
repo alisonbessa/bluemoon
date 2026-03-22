@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text, integer, unique, index } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, bigint, unique, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { incomeSources } from "./income-sources";
@@ -20,8 +20,8 @@ export const monthlyIncomeAllocations = pgTable("monthly_income_allocations", {
   month: integer("month").notNull(), // 1-12
 
   // Valor em centavos - override do valor padrão da fonte de renda
-  planned: integer("planned").notNull().default(0),
-  contributionPlanned: integer("contribution_planned"), // Override mensal da contribuição (null = usa padrão da income source)
+  planned: bigint("planned", { mode: "number" }).notNull().default(0),
+  contributionPlanned: bigint("contribution_planned", { mode: "number" }), // Override mensal da contribuição (null = usa padrão da income source)
 
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),

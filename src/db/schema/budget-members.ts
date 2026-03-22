@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text, integer, index } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, bigint, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { users } from "./user";
@@ -21,7 +21,7 @@ export const budgetMembers = pgTable("budget_members", {
   name: text("name").notNull(),
   type: text("type").$type<MemberType>().notNull().default("owner"),
   color: text("color").default("#6366f1"), // For UI identification
-  monthlyPleasureBudget: integer("monthly_pleasure_budget").default(0), // Monthly "Prazeres" budget in cents
+  monthlyPleasureBudget: bigint("monthly_pleasure_budget", { mode: "number" }).default(0), // Monthly "Prazeres" budget in cents
   privacyLevel: text("privacy_level").$type<PrivacyLevel>().notNull().default("all_visible"), // Controls what partner sees of personal data in "Tudo" view
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),

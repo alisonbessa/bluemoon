@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text, integer, boolean, index } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, bigint, boolean, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { categories } from "./categories";
@@ -23,7 +23,7 @@ export const recurringBills = pgTable("recurring_bills", {
     .references(() => financialAccounts.id, { onDelete: "cascade" }), // conta de onde sai o pagamento (obrigatório)
 
   name: text("name").notNull(), // "Aluguel", "Condominio", etc
-  amount: integer("amount").notNull().default(0), // valor em centavos
+  amount: bigint("amount", { mode: "number" }).notNull().default(0), // valor em centavos
 
   // Recurrence configuration
   frequency: text("frequency").$type<RecurringBillFrequency>().notNull().default("monthly"),

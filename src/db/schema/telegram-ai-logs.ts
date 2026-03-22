@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text, integer, jsonb, boolean, index } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, bigint, jsonb, boolean, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { users } from "./user";
 import { budgets } from "./budgets";
@@ -63,7 +63,7 @@ export const telegramAILogs = pgTable("telegram_ai_logs", {
   // What the user actually selected/corrected to (if applicable)
   correctedIntent: text("corrected_intent"),
   correctedCategoryId: text("corrected_category_id"),
-  correctedAmount: integer("corrected_amount"),
+  correctedAmount: bigint("corrected_amount", { mode: "number" }),
 
   // Was this a low confidence response?
   isLowConfidence: boolean("is_low_confidence").notNull().default(false),

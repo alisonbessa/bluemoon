@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text, integer, boolean, index } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, bigint, boolean, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { groups } from "./groups";
@@ -25,10 +25,10 @@ export const categories = pgTable("categories", {
 
   // Budget behavior
   behavior: text("behavior").$type<CategoryBehavior>().notNull().default("refill_up"),
-  plannedAmount: integer("planned_amount").notNull().default(0), // In cents
+  plannedAmount: bigint("planned_amount", { mode: "number" }).notNull().default(0), // In cents
 
   // For goals with target
-  targetAmount: integer("target_amount"), // Target amount for goals (in cents)
+  targetAmount: bigint("target_amount", { mode: "number" }), // Target amount for goals (in cents)
   targetDate: timestamp("target_date", { mode: "date" }), // Target date for goals
 
   isArchived: boolean("is_archived").default(false),

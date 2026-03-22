@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text, integer, unique, index } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, bigint, unique, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { categories } from "./categories";
@@ -18,8 +18,8 @@ export const monthlyAllocations = pgTable("monthly_allocations", {
   month: integer("month").notNull(), // 1-12
 
   // Valores em centavos
-  allocated: integer("allocated").notNull().default(0), // Valor alocado neste mês
-  carriedOver: integer("carried_over").notNull().default(0), // Valor que veio do mês anterior (para set_aside)
+  allocated: bigint("allocated", { mode: "number" }).notNull().default(0), // Valor alocado neste mês
+  carriedOver: bigint("carried_over", { mode: "number" }).notNull().default(0), // Valor que veio do mês anterior (para set_aside)
 
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),

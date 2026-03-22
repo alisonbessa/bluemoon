@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text, integer, boolean } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, bigint, boolean } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { budgetMembers } from "./budget-members";
@@ -34,8 +34,8 @@ export const incomeSources = pgTable("income_sources", {
 
   name: text("name").notNull(), // "Salário João", "VR Maria"
   type: text("type").$type<IncomeType>().notNull().default("salary"),
-  amount: integer("amount").notNull().default(0), // Em centavos
-  contributionAmount: integer("contribution_amount"), // Em centavos - quanto contribui pro orçamento compartilhado (null = 100%)
+  amount: bigint("amount", { mode: "number" }).notNull().default(0), // Em centavos
+  contributionAmount: bigint("contribution_amount", { mode: "number" }), // Em centavos - quanto contribui pro orçamento compartilhado (null = 100%)
 
   // Recorrência
   frequency: text("frequency").$type<IncomeFrequency>().notNull().default("monthly"),
