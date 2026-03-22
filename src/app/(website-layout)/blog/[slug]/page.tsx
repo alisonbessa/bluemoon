@@ -31,6 +31,8 @@ async function getPostBySlug(slug: string) {
 async function getRelatedPosts(currentId: string, tags: string[]) {
   if (tags.length === 0) return [];
 
+  const tagsArray = `{${tags.map((t) => `"${t}"`).join(",")}}`;
+
   const results = await db
     .select()
     .from(blogPosts)
@@ -38,7 +40,7 @@ async function getRelatedPosts(currentId: string, tags: string[]) {
       and(
         eq(blogPosts.status, "published"),
         sql`id != ${currentId}`,
-        sql`tags && ${tags}`
+        sql`tags && ${tagsArray}::text[]`
       )
     )
     .orderBy(desc(blogPosts.publishedAt))
