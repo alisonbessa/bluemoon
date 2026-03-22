@@ -81,7 +81,7 @@ const withAuthRequired = (handler: WithManagerHandler) => {
     };
 
     const getUser = async () => {
-      const user = await db
+      const [user] = await db
         .select({
           id: users.id,
           name: users.name,
@@ -103,8 +103,7 @@ const withAuthRequired = (handler: WithManagerHandler) => {
           deletionReason: users.deletionReason,
         })
         .from(users)
-        .where(eq(users.id, userId))
-        .then((users) => users[0]);
+        .where(eq(users.id, userId));
       return user;
     };
 

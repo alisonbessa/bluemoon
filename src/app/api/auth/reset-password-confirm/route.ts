@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     }
 
     // Check if user exists
-    const existingUser = await db
+    const [existingUser] = await db
       .select({
         id: users.id,
         email: users.email,
@@ -60,8 +60,7 @@ export async function POST(request: Request) {
       })
       .from(users)
       .where(eq(users.email, resetToken.email))
-      .limit(1)
-      .then((users) => users[0]);
+      .limit(1);
 
     if (!existingUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

@@ -49,58 +49,62 @@ export const GET = withAuthRequired(async (req, context) => {
     const budgetIds = memberships.map((m) => m.budgetId);
 
     // Fetch budgets
-    const userBudgets =
-      budgetIds.length > 0
-        ? await Promise.all(
-            budgetIds.map((budgetId) =>
-              db
-                .select()
-                .from(budgets)
-                .where(eq(budgets.id, budgetId))
-                .then((rows) => rows[0])
-            )
-          ).then((results) => results.filter(Boolean))
-        : [];
+    let userBudgets: (typeof budgets.$inferSelect)[] = [];
+    if (budgetIds.length > 0) {
+      const budgetResults = await Promise.all(
+        budgetIds.map(async (budgetId) => {
+          const [row] = await db
+            .select()
+            .from(budgets)
+            .where(eq(budgets.id, budgetId));
+          return row;
+        })
+      );
+      userBudgets = budgetResults.filter(Boolean);
+    }
 
     // Fetch financial accounts for user's budgets
-    const userAccounts =
-      budgetIds.length > 0
-        ? await Promise.all(
-            budgetIds.map((budgetId) =>
-              db
-                .select()
-                .from(financialAccounts)
-                .where(eq(financialAccounts.budgetId, budgetId))
-            )
-          ).then((results) => results.flat())
-        : [];
+    let userAccounts: (typeof financialAccounts.$inferSelect)[] = [];
+    if (budgetIds.length > 0) {
+      const accountResults = await Promise.all(
+        budgetIds.map((budgetId) =>
+          db
+            .select()
+            .from(financialAccounts)
+            .where(eq(financialAccounts.budgetId, budgetId))
+        )
+      );
+      userAccounts = accountResults.flat();
+    }
 
     // Fetch categories for user's budgets
-    const userCategories =
-      budgetIds.length > 0
-        ? await Promise.all(
-            budgetIds.map((budgetId) =>
-              db
-                .select()
-                .from(categories)
-                .where(eq(categories.budgetId, budgetId))
-            )
-          ).then((results) => results.flat())
-        : [];
+    let userCategories: (typeof categories.$inferSelect)[] = [];
+    if (budgetIds.length > 0) {
+      const categoryResults = await Promise.all(
+        budgetIds.map((budgetId) =>
+          db
+            .select()
+            .from(categories)
+            .where(eq(categories.budgetId, budgetId))
+        )
+      );
+      userCategories = categoryResults.flat();
+    }
 
     // Fetch transactions for user's budgets
-    const userTransactions =
-      budgetIds.length > 0
-        ? await Promise.all(
-            budgetIds.map((budgetId) =>
-              db
-                .select()
-                .from(transactions)
-                .where(eq(transactions.budgetId, budgetId))
-                .orderBy(transactions.date, transactions.createdAt)
-            )
-          ).then((results) => results.flat())
-        : [];
+    let userTransactions: (typeof transactions.$inferSelect)[] = [];
+    if (budgetIds.length > 0) {
+      const transactionResults = await Promise.all(
+        budgetIds.map((budgetId) =>
+          db
+            .select()
+            .from(transactions)
+            .where(eq(transactions.budgetId, budgetId))
+            .orderBy(transactions.date, transactions.createdAt)
+        )
+      );
+      userTransactions = transactionResults.flat();
+    }
 
     const exportData = {
       exportedAt: new Date().toISOString(),

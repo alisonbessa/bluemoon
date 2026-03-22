@@ -33,7 +33,7 @@ export const POST = withAuthRequired(async (req, context) => {
     const currentUser = await context.session.user;
 
     // Find the coupon by code
-    const coupon = await db
+    const [coupon] = await db
       .select()
       .from(coupons)
       .where(
@@ -43,8 +43,7 @@ export const POST = withAuthRequired(async (req, context) => {
           eq(coupons.expired, false)
         )
       )
-      .limit(1)
-      .then((results) => results[0]);
+      .limit(1);
 
     // If coupon not found or is invalid
     if (!coupon) {

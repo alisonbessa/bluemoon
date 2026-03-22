@@ -1,25 +1,23 @@
-import { db } from "@/db";
-import { transactions, categories, goals, groups, monthlyAllocations, financialAccounts } from "@/db/schema";
-import { eq, and, gte, lte, sql, sum } from "drizzle-orm";
 import type { UserContext, ExtractedQueryData, Intent } from "./types";
 import { sendMessage, formatCurrency } from "./bot";
 import { matchCategory, matchGoal, matchAccount } from "./gemini";
-
-interface CategorySummary {
-  categoryId: string;
-  categoryName: string;
-  categoryIcon: string | null;
-  allocated: number;
-  spent: number;
-  remaining: number;
-}
-
-interface MonthSummary {
-  totalIncome: number;
-  totalExpenses: number;
-  balance: number;
-  topCategories: CategorySummary[];
-}
+import {
+  getMonthSummary,
+  getCategoryInfo,
+  getVisibleCategories,
+  getVisibleGoals,
+  getAccountIcon,
+  getAccountsList,
+  getAccountById,
+} from "@/integrations/shared/query-helpers";
+import {
+  formatBalanceMessage,
+  formatCategoryMessage,
+  formatGoalMessage,
+  formatGoalsListMessage,
+  formatAccountMessage,
+  formatAccountsListMessage,
+} from "@/integrations/shared/query-formatters";
 
 /**
  * Handle query intents (balance, category, goal)
@@ -34,7 +32,7 @@ export async function handleQueryIntent(
 
   switch (data.queryType) {
     case "balance":
-      await handleBalanceQuery(chatId, budgetId, currentYear, currentMonth);
+      await handleBalanceQuery(chatId, budgetId, currentYear, currentMonth, userContext, data.scope);
       break;
 
     case "category":
@@ -50,7 +48,7 @@ export async function handleQueryIntent(
       break;
 
     default:
-      await handleBalanceQuery(chatId, budgetId, currentYear, currentMonth);
+      await handleBalanceQuery(chatId, budgetId, currentYear, currentMonth, userContext);
   }
 }
 
@@ -66,28 +64,53 @@ async function handleBalanceQuery(
   chatId: number,
   budgetId: string,
   year: number,
-  month: number
+  month: number,
+  userContext: UserContext,
+  scope?: "individual" | "couple"
 ): Promise<void> {
-  const summary = await getMonthSummary(budgetId, year, month);
+  // Check if this is a duo budget (2+ owner/partner members)
+  const activeMembers = userContext.members.filter(
+    (m) => m.type === "owner" || m.type === "partner"
+  );
+  const isDuo = activeMembers.length >= 2;
 
-  const monthName = new Date(year, month - 1).toLocaleDateString("pt-BR", { month: "long" });
+  const summary = await getMonthSummary(budgetId, year, month, isDuo ? userContext.memberId : undefined);
 
-  let message = `<b>Resumo de ${monthName}/${year}</b>\n\n`;
+  // Check if contribution model is active (any income source has contributionAmount set)
+  const hasContribution = userContext.incomeSources.some(
+    (s) => s.contributionAmount != null && s.amount != null && s.contributionAmount !== s.amount
+  );
 
-  // Balance
-  const balanceEmoji = summary.balance >= 0 ? "+" : "";
-  message += `<b>Saldo:</b> ${balanceEmoji}${formatCurrency(summary.balance)}\n`;
-  message += `Receitas: ${formatCurrency(summary.totalIncome)}\n`;
-  message += `Despesas: ${formatCurrency(summary.totalExpenses)}\n\n`;
+  // Calculate total contribution from income sources
+  const totalContribution = hasContribution
+    ? userContext.incomeSources.reduce((acc, s) => {
+        const amount = s.amount || 0;
+        const contribution = s.contributionAmount ?? amount;
+        return acc + contribution;
+      }, 0)
+    : summary.totalIncome;
 
-  // Top categories
-  if (summary.topCategories.length > 0) {
-    message += `<b>Maiores gastos:</b>\n`;
-    for (const cat of summary.topCategories.slice(0, 5)) {
-      const icon = cat.categoryIcon || "📁";
-      message += `${icon} ${cat.categoryName}: ${formatCurrency(cat.spent)}\n`;
-    }
-  }
+  const totalFullIncome = userContext.incomeSources.reduce((acc, s) => acc + (s.amount || 0), 0);
+
+  // Top categories (filtered by privacy)
+  const visibleCats = getVisibleCategories(userContext.categories, userContext.privacyMode, userContext.memberId);
+  const visibleCatIds = new Set(visibleCats.map((c) => c.id));
+  const visibleTopCategories = summary.topCategories.filter(
+    (cat) => visibleCatIds.has(cat.categoryId)
+  );
+
+  const message = formatBalanceMessage({
+    summary,
+    year,
+    month,
+    isDuo,
+    scope,
+    hasContribution,
+    totalContribution,
+    totalFullIncome,
+    visibleTopCategories,
+    formatCurrency,
+  });
 
   await sendMessage(chatId, message);
 }
@@ -108,44 +131,30 @@ async function handleCategoryQuery(
     return;
   }
 
-  // Try to match the category
-  const match = matchCategory(categoryName, userContext.categories);
+  // Only match against visible categories (respects privacy)
+  const visibleCategories = getVisibleCategories(userContext.categories, userContext.privacyMode, userContext.memberId);
+  const match = matchCategory(categoryName, visibleCategories);
 
   if (!match) {
     await sendMessage(
       chatId,
       `Não encontrei a categoria "${categoryName}".\n\n` +
         `Categorias disponíveis:\n` +
-        userContext.categories.map((c) => `- ${c.name}`).join("\n")
+        visibleCategories.map((c) => `- ${c.name}`).join("\n")
     );
     return;
   }
 
   const categoryInfo = await getCategoryInfo(budgetId, match.category.id, year, month);
 
-  const icon = match.category.icon || "📁";
-  const percentUsed = categoryInfo.allocated > 0
-    ? Math.round((categoryInfo.spent / categoryInfo.allocated) * 100)
-    : 0;
-
-  let statusEmoji = "✅";
-  if (percentUsed > 100) {
-    statusEmoji = "🔴";
-  } else if (percentUsed > 80) {
-    statusEmoji = "🟡";
-  }
-
-  const monthName = new Date(year, month - 1).toLocaleDateString("pt-BR", { month: "long" });
-
-  let message = `${icon} <b>${match.category.name}</b> - ${monthName}\n\n`;
-  message += `${statusEmoji} Usado: ${percentUsed}%\n`;
-  message += `Planejado: ${formatCurrency(categoryInfo.allocated)}\n`;
-  message += `Gasto: ${formatCurrency(categoryInfo.spent)}\n`;
-  message += `Restante: ${formatCurrency(categoryInfo.remaining)}\n`;
-
-  if (categoryInfo.remaining < 0) {
-    message += `\nVocê ultrapassou o limite em ${formatCurrency(Math.abs(categoryInfo.remaining))}`;
-  }
+  const message = formatCategoryMessage({
+    categoryName: match.category.name,
+    categoryIcon: match.category.icon || null,
+    categoryInfo,
+    year,
+    month,
+    formatCurrency,
+  });
 
   await sendMessage(chatId, message);
 }
@@ -158,63 +167,35 @@ async function handleGoalQuery(
   goalName: string | undefined,
   userContext: UserContext
 ): Promise<void> {
-  if (!goalName && userContext.goals.length === 0) {
+  // Apply privacy filtering to goals
+  const visibleGoals = getVisibleGoals(userContext.goals, userContext.privacyMode, userContext.memberId);
+
+  if (!goalName && visibleGoals.length === 0) {
     await sendMessage(chatId, "Você ainda não tem metas cadastradas.");
     return;
   }
 
-  // If no specific goal mentioned, show all goals
+  // If no specific goal mentioned, show all visible goals
   if (!goalName) {
-    let message = "<b>Suas Metas</b>\n\n";
-
-    for (const goal of userContext.goals) {
-      const progress = goal.targetAmount > 0
-        ? Math.round((goal.currentAmount / goal.targetAmount) * 100)
-        : 0;
-      const icon = goal.icon || "🎯";
-      const remaining = goal.targetAmount - goal.currentAmount;
-
-      message += `${icon} <b>${goal.name}</b>\n`;
-      message += `Progresso: ${progress}%\n`;
-      message += `Atual: ${formatCurrency(goal.currentAmount)} / ${formatCurrency(goal.targetAmount)}\n`;
-      message += `Falta: ${formatCurrency(remaining)}\n\n`;
-    }
-
+    const message = formatGoalsListMessage(visibleGoals, formatCurrency);
     await sendMessage(chatId, message);
     return;
   }
 
-  // Try to match the goal
-  const match = matchGoal(goalName, userContext.goals);
+  // Try to match the goal (only against visible ones)
+  const match = matchGoal(goalName, visibleGoals);
 
   if (!match) {
     await sendMessage(
       chatId,
       `Não encontrei a meta "${goalName}".\n\n` +
         `Suas metas:\n` +
-        userContext.goals.map((g) => `- ${g.name}`).join("\n")
+        visibleGoals.map((g) => `- ${g.name}`).join("\n")
     );
     return;
   }
 
-  const goal = match.goal;
-  const progress = goal.targetAmount > 0
-    ? Math.round((goal.currentAmount / goal.targetAmount) * 100)
-    : 0;
-  const remaining = goal.targetAmount - goal.currentAmount;
-  const icon = goal.icon || "🎯";
-
-  // Progress bar
-  const filledBlocks = Math.round(progress / 10);
-  const emptyBlocks = 10 - filledBlocks;
-  const progressBar = "█".repeat(filledBlocks) + "░".repeat(emptyBlocks);
-
-  let message = `${icon} <b>${goal.name}</b>\n\n`;
-  message += `${progressBar} ${progress}%\n\n`;
-  message += `Valor atual: ${formatCurrency(goal.currentAmount)}\n`;
-  message += `Meta: ${formatCurrency(goal.targetAmount)}\n`;
-  message += `Falta: ${formatCurrency(remaining)}\n`;
-
+  const message = formatGoalMessage(match.goal, formatCurrency);
   await sendMessage(chatId, message);
 }
 
@@ -233,25 +214,8 @@ async function handleAccountQuery(
 
   // If no specific account mentioned, show all accounts
   if (!accountName) {
-    const accountsList = await db
-      .select()
-      .from(financialAccounts)
-      .where(eq(financialAccounts.budgetId, userContext.budgetId));
-
-    let message = "<b>Suas Contas</b>\n\n";
-
-    for (const account of accountsList) {
-      const icon = getAccountIcon(account.type);
-      const balanceEmoji = account.balance >= 0 ? "" : "🔴 ";
-      message += `${icon} <b>${account.name}</b>\n`;
-      message += `${balanceEmoji}Saldo: ${formatCurrency(account.balance)}\n`;
-      if (account.type === "credit_card" && account.creditLimit) {
-        const available = account.creditLimit - account.balance;
-        message += `Limite disponível: ${formatCurrency(available)}\n`;
-      }
-      message += "\n";
-    }
-
+    const accountsList = await getAccountsList(userContext.budgetId);
+    const message = formatAccountsListMessage(accountsList, formatCurrency);
     await sendMessage(chatId, message);
     return;
   }
@@ -270,189 +234,13 @@ async function handleAccountQuery(
   }
 
   // Get full account details
-  const [account] = await db
-    .select()
-    .from(financialAccounts)
-    .where(eq(financialAccounts.id, match.account.id));
+  const account = await getAccountById(match.account.id);
 
   if (!account) {
     await sendMessage(chatId, "Conta não encontrada.");
     return;
   }
 
-  const icon = getAccountIcon(account.type);
-  const balanceEmoji = account.balance >= 0 ? "✅" : "🔴";
-
-  let message = `${icon} <b>${account.name}</b>\n\n`;
-  message += `${balanceEmoji} Saldo: ${formatCurrency(account.balance)}\n`;
-
-  if (account.type === "credit_card") {
-    if (account.creditLimit) {
-      const used = account.balance;
-      const available = account.creditLimit - used;
-      const percentUsed = Math.round((used / account.creditLimit) * 100);
-      message += `\nLimite: ${formatCurrency(account.creditLimit)}\n`;
-      message += `Usado: ${formatCurrency(used)} (${percentUsed}%)\n`;
-      message += `Disponível: ${formatCurrency(available)}\n`;
-    }
-    if (account.closingDay) {
-      message += `\nFechamento: dia ${account.closingDay}`;
-    }
-    if (account.dueDay) {
-      message += `\nVencimento: dia ${account.dueDay}`;
-    }
-  }
-
+  const message = formatAccountMessage(account, formatCurrency);
   await sendMessage(chatId, message);
-}
-
-/**
- * Get icon for account type
- */
-function getAccountIcon(type: string): string {
-  const icons: Record<string, string> = {
-    checking: "🏦",
-    savings: "🐷",
-    credit_card: "💳",
-    cash: "💵",
-    investment: "📈",
-    benefit: "🍽️",
-  };
-  return icons[type] || "💰";
-}
-
-/**
- * Get month summary with income, expenses, and top categories
- */
-async function getMonthSummary(
-  budgetId: string,
-  year: number,
-  month: number
-): Promise<MonthSummary> {
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0, 23, 59, 59);
-
-  // Get total income
-  const incomeResult = await db
-    .select({
-      total: sum(transactions.amount),
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.budgetId, budgetId),
-        eq(transactions.type, "income"),
-        eq(transactions.status, "cleared"),
-        gte(transactions.date, startDate),
-        lte(transactions.date, endDate)
-      )
-    );
-
-  const totalIncome = Number(incomeResult[0]?.total) || 0;
-
-  // Get expenses by category
-  const expensesByCategory = await db
-    .select({
-      categoryId: transactions.categoryId,
-      categoryName: categories.name,
-      categoryIcon: categories.icon,
-      spent: sum(transactions.amount),
-    })
-    .from(transactions)
-    .leftJoin(categories, eq(transactions.categoryId, categories.id))
-    .where(
-      and(
-        eq(transactions.budgetId, budgetId),
-        eq(transactions.type, "expense"),
-        eq(transactions.status, "cleared"),
-        gte(transactions.date, startDate),
-        lte(transactions.date, endDate)
-      )
-    )
-    .groupBy(transactions.categoryId, categories.name, categories.icon);
-
-  const totalExpenses = expensesByCategory.reduce(
-    (sum, cat) => sum + (Number(cat.spent) || 0),
-    0
-  );
-
-  // Sort by spent amount
-  const topCategories: CategorySummary[] = expensesByCategory
-    .map((cat) => ({
-      categoryId: cat.categoryId || "",
-      categoryName: cat.categoryName || "Sem categoria",
-      categoryIcon: cat.categoryIcon,
-      allocated: 0, // Would need to query allocations
-      spent: Number(cat.spent) || 0,
-      remaining: 0,
-    }))
-    .sort((a, b) => b.spent - a.spent);
-
-  return {
-    totalIncome,
-    totalExpenses,
-    balance: totalIncome - totalExpenses,
-    topCategories,
-  };
-}
-
-/**
- * Get detailed info for a specific category
- */
-async function getCategoryInfo(
-  budgetId: string,
-  categoryId: string,
-  year: number,
-  month: number
-): Promise<CategorySummary> {
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0, 23, 59, 59);
-
-  // Get category details
-  const [category] = await db
-    .select()
-    .from(categories)
-    .where(eq(categories.id, categoryId));
-
-  // Get allocation for this month
-  const [allocation] = await db
-    .select()
-    .from(monthlyAllocations)
-    .where(
-      and(
-        eq(monthlyAllocations.categoryId, categoryId),
-        eq(monthlyAllocations.year, year),
-        eq(monthlyAllocations.month, month)
-      )
-    );
-
-  const allocated = allocation?.allocated || 0;
-
-  // Get spent amount
-  const spentResult = await db
-    .select({
-      total: sum(transactions.amount),
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.budgetId, budgetId),
-        eq(transactions.categoryId, categoryId),
-        eq(transactions.type, "expense"),
-        eq(transactions.status, "cleared"),
-        gte(transactions.date, startDate),
-        lte(transactions.date, endDate)
-      )
-    );
-
-  const spent = Number(spentResult[0]?.total) || 0;
-
-  return {
-    categoryId,
-    categoryName: category?.name || "Sem categoria",
-    categoryIcon: category?.icon || null,
-    allocated,
-    spent,
-    remaining: allocated - spent,
-  };
 }

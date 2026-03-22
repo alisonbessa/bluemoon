@@ -21,12 +21,11 @@ export const POST = withSuperAdminAuthRequired(async (req, context) => {
 
   try {
     // Get target user to be impersonated
-    const targetUser = await db
+    const [targetUser] = await db
       .select()
       .from(users)
       .where(eq(users.id, id))
-      .limit(1)
-      .then((users) => users[0]);
+      .limit(1);
 
     if (!targetUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

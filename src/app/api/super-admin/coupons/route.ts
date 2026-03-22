@@ -35,7 +35,7 @@ export const GET = withSuperAdminAuthRequired(async (req) => {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const [couponsList, totalCount] = await Promise.all([
+    const [couponsList, countResult] = await Promise.all([
       db
         .select()
         .from(coupons)
@@ -46,9 +46,9 @@ export const GET = withSuperAdminAuthRequired(async (req) => {
       db
         .select({ count: sql<number>`count(*)` })
         .from(coupons)
-        .where(whereClause)
-        .then((res) => Number(res[0].count)),
+        .where(whereClause),
     ]);
+    const totalCount = Number(countResult[0].count);
 
     return NextResponse.json({
       coupons: couponsList,

@@ -36,12 +36,11 @@ export async function POST(request: NextRequest) {
     const { email } = validation.data;
 
     // Check if user exists and has a password (password-based account)
-    const existingUser = await db
+    const [existingUser] = await db
       .select()
       .from(users)
       .where(eq(users.email, email))
-      .limit(1)
-      .then((users) => users[0]);
+      .limit(1);
 
 
     // Always return success to prevent email enumeration

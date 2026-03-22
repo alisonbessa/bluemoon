@@ -162,7 +162,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
               try {
                 // Find user by email
-                const user = await db
+                const [user] = await db
                   .select({
                     id: users.id,
                     email: users.email,
@@ -171,8 +171,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   })
                   .from(users)
                   .where(eq(users.email, credentials.email as string))
-                  .limit(1)
-                  .then((users) => users[0]);
+                  .limit(1);
 
                 if (!user || !user.password) {
                   return null;
