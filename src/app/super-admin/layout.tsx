@@ -16,6 +16,7 @@ import {
   Bot,
   Database,
   Link as LinkIcon,
+  Rocket,
 } from "lucide-react";
 import { ThemeSwitcher } from "@/shared/theme-switcher";
 import { appConfig } from "@/shared/lib/config";
@@ -37,6 +38,7 @@ const navigation = [
   { name: "Feedback", href: "/super-admin/feedback", icon: MessageSquarePlus },
   { name: "Telegram IA", href: "/super-admin/telegram-ai", icon: Bot },
   { name: "Lista de Espera", href: "/super-admin/waitlist", icon: ClipboardList },
+  { name: "Migrações", href: "/super-admin/migrations", icon: Rocket },
   { name: "Banco de Dados", href: "/super-admin/database", icon: Database },
   { name: "Sair", href: "/super-admin/logout", icon: LogOut },
 ];
