@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import WaitlistForm from "./waitlist-form";
-import { WebPageJsonLd } from "next-seo";
+import { WebPageJsonLd } from "@/shared/seo/json-ld";
 import { appConfig } from "@/shared/lib/config";
 import { cn } from "@/shared/lib/utils";
 import { AnimatedGridPattern } from "@/shared/magicui/animated-grid-pattern";

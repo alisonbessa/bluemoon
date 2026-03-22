@@ -1,5 +1,5 @@
 import { appConfig } from "@/shared/lib/config";
-import { WebPageJsonLd } from "next-seo";
+import { WebPageJsonLd } from "@/shared/seo/json-ld";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

@@ -6,7 +6,7 @@ import { ShareButton } from "@/shared/share-button";
 import { Metadata } from "next";
 import { cn } from "@/shared/lib/utils";
 import { CTA2 } from "@/shared/website/cta-2";
-import { WebPageJsonLd, ArticleJsonLd, BreadcrumbJsonLd } from "next-seo";
+import { WebPageJsonLd, ArticleJsonLd, BreadcrumbJsonLd } from "@/shared/seo/json-ld";
 import { appConfig } from "@/shared/lib/config";
 import sanitizeHtml from "sanitize-html";
 import { db } from "@/db";
