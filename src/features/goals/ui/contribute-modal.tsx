@@ -11,8 +11,8 @@ import {
 } from '@/shared/ui/select';
 import { FormModalWrapper } from '@/shared/molecules';
 import { formatCurrency } from '@/shared/lib/formatters';
-import type { Goal } from '@/types';
-import type { Account } from '@/types/account';
+import type { Goal } from '@/features/goals';
+import type { Account } from '@/features/accounts';
 
 interface ContributeModalProps {
   goal: Goal | null;

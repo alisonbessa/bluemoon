@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text, integer, boolean, index } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, bigint, boolean, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { financialAccounts } from "./accounts";
@@ -37,7 +37,7 @@ export const transactions = pgTable("transactions", {
   type: text("type").$type<FinancialTransactionType>().notNull(),
   status: text("status").$type<FinancialTransactionStatus>().notNull().default("pending"),
 
-  amount: integer("amount").notNull(), // In cents (positive for income, negative for expense)
+  amount: bigint("amount", { mode: "number" }).notNull(), // In cents (positive for income, negative for expense)
   description: text("description"),
   notes: text("notes"),
 

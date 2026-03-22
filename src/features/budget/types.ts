@@ -31,15 +31,15 @@ export type {
   GroupData,
   FilterType,
   RecurringBillSummary,
-} from '@/types/category';
+} from '@/features/categories';
 
 export {
   GROUP_DEFAULT_BEHAVIORS,
   MONTH_NAMES_PT,
-} from '@/types/category';
+} from '@/features/categories';
 
 // Alias for backward compatibility
-export { MONTH_NAMES_PT as monthNamesFull } from '@/types/category';
+export { MONTH_NAMES_PT as monthNamesFull } from '@/features/categories';
 
 // Re-export from central types - Income domain
 export type {
@@ -50,26 +50,26 @@ export type {
   IncomeData,
   IncomeType,
   IncomeFrequency,
-} from '@/types/income';
+} from '@/features/income';
 
 export {
   INCOME_TYPE_CONFIG,
   FREQUENCY_LABELS,
   ALLOWED_ACCOUNT_TYPES_BY_INCOME,
-} from '@/types/income';
+} from '@/features/income';
 
 // Aliases for backward compatibility (camelCase versions)
-export { INCOME_TYPE_CONFIG as incomeTypeConfig } from '@/types/income';
-export { FREQUENCY_LABELS as frequencyLabels } from '@/types/income';
+export { INCOME_TYPE_CONFIG as incomeTypeConfig } from '@/features/income';
+export { FREQUENCY_LABELS as frequencyLabels } from '@/features/income';
 
 // Re-export from central types - Account domain
-export type { AccountSimple as Account } from '@/types/account';
+export type { AccountSimple as Account } from '@/features/accounts';
 
 // Re-export from central types - Member domain
 export type { MemberSummary as Member } from '@/types/member';
 
 // Re-export from central types - Goal domain
-export type { Goal } from '@/types/goal';
+export type { Goal } from '@/features/goals';
 
 // Group colors for comparison charts (specific to budget UI)
 export const GROUP_COLORS: Record<string, string> = {

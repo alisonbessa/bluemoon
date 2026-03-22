@@ -51,12 +51,11 @@ export async function POST(request: Request) {
     }
 
     // Check if user already exists
-    const existingUser = await db
+    const [existingUser] = await db
       .select()
       .from(users)
       .where(eq(users.email, signUpToken.email))
-      .limit(1)
-      .then((users) => users[0]);
+      .limit(1);
 
     if (existingUser) {
       return NextResponse.json(
@@ -69,7 +68,7 @@ export async function POST(request: Request) {
     const hashedPassword = await hashPassword(password);
 
     // Create user
-    const newUser = await db
+    const [newUser] = await db
       .insert(users)
       .values({
         name: signUpToken.name,
@@ -77,8 +76,7 @@ export async function POST(request: Request) {
         password: hashedPassword,
         emailVerified: new Date(), // Email is verified through token
       })
-      .returning()
-      .then((users) => users[0]);
+      .returning();
 
     // Run post-creation hooks (assign default plan, etc.)
     await onUserCreate(newUser);

@@ -18,7 +18,7 @@ import { formatCurrency } from "@/shared/lib/formatters";
 // canvas-confetti is loaded dynamically only when a goal is completed
 import { GoalFormModal, ContributeModal } from "@/features/goals";
 import { useGoals, useBudgets, useAccounts, useMembers } from "@/shared/hooks";
-import type { Goal } from "@/types";
+import type { Goal } from "@/features/goals";
 import {
   PageHeader,
   PageContent,

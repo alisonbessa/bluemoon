@@ -1,7 +1,8 @@
 'use client';
 
 import useSWR from 'swr';
-import type { GroupData, IncomeData } from '@/types';
+import type { GroupData } from '@/features/categories';
+import type { IncomeData } from '@/features/income';
 import { usePrimaryBudget } from './use-budgets';
 
 interface AllocationsResponse {

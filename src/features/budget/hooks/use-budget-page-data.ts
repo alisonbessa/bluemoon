@@ -10,7 +10,7 @@ import type {
   Budget,
 } from '../types';
 import type { Member } from '@/types/member';
-import type { Account } from '@/types/account';
+import type { Account } from '@/features/accounts';
 
 interface AllocationsResponse {
   groups: GroupData[];

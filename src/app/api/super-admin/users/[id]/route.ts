@@ -13,12 +13,11 @@ export const GET = withSuperAdminAuthRequired(async (req, context) => {
   
   try {
     // Get user
-    const user = await db
+    const [user] = await db
       .select()
       .from(users)
       .where(eq(users.id, id))
-      .limit(1)
-      .then(users => users[0]);
+      .limit(1);
 
     if (!user) {
       return NextResponse.json(
@@ -30,12 +29,11 @@ export const GET = withSuperAdminAuthRequired(async (req, context) => {
     // Get user's current plan
     let currentPlan;
     if(user?.planId) {
-      currentPlan = await db
+      [currentPlan] = await db
         .select()
         .from(plans)
         .where(eq(plans.id, user?.planId))
-        .limit(1)
-        .then(plans => plans[0]);
+        .limit(1);
     }
 
     // Return user with related data
@@ -57,12 +55,11 @@ export const DELETE = withSuperAdminAuthRequired(async (req, context) => {
   
   try {
     // Check if user exists
-    const user = await db
+    const [user] = await db
       .select()
       .from(users)
       .where(eq(users.id, id))
-      .limit(1)
-      .then(users => users[0]);
+      .limit(1);
 
     if (!user) {
       return NextResponse.json(

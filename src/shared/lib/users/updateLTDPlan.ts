@@ -12,7 +12,7 @@ import { eq, and, isNotNull, sql } from "drizzle-orm";
  */
 export async function updateLTDPlan(userId: string) {
   // Count valid redeemed coupons for this user
-  const redeemedCouponsCount = await db
+  const [countResult] = await db
     .select({ count: sql<number>`count(*)` })
     .from(coupons)
     .where(
@@ -21,8 +21,8 @@ export async function updateLTDPlan(userId: string) {
         isNotNull(coupons.usedAt),
         eq(coupons.expired, false)
       )
-    )
-    .then((result) => Number(result[0].count));
+    );
+  const redeemedCouponsCount = Number(countResult.count);
 
   // Find plans that require this number of coupons
   const eligiblePlans = await db
@@ -32,12 +32,11 @@ export async function updateLTDPlan(userId: string) {
     .orderBy(plans.createdAt);
 
   // Find default plan as fallback
-  const defaultPlan = await db
+  const [defaultPlan = null] = await db
     .select()
     .from(plans)
     .where(eq(plans.default, true))
-    .limit(1)
-    .then((results) => results[0] || null);
+    .limit(1);
 
   // Determine which plan to use
   const planToUse = eligiblePlans.length > 0 ? eligiblePlans[0] : defaultPlan;
@@ -58,22 +57,21 @@ export async function updateLTDPlan(userId: string) {
     .where(eq(users.id, userId));
 
   // Get the updated user
-  const updatedUser = await db
+  const [updatedUser] = await db
     .select()
     .from(users)
     .where(eq(users.id, userId))
-    .limit(1)
-    .then((results) => results[0]);
+    .limit(1);
 
   // Get the current plan details
-  const currentPlan = planToUse
-    ? await db
-        .select()
-        .from(plans)
-        .where(eq(plans.id, planToUse.id))
-        .limit(1)
-        .then((results) => results[0])
-    : null;
+  let currentPlan = null;
+  if (planToUse) {
+    [currentPlan] = await db
+      .select()
+      .from(plans)
+      .where(eq(plans.id, planToUse.id))
+      .limit(1);
+  }
 
   return {
     user: updatedUser,

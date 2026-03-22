@@ -2,7 +2,7 @@
 
 import { Trophy } from 'lucide-react';
 import { formatCurrency } from '@/shared/lib/formatters';
-import type { Goal } from '@/types';
+import type { Goal } from '@/features/goals';
 
 interface CompletedGoalsProps {
   goals: Goal[];

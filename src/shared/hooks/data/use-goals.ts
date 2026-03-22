@@ -2,7 +2,7 @@
 
 import useSWR from 'swr';
 import { useViewMode } from '@/shared/providers/view-mode-provider';
-import type { Goal } from '@/types';
+import type { Goal } from '@/features/goals';
 import { optimisticMutate } from '@/shared/lib/swr/optimistic';
 
 interface GoalsResponse {

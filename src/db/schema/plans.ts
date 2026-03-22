@@ -4,6 +4,7 @@ import {
   pgTable,
   text,
   integer,
+  bigint,
   jsonb,
 } from "drizzle-orm/pg-core";
 import { z } from "zod";
@@ -38,16 +39,16 @@ export const plans = pgTable("plans", {
 
   createdAt: timestamp("createdAt", { mode: "date" }).defaultNow(),
 
-  monthlyPrice: integer("monthlyPrice"),
-  monthlyPriceAnchor: integer("monthlyPriceAnchor"),
+  monthlyPrice: bigint("monthlyPrice", { mode: "number" }),
+  monthlyPriceAnchor: bigint("monthlyPriceAnchor", { mode: "number" }),
   monthlyStripePriceId: text("monthlyStripePriceId"),
 
-  yearlyPrice: integer("yearlyPrice"),
-  yearlyPriceAnchor: integer("yearlyPriceAnchor"),
+  yearlyPrice: bigint("yearlyPrice", { mode: "number" }),
+  yearlyPriceAnchor: bigint("yearlyPriceAnchor", { mode: "number" }),
   yearlyStripePriceId: text("yearlyStripePriceId"),
 
-  onetimePrice: integer("onetimePrice"),
-  onetimePriceAnchor: integer("onetimePriceAnchor"),
+  onetimePrice: bigint("onetimePrice", { mode: "number" }),
+  onetimePriceAnchor: bigint("onetimePriceAnchor", { mode: "number" }),
   onetimeStripePriceId: text("onetimeStripePriceId"),
   
   quotas: jsonb("quotas").$type<Quotas>(),
