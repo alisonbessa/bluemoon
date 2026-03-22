@@ -9,7 +9,7 @@ import { allocatePlanCredits } from "@/shared/lib/credits/allocatePlanCredits";
 import { getPlanFromStripePriceId, getStripeCustomer, APIError, logger } from "./helpers";
 
 export async function onSubscriptionCreated(data: Stripe.Event.Data) {
-  const object: Stripe.Subscription = data.object;
+  const object = data.object as Stripe.Subscription;
   logger.info("onSubscriptionCreated", { subscriptionId: object.id });
 
   const price = object.items.data[0].price;
@@ -76,7 +76,7 @@ export async function onSubscriptionCreated(data: Stripe.Event.Data) {
 }
 
 export async function onSubscriptionUpdated(data: Stripe.Event.Data) {
-  const object: Stripe.Subscription = data.object;
+  const object = data.object as Stripe.Subscription;
 
   const user = await db
     .select()
@@ -139,7 +139,7 @@ export async function onSubscriptionUpdated(data: Stripe.Event.Data) {
 }
 
 export async function onSubscriptionDeleted(data: Stripe.Event.Data) {
-  const object: Stripe.Subscription = data.object;
+  const object = data.object as Stripe.Subscription;
 
   const user = await db
     .select()
@@ -158,7 +158,7 @@ export async function onSubscriptionDeleted(data: Stripe.Event.Data) {
  * This is useful for sending reminder emails to users
  */
 export async function onSubscriptionTrialWillEnd(data: Stripe.Event.Data) {
-  const object: Stripe.Subscription = data.object;
+  const object = data.object as Stripe.Subscription;
 
   const user = await db
     .select()

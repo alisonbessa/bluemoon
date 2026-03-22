@@ -15,7 +15,7 @@ import {
   CreditCard,
   LogOut,
   UserIcon,
-  Ticket,
+  // Ticket, // TODO: reativar com o fluxo LTD
 } from "lucide-react";
 
 interface UserButtonProps {
@@ -75,12 +75,13 @@ export function UserButton({ compact = false }: UserButtonProps) {
           </Link>
         </DropdownMenuItem>
 
-        <DropdownMenuItem asChild>
+        {/* TODO: ajustar fluxo de resgate LTD e reativar no futuro */}
+        {/* <DropdownMenuItem asChild>
           <Link href="/app/redeem-ltd" className="cursor-pointer">
             <Ticket className="h-4 w-4" />
             Resgatar Cupom LTD
           </Link>
-        </DropdownMenuItem>
+        </DropdownMenuItem> */}
         <DropdownMenuItem asChild>
           <Link href="/app/profile" className="cursor-pointer">
             <UserIcon className="h-4 w-4" />

@@ -6,7 +6,7 @@ import getOrCreateUser from "@/shared/lib/users/getOrCreateUser";
 import { APIError } from "./helpers";
 
 export async function onCustomerCreated(data: Stripe.Event.Data) {
-  const object: Stripe.Customer = data.object;
+  const object = data.object as Stripe.Customer;
   if (!object.email) {
     throw new APIError("No email found in customer");
   }

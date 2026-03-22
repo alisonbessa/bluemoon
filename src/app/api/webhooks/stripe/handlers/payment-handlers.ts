@@ -79,7 +79,7 @@ export async function handleCreditsPurchase(checkoutSession: Stripe.Checkout.Ses
 }
 
 export async function onInvoicePaid(data: Stripe.Event.Data) {
-  const object: Stripe.Invoice = data.object;
+  const object = data.object as Stripe.Invoice;
 
   if (!object.customer_email) {
     return;
@@ -133,7 +133,7 @@ export async function onInvoicePaid(data: Stripe.Event.Data) {
 }
 
 export async function onCheckoutSessionCompleted(data: Stripe.Event.Data) {
-  const object: Stripe.Checkout.Session = data.object;
+  const object = data.object as Stripe.Checkout.Session;
 
   // Only proceed if payment was successful
   if (object.payment_status !== "paid") {
