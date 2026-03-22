@@ -13,7 +13,7 @@ import { ViewModeProvider } from "@/shared/providers/view-mode-provider";
 import { FloatingFeedbackButton } from "@/shared/components/floating-feedback-button";
 import React, { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useUser, useCurrentPlan } from "@/shared/hooks/use-current-user";
+import { useCurrentUser, useCurrentPlan } from "@/shared/hooks/use-current-user";
 import { useSubscriptionGate } from "@/shared/hooks/use-subscription-gate";
 import { SubscriptionExpiredBanner } from "@/shared/layout/subscription-expired-banner";
 import { mutate as swrMutate } from "swr";
@@ -81,7 +81,7 @@ const TUTORIAL_STARTED_KEY = "hivebudget_tutorial_started";
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, hasPartnerAccess, isLoading, error, mutate } = useUser();
+  const { user, hasPartnerAccess, hasBudget, isLoading, error, mutate } = useCurrentUser();
   const { currentPlan } = useCurrentPlan();
   const { isReadOnly, status: subscriptionStatus } = useSubscriptionGate();
   const { isActive: isTutorialActive, currentStep, startTutorial, nextStep, completeTutorial, setCondition } = useTutorial();
@@ -99,68 +99,30 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [currentPlan, setCondition]);
 
-  // Auto-initialize budget for new users (creates budget, groups, categories silently)
+  // Redirect new users without a budget to the setup wizard
   useEffect(() => {
     if (isLoading || !user) return;
-    if (initializingRef.current) return;
 
-    // Don't initialize budget for users who haven't subscribed yet
+    // Skip if already on setup or exempt paths
+    if (pathname?.startsWith("/app/setup") || pathname?.startsWith("/app/choose-plan")) return;
+
+    // Only redirect users who have full access but no budget yet
     const hasActiveSubscription = user.stripeSubscriptionId !== null;
     const hasExemptRole = user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role);
-    // Partners with access through owner's subscription can also use the app
     if (!hasActiveSubscription && !hasExemptRole && !hasPartnerAccess) return;
 
-    // Check if budget was already initialized
-    const budgetInitialized = localStorage.getItem(BUDGET_INITIALIZED_KEY) === "true";
-    if (budgetInitialized) return;
-
-    // Check if user already has onboarding completed (existing user)
-    if (user.onboardingCompletedAt) {
+    // If user already has a budget or completed onboarding, mark as initialized
+    if (hasBudget || user.onboardingCompletedAt) {
       localStorage.setItem(BUDGET_INITIALIZED_KEY, "true");
       return;
     }
 
-    // Auto-create budget for new user
-    const initializeBudget = async () => {
-      initializingRef.current = true;
-      try {
-        const displayName = user?.name || user?.email?.split("@")[0] || "Usuário";
-
-        const response = await fetch("/api/app/onboarding/welcome", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            displayName,
-            household: [],
-          }),
-        });
-
-        if (response.ok) {
-          localStorage.setItem(BUDGET_INITIALIZED_KEY, "true");
-          await mutate();
-          // Also revalidate budgets cache so other pages can access the new budget
-          await swrMutate("/api/app/budgets");
-
-          // Auto-start tutorial for new users (only once)
-          const tutorialAlreadyStarted = localStorage.getItem(TUTORIAL_STARTED_KEY) === "true";
-          if (!tutorialAlreadyStarted && !tutorialStartedRef.current) {
-            tutorialStartedRef.current = true;
-            localStorage.setItem(TUTORIAL_STARTED_KEY, "true");
-            // Small delay to ensure state is updated
-            setTimeout(() => {
-              startTutorial("initial-setup");
-            }, 500);
-          }
-        }
-      } catch (error) {
-        console.error("Error initializing budget:", error);
-      } finally {
-        initializingRef.current = false;
-      }
-    };
-
-    initializeBudget();
-  }, [user, isLoading, mutate, startTutorial]);
+    // No budget yet — redirect to setup wizard
+    const budgetInitialized = localStorage.getItem(BUDGET_INITIALIZED_KEY) === "true";
+    if (!budgetInitialized) {
+      router.replace("/app/setup");
+    }
+  }, [user, isLoading, hasBudget, hasPartnerAccess, pathname, router]);
 
   // Detect when tutorial reaches the celebration step (after partner invite, before messaging)
   useEffect(() => {
