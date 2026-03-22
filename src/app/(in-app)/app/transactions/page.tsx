@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { parseLocalDate } from "@/shared/lib/formatters";
 import { PageHeader, PageContent, ResponsiveButton } from "@/shared/molecules";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
+import { useMembers, useUser } from "@/shared/hooks";
 import {
   TransactionSummary,
   TransactionFiltersBar,
@@ -24,6 +25,11 @@ import {
 export default function TransactionsPage() {
   // ============== TUTORIAL ==============
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
+
+  // ============== CURRENT USER MEMBER ==============
+  const { user } = useUser();
+  const { members } = useMembers();
+  const currentMemberId = members.find((m) => m.userId === user?.id)?.id;
 
   // ============== DATA HOOK ==============
   const {
@@ -73,6 +79,7 @@ export default function TransactionsPage() {
   } = useTransactionForm({
     accounts,
     budgets,
+    memberId: currentMemberId,
     onSuccess: () => {
       fetchData();
       triggerWidgetRefresh();

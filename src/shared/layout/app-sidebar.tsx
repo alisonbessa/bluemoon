@@ -54,12 +54,6 @@ const navItems = [
     tutorialId: "nav-dashboard",
   },
   {
-    href: "/app/goals",
-    label: "Metas",
-    icon: TargetIcon,
-    tutorialId: "nav-goals",
-  },
-  {
     href: "/app/budget",
     label: "Planejamento",
     icon: ListIcon,
@@ -70,6 +64,12 @@ const navItems = [
     label: "Transações",
     icon: ReceiptIcon,
     tutorialId: "nav-transactions",
+  },
+  {
+    href: "/app/goals",
+    label: "Metas",
+    icon: TargetIcon,
+    tutorialId: "nav-goals",
   },
   {
     href: "/app/accounts",
