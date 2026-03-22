@@ -26,8 +26,8 @@ const CTA1 = () => {
                 className="bg-background text-primary hover:bg-background/90"
                 asChild
               >
-                <Link href={appConfig.waitlistMode ? "/join-waitlist" : "#pricing"}>
-                  {appConfig.waitlistMode ? "Entrar na Lista de Espera" : "Testar 30 dias grátis"}
+                <Link href={appConfig.waitlistMode ? "/beta" : "#pricing"}>
+                  {appConfig.waitlistMode ? "Começar Grátis" : "Testar 30 dias grátis"}
                 </Link>
               </Button>
               <Button

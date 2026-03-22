@@ -20,19 +20,19 @@ export function CTA2() {
           <div className="mt-8 flex justify-center">
             <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm">
               <Users className="h-4 w-4 text-primary" />
-              <span>30 dias grátis para testar</span>
+              <span>{appConfig.waitlistMode ? "Gratuito durante o beta" : "30 dias grátis para testar"}</span>
             </div>
           </div>
           <div className="mt-8">
             <Button size="lg" asChild>
-              <Link href={appConfig.waitlistMode ? "/join-waitlist" : "#pricing"}>
-                {appConfig.waitlistMode ? "Entrar na Lista de Espera" : "Começar Grátis"}
+              <Link href={appConfig.waitlistMode ? "/beta" : "#pricing"}>
+                {appConfig.waitlistMode ? "Começar Grátis" : "Começar Grátis"}
               </Link>
             </Button>
           </div>
           <p className="mt-4 text-sm text-muted-foreground">
             {appConfig.waitlistMode
-              ? "Estamos quase lá! Entre na lista de espera."
+              ? "Sem cartão de crédito. Gratuito durante o beta."
               : "30 dias grátis. Cancele quando quiser."}
           </p>
         </div>

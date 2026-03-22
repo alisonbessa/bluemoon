@@ -13,7 +13,7 @@ const Hero2 = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="mx-auto flex max-w-(--breakpoint-lg) flex-col gap-6">
           <Badge variant="secondary" className="mx-auto w-fit">
-            Feito para o Brasil
+            {appConfig.waitlistMode ? "Beta Gratuito" : "Feito para o Brasil"}
           </Badge>
           <h1 className="text-3xl font-extrabold lg:text-6xl">
             Seu dinheiro com{" "}
@@ -47,19 +47,19 @@ const Hero2 = () => {
 
         <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
           <Button size="lg" asChild>
-            <Link href={appConfig.waitlistMode ? "/join-waitlist" : "#pricing"}>
-              {appConfig.waitlistMode ? "Entrar na Lista de Espera" : "Começar Grátis"}
+            <Link href={appConfig.waitlistMode ? "/beta" : "#pricing"}>
+              {appConfig.waitlistMode ? "Começar Grátis" : "Começar Grátis"}
             </Link>
           </Button>
           <Button size="lg" variant="outline" asChild>
-            <Link href={appConfig.waitlistMode ? "/beta" : "#como-funciona"}>
-              {appConfig.waitlistMode ? "Quero ser Beta Tester" : "Como Funciona"}
+            <Link href={appConfig.waitlistMode ? "#como-funciona" : "#como-funciona"}>
+              Como Funciona
             </Link>
           </Button>
         </div>
         {appConfig.waitlistMode && (
           <p className="mt-3 text-sm text-muted-foreground">
-            Beta testers usam a plataforma gratuitamente e ganham desconto no lançamento.
+            Sem cartão de crédito. Sem compromisso. Gratuito durante o beta.
           </p>
         )}
 

@@ -12,8 +12,8 @@ const navItems: { label: string; href: string }[] = [
   // { label: "Pricing", href: "/#pricing" },
 ];
 
-const CTAText = appConfig.waitlistMode ? "Lista de Espera" : "Começar";
-const CTAHref = appConfig.waitlistMode ? "/join-waitlist" : "/#pricing";
+const CTAText = appConfig.waitlistMode ? "Começar Grátis" : "Começar";
+const CTAHref = appConfig.waitlistMode ? "/beta" : "/#pricing";
 
 const signInEnabled = process.env.NEXT_PUBLIC_SIGNIN_ENABLED === "true";
 

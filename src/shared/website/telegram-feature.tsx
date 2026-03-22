@@ -41,8 +41,8 @@ export function TelegramFeature() {
 
               <div className="pt-4">
                 <Button size="lg" asChild>
-                  <Link href={appConfig.waitlistMode ? "/join-waitlist" : "#pricing"}>
-                    {appConfig.waitlistMode ? "Entrar na Lista de Espera" : "Experimentar 30 dias grátis"}
+                  <Link href={appConfig.waitlistMode ? "/beta" : "#pricing"}>
+                    {appConfig.waitlistMode ? "Começar Grátis" : "Experimentar 30 dias grátis"}
                   </Link>
                 </Button>
               </div>
