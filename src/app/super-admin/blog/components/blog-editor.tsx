@@ -6,6 +6,14 @@ import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Button } from "@/shared/ui/button";
+import { Textarea } from "@/shared/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/shared/ui/dialog";
 import {
   Bold,
   Italic,
@@ -21,9 +29,11 @@ import {
   Redo,
   Minus,
   Loader2,
+  FileText,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
+import { marked } from "marked";
 
 interface BlogEditorProps {
   content: string;
@@ -32,6 +42,8 @@ interface BlogEditorProps {
 
 export function BlogEditor({ content, onChange }: BlogEditorProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [isMarkdownOpen, setIsMarkdownOpen] = useState(false);
+  const [markdownInput, setMarkdownInput] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -145,10 +157,51 @@ export function BlogEditor({ content, onChange }: BlogEditorProps) {
       .run();
   }, [editor]);
 
+  const importMarkdown = useCallback(async () => {
+    if (!editor || !markdownInput.trim()) return;
+
+    try {
+      const html = await marked(markdownInput, {
+        breaks: true,
+        gfm: true,
+      });
+      editor.commands.setContent(html);
+      onChange(html);
+      setIsMarkdownOpen(false);
+      setMarkdownInput("");
+      toast.success("Markdown importado com sucesso!");
+    } catch {
+      toast.error("Erro ao converter markdown");
+    }
+  }, [editor, markdownInput, onChange]);
+
   if (!editor) return null;
 
   return (
     <div className="border rounded-lg overflow-hidden">
+      {/* Markdown Import Dialog */}
+      <Dialog open={isMarkdownOpen} onOpenChange={setIsMarkdownOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Importar Markdown</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            value={markdownInput}
+            onChange={(e) => setMarkdownInput(e.target.value)}
+            placeholder={"# Título do Post\n\nEscreva seu conteúdo em markdown aqui...\n\n## Subtítulo\n\n- Item 1\n- Item 2"}
+            className="min-h-[400px] font-mono text-sm"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsMarkdownOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={importMarkdown} disabled={!markdownInput.trim()}>
+              Importar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Toolbar */}
       <div className="flex flex-wrap gap-1 border-b p-2 bg-muted/30">
         <Button
@@ -287,6 +340,17 @@ export function BlogEditor({ content, onChange }: BlogEditorProps) {
           disabled={!editor.can().redo()}
         >
           <Redo className="h-4 w-4" />
+        </Button>
+        <div className="w-px bg-border mx-1" />
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={() => setIsMarkdownOpen(true)}
+        >
+          <FileText className="h-4 w-4" />
+          Markdown
         </Button>
       </div>
 
