@@ -61,7 +61,7 @@ export function StepProfile({
               <CardContent className="flex h-full items-center p-6">
                 <div className="flex items-center gap-3">
                   <div className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-lg",
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
                     isSelected ? "bg-primary text-primary-foreground" : "bg-muted"
                   )}>
                     <Icon className="h-5 w-5" />
