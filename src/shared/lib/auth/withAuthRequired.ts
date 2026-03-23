@@ -49,20 +49,44 @@ const withAuthRequired = (handler: WithManagerHandler) => {
 
     const userId = session.user.id;
 
+    // Cached user data (lazy, shared across getUser and getCurrentPlan)
+    let _user: MeResponse["user"] | undefined;
+    const getUser = async () => {
+      if (!_user) {
+        const [user] = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            displayName: users.displayName,
+            email: users.email,
+            image: users.image,
+            createdAt: users.createdAt,
+            onboardingCompletedAt: users.onboardingCompletedAt,
+            planId: users.planId,
+            stripeCustomerId: users.stripeCustomerId,
+            stripeSubscriptionId: users.stripeSubscriptionId,
+            emailVerified: users.emailVerified,
+            credits: users.credits,
+            role: users.role,
+            trialEndsAt: users.trialEndsAt,
+            accessLinkId: users.accessLinkId,
+            deletedAt: users.deletedAt,
+            deletionRequestedAt: users.deletionRequestedAt,
+            deletionReason: users.deletionReason,
+          })
+          .from(users)
+          .where(eq(users.id, userId));
+        _user = user;
+      }
+      return _user;
+    };
+
+    // Optimized: reuses planId from getUser() instead of querying users table again
     const getCurrentPlan = async () => {
-      const user = await db.select().from(users).where(eq(users.id, userId));
+      const user = await getUser();
+      if (!user?.planId) return null;
 
-      if (!user || user.length === 0 || !user[0]) {
-        return null;
-      }
-
-      // Get the current plan and quotas
-
-      if (!user[0].planId) {
-        return null;
-      }
-
-      const currentPlan = await db
+      const [currentPlan] = await db
         .select({
           id: plans.id,
           name: plans.name,
@@ -71,40 +95,9 @@ const withAuthRequired = (handler: WithManagerHandler) => {
           default: plans.default,
         })
         .from(plans)
-        .where(eq(plans.id, user[0].planId));
+        .where(eq(plans.id, user.planId));
 
-      if (!currentPlan.length) {
-        return null;
-      }
-
-      return currentPlan[0];
-    };
-
-    const getUser = async () => {
-      const [user] = await db
-        .select({
-          id: users.id,
-          name: users.name,
-          displayName: users.displayName,
-          email: users.email,
-          image: users.image,
-          createdAt: users.createdAt,
-          onboardingCompletedAt: users.onboardingCompletedAt,
-          planId: users.planId,
-          stripeCustomerId: users.stripeCustomerId,
-          stripeSubscriptionId: users.stripeSubscriptionId,
-          emailVerified: users.emailVerified,
-          credits: users.credits,
-          role: users.role,
-          trialEndsAt: users.trialEndsAt,
-          accessLinkId: users.accessLinkId,
-          deletedAt: users.deletedAt,
-          deletionRequestedAt: users.deletionRequestedAt,
-          deletionReason: users.deletionReason,
-        })
-        .from(users)
-        .where(eq(users.id, userId));
-      return user;
+      return currentPlan ?? null;
     };
 
     // Lazy-loaded budget IDs (cached per request to avoid duplicate DB queries)

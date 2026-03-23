@@ -2,70 +2,51 @@
 
 import useSWR from 'swr';
 import { useViewMode } from '@/shared/providers/view-mode-provider';
+import { useCurrentUser } from '@/shared/hooks/use-current-user';
 import type {
-  Budget,
   MonthSummary,
   Commitment,
   Goal,
   DailyChartData,
   MonthlyChartData,
   CreditCard,
-  DashboardViewMode,
 } from '../types';
 
-interface BudgetsResponse {
-  budgets: Budget[];
-}
-
-interface AllocationsResponse {
-  income?: { totals: { planned: number; contributionPlanned: number; received: number } };
-  totals?: { allocated: number; spent: number };
-  hasContributionModel?: boolean;
-}
-
-interface CommitmentsResponse {
+interface DashboardResponse {
+  allocations: {
+    income?: { totals: { planned: number; contributionPlanned: number; received: number } };
+    totals?: { allocated: number; spent: number };
+    hasContributionModel?: boolean;
+  };
   commitments: Commitment[];
-}
-
-interface GoalsResponse {
   goals: Goal[];
-}
-
-interface StatsResponse {
-  dailyChartData: DailyChartData[];
-  monthlyComparison: MonthlyChartData[];
-  creditCards: CreditCard[];
+  stats: {
+    dailyChartData: DailyChartData[];
+    monthlyComparison: MonthlyChartData[];
+    creditCards: CreditCard[];
+  };
 }
 
 /**
- * Hook for fetching all dashboard data with SWR caching.
- * Includes viewMode in all API URLs so SWR re-fetches when the view changes.
+ * Hook for fetching all dashboard data in a single consolidated request.
+ * Uses primaryBudgetId from /api/app/me (no extra request needed).
+ * Fetches all sections via /api/app/dashboard (1 request instead of 5).
  */
 export function useDashboardData(year: number, month: number) {
   const { viewMode, isDuoPlan } = useViewMode();
-  const today = new Date();
-  const isCurrentOrFutureMonth =
-    year > today.getFullYear() ||
-    (year === today.getFullYear() && month >= today.getMonth() + 1);
+  const { primaryBudgetId, isLoading: userLoading } = useCurrentUser();
 
   // Only append viewMode for Duo plans
   const vm = isDuoPlan ? `&viewMode=${viewMode}` : '';
 
-  // Fetch budgets (not filtered by viewMode — budgets are always the same)
-  const { data: budgetsData, isLoading: budgetsLoading } = useSWR<BudgetsResponse>(
-    '/api/app/budgets'
-  );
-  const budgets = budgetsData?.budgets ?? [];
-  const primaryBudgetId = budgets[0]?.id ?? null;
-
-  // Fetch allocations (depends on budget)
-  const allocationsKey = primaryBudgetId
-    ? `/api/app/allocations?budgetId=${primaryBudgetId}&year=${year}&month=${month}${vm}`
+  // Single consolidated request for all dashboard data
+  const dashboardKey = primaryBudgetId
+    ? `/api/app/dashboard?budgetId=${primaryBudgetId}&year=${year}&month=${month}${vm}`
     : null;
 
-  const { data: allocationsData, isLoading: allocationsLoading } =
-    useSWR<AllocationsResponse>(allocationsKey);
+  const { data, isLoading: dashboardLoading } = useSWR<DashboardResponse>(dashboardKey);
 
+  const allocationsData = data?.allocations;
   const hasContributionModel = allocationsData?.hasContributionModel ?? false;
 
   // Calculate month summary from allocations
@@ -83,49 +64,23 @@ export function useDashboardData(year: number, month: number) {
       }
     : null;
 
-  // Fetch commitments (only for current/future months)
-  const commitmentsKey =
-    primaryBudgetId && isCurrentOrFutureMonth
-      ? `/api/app/commitments?budgetId=${primaryBudgetId}&days=30&year=${year}&month=${month}${vm}`
-      : null;
-
-  const { data: commitmentsData, isLoading: commitmentsLoading } =
-    useSWR<CommitmentsResponse>(commitmentsKey);
-
-  // Fetch goals
-  const goalsKey = primaryBudgetId
-    ? `/api/app/goals?budgetId=${primaryBudgetId}${vm}`
-    : null;
-
-  const { data: goalsData, isLoading: goalsLoading } = useSWR<GoalsResponse>(goalsKey);
-
-  // Fetch dashboard stats (charts, credit cards)
-  const statsKey = primaryBudgetId
-    ? `/api/app/dashboard/stats?budgetId=${primaryBudgetId}&year=${year}&month=${month}${vm}`
-    : null;
-
-  const { data: statsData, isLoading: statsLoading } = useSWR<StatsResponse>(statsKey);
-
-  // Progressive loading: only block on essential data (budgets + summary)
-  // Goals, scheduled transactions, and charts load independently
-  const isLoading = budgetsLoading || allocationsLoading;
+  const isLoading = userLoading || dashboardLoading;
 
   return {
     // Data
-    budgets,
     primaryBudgetId,
     monthSummary,
     hasContributionModel,
-    commitments: commitmentsData?.commitments ?? [],
-    goals: goalsData?.goals ?? [],
-    dailyChartData: statsData?.dailyChartData ?? [],
-    monthlyChartData: statsData?.monthlyComparison ?? [],
-    creditCards: statsData?.creditCards ?? [],
-    // Loading states (progressive: each section loads independently)
+    commitments: data?.commitments ?? [],
+    goals: data?.goals ?? [],
+    dailyChartData: data?.stats?.dailyChartData ?? [],
+    monthlyChartData: data?.stats?.monthlyComparison ?? [],
+    creditCards: data?.stats?.creditCards ?? [],
+    // Loading states — all data arrives together now
     isLoading,
-    chartsLoading: statsLoading,
-    goalsLoading,
-    commitmentsLoading,
+    chartsLoading: dashboardLoading,
+    goalsLoading: dashboardLoading,
+    commitmentsLoading: dashboardLoading,
     // View mode info
     viewMode,
     isDuoPlan,
