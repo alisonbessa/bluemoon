@@ -121,6 +121,7 @@ export function PlanForm({
               )}
             />
 
+            {/* TODO: reativar quando implementar LTD
             <FormField
               control={form.control}
               name="requiredCouponCount"
@@ -148,6 +149,7 @@ export function PlanForm({
                 </FormItem>
               )}
             />
+            */}
 
             <FormField
               control={form.control}

@@ -142,6 +142,7 @@ export default function AccessLinksPage() {
   };
 
   const getTypeBadge = (type: "lifetime" | "beta") => {
+    // TODO: reativar badge lifetime quando implementar LTD
     if (type === "lifetime") {
       return <Badge variant="outline" className="text-amber-600 border-amber-600">Lifetime</Badge>;
     }
@@ -153,7 +154,7 @@ export default function AccessLinksPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Links de Acesso</h1>
         <p className="text-muted-foreground">
-          Gerencie links de acesso lifetime e beta para usuários especiais
+          Gerencie links de acesso beta para usuários especiais
         </p>
       </div>
 
@@ -189,7 +190,8 @@ export default function AccessLinksPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="lifetime">Lifetime</SelectItem>
+                {/* TODO: reativar quando implementar LTD */}
+                {/* <SelectItem value="lifetime">Lifetime</SelectItem> */}
                 <SelectItem value="beta">Beta</SelectItem>
               </SelectContent>
             </Select>

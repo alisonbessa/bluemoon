@@ -96,9 +96,10 @@ export default function CouponsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Cupons Lifetime Deal</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Cupons</h1>
+        {/* TODO: reativar descrição quando implementar LTD */}
         <p className="text-muted-foreground">
-          Útil para campanhas de lifetime deal em plataformas como AppSumo
+          Gerencie cupons de acesso à plataforma
         </p>
       </div>
 

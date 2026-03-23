@@ -43,13 +43,13 @@ export const users = pgTable("app_user", {
 
   planId: text("planId").references(() => plans.id),
 
-  // User role (user, beta, lifetime, admin)
+  // User role (user, beta, admin) — TODO: reativar "lifetime" quando implementar LTD
   role: text("role").$type<UserRole>().default("user"),
 
   // Trial tracking - when the trial period ends
   trialEndsAt: timestamp("trial_ends_at", { mode: "date" }),
 
-  // Access link used to redeem lifetime/beta access
+  // Access link used to redeem beta access (TODO: reativar lifetime quando implementar LTD)
   accessLinkId: text("access_link_id"),
 
   // LGPD soft delete fields

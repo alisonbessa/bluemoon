@@ -18,7 +18,7 @@ import {
   User,
   Loader2,
   CreditCard,
-  Crown,
+  // Crown, // TODO: reativar quando implementar LTD
   Sparkles,
   Clock,
   AlertTriangle,
@@ -42,9 +42,9 @@ export function PlanCard({ user, currentPlan, hasBudget, mutateUser }: PlanCardP
   const [isChangingPlan, setIsChangingPlan] = useState(false);
   const [isCancellingTrial, setIsCancellingTrial] = useState(false);
 
-  const isLifetime = user?.role === "lifetime";
+  // TODO: reativar lógica de lifetime quando implementar LTD
   const isBeta = user?.role === "beta";
-  const isSpecialAccess = isLifetime || isBeta;
+  const isSpecialAccess = isBeta;
   const hasTrialEnding = user?.trialEndsAt && new Date(user.trialEndsAt) > new Date();
   const trialDaysRemaining = user?.trialEndsAt
     ? Math.max(0, Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
@@ -111,27 +111,19 @@ export function PlanCard({ user, currentPlan, hasBudget, mutateUser }: PlanCardP
         </CardHeader>
         <CardContent className="space-y-4">
           {isSpecialAccess ? (
-            // Lifetime/Beta users
-            <div className="rounded-lg border bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-amber-200 dark:border-amber-900 p-4">
+            // Beta users
+            <div className="rounded-lg border bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-900 p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  {isLifetime ? (
-                    <Crown className="h-5 w-5 text-amber-600" />
-                  ) : (
-                    <Sparkles className="h-5 w-5 text-blue-600" />
-                  )}
+                  <Sparkles className="h-5 w-5 text-blue-600" />
                   <span className="font-semibold">
-                    {currentPlan?.name || (isLifetime ? "Acesso Vitalício" : "Acesso Beta")}
+                    {currentPlan?.name || "Acesso Beta"}
                   </span>
                 </div>
-                <Badge variant={isLifetime ? "default" : "secondary"} className="bg-amber-600">
-                  {isLifetime ? "Lifetime" : "Beta"}
-                </Badge>
+                <Badge variant="secondary">Beta</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                {isLifetime
-                  ? "Acesso completo permanente, sem cobranças futuras."
-                  : "Acesso antecipado a todas as funcionalidades."}
+                Acesso gratuito a todas as funcionalidades durante o beta.
               </p>
             </div>
           ) : hasTrialEnding ? (
