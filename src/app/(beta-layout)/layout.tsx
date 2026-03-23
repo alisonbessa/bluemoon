@@ -15,7 +15,7 @@ function BetaLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative min-h-screen">
       <Header />
-      <main className="-mt-14">{children}</main>
+      <main>{children}</main>
     </div>
   );
 }

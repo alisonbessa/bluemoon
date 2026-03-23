@@ -177,7 +177,7 @@ export async function checkUserSubscriptionAccess(userId: string): Promise<boole
 
   if (!user) return false;
 
-  // Check exempt roles (beta, lifetime, admin)
+  // Check exempt roles (beta, admin) — TODO: reativar "lifetime" quando implementar LTD
   if (user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role)) {
     return true;
   }

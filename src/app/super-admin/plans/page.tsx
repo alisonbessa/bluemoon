@@ -51,7 +51,8 @@ interface Plan {
   name: string;
   codename: string;
   default: boolean;
-  isLifetime: boolean;
+  // TODO: reativar quando implementar LTD
+  // isLifetime: boolean;
   monthlyPrice: number;
   yearlyPrice: number;
   onetimePrice: number;
@@ -423,9 +424,6 @@ export default function PlansPage() {
                     <div className="flex gap-2">
                       {plan.default && (
                         <Badge variant="default">Padrão</Badge>
-                      )}
-                      {plan.isLifetime && (
-                        <Badge variant="secondary">Vitalício</Badge>
                       )}
                     </div>
                   </TableCell>

@@ -13,13 +13,13 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Seja um Beta Tester",
+  title: "Acesso Gratuito ao Beta",
   description:
-    "Use o HiveBudget gratuitamente durante o desenvolvimento e ganhe um desconto exclusivo de lançamento.",
+    "O HiveBudget está em beta e você pode usar 100% grátis. Aproveite o acesso completo enquanto construímos o futuro do controle financeiro colaborativo.",
   openGraph: {
-    title: "Seja um Beta Tester",
+    title: "Acesso Gratuito ao Beta",
     description:
-      "Use o HiveBudget gratuitamente durante o desenvolvimento e ganhe um desconto exclusivo de lançamento.",
+      "O HiveBudget está em beta e você pode usar 100% grátis. Aproveite o acesso completo enquanto construímos o futuro do controle financeiro colaborativo.",
     type: "website",
     url: `${process.env.NEXT_PUBLIC_APP_URL}/beta`,
     images: [
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
         url: `${process.env.NEXT_PUBLIC_APP_URL}/images/og.png`,
         width: 1200,
         height: 630,
-        alt: "Seja um Beta Tester",
+        alt: "Acesso Gratuito ao Beta",
       },
     ],
   },
@@ -39,33 +39,33 @@ export const metadata: Metadata = {
 const steps = [
   {
     icon: Rocket,
-    title: "Acesso gratuito",
+    title: "100% grátis agora",
     description:
-      "Crie sua conta e use todas as funcionalidades da plataforma sem pagar nada enquanto ela estiver em desenvolvimento.",
+      "Todas as funcionalidades liberadas, sem limite de uso. Enquanto estamos em beta, você não paga nada.",
   },
   {
     icon: MessageSquareHeart,
-    title: "Seu feedback constrói o produto",
+    title: "Sua opinião vale ouro",
     description:
-      "Conte pra gente o que funciona, o que não funciona e o que faz falta. Seu uso real é o que vai moldar o HiveBudget.",
+      "Você usa no dia a dia e nos conta o que faz sentido. É assim que o HiveBudget vai se tornar exatamente o que você precisa.",
   },
   {
     icon: Wrench,
-    title: "Evolução constante",
+    title: "Novidades toda semana",
     description:
-      "Novas funcionalidades são lançadas frequentemente. Você acompanha a evolução de perto e tem voz ativa nas prioridades.",
+      "A plataforma evolui rápido e você acompanha tudo de perto. Funcionalidades novas chegam com frequência.",
   },
   {
     icon: Gift,
-    title: "Desconto exclusivo de lançamento",
+    title: "Desconto garantido no lançamento",
     description:
-      "Quando a plataforma sair do beta, você terá um desconto especial como agradecimento por ter feito parte dessa construção.",
+      "Quem entra agora ganha condições especiais quando o beta acabar. Um agradecimento por fazer parte desde o início.",
   },
 ];
 
 export default function BetaPage() {
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] items-center justify-center relative overflow-hidden">
+    <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center relative overflow-hidden py-12">
       <AnimatedGridPattern
         numSquares={30}
         maxOpacity={0.1}
@@ -77,19 +77,19 @@ export default function BetaPage() {
         )}
       />
 
-      <div className="container max-w-2xl px-4 py-8 z-50">
+      <div className="container max-w-2xl px-4 z-50">
         <div className="text-center mb-8">
           <div className="mb-4 inline-flex items-center rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
             <Rocket className="mr-2 h-4 w-4" />
-            Programa Beta
+            Beta Gratuito
           </div>
           <h1 className="text-3xl font-bold tracking-tight mb-3">
-            Ajude a construir o {appConfig.projectName}
+            Use o {appConfig.projectName} de graça{" "}
+            <span className="text-primary">agora</span>
           </h1>
-          <p className="text-muted-foreground max-w-lg mx-auto">
-            Estamos nas fases iniciais e queremos construir junto com quem vai
-            usar de verdade. É simples: você usa de graça, nos conta o que acha,
-            e a gente melhora.
+          <p className="text-muted-foreground max-w-lg mx-auto text-balance">
+            Estamos em beta e isso é uma boa notícia pra você: acesso completo
+            a todas as funcionalidades, sem pagar nada. Aproveite enquanto dura.
           </p>
         </div>
 
@@ -116,12 +116,12 @@ export default function BetaPage() {
         <div className="text-center space-y-3">
           <Button size="lg" asChild>
             <Link href="/sign-up">
-              Criar minha conta grátis
+              Começar grátis
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
           <p className="text-sm text-muted-foreground">
-            Sem cartão de crédito. Sem compromisso. Só feedback honesto.
+            Sem cartão. Sem compromisso. Acesso total ao beta.
           </p>
         </div>
       </div>

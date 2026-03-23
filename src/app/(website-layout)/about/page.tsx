@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <article className="py-16">
+    <article className="pt-24 pb-16">
       <WebPageJsonLd
         useAppDir
         id={`${process.env.NEXT_PUBLIC_APP_URL}/about`}
