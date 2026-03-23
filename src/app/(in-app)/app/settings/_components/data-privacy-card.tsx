@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/shared/ui/alert-dialog";
+import { Checkbox } from "@/shared/ui/checkbox";
 import {
   Download,
   Trash2,
@@ -38,6 +39,7 @@ export function DataPrivacyCard({ user }: DataPrivacyCardProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletionReason, setDeletionReason] = useState("");
+  const [deleteAllData, setDeleteAllData] = useState(false);
 
   const handleExportData = async () => {
     setIsExporting(true);
@@ -97,11 +99,18 @@ export function DataPrivacyCard({ user }: DataPrivacyCardProps) {
       const response = await fetch("/api/app/me", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: deletionReason.trim() || undefined }),
+        body: JSON.stringify({
+          reason: deletionReason.trim() || undefined,
+          deleteAllData,
+        }),
       });
 
       if (response.ok) {
-        toast.success("Conta excluída. Até logo!");
+        toast.success(
+          deleteAllData
+            ? "Conta e dados excluídos permanentemente. Até logo!"
+            : "Conta excluída. Até logo!"
+        );
         await signOut({ callbackUrl: "/" });
       } else {
         toast.error("Erro ao excluir conta");
@@ -183,7 +192,10 @@ export function DataPrivacyCard({ user }: DataPrivacyCardProps) {
       {/* Delete Account Confirmation Dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={(open: boolean) => {
         setShowDeleteConfirm(open);
-        if (!open) setDeletionReason("");
+        if (!open) {
+          setDeletionReason("");
+          setDeleteAllData(false);
+        }
       }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -193,15 +205,32 @@ export function DataPrivacyCard({ user }: DataPrivacyCardProps) {
               permanentemente excluídos em até 30 dias, conforme a LGPD.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="space-y-2 py-2">
-            <Label htmlFor="deletion-reason">Motivo da exclusão (opcional)</Label>
-            <Textarea
-              id="deletion-reason"
-              placeholder="Nos ajude a melhorar: por que você está saindo?"
-              value={deletionReason}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDeletionReason(e.target.value)}
-              rows={3}
-            />
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="deletion-reason">Motivo da exclusão (opcional)</Label>
+              <Textarea
+                id="deletion-reason"
+                placeholder="Nos ajude a melhorar: por que você está saindo?"
+                value={deletionReason}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDeletionReason(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="delete-all-data"
+                checked={deleteAllData}
+                onCheckedChange={(checked) => setDeleteAllData(checked === true)}
+              />
+              <div className="grid gap-1">
+                <Label htmlFor="delete-all-data" className="text-sm font-medium leading-none cursor-pointer">
+                  Apagar todos os meus dados permanentemente
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Seus orçamentos, transações, categorias e demais dados serão excluídos imediatamente e de forma irreversível. Caso contrário, os dados serão removidos em até 30 dias.
+                </p>
+              </div>
+            </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>

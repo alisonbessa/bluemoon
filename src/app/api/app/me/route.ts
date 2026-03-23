@@ -91,11 +91,13 @@ export const DELETE = withAuthRequired(async (req, context) => {
   try {
     const { session, getUser } = context;
 
-    // Parse optional deletion reason from request body
+    // Parse optional deletion reason and cascade flag from request body
     let reason: string | undefined;
+    let deleteAllData = false;
     try {
       const body = await req.json();
       reason = body.reason;
+      deleteAllData = body.deleteAllData === true;
     } catch {
       // No body provided, that's fine
     }
@@ -121,37 +123,56 @@ export const DELETE = withAuthRequired(async (req, context) => {
       }
     }
 
-    // LGPD soft delete: mark account as deleted instead of hard deleting
-    // Data will be permanently removed after 30 days as per Privacy Policy
-    const now = new Date();
-    await db
-      .update(users)
-      .set({
-        deletedAt: now,
-        deletionRequestedAt: now,
-        deletionReason: reason || null,
-      })
-      .where(eq(users.id, session.user.id));
-
-    // Record audit log for LGPD compliance
+    // Record audit log for LGPD compliance (before deletion, so the user reference still exists)
     await recordAuditLog({
       userId: session.user.id,
       action: "user.delete",
       resource: "user",
       resourceId: session.user.id,
       details: {
-        type: "lgpd_deletion_request",
+        type: deleteAllData ? "hard_deletion_with_cascade" : "lgpd_deletion_request",
         reason: reason || "not provided",
+        deleteAllData,
       },
       req,
     });
 
-    logger.info(`LGPD deletion requested for user ${session.user.id}`);
+    if (deleteAllData) {
+      // Hard delete: permanently remove user and cascade all related data
+      // Foreign keys with onDelete: "cascade" will handle:
+      // accounts, sessions, authenticators, feedbacks, budget_members,
+      // invites, credits, whatsapp_users, telegram_users, telegram_pending_connections,
+      // whatsapp_pending_connections, telegram_ai_logs
+      // Foreign keys with onDelete: "set null" will nullify references in:
+      // audit_logs, access_links
+      await db.delete(users).where(eq(users.id, session.user.id));
 
-    return successResponse({
-      success: true,
-      message: "Sua conta foi desativada e seus dados serão excluídos em até 30 dias.",
-    });
+      logger.info(`Hard deletion completed for user ${session.user.id} - all data removed`);
+
+      return successResponse({
+        success: true,
+        message: "Sua conta e todos os seus dados foram permanentemente excluídos.",
+      });
+    } else {
+      // LGPD soft delete: mark account as deleted instead of hard deleting
+      // Data will be permanently removed after 30 days as per Privacy Policy
+      const now = new Date();
+      await db
+        .update(users)
+        .set({
+          deletedAt: now,
+          deletionRequestedAt: now,
+          deletionReason: reason || null,
+        })
+        .where(eq(users.id, session.user.id));
+
+      logger.info(`LGPD deletion requested for user ${session.user.id}`);
+
+      return successResponse({
+        success: true,
+        message: "Sua conta foi desativada e seus dados serão excluídos em até 30 dias.",
+      });
+    }
   } catch (error) {
     logger.error("Error deleting account:", error);
     return internalError("Failed to delete account");
