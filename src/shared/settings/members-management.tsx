@@ -254,7 +254,9 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
   const hasConnectedPartner = members.some((m) => m.type === "partner" && m.userId);
   // Partner placeholders from onboarding (no userId yet)
   const partnerPlaceholder = members.find((m) => m.type === "partner" && !m.userId);
-  const pendingInvites = invites.filter((i) => i.status === "pending");
+  const pendingInvites = invites.filter(
+    (i) => i.status === "pending" && new Date(i.expiresAt) > new Date()
+  );
 
   if (isLoading) {
     return (
