@@ -12,7 +12,7 @@ import type {
   CreditCard,
 } from '../types';
 
-interface DashboardResponse {
+export interface DashboardResponse {
   allocations: {
     income?: { totals: { planned: number; contributionPlanned: number; received: number } };
     totals?: { allocated: number; spent: number };
@@ -27,12 +27,24 @@ interface DashboardResponse {
   };
 }
 
+interface UseDashboardDataOptions {
+  /** Server-fetched data to use as SWR fallback (avoids loading state on initial render) */
+  fallbackData?: DashboardResponse | null;
+}
+
 /**
  * Hook for fetching all dashboard data in a single consolidated request.
  * Uses primaryBudgetId from /api/app/me (no extra request needed).
  * Fetches all sections via /api/app/dashboard (1 request instead of 5).
+ *
+ * When fallbackData is provided (from Server Component), renders instantly
+ * without a loading state for the initial month.
  */
-export function useDashboardData(year: number, month: number) {
+export function useDashboardData(
+  year: number,
+  month: number,
+  options?: UseDashboardDataOptions,
+) {
   const { viewMode, isDuoPlan } = useViewMode();
   const { primaryBudgetId, isLoading: userLoading } = useCurrentUser();
 
@@ -44,7 +56,12 @@ export function useDashboardData(year: number, month: number) {
     ? `/api/app/dashboard?budgetId=${primaryBudgetId}&year=${year}&month=${month}${vm}`
     : null;
 
-  const { data, isLoading: dashboardLoading } = useSWR<DashboardResponse>(dashboardKey);
+  const { data, isLoading: dashboardLoading } = useSWR<DashboardResponse>(
+    dashboardKey,
+    {
+      fallbackData: options?.fallbackData ?? undefined,
+    },
+  );
 
   const allocationsData = data?.allocations;
   const hasContributionModel = allocationsData?.hasContributionModel ?? false;
