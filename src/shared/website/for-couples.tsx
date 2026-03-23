@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/shared/ui/button";
-import { Heart, Lock, Target, Eye } from "lucide-react";
+import { Heart, Lock, Target, Eye, Scale } from "lucide-react";
 import { appConfig } from "@/shared/lib/config";
 
 const coupleFeatures = [
@@ -15,17 +15,22 @@ const coupleFeatures = [
   {
     icon: Lock,
     title: "Privacidade individual",
-    description: "Cada um tem seu espaço para gastos pessoais sem precisar dar satisfação",
+    description: "Cada um tem seu espaço para gastos pessoais sem precisar dar satisfação.",
   },
   {
     icon: Target,
     title: "Objetivos em comum",
-    description: "Viagem, casa nova, reserva de emergência — planejem juntos",
+    description: "Viagem, casa nova, reserva de emergência — planejem e acompanhem juntos.",
+  },
+  {
+    icon: Scale,
+    title: "Acerto automático",
+    description: "O app calcula quem pagou mais e quanto o outro deve. Sem discussão.",
   },
   {
     icon: Eye,
     title: "Transparência total",
-    description: "Sem surpresas no fim do mês, cada um sabe quanto já foi gasto",
+    description: "Sem surpresas no fim do mês. Cada um sabe quanto já foi gasto.",
   },
 ];
 
@@ -58,7 +63,7 @@ export function ForCouples() {
                 juntos o que importa — sem abrir mão do espaço pessoal.
               </p>
 
-              <div className="grid gap-6 sm:grid-cols-2">
+              <div className="grid gap-5">
                 {coupleFeatures.map((feature, index) => {
                   const Icon = feature.icon;
                   return (

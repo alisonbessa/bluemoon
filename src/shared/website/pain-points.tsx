@@ -1,43 +1,20 @@
 "use client";
 
 import React from "react";
-import { Card, CardContent } from "@/shared/ui/card";
+import { HeartCrack, AlertTriangle, MessageSquareWarning } from "lucide-react";
 
-const problems = [
+const painPoints = [
   {
-    emoji: "😰",
-    text: "Fim do mês chega e o dinheiro simplesmente sumiu",
+    icon: AlertTriangle,
+    text: "Falta de clareza sobre os gastos do mês",
   },
   {
-    emoji: "📊",
-    text: "Planilha abandonada na segunda semana (de novo)",
+    icon: MessageSquareWarning,
+    text: "Discussões por gastos não combinados",
   },
   {
-    emoji: "💸",
-    text: "Apps que só mostram o estrago depois que já aconteceu",
-  },
-  {
-    emoji: "🤷",
-    text: "Briga com parceiro(a) por causa de gastos não combinados",
-  },
-];
-
-const solutions = [
-  {
-    emoji: "✅",
-    text: "Cada real tem um destino definido ANTES de você gastar",
-  },
-  {
-    emoji: "✅",
-    text: "Registra em 5 segundos por mensagem — sem abrir app",
-  },
-  {
-    emoji: "✅",
-    text: "Dashboards que mostram a verdade sobre seu dinheiro",
-  },
-  {
-    emoji: "✅",
-    text: "Orçamento compartilhado com parceiro(a) sem perder privacidade",
+    icon: HeartCrack,
+    text: "Sensação de descontrole financeiro no casal",
   },
 ];
 
@@ -45,43 +22,30 @@ export function PainPoints() {
   return (
     <section className="py-16 md:py-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl">
-          <h2 className="mb-12 text-center text-3xl font-bold md:text-4xl">
-            Se identificou com algum desses?
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="mb-6 text-3xl font-bold md:text-4xl">
+            Dinheiro é uma das maiores causas de estresse em um relacionamento
           </h2>
 
-          <div className="grid gap-8 md:grid-cols-2">
-            <Card className="border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20">
-              <CardContent className="p-6">
-                <h3 className="mb-4 font-semibold text-red-700 dark:text-red-400">
-                  Sem controle financeiro...
-                </h3>
-                <ul className="space-y-4">
-                  {problems.map((problem, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <span className="text-xl">{problem.emoji}</span>
-                      <span className="text-muted-foreground">{problem.text}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+          <div className="mt-10 flex flex-col gap-4 text-left max-w-md mx-auto">
+            {painPoints.map((point, index) => {
+              const Icon = point.icon;
+              return (
+                <div key={index} className="flex items-center gap-4 rounded-lg border border-red-200 bg-red-50/50 p-4 dark:border-red-900 dark:bg-red-950/20">
+                  <Icon className="h-5 w-5 shrink-0 text-red-500" />
+                  <span className="text-foreground">{point.text}</span>
+                </div>
+              );
+            })}
+          </div>
 
-            <Card className="border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20">
-              <CardContent className="p-6">
-                <h3 className="mb-4 font-semibold text-green-700 dark:text-green-400">
-                  Com o HiveBudget você...
-                </h3>
-                <ul className="space-y-4">
-                  {solutions.map((solution, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <span className="text-xl">{solution.emoji}</span>
-                      <span className="text-foreground">{solution.text}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+          <div className="mt-12 rounded-2xl bg-primary/5 border border-primary/20 p-8">
+            <p className="text-lg text-muted-foreground">
+              O problema não é falta de dinheiro.
+            </p>
+            <p className="mt-2 text-xl font-bold text-foreground">
+              É falta de organização juntos.
+            </p>
           </div>
         </div>
       </div>

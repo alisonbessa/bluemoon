@@ -10,16 +10,17 @@ import {
   Gift,
   Wrench,
   ArrowRight,
+  Heart,
 } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Acesso Gratuito ao Beta",
   description:
-    "O HiveBudget está em beta e você pode usar 100% grátis. Aproveite o acesso completo enquanto construímos o futuro do controle financeiro colaborativo.",
+    "O HiveBudget está em beta e você pode usar 100% grátis. Ajude a construir a melhor forma de organizar o dinheiro em casal.",
   openGraph: {
     title: "Acesso Gratuito ao Beta",
     description:
-      "O HiveBudget está em beta e você pode usar 100% grátis. Aproveite o acesso completo enquanto construímos o futuro do controle financeiro colaborativo.",
+      "O HiveBudget está em beta e você pode usar 100% grátis. Ajude a construir a melhor forma de organizar o dinheiro em casal.",
     type: "website",
     url: `${process.env.NEXT_PUBLIC_APP_URL}/beta`,
     images: [
@@ -36,30 +37,30 @@ export const metadata: Metadata = {
   },
 };
 
-const steps = [
+const benefits = [
   {
     icon: Rocket,
     title: "100% grátis agora",
     description:
-      "Todas as funcionalidades liberadas, sem limite de uso. Enquanto estamos em beta, você não paga nada.",
+      "Todas as funcionalidades liberadas, sem limite de uso. Enquanto estamos em beta, vocês não pagam nada.",
   },
   {
     icon: MessageSquareHeart,
-    title: "Sua opinião vale ouro",
+    title: "Sua opinião molda o produto",
     description:
-      "Você usa no dia a dia e nos conta o que faz sentido. É assim que o HiveBudget vai se tornar exatamente o que você precisa.",
+      "Vocês usam no dia a dia e nos contam o que faz sentido. É assim que o HiveBudget se torna exatamente o que o casal precisa.",
   },
   {
     icon: Wrench,
     title: "Novidades toda semana",
     description:
-      "A plataforma evolui rápido e você acompanha tudo de perto. Funcionalidades novas chegam com frequência.",
+      "A plataforma evolui rápido e vocês acompanham tudo de perto. Funcionalidades novas chegam com frequência.",
   },
   {
     icon: Gift,
-    title: "Desconto garantido no lançamento",
+    title: "Condições exclusivas no lançamento",
     description:
-      "Quem entra agora ganha condições especiais quando o beta acabar. Um agradecimento por fazer parte desde o início.",
+      "Quem entra agora ganha desconto especial quando o beta acabar. Um agradecimento por fazer parte desde o início.",
   },
 ];
 
@@ -80,21 +81,21 @@ export default function BetaPage() {
       <div className="container max-w-2xl px-4 z-50">
         <div className="text-center mb-8">
           <div className="mb-4 inline-flex items-center rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
-            <Rocket className="mr-2 h-4 w-4" />
-            Beta Gratuito
+            <Heart className="mr-2 h-4 w-4" />
+            Grupo de Fundadores
           </div>
           <h1 className="text-3xl font-bold tracking-tight mb-3">
-            Use o {appConfig.projectName} de graça{" "}
-            <span className="text-primary">agora</span>
+            Vocês estão entrando no grupo de fundadores do{" "}
+            <span className="text-primary">{appConfig.projectName}</span>
           </h1>
           <p className="text-muted-foreground max-w-lg mx-auto text-balance">
-            Estamos em beta e isso é uma boa notícia pra você: acesso completo
-            a todas as funcionalidades, sem pagar nada. Aproveite enquanto dura.
+            Ajudem a construir a melhor forma de organizar o dinheiro em casal.
+            Acesso completo, gratuito, e a chance de influenciar o produto.
           </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 mb-8">
-          {steps.map((step) => {
+          {benefits.map((step) => {
             const Icon = step.icon;
             return (
               <div
@@ -116,7 +117,7 @@ export default function BetaPage() {
         <div className="text-center space-y-3">
           <Button size="lg" asChild>
             <Link href="/sign-up">
-              Começar grátis
+              Começar grátis em casal
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
