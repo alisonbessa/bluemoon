@@ -86,9 +86,9 @@ function AppHomepage() {
   // View mode: "shared" shows contribution-based saldo, "complete" shows full income
   const [viewMode, setViewMode] = useState<DashboardViewMode>("shared");
 
-  // Dashboard data via SWR
+  // Dashboard data via SWR (single consolidated request)
   const {
-    budgets,
+    primaryBudgetId,
     monthSummary,
     hasContributionModel,
     goals,
@@ -287,10 +287,10 @@ function AppHomepage() {
         </Card>
 
         {/* Scheduled Transactions (Pending Accounts) */}
-        {budgets.length > 0 && (
+        {primaryBudgetId && (
           <div data-tutorial="dashboard-scheduled">
             <ScheduledTransactionsList
-              budgetId={budgets[0].id}
+              budgetId={primaryBudgetId}
               year={currentYear}
               month={currentMonth}
             />
@@ -303,14 +303,14 @@ function AppHomepage() {
         dailyData={dailyChartData}
         monthlyData={monthlyChartData}
         isLoading={chartsLoading}
-        budgetId={budgets[0]?.id}
+        budgetId={primaryBudgetId ?? undefined}
         viewModeParam={isDuoPlan ? `&viewMode=${dataViewMode}` : ""}
       />
 
       {/* Shared Expenses Balance - Duo plans only, non-unified */}
-      {budgets.length > 0 && (
+      {primaryBudgetId && (
         <SharedExpensesBalance
-          budgetId={budgets[0].id}
+          budgetId={primaryBudgetId}
           year={currentYear}
           month={currentMonth}
         />

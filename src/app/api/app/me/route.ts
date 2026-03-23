@@ -23,7 +23,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const { getCurrentPlan, getUser, session } = context;
 
   // Run all queries in parallel
-  const [userFromDb, currentPlan, { hasPartnerAccess, hasBudget }] =
+  const [userFromDb, currentPlan, { hasPartnerAccess, hasBudget, primaryBudgetId }] =
     await Promise.all([
       getUser(),
       getCurrentPlan(),
@@ -36,7 +36,7 @@ export const GET = withAuthRequired(async (req, context) => {
   }
 
   return NextResponse.json<MeResponse>(
-    { user: userFromDb, currentPlan, hasPartnerAccess, hasBudget },
+    { user: userFromDb, currentPlan, hasPartnerAccess, hasBudget, primaryBudgetId },
     {
       headers: {
         "Cache-Control": "private, max-age=30, stale-while-revalidate=60",

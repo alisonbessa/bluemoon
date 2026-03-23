@@ -14,4 +14,6 @@ export interface MeResponse {
   hasPartnerAccess: boolean;
   /** True if user has at least one budget (has used the app before) */
   hasBudget: boolean;
+  /** The user's primary budget ID (first budget they are a member of) */
+  primaryBudgetId: string | null;
 }

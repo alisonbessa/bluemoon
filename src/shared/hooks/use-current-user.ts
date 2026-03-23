@@ -17,6 +17,7 @@ export function useCurrentUser() {
     credits: data?.user?.credits,
     hasPartnerAccess: data?.hasPartnerAccess ?? false,
     hasBudget: data?.hasBudget ?? false,
+    primaryBudgetId: data?.primaryBudgetId ?? null,
     isLoading,
     error,
     mutate,

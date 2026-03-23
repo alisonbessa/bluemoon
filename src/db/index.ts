@@ -1,4 +1,7 @@
-import { drizzle } from "drizzle-orm/postgres-js";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 
-// Use a placeholder URL during build to avoid crash when DATABASE_URL is not set
-export const db = drizzle(process.env.DATABASE_URL || "postgres://placeholder:placeholder@localhost:5432/placeholder");
+// Use Neon serverless driver (HTTP) for faster cold starts in serverless environments.
+// HTTP mode uses stateless fetch requests — no WebSocket/TCP connection overhead.
+const sql = neon(process.env.DATABASE_URL || "postgres://placeholder:placeholder@localhost:5432/placeholder");
+export const db = drizzle({ client: sql });
