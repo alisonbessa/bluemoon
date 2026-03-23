@@ -4,7 +4,7 @@ import { db } from "@/db";
 
 const logger = createLogger("api:invites");
 import { invites, budgetMembers, budgets, users } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, gt } from "drizzle-orm";
 import { z } from "zod";
 import {
   validationError,
@@ -130,14 +130,15 @@ export const POST = withAuthRequired(async (req, context) => {
     return errorResponse("This budget already has a connected partner", 400);
   }
 
-  // Check if there's already a pending invite
+  // Check if there's already a pending (non-expired) invite
   const existingInvite = await db
     .select()
     .from(invites)
     .where(
       and(
         eq(invites.budgetId, budgetId),
-        eq(invites.status, "pending")
+        eq(invites.status, "pending"),
+        gt(invites.expiresAt, new Date())
       )
     )
     .limit(1);
