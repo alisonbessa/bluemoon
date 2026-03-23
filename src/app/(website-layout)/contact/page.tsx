@@ -93,7 +93,7 @@ export default function ContactPage() {
           },
         }}
       />
-      <section className="relative w-full overflow-hidden bg-linear-to-br from-primary via-primary/90 to-primary py-20 text-primary-foreground">
+      <section className="relative w-full overflow-hidden bg-linear-to-br from-primary via-primary/90 to-primary pt-28 pb-20 text-primary-foreground">
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff33_1px,transparent_1px),linear-gradient(to_bottom,#ffffff33_1px,transparent_1px)] bg-size-[14px_14px]" />
           <div className="absolute inset-0 bg-linear-to-br from-primary/50 via-transparent to-primary/50" />
