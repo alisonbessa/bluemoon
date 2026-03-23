@@ -39,7 +39,7 @@ export const GET = withAuthRequired(async (req, context) => {
     { user: userFromDb, currentPlan, hasPartnerAccess, hasBudget, primaryBudgetId },
     {
       headers: {
-        "Cache-Control": "private, max-age=30, stale-while-revalidate=60",
+        "Cache-Control": "private, no-cache, no-store, must-revalidate",
       },
     }
   );
