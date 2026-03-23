@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Image from "next/image";
 import { appConfig } from "@/shared/lib/config";
-import { useCurrentPlan } from "@/shared/hooks/use-current-user";
+import { useCurrentUser } from "@/shared/hooks/use-current-user";
 import { parseCurrency } from "@/shared/lib/formatters";
 import {
   getTemplatesForPlan,
@@ -26,8 +26,9 @@ type CategoryWithAmount = TemplateCategory & { plannedAmount: number };
 
 export default function SetupPage() {
   const router = useRouter();
-  const { currentPlan } = useCurrentPlan();
+  const { user, currentPlan } = useCurrentUser();
   const planCodename = currentPlan?.codename ?? "solo";
+  const firstName = user?.name?.split(" ")[0] ?? "";
   const isDuo = planCodename === "duo";
   const templates = getTemplatesForPlan(planCodename);
 
@@ -46,6 +47,17 @@ export default function SetupPage() {
   const [accounts, setAccounts] = useState<AccountInput[]>([
     { name: "Conta Corrente", type: "checking" },
   ]);
+
+  // Update default salary name when user loads
+  useEffect(() => {
+    if (firstName && incomeSources[0]?.name === "Salário") {
+      setIncomeSources((prev) => {
+        const updated = [...prev];
+        updated[0] = { ...updated[0], name: `Salário - ${firstName}` };
+        return updated;
+      });
+    }
+  }, [firstName]);
 
   // Step 3 state
   const [budgetCategories, setBudgetCategories] = useState<

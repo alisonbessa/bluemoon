@@ -165,7 +165,7 @@ export function StepFinances({
                 <div className="flex-1">
                   <Label className="text-xs">Nome</Label>
                   <Input
-                    placeholder="Ex: Salário"
+                    placeholder="Ex: Salário - João"
                     value={source.name}
                     onChange={(e) =>
                       updateIncomeSource(index, "name", e.target.value)

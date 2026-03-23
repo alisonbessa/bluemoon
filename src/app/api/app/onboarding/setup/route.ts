@@ -259,6 +259,7 @@ export const POST = withAuthRequired(async (request, context) => {
       return validationError(error);
     }
 
-    return internalError("Erro ao configurar orçamento");
+    const message = error instanceof Error ? error.message : "Erro ao configurar orçamento";
+    return internalError(message);
   }
 });

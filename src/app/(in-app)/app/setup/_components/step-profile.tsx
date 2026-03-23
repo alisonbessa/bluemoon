@@ -53,13 +53,13 @@ export function StepProfile({
             <Card
               key={template.codename}
               className={cn(
-                "cursor-pointer transition-all hover:border-primary/50",
+                "cursor-pointer transition-all hover:border-primary/50 h-full",
                 isSelected && "border-primary ring-2 ring-primary/20"
               )}
               onClick={() => onSelectTemplate(template.codename)}
             >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-3">
+              <CardContent className="flex h-full items-center p-6">
+                <div className="flex items-center gap-3">
                   <div className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-lg",
                     isSelected ? "bg-primary text-primary-foreground" : "bg-muted"
