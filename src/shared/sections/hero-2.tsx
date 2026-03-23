@@ -1,4 +1,4 @@
-import { Star, Wallet, CreditCard, Users, MessageCircle } from "lucide-react";
+import { Star, Heart, MessageCircle, ArrowRight } from "lucide-react";
 import React from "react";
 import Link from "next/link";
 
@@ -13,31 +13,22 @@ const Hero2 = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="mx-auto flex max-w-(--breakpoint-lg) flex-col gap-6">
           <Badge variant="secondary" className="mx-auto w-fit">
-            {appConfig.waitlistMode ? "Beta Gratuito" : "Feito para o Brasil"}
+            {appConfig.waitlistMode ? "Beta Gratuito" : "Feito para casais"}
           </Badge>
           <h1 className="text-3xl font-extrabold lg:text-6xl">
-            Seu dinheiro com{" "}
-            <span className="text-primary">destino certo</span>
+            Organize o dinheiro do casal{" "}
+            <span className="text-primary">sem planilha e sem estresse</span>
           </h1>
-          <p className="text-balance text-muted-foreground lg:text-lg">
-            Pare de descobrir no fim do mês para onde o dinheiro foi.
-            Planeje cada real antes de gastar, controle cartões e parcelamentos,
-            e registre tudo por mensagem. Para casais e famílias que querem sair do vermelho.
+          <p className="text-balance text-muted-foreground lg:text-lg max-w-2xl mx-auto">
+            Planejem juntos, registrem gastos por mensagem e saibam exatamente
+            para onde vai cada real. Simples assim.
           </p>
         </div>
 
-        <div className="mx-auto mt-8 flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
+        <div className="mx-auto mt-8 flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Wallet className="size-4 text-primary" />
-            <span>Orçamento inteligente</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <CreditCard className="size-4 text-primary" />
-            <span>Cartões de crédito</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Users className="size-4 text-primary" />
-            <span>Compartilhe com parceiro(a)</span>
+            <Heart className="size-4 text-primary" />
+            <span>Feito para casais</span>
           </div>
           <div className="flex items-center gap-2">
             <MessageCircle className="size-4 text-primary" />
@@ -48,11 +39,12 @@ const Hero2 = () => {
         <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
           <Button size="lg" asChild>
             <Link href={appConfig.waitlistMode ? "/beta" : "#pricing"}>
-              {appConfig.waitlistMode ? "Começar Grátis" : "Começar Grátis"}
+              Começar Grátis
+              <ArrowRight className="ml-2 size-4" />
             </Link>
           </Button>
           <Button size="lg" variant="outline" asChild>
-            <Link href={appConfig.waitlistMode ? "#como-funciona" : "#como-funciona"}>
+            <Link href="#como-funciona">
               Como Funciona
             </Link>
           </Button>
@@ -106,7 +98,7 @@ const Hero2 = () => {
               <span className="font-semibold">5.0</span>
             </div>
             <p className="text-left font-medium text-muted-foreground">
-              de quem já assumiu o controle
+              de casais que já organizaram suas finanças
             </p>
           </div>
         </div>

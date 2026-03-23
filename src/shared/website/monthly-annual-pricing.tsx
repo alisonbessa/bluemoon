@@ -52,6 +52,7 @@ const baseFeatures = [
 const duoExtras = [
   "Orçamento compartilhado em tempo real",
   "Privacidade em contas individuais",
+  "Acerto automático do mês",
   "Convide sem custo adicional",
 ];
 
@@ -73,11 +74,11 @@ const MonthlyAnnualPricing = () => {
             {appConfig.waitlistMode ? "Grátis durante o Beta" : "30 dias grátis"}
           </Badge>
           <h2 className="mb-4 text-4xl tracking-tight font-bold lg:text-5xl">
-            {appConfig.waitlistMode ? "Use grátis enquanto construímos juntos" : "Menos que um cafezinho por dia"}
+            {appConfig.waitlistMode ? "Use grátis enquanto construímos juntos" : "Menos que um café por dia para organizar o dinheiro do casal"}
           </h2>
           <p className="text-muted-foreground text-lg">
             {appConfig.waitlistMode
-              ? "Acesso completo e gratuito durante o beta. Sem cartão de crédito. Desconto exclusivo no lançamento."
+              ? "Acesso completo e gratuito durante o beta. Sem cartão de crédito. Condições exclusivas no lançamento para quem entrar agora."
               : "Teste tudo por 30 dias grátis. Sem cartão na hora de criar a conta."}
           </p>
         </div>

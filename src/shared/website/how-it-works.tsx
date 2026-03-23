@@ -1,45 +1,41 @@
 "use client";
 
 import React from "react";
-import { DollarSign, Target, TrendingUp, CheckCircle } from "lucide-react";
+import { DollarSign, Target, MessageCircle, BarChart3 } from "lucide-react";
 import { motion } from "motion/react";
 
 const steps = [
   {
     number: "1",
     icon: DollarSign,
-    title: "Planeje seu dinheiro",
+    title: "Definam quanto ganham",
     description:
-      "Recebeu o salário? Distribua cada real para categorias como alimentação, moradia e lazer. Tudo definido antes de gastar.",
+      "Cada um cadastra sua renda. Decidam juntos quanto vai para o orçamento compartilhado.",
     color: "emerald",
-    badge: "Planejamento",
   },
   {
     number: "2",
     icon: Target,
-    title: "Registre seus gastos",
+    title: "Planejem para onde vai cada real",
     description:
-      "Gastou? Mande uma mensagem rápida ou registre no app. Cada gasto é deduzido automaticamente da categoria.",
+      "Distribuam o dinheiro em categorias como moradia, mercado e lazer. Tudo definido antes de gastar.",
     color: "blue",
-    badge: "Acompanhamento",
   },
   {
     number: "3",
-    icon: TrendingUp,
-    title: "Compare planejado vs. real",
+    icon: MessageCircle,
+    title: "Registrem gastos por mensagem",
     description:
-      "Dashboards mostram onde você planejou gastar e onde realmente gastou. Sem achismo, com dados reais.",
+      "Gastou? Manda uma mensagem no WhatsApp. Nossa IA entende e registra em segundos.",
     color: "purple",
-    badge: "Acompanhamento",
   },
   {
     number: "4",
-    icon: CheckCircle,
-    title: "Ajuste e melhore",
+    icon: BarChart3,
+    title: "Acompanhem juntos",
     description:
-      "Mês a mês, você entende seus padrões e ajusta o planejamento. Cada mês fica mais fácil que o anterior.",
+      "Dashboards mostram planejado vs. real. No fim do mês, o app calcula quem deve o quê.",
     color: "amber",
-    badge: "Melhoria",
   },
 ];
 
@@ -50,10 +46,10 @@ const HowItWorks: React.FC = () => {
         {/* Header */}
         <div className="mb-16 text-center">
           <h2 className="mb-4 text-3xl font-bold text-gray-900 dark:text-white md:text-4xl">
-            4 passos para nunca mais se perder
+            Como funciona
           </h2>
           <p className="mx-auto max-w-2xl text-lg text-gray-600 dark:text-gray-300">
-            Planeje antes, gaste com consciência. Simples assim.
+            4 passos simples para organizar o dinheiro do casal
           </p>
         </div>
 
@@ -70,13 +66,7 @@ const HowItWorks: React.FC = () => {
                 transition={{ delay: index * 0.15 }}
                 className="group relative"
               >
-                {/* Card */}
                 <div className="relative z-10 flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition-shadow hover:shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                  {/* Badge */}
-                  <div className="mb-4 inline-block w-fit rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                    {step.badge}
-                  </div>
-
                   {/* Step Number & Icon */}
                   <div className="mb-6 flex items-center gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-100 text-lg font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-300">
@@ -111,16 +101,6 @@ const HowItWorks: React.FC = () => {
               </motion.div>
             );
           })}
-        </div>
-
-        {/* Bottom CTA */}
-        <div className="mt-16 text-center">
-          <p className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-            Planeje primeiro. Gaste com consciência.
-          </p>
-          <p className="text-gray-600 dark:text-gray-300">
-            O método mais eficaz para sair do vermelho. Sem planilhas, sem surpresas.
-          </p>
         </div>
       </div>
     </section>

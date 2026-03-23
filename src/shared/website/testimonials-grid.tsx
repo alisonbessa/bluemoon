@@ -5,14 +5,6 @@ import { Card, CardContent } from "@/shared/ui/card";
 
 const testimonials = [
   {
-    name: "Mariana",
-    role: "Designer, 28 anos",
-    location: "São Paulo",
-    avatar: "/images/depoimento1.png",
-    quote:
-      "Gente, eu NUNCA consegui manter uma planilha por mais de uma semana. Com o HiveBudget já são 3 meses e ainda tô usando todo dia. O negócio do WhatsApp é genial porque eu registro na hora que gasto, não esqueço mais.",
-  },
-  {
     name: "Ricardo e Camila",
     role: "Casados há 2 anos",
     location: "Belo Horizonte",
@@ -21,20 +13,28 @@ const testimonials = [
       "A gente brigava MUITO por causa de dinheiro. Tipo, eu achava que ela gastava demais, ela achava que eu era mão de vaca. Agora tá tudo no app, cada um tem seu espacinho mas a gente vê os gastos da casa junto. Mudou nosso relacionamento real.",
   },
   {
-    name: "Fernando",
-    role: "Desenvolvedor freelancer",
-    location: "Curitiba",
-    avatar: "/images/depoimento3.png",
+    name: "Mariana",
+    role: "Designer, 28 anos",
+    location: "São Paulo",
+    avatar: "/images/depoimento1.png",
     quote:
-      "Como freela minha renda varia muito né, um mês vem bem, outro vem menos. O HiveBudget me ajudou a parar de torrar tudo quando vem mais e guardar pros meses magros. Parece óbvio mas eu nunca tinha conseguido fazer isso antes.",
+      "Gente, eu NUNCA consegui manter uma planilha por mais de uma semana. Com o HiveBudget já são 3 meses e ainda tô usando todo dia. O negócio do WhatsApp é genial porque eu registro na hora que gasto, não esqueço mais.",
   },
   {
-    name: "Juliana",
-    role: "Analista de marketing",
+    name: "Juliana e Thiago",
+    role: "Noivos, planejando casamento",
     location: "Porto Alegre",
     avatar: "/images/depoimento4.png",
     quote:
-      "Eu tinha uns 5 parcelamentos no cartão e nunca sabia quanto ia vir a fatura. Agora eu vejo tudo organizado, sei exatamente quanto já comprometi do meu limite e quanto ainda posso gastar. Acabou a surpresa no fechamento!",
+      "Estamos juntando dinheiro pro casamento e o HiveBudget mudou tudo. A gente vê exatamente quanto já guardou, quanto ainda falta, e o acerto do mês evita aquela situação chata de 'quem pagou o quê'. Virou nossa reunião financeira semanal.",
+  },
+  {
+    name: "Fernando e Ana",
+    role: "Morando juntos há 1 ano",
+    location: "Curitiba",
+    avatar: "/images/depoimento3.png",
+    quote:
+      "Quando começamos a morar juntos, dividir as contas era um caos. Quem pagou o mercado, quem pagou a luz... Com o HiveBudget tá tudo organizado. Ele calcula certinho quanto cada um deve no fim do mês. Zerou as discussões.",
   },
 ];
 
@@ -46,10 +46,10 @@ export function TestimonialsGrid() {
           {/* Header */}
           <div className="mb-12 text-center">
             <h2 className="text-3xl font-bold md:text-4xl">
-              Quem usa, recomenda
+              Casais que já organizaram suas finanças
             </h2>
             <p className="mt-4 text-muted-foreground">
-              Pessoas reais que mudaram sua relação com o dinheiro
+              Histórias reais de quem resolveu o estresse financeiro no relacionamento
             </p>
           </div>
 
@@ -60,7 +60,7 @@ export function TestimonialsGrid() {
                 <CardContent className="p-6">
                   <div className="flex gap-4">
                     {/* Avatar */}
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <Image
                         src={testimonial.avatar}
                         alt={testimonial.name}
@@ -75,7 +75,7 @@ export function TestimonialsGrid() {
                       <div className="mb-3">
                         <p className="font-semibold">{testimonial.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {testimonial.role} • {testimonial.location}
+                          {testimonial.role} &bull; {testimonial.location}
                         </p>
                       </div>
                       <blockquote className="text-sm leading-relaxed text-muted-foreground">
