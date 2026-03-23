@@ -73,6 +73,7 @@ interface Invite {
   id: string;
   email: string;
   name: string | null;
+  token: string;
   status: "pending" | "accepted" | "expired" | "cancelled";
   expiresAt: string;
   createdAt: string;
@@ -284,14 +285,32 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
           <CardDescription>
             Gerencie quem tem acesso ao seu orçamento
           </CardDescription>
-          {!hasConnectedPartner && pendingInvites.length === 0 && (
+          {!hasConnectedPartner && (
             <Button
               size="sm"
               className="w-full sm:w-auto mt-2"
-              onClick={handleOpenPreInvite}
+              onClick={() => {
+                if (pendingInvites.length > 0) {
+                  // Show existing invite link
+                  const existingInvite = pendingInvites[0];
+                  setInviteLink(`${window.location.origin}/invite/${existingInvite.token}`);
+                  setShowInviteModal(true);
+                } else {
+                  handleOpenPreInvite();
+                }
+              }}
             >
-              <UserPlus className="h-4 w-4" />
-              Criar link de convite
+              {pendingInvites.length > 0 ? (
+                <>
+                  <Share2 className="h-4 w-4" />
+                  Ver link de convite
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-4 w-4" />
+                  Criar link de convite
+                </>
+              )}
             </Button>
           )}
         </CardHeader>
