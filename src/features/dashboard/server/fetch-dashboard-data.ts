@@ -85,25 +85,27 @@ export async function fetchDashboardData(opts: {
 }): Promise<DashboardDataResult | null> {
   const { userId, budgetId, year, month, viewMode } = opts;
 
-  // Verify access
-  const budgetIds = await getUserBudgetIds(userId);
-  if (!budgetIds.includes(budgetId)) {
-    return null;
-  }
-
-  // Run shared prerequisite queries in parallel
-  const [userMemberId, budgetRow] = await Promise.all([
+  // Run ALL prerequisite queries in parallel (eliminates sequential waterfall)
+  const [budgetIds, userMemberId, budgetRow] = await Promise.all([
+    getUserBudgetIds(userId),
     getUserMemberIdInBudget(userId, budgetId),
     db.select({ privacyMode: budgets.privacyMode }).from(budgets).where(eq(budgets.id, budgetId)).limit(1).then(r => r[0]),
   ]);
 
-  const privacyMode = budgetRow?.privacyMode || "visible";
-  const partnerPrivacy = viewMode === "all" && userMemberId
-    ? await getPartnerPrivacyLevel(userId, budgetId)
-    : undefined;
+  // Verify access
+  if (!budgetIds.includes(budgetId)) {
+    return null;
+  }
 
-  // Ensure pending transactions exist (idempotent)
-  await ensurePendingTransactionsForMonth(budgetId, year, month);
+  const privacyMode = budgetRow?.privacyMode || "visible";
+
+  // Run partner privacy + pending transactions in parallel
+  const [partnerPrivacy] = await Promise.all([
+    viewMode === "all" && userMemberId
+      ? getPartnerPrivacyLevel(userId, budgetId)
+      : Promise.resolve(undefined),
+    ensurePendingTransactionsForMonth(budgetId, year, month),
+  ]);
 
   // Date range
   const startDate = new Date(year, month - 1, 1);

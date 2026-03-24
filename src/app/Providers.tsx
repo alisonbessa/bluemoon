@@ -1,15 +1,19 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import React from "react";
+import React, { useEffect } from "react";
 import { Toaster } from "sonner";
 import { Suspense } from "react";
 import { Next13ProgressBar } from "next13-progressbar";
 import { SWRConfig } from "swr";
 import { fetcher } from "@/shared/lib/swr/fetcher";
 import { ThemeProvider } from "next-themes";
+import { initPerfObserver } from "@/shared/lib/perf/web-vitals";
 
 function Providers({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    initPerfObserver();
+  }, []);
   return (
     <ThemeProvider
       attribute="class"

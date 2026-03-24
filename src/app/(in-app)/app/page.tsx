@@ -1,6 +1,5 @@
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { checkUserAccess } from "@/shared/lib/users/checkPartnerAccess";
+import { getSession, getCachedUserAccess } from "@/shared/lib/api/cached-queries";
 import { fetchDashboardData } from "@/features/dashboard/server/fetch-dashboard-data";
 import { DashboardClient } from "@/features/dashboard/ui/dashboard-client";
 
@@ -12,14 +11,14 @@ import { DashboardClient } from "@/features/dashboard/ui/dashboard-client";
  * data as fallback, and refetches when the user changes month/viewMode.
  */
 export default async function AppHomepage() {
-  const session = await auth();
+  const session = await getSession();
 
   if (!session?.user?.id) {
     redirect("/");
   }
 
-  // Get primary budget ID server-side
-  const { primaryBudgetId } = await checkUserAccess(session.user.id);
+  // Get primary budget ID server-side (cached per request)
+  const { primaryBudgetId } = await getCachedUserAccess(session.user.id);
 
   const today = new Date();
   const year = today.getFullYear();

@@ -34,9 +34,15 @@ export const GET = withAuthRequired(async (req, context) => {
     return successResponse({ accounts: [] });
   }
 
-  // Get user's member ID for visibility filtering
   const activeBudgetId = budgetId || budgetIds[0];
-  const userMemberId = await getUserMemberIdInBudget(session.user.id, activeBudgetId);
+
+  // Fetch memberId + partnerPrivacy in parallel
+  const [userMemberId, partnerPrivacy] = await Promise.all([
+    getUserMemberIdInBudget(session.user.id, activeBudgetId),
+    viewMode === "all"
+      ? getPartnerPrivacyLevel(session.user.id, activeBudgetId)
+      : Promise.resolve(undefined),
+  ]);
 
   // Base condition: account belongs to user's budgets
   const budgetCondition = budgetId
@@ -46,9 +52,6 @@ export const GET = withAuthRequired(async (req, context) => {
   // View mode filtering
   let visibilityCondition;
   if (userMemberId) {
-    const partnerPrivacy = viewMode === "all"
-      ? await getPartnerPrivacyLevel(session.user.id, activeBudgetId)
-      : undefined;
     visibilityCondition = getViewModeCondition({
       viewMode,
       userMemberId,

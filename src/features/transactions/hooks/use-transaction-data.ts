@@ -1,11 +1,31 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
+import useSWR from "swr";
 import { getWeek } from "date-fns";
-import { toast } from "sonner";
 import { type PeriodValue } from "@/shared/ui/period-navigator";
 import { useViewMode } from "@/shared/providers/view-mode-provider";
 import type { Transaction, Category, Account, IncomeSource, Budget } from "../types";
+
+interface TransactionsResponse {
+  transactions: Transaction[];
+}
+
+interface CategoriesResponse {
+  flatCategories: Category[];
+}
+
+interface AccountsResponse {
+  accounts: Account[];
+}
+
+interface BudgetsResponse {
+  budgets: Budget[];
+}
+
+interface IncomeSourcesResponse {
+  incomeSources: IncomeSource[];
+}
 
 interface UseTransactionDataReturn {
   // Data
@@ -30,7 +50,8 @@ interface UseTransactionDataReturn {
 export function useTransactionData(): UseTransactionDataReturn {
   const today = new Date();
   const { viewMode, isDuoPlan } = useViewMode();
-  const vm = isDuoPlan ? `&viewMode=${viewMode}` : '';
+  const vmParam = isDuoPlan ? `&viewMode=${viewMode}` : '';
+  const vmQuery = isDuoPlan ? `?viewMode=${viewMode}` : '';
 
   // Period state
   const [periodValue, setPeriodValue] = useState<PeriodValue>({
@@ -39,16 +60,42 @@ export function useTransactionData(): UseTransactionDataReturn {
     week: getWeek(today, { weekStartsOn: 1, firstWeekContainsDate: 4 }),
   });
 
-  // Data states
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
   // Widget refresh key
   const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
+
+  // Date range for transactions
+  const startDate = new Date(periodValue.year, periodValue.month - 1, 1).toISOString();
+  const endDate = new Date(periodValue.year, periodValue.month, 0, 23, 59, 59).toISOString();
+
+  // SWR hooks — parallel fetching with deduplication and caching
+  const { data: transactionsData, mutate: mutateTransactions, isLoading: loadingTx } = useSWR<TransactionsResponse>(
+    `/api/app/transactions?limit=500&startDate=${startDate}&endDate=${endDate}${vmParam}`
+  );
+
+  const { data: categoriesData, isLoading: loadingCat } = useSWR<CategoriesResponse>(
+    '/api/app/categories'
+  );
+
+  const { data: accountsData, isLoading: loadingAcc } = useSWR<AccountsResponse>(
+    `/api/app/accounts${vmQuery}`
+  );
+
+  const { data: budgetsData, isLoading: loadingBud } = useSWR<BudgetsResponse>(
+    '/api/app/budgets'
+  );
+
+  const { data: incomeSourcesData, isLoading: loadingInc } = useSWR<IncomeSourcesResponse>(
+    `/api/app/income-sources${vmQuery}`
+  );
+
+  const isLoading = loadingTx || loadingCat || loadingAcc || loadingBud || loadingInc;
+
+  // Stable data references via useMemo
+  const transactions = useMemo(() => transactionsData?.transactions ?? [], [transactionsData]);
+  const categories = useMemo(() => categoriesData?.flatCategories ?? [], [categoriesData]);
+  const accounts = useMemo(() => accountsData?.accounts ?? [], [accountsData]);
+  const budgets = useMemo(() => budgetsData?.budgets ?? [], [budgetsData]);
+  const incomeSources = useMemo(() => incomeSourcesData?.incomeSources ?? [], [incomeSourcesData]);
 
   const handlePeriodChange = useCallback((value: PeriodValue) => {
     setPeriodValue(value);
@@ -58,58 +105,10 @@ export function useTransactionData(): UseTransactionDataReturn {
     setWidgetRefreshKey((k) => k + 1);
   }, []);
 
+  // fetchData now revalidates SWR cache instead of manual fetch
   const fetchData = useCallback(async () => {
-    // Calculate monthly date range
-    const startDate = new Date(periodValue.year, periodValue.month - 1, 1);
-    const endDate = new Date(periodValue.year, periodValue.month, 0, 23, 59, 59);
-
-    try {
-      const [transactionsRes, categoriesRes, accountsRes, budgetsRes, incomeSourcesRes] =
-        await Promise.all([
-          fetch(
-            `/api/app/transactions?limit=500&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}${vm}`
-          ),
-          fetch("/api/app/categories"),
-          fetch(`/api/app/accounts${isDuoPlan ? `?viewMode=${viewMode}` : ''}`),
-          fetch("/api/app/budgets"),
-          fetch(`/api/app/income-sources${isDuoPlan ? `?viewMode=${viewMode}` : ''}`),
-        ]);
-
-      if (transactionsRes.ok) {
-        const data = await transactionsRes.json();
-        setTransactions(data.transactions || []);
-      }
-
-      if (categoriesRes.ok) {
-        const data = await categoriesRes.json();
-        setCategories(data.flatCategories || []);
-      }
-
-      if (accountsRes.ok) {
-        const data = await accountsRes.json();
-        setAccounts(data.accounts || []);
-      }
-
-      if (budgetsRes.ok) {
-        const data = await budgetsRes.json();
-        setBudgets(data.budgets || []);
-      }
-
-      if (incomeSourcesRes.ok) {
-        const data = await incomeSourcesRes.json();
-        setIncomeSources(data.incomeSources || []);
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("Erro ao carregar dados");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [periodValue, viewMode, isDuoPlan, vm]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    await mutateTransactions();
+  }, [mutateTransactions]);
 
   return {
     // Data

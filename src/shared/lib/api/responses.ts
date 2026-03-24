@@ -127,14 +127,19 @@ export function cachedResponse<T>(
     maxAge?: number;
     staleWhileRevalidate?: number;
     isPrivate?: boolean;
+    serverTiming?: string;
   } = {}
 ) {
-  const { maxAge = 30, staleWhileRevalidate = 300, isPrivate = true } = options;
+  const { maxAge = 30, staleWhileRevalidate = 300, isPrivate = true, serverTiming } = options;
   const cacheControl = `${isPrivate ? "private" : "public"}, max-age=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`;
 
-  return NextResponse.json(data, {
-    headers: {
-      "Cache-Control": cacheControl,
-    },
-  });
+  const headers: Record<string, string> = {
+    "Cache-Control": cacheControl,
+  };
+
+  if (serverTiming) {
+    headers["Server-Timing"] = serverTiming;
+  }
+
+  return NextResponse.json(data, { headers });
 }

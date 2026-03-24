@@ -10,6 +10,7 @@ import {
   validationError,
   forbiddenError,
   successResponse,
+  cachedResponse,
   errorResponse,
   safePagination,
 } from "@/shared/lib/api/responses";
@@ -32,13 +33,22 @@ export const GET = withAuthRequired(async (req, context) => {
   const viewMode = parseViewMode(searchParams);
   const { limit, offset } = safePagination(searchParams);
 
-  const budgetIds = await getUserBudgetIds(session.user.id);
+  // Fetch budgetIds and memberId in parallel to avoid waterfall
+  const budgetIdsPromise = getUserBudgetIds(session.user.id);
+  const budgetIds = await budgetIdsPromise;
   if (budgetIds.length === 0) {
     return successResponse({ transactions: [], total: 0 });
   }
 
   const activeBudgetId = budgetId || budgetIds[0];
-  const userMemberId = await getUserMemberIdInBudget(session.user.id, activeBudgetId);
+
+  // Run memberId + partnerPrivacy in parallel
+  const [userMemberId, partnerPrivacy] = await Promise.all([
+    getUserMemberIdInBudget(session.user.id, activeBudgetId),
+    viewMode === "all"
+      ? getPartnerPrivacyLevel(session.user.id, activeBudgetId)
+      : Promise.resolve(undefined),
+  ]);
 
   // Build conditions
   const conditions = [
@@ -49,9 +59,6 @@ export const GET = withAuthRequired(async (req, context) => {
 
   // View mode filtering on transactions.memberId
   if (userMemberId) {
-    const partnerPrivacy = viewMode === "all"
-      ? await getPartnerPrivacyLevel(session.user.id, activeBudgetId)
-      : undefined;
     const viewCondition = getViewModeCondition({
       viewMode,
       userMemberId,
@@ -96,14 +103,14 @@ export const GET = withAuthRequired(async (req, context) => {
     .limit(limit)
     .offset(offset);
 
-  return successResponse({
+  return cachedResponse({
     transactions: userTransactions.map((t) => ({
       ...t.transaction,
       account: t.account,
       category: t.category,
       incomeSource: t.incomeSource,
     })),
-  });
+  }, { maxAge: 15, staleWhileRevalidate: 60 });
 });
 
 // POST - Create a new transaction (with installment support)
