@@ -31,6 +31,7 @@ import {
   CreditCardSpending,
   ScheduledTransactionsList,
   SharedExpensesBalance,
+  GettingStartedChecklist,
 } from "@/features/dashboard/ui";
 import { useDashboardData, type DashboardResponse } from "@/features/dashboard/hooks/use-dashboard-data";
 
@@ -152,6 +153,9 @@ export function DashboardClient({
           </Button>
         </div>
       )}
+
+      {/* Getting Started Checklist */}
+      <GettingStartedChecklist />
 
       {/* Quick Stats */}
       <SummaryCardGrid

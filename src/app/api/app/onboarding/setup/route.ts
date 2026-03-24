@@ -67,6 +67,7 @@ const setupSchema = z.object({
     )
     .min(1),
   partnerEmail: z.string().email().optional(),
+  privacyMode: z.enum(["visible", "unified", "private"]).optional(),
   categoryOverrides: z
     .array(
       z.object({
@@ -150,7 +151,10 @@ export const POST = withAuthRequired(async (request, context) => {
       // Create budget
       const [newBudget] = await tx
         .insert(budgets)
-        .values({ name: `Orçamento De ${displayName}` })
+        .values({
+          name: `Orçamento De ${displayName}`,
+          ...(data.privacyMode ? { privacyMode: data.privacyMode } : {}),
+        })
         .returning();
 
       // Ensure groups exist

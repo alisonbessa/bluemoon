@@ -143,6 +143,19 @@ export function getTemplateByCodename(codename: string): BudgetTemplate | undefi
 }
 
 /**
+ * Get the default template for a plan type.
+ * Used when skipping the profile selection step.
+ */
+export function getDefaultTemplateForPlan(planCodename: string): BudgetTemplate {
+  const planType = planCodename === "duo" ? "duo" : "solo";
+  const defaults: Record<string, string> = {
+    solo: "solteiro",
+    duo: "casal_sem_filhos",
+  };
+  return TEMPLATES.find((t) => t.codename === defaults[planType])!;
+}
+
+/**
  * Calculate planned amounts from a template and total income
  * Returns categories with plannedAmount in cents
  */

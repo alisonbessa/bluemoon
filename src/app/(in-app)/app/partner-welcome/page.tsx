@@ -16,6 +16,7 @@ import {
   Lock,
   MessageCircle,
   Users,
+  Plus,
 } from "lucide-react";
 
 interface BudgetsResponse {
@@ -162,7 +163,7 @@ export default function PartnerWelcomePage() {
         </div>
       ),
     },
-    // Step 2: Quick start
+    // Step 2: Quick start with quick wins
     {
       content: (
         <div className="text-center space-y-6">
@@ -174,20 +175,38 @@ export default function PartnerWelcomePage() {
           <div>
             <h2 className="text-2xl font-bold mb-2">Comece agora!</h2>
             <p className="text-muted-foreground">
-              A forma mais rápida de registrar gastos é por mensagem.
-              Conecte o WhatsApp ou Telegram nas configurações.
+              Dicas para aproveitar o app ao máximo.
             </p>
           </div>
           <div className="text-left space-y-3">
-            <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 p-4">
-              <p className="text-sm font-medium mb-2">
-                Dica: registre seu primeiro gasto!
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Use o botão roxo &quot;+ Nova Transação&quot; no menu
-                lateral ou pressione Ctrl+N de qualquer página.
-              </p>
-            </div>
+            <Card>
+              <CardContent className="p-4 flex items-start gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                  <Plus className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Registre seu primeiro gasto</p>
+                  <p className="text-xs text-muted-foreground">
+                    Use o botão &quot;+ Nova Transação&quot; no menu ou Ctrl+N.
+                    Leva menos de 10 segundos.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4 flex items-start gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                  <MessageCircle className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Conecte o WhatsApp</p>
+                  <p className="text-xs text-muted-foreground">
+                    Registre gastos por mensagem — é o jeito mais rápido.
+                    Configure em Configurações.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
           <div className="flex gap-3">
             <Button

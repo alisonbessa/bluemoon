@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Button } from "@/shared/ui/button";
+import { Switch } from "@/shared/ui/switch";
 import {
   Select,
   SelectContent,
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui/select";
-import { ArrowRight, ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, ArrowLeft } from "lucide-react";
 import { parseCurrency, formatAmount } from "@/shared/lib/formatters";
 
 export interface IncomeSourceInput {
@@ -29,100 +30,77 @@ export interface AccountInput {
 }
 
 interface StepFinancesProps {
-  incomeSources: IncomeSourceInput[];
-  onIncomeSourcesChange: (sources: IncomeSourceInput[]) => void;
-  accounts: AccountInput[];
-  onAccountsChange: (accounts: AccountInput[]) => void;
+  isDuo: boolean;
+  myIncome: string;
+  onMyIncomeChange: (value: string) => void;
+  partnerIncome: string;
+  onPartnerIncomeChange: (value: string) => void;
+  mainAccountName: string;
+  onMainAccountNameChange: (value: string) => void;
+  hasCreditCard: boolean;
+  onHasCreditCardChange: (value: boolean) => void;
+  creditCardName: string;
+  onCreditCardNameChange: (value: string) => void;
+  creditCardClosingDay?: number;
+  onCreditCardClosingDayChange: (value: number) => void;
+  creditCardDueDay?: number;
+  onCreditCardDueDayChange: (value: number) => void;
+  hasJointAccount: boolean;
+  onHasJointAccountChange: (value: boolean) => void;
+  jointAccountName: string;
+  onJointAccountNameChange: (value: string) => void;
   onNext: () => void;
-  onBack: () => void;
+  onBack?: () => void;
 }
-
-const INCOME_TYPES = [
-  { value: "salary", label: "Salário" },
-  { value: "benefit", label: "Benefício (VR/VA)" },
-  { value: "freelance", label: "Freelance" },
-  { value: "rental", label: "Aluguel" },
-  { value: "investment", label: "Rendimentos" },
-  { value: "other", label: "Outro" },
-];
-
-const ACCOUNT_TYPES = [
-  { value: "checking", label: "Conta Corrente" },
-  { value: "savings", label: "Poupança" },
-  { value: "credit_card", label: "Cartão de Crédito" },
-  { value: "cash", label: "Dinheiro" },
-  { value: "investment", label: "Investimento" },
-  { value: "benefit", label: "Benefício (VR/VA)" },
-];
 
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 export function StepFinances({
-  incomeSources,
-  onIncomeSourcesChange,
-  accounts,
-  onAccountsChange,
+  isDuo,
+  myIncome,
+  onMyIncomeChange,
+  partnerIncome,
+  onPartnerIncomeChange,
+  mainAccountName,
+  onMainAccountNameChange,
+  hasCreditCard,
+  onHasCreditCardChange,
+  creditCardName,
+  onCreditCardNameChange,
+  creditCardClosingDay,
+  onCreditCardClosingDayChange,
+  creditCardDueDay,
+  onCreditCardDueDayChange,
+  hasJointAccount,
+  onHasJointAccountChange,
+  jointAccountName,
+  onJointAccountNameChange,
   onNext,
   onBack,
 }: StepFinancesProps) {
   const [errors, setErrors] = useState<string[]>([]);
 
-  const updateIncomeSource = (
-    index: number,
-    field: keyof IncomeSourceInput,
-    value: string
-  ) => {
-    const updated = [...incomeSources];
-    updated[index] = { ...updated[index], [field]: value };
-    onIncomeSourcesChange(updated);
-  };
-
-  const addIncomeSource = () => {
-    onIncomeSourcesChange([
-      ...incomeSources,
-      { name: "", amount: "", type: "salary" },
-    ]);
-  };
-
-  const removeIncomeSource = (index: number) => {
-    if (incomeSources.length <= 1) return;
-    onIncomeSourcesChange(incomeSources.filter((_, i) => i !== index));
-  };
-
-  const updateAccount = (
-    index: number,
-    field: keyof AccountInput,
-    value: string | number | undefined
-  ) => {
-    const updated = [...accounts];
-    updated[index] = { ...updated[index], [field]: value };
-    onAccountsChange(updated);
-  };
-
-  const addAccount = () => {
-    onAccountsChange([...accounts, { name: "", type: "checking" }]);
-  };
-
-  const removeAccount = (index: number) => {
-    if (accounts.length <= 1) return;
-    onAccountsChange(accounts.filter((_, i) => i !== index));
-  };
+  const myIncomeCents = parseCurrency(myIncome);
+  const partnerIncomeCents = parseCurrency(partnerIncome);
+  const totalIncome = myIncomeCents + (isDuo ? partnerIncomeCents : 0);
 
   const handleNext = () => {
     const newErrors: string[] = [];
 
-    // Validate income sources
-    const hasValidIncome = incomeSources.some(
-      (s) => s.name && parseCurrency(s.amount) > 0
-    );
-    if (!hasValidIncome) {
-      newErrors.push("Informe pelo menos uma fonte de renda com valor");
+    if (myIncomeCents <= 0) {
+      newErrors.push("Informe sua renda mensal");
     }
 
-    // Validate accounts
-    const hasValidAccount = accounts.some((a) => a.name && a.type);
-    if (!hasValidAccount) {
-      newErrors.push("Informe pelo menos uma conta");
+    if (!mainAccountName.trim()) {
+      newErrors.push("Informe o nome da sua conta principal");
+    }
+
+    if (hasCreditCard && !creditCardName.trim()) {
+      newErrors.push("Informe o nome do cartão de crédito");
+    }
+
+    if (isDuo && hasJointAccount && !jointAccountName.trim()) {
+      newErrors.push("Informe o nome da conta conjunta");
     }
 
     if (newErrors.length > 0) {
@@ -134,11 +112,6 @@ export function StepFinances({
     onNext();
   };
 
-  const totalIncome = incomeSources.reduce(
-    (sum, s) => sum + parseCurrency(s.amount),
-    0
-  );
-
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -148,146 +121,88 @@ export function StepFinances({
         </p>
       </div>
 
-      {/* Income Sources */}
+      {/* Income */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label className="text-base font-semibold">Fontes de renda</Label>
-          <Button variant="ghost" size="sm" onClick={addIncomeSource}>
-            <Plus className="h-4 w-4 mr-1" />
-            Adicionar
-          </Button>
-        </div>
+        <Label className="text-base font-semibold">Renda mensal</Label>
 
-        {incomeSources.map((source, index) => (
-          <Card key={index}>
-            <CardContent className="p-4 space-y-3">
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <Label className="text-xs">Nome</Label>
-                  <Input
-                    placeholder="Ex: Salário"
-                    value={source.name}
-                    onChange={(e) =>
-                      updateIncomeSource(index, "name", e.target.value)
-                    }
-                  />
-                </div>
-                <div className="w-32">
-                  <Label className="text-xs">Tipo</Label>
-                  <Select
-                    value={source.type}
-                    onValueChange={(v) =>
-                      updateIncomeSource(index, "type", v)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {INCOME_TYPES.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex items-end gap-2">
-                <div className="flex-1">
-                  <Label className="text-xs">Valor mensal (R$)</Label>
-                  <Input
-                    placeholder="0,00"
-                    value={source.amount}
-                    onChange={(e) =>
-                      updateIncomeSource(index, "amount", e.target.value)
-                    }
-                  />
-                </div>
-                {incomeSources.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeIncomeSource(index)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        <Card>
+          <CardContent className="p-4 space-y-4">
+            <div>
+              <Label className="text-xs">
+                {isDuo ? "Sua renda (R$)" : "Renda mensal (R$)"}
+              </Label>
+              <Input
+                placeholder="0,00"
+                value={myIncome}
+                onChange={(e) => onMyIncomeChange(e.target.value)}
+              />
+            </div>
 
-        {totalIncome > 0 && (
-          <p className="text-sm text-muted-foreground text-right">
-            Renda total: <strong>R$ {formatAmount(totalIncome)}</strong>
-          </p>
-        )}
+            {isDuo && (
+              <div>
+                <Label className="text-xs">Renda do parceiro(a) (R$)</Label>
+                <Input
+                  placeholder="0,00"
+                  value={partnerIncome}
+                  onChange={(e) => onPartnerIncomeChange(e.target.value)}
+                />
+              </div>
+            )}
+
+            {totalIncome > 0 && (
+              <p className="text-sm text-muted-foreground text-right">
+                {isDuo ? "Renda total do casal: " : ""}
+                <strong>R$ {formatAmount(totalIncome)}</strong>
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Accounts */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label className="text-base font-semibold">Contas e cartões</Label>
-          <Button variant="ghost" size="sm" onClick={addAccount}>
-            <Plus className="h-4 w-4 mr-1" />
-            Adicionar
-          </Button>
-        </div>
+        <Label className="text-base font-semibold">Contas</Label>
 
-        {accounts.map((account, index) => (
-          <Card key={index}>
-            <CardContent className="p-4 space-y-3">
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <Label className="text-xs">Nome</Label>
+        {/* Main checking account */}
+        <Card>
+          <CardContent className="p-4">
+            <Label className="text-xs">Conta principal</Label>
+            <Input
+              placeholder="Ex: Nubank, Itaú, Inter..."
+              value={mainAccountName}
+              onChange={(e) => onMainAccountNameChange(e.target.value)}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Credit card toggle */}
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Tenho cartão de crédito</Label>
+              <Switch
+                checked={hasCreditCard}
+                onCheckedChange={onHasCreditCardChange}
+              />
+            </div>
+
+            {hasCreditCard && (
+              <>
+                <div>
+                  <Label className="text-xs">Nome do cartão</Label>
                   <Input
-                    placeholder="Ex: Nubank"
-                    value={account.name}
-                    onChange={(e) =>
-                      updateAccount(index, "name", e.target.value)
-                    }
+                    placeholder="Ex: Nubank Mastercard"
+                    value={creditCardName}
+                    onChange={(e) => onCreditCardNameChange(e.target.value)}
                   />
                 </div>
-                <div className="w-40">
-                  <Label className="text-xs">Tipo</Label>
-                  <Select
-                    value={account.type}
-                    onValueChange={(v) => updateAccount(index, "type", v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ACCOUNT_TYPES.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {accounts.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="self-end text-muted-foreground hover:text-destructive"
-                    onClick={() => removeAccount(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-
-              {account.type === "credit_card" && (
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <Label className="text-xs">Dia de fechamento</Label>
                     <Select
-                      value={account.closingDay?.toString() || ""}
+                      value={creditCardClosingDay?.toString() || ""}
                       onValueChange={(v) =>
-                        updateAccount(index, "closingDay", parseInt(v))
+                        onCreditCardClosingDayChange(parseInt(v))
                       }
                     >
                       <SelectTrigger>
@@ -305,9 +220,9 @@ export function StepFinances({
                   <div className="flex-1">
                     <Label className="text-xs">Dia de vencimento</Label>
                     <Select
-                      value={account.dueDay?.toString() || ""}
+                      value={creditCardDueDay?.toString() || ""}
                       onValueChange={(v) =>
-                        updateAccount(index, "dueDay", parseInt(v))
+                        onCreditCardDueDayChange(parseInt(v))
                       }
                     >
                       <SelectTrigger>
@@ -323,10 +238,36 @@ export function StepFinances({
                     </Select>
                   </div>
                 </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Joint account toggle (Duo only) */}
+        {isDuo && (
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Temos conta conjunta</Label>
+                <Switch
+                  checked={hasJointAccount}
+                  onCheckedChange={onHasJointAccountChange}
+                />
+              </div>
+
+              {hasJointAccount && (
+                <div>
+                  <Label className="text-xs">Nome da conta conjunta</Label>
+                  <Input
+                    placeholder="Ex: Conta conjunta Itaú"
+                    value={jointAccountName}
+                    onChange={(e) => onJointAccountNameChange(e.target.value)}
+                  />
+                </div>
               )}
             </CardContent>
           </Card>
-        ))}
+        )}
       </div>
 
       {errors.length > 0 && (
@@ -338,10 +279,17 @@ export function StepFinances({
       )}
 
       <div className="flex gap-3">
-        <Button variant="outline" size="lg" onClick={onBack} className="flex-1">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar
-        </Button>
+        {onBack && (
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={onBack}
+            className="flex-1"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar
+          </Button>
+        )}
         <Button size="lg" onClick={handleNext} className="flex-1">
           Próximo
           <ArrowRight className="ml-2 h-4 w-4" />
