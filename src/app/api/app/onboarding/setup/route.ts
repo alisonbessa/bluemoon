@@ -110,24 +110,37 @@ export const POST = withAuthRequired(async (request, context) => {
     );
     const firstName = displayName.split(" ")[0];
 
-    // Find existing budget (created on signup)
-    const existingMembership = await db
+    // Find existing budget (created on signup) or create one for legacy users
+    let existingMembership = await db
       .select({ budgetId: budgetMembers.budgetId, memberId: budgetMembers.id })
       .from(budgetMembers)
       .where(eq(budgetMembers.userId, userId))
       .limit(1);
 
     if (!existingMembership.length) {
-      return errorResponse("Nenhum orcamento encontrado. Tente fazer login novamente.", 404);
+      // Legacy user without budget - create one now
+      const [newBudget] = await db
+        .insert(budgets)
+        .values({ name: `Orcamento de ${displayName}` })
+        .returning();
+
+      const [newMember] = await db
+        .insert(budgetMembers)
+        .values({
+          budgetId: newBudget.id,
+          userId,
+          name: displayName,
+          type: "owner",
+          color: "#8b5cf6",
+        })
+        .returning();
+
+      existingMembership = [{ budgetId: newBudget.id, memberId: newMember.id }];
+      logger.info(`Created budget for legacy user ${session.user.email}`);
     }
 
     const budgetId = existingMembership[0].budgetId;
     const ownerMemberId = existingMembership[0].memberId;
-
-    // Check if setup was already completed
-    if (user?.displayName && user?.displayName !== user?.name) {
-      // Already configured - update instead of failing
-    }
 
     // Get template
     const template = getTemplateByCodename(data.templateCodename);
