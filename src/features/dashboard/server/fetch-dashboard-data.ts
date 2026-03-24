@@ -13,7 +13,7 @@ import {
   recurringBills,
 } from "@/db/schema";
 import { eq, and, inArray, gte, lte, sql, isNotNull, isNull, or } from "drizzle-orm";
-import { ensurePendingTransactionsForMonth } from "@/shared/lib/budget/pending-transactions";
+import { ensurePendingTransactionsForMonth, autoActivateCurrentMonth } from "@/shared/lib/budget/pending-transactions";
 import {
   getUserBudgetIds,
   getUserMemberIdInBudget,
@@ -102,8 +102,9 @@ export async function fetchDashboardData(opts: {
     ? await getPartnerPrivacyLevel(userId, budgetId)
     : undefined;
 
-  // Ensure pending transactions exist (idempotent)
+  // Ensure pending transactions exist and auto-activate current month
   await ensurePendingTransactionsForMonth(budgetId, year, month);
+  await autoActivateCurrentMonth(budgetId, year, month);
 
   // Date range
   const startDate = new Date(year, month - 1, 1);

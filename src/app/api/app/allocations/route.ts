@@ -3,7 +3,7 @@ import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionReq
 import { db } from "@/db";
 import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus, recurringBills, financialAccounts, budgets } from "@/db/schema";
 import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
-import { ensurePendingTransactionsForMonth } from "@/shared/lib/budget/pending-transactions";
+import { ensurePendingTransactionsForMonth, autoActivateCurrentMonth } from "@/shared/lib/budget/pending-transactions";
 import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import {
   validationError,
@@ -32,9 +32,9 @@ export const GET = withAuthRequired(async (req, context) => {
     return forbiddenError("Budget not found or access denied");
   }
 
-  // Lazy generation: ensure pending transactions exist for this month
-  // This is idempotent - it only creates transactions that don't exist yet
+  // Lazy generation: ensure pending transactions exist and auto-activate current month
   await ensurePendingTransactionsForMonth(budgetId, year, month);
+  await autoActivateCurrentMonth(budgetId, year, month);
 
   // Get user's member ID and budget privacy mode for visibility filtering
   const userMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
