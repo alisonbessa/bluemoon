@@ -96,6 +96,9 @@ export async function handleExpenseConfirmation(
       `*Despesa confirmada!*\n\n` +
         `Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
         `Categoria: ${context.pendingExpense.categoryName}\n` +
+        (context.pendingExpense.paymentMethodLabel
+          ? `Pagamento: ${context.pendingExpense.paymentMethodLabel}\n`
+          : "") +
         (context.pendingExpense.description
           ? `Descrição: ${context.pendingExpense.description}\n\n`
           : "\n") +
@@ -213,6 +216,9 @@ export async function handleExpenseConfirmation(
         `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
         `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(totalInstallments)}\n` +
         `Categoria: ${context.pendingExpense.categoryName}\n` +
+        (context.pendingExpense.paymentMethodLabel
+          ? `Pagamento: ${context.pendingExpense.paymentMethodLabel}\n`
+          : "") +
         (context.pendingExpense.accountName
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +
@@ -258,6 +264,9 @@ export async function handleExpenseConfirmation(
       `*Gasto registrado!*\n\n` +
         `Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
         `Categoria: ${context.pendingExpense.categoryName}\n` +
+        (context.pendingExpense.paymentMethodLabel
+          ? `Pagamento: ${context.pendingExpense.paymentMethodLabel}\n`
+          : "") +
         (context.pendingExpense.accountName
           ? `Conta: ${context.pendingExpense.accountName}\n`
           : "") +

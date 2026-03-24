@@ -39,6 +39,9 @@ export interface MessagingAdapter {
   // WhatsApp: buttons
   sendNewCategoryPrompt(chatId: ChatId, text: string, suggestedName: string): Promise<MessageId>;
 
+  // Present a new account creation prompt (create or choose existing)
+  sendNewAccountPrompt(chatId: ChatId, text: string, suggestedName: string): Promise<MessageId>;
+
   // Present a group selection list
   sendGroupList(chatId: ChatId, text: string, groups: Choice[]): Promise<MessageId>;
 
@@ -68,7 +71,8 @@ export type ConversationStep =
   | "AWAITING_TRANSFER_DEST"
   | "AWAITING_NEW_CATEGORY_CONFIRM"
   | "AWAITING_NEW_CATEGORY_NAME"
-  | "AWAITING_NEW_CATEGORY_GROUP";
+  | "AWAITING_NEW_CATEGORY_GROUP"
+  | "AWAITING_NEW_ACCOUNT_CONFIRM";
 
 export interface ConversationContext {
   pendingExpense?: {
@@ -78,6 +82,7 @@ export interface ConversationContext {
     categoryName?: string;
     accountId?: string;
     accountName?: string;
+    paymentMethodLabel?: string; // e.g., "💳 Cartão de crédito", "📱 PIX"
     isInstallment?: boolean;
     totalInstallments?: number;
   };
@@ -99,6 +104,10 @@ export interface ConversationContext {
     customName?: string;
     suggestedGroupId?: string;
     groupId?: string;
+  };
+  pendingNewAccount?: {
+    suggestedName: string;
+    suggestedType: string; // credit_card, checking, etc.
   };
   verificationCode?: string;
   verificationExpiry?: string;
@@ -130,6 +139,7 @@ export interface ExtractedExpenseData {
   description?: string;
   categoryHint?: string;
   accountHint?: string;
+  paymentMethodHint?: string; // pix, cartao_credito, cartao_debito, boleto, dinheiro, transferencia
   date?: Date;
   isInstallment?: boolean;
   totalInstallments?: number;

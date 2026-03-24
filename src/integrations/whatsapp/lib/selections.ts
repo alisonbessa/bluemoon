@@ -22,6 +22,7 @@ import {
 } from "@/shared/lib/billing-cycle";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { formatCurrency } from "@/shared/lib/formatters";
+import { getAccountIcon, getAccountTypeName } from "@/integrations/messaging/lib/ai-handlers/account-utils";
 
 const logger = createLogger("whatsapp:selections");
 const adapter = new WhatsAppAdapter();
@@ -75,6 +76,9 @@ export async function handleCategorySelection(
     message += `Valor: ${formatCurrency(context.pendingExpense.amount)}\n`;
   }
 
+  if (context.pendingExpense.paymentMethodLabel) {
+    message += `Pagamento: ${context.pendingExpense.paymentMethodLabel}\n`;
+  }
   if (context.pendingExpense.accountName) {
     message += `Conta: ${context.pendingExpense.accountName}\n`;
   }
@@ -157,6 +161,9 @@ export async function handleAccountSelection(
     phoneNumber,
     `*Registrar gasto*\n\n` +
       valueText +
+      (context.pendingExpense.paymentMethodLabel
+        ? `Pagamento: ${context.pendingExpense.paymentMethodLabel}\n`
+        : "") +
       `Conta: ${account.name}\n` +
       (context.pendingExpense.description
         ? `Descrição: ${context.pendingExpense.description}\n\n`
@@ -531,4 +538,121 @@ export async function handleGroupSelection(
         `Envie *desfazer* para remover.`
     );
   }
+}
+
+// ============================================
+// Account Creation Handlers
+// ============================================
+
+export async function handleNewAccountAccept(phoneNumber: string): Promise<void> {
+  const [waUser] = await db
+    .select()
+    .from(whatsappUsers)
+    .where(eq(whatsappUsers.phoneNumber, phoneNumber));
+
+  if (!waUser?.userId) return;
+
+  const context = (waUser.context || {}) as ConversationContext;
+
+  if (!context.pendingNewAccount || !context.pendingExpense) {
+    await adapter.sendMessage(phoneNumber, "Erro: dados incompletos. Tente novamente.");
+    await adapter.updateState(phoneNumber, "IDLE", {});
+    return;
+  }
+
+  // Delete intermediate messages
+  if (context.messagesToDelete && context.messagesToDelete.length > 0) {
+    await adapter.deleteMessages(phoneNumber, context.messagesToDelete);
+  }
+
+  const budgetInfo = await getUserBudgetInfo(waUser.userId);
+  if (!budgetInfo) {
+    await adapter.sendMessage(phoneNumber, "Erro ao carregar informações. Tente novamente.");
+    return;
+  }
+
+  const accountName = context.pendingNewAccount.suggestedName;
+  const accountType = context.pendingNewAccount.suggestedType;
+
+  // Create the new account
+  const [newAccount] = await db
+    .insert(financialAccounts)
+    .values({
+      budgetId: budgetInfo.budget.id,
+      name: accountName,
+      type: accountType as "credit_card" | "checking" | "savings" | "cash" | "investment" | "benefit",
+      balance: 0,
+      isArchived: false,
+    })
+    .returning();
+
+  const typeName = getAccountTypeName(accountType);
+
+  // Now proceed to category selection with the new account
+  const catMsgId = await adapter.sendChoiceList(
+    phoneNumber,
+    `*Conta "${accountName}" criada!* (${typeName})\n\n` +
+      `Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
+      (context.pendingExpense.paymentMethodLabel
+        ? `Pagamento: ${context.pendingExpense.paymentMethodLabel}\n`
+        : "") +
+      `Conta: ${accountName}\n` +
+      (context.pendingExpense.description
+        ? `Descrição: ${context.pendingExpense.description}\n\n`
+        : "\n") +
+      `Selecione a categoria:`,
+    budgetInfo.categories.map((c) => ({
+      id: `cat_${c.id}`,
+      label: `${c.icon || ""} ${c.name}`,
+    })),
+    "Categorias"
+  );
+
+  await adapter.updateState(phoneNumber, "AWAITING_CATEGORY", {
+    pendingExpense: {
+      ...context.pendingExpense,
+      accountId: newAccount.id,
+      accountName: newAccount.name,
+    },
+    messagesToDelete: [catMsgId],
+    lastAILogId: context.lastAILogId,
+  });
+}
+
+export async function handleNewAccountExisting(phoneNumber: string): Promise<void> {
+  const [waUser] = await db
+    .select()
+    .from(whatsappUsers)
+    .where(eq(whatsappUsers.phoneNumber, phoneNumber));
+
+  if (!waUser?.userId) return;
+
+  const budgetInfo = await getUserBudgetInfo(waUser.userId);
+  if (!budgetInfo) {
+    await adapter.sendMessage(phoneNumber, "Erro ao carregar informações. Tente novamente.");
+    return;
+  }
+
+  const context = (waUser.context || {}) as ConversationContext;
+
+  // Delete intermediate messages
+  if (context.messagesToDelete && context.messagesToDelete.length > 0) {
+    await adapter.deleteMessages(phoneNumber, context.messagesToDelete);
+  }
+
+  const accMsgId = await adapter.sendChoiceList(
+    phoneNumber,
+    `*Selecione uma conta existente:*`,
+    budgetInfo.accounts.map((a) => ({
+      id: `acc_${a.id}`,
+      label: `${getAccountIcon(a.type)} ${a.name}`,
+    })),
+    "Contas"
+  );
+
+  await adapter.updateState(phoneNumber, "AWAITING_ACCOUNT", {
+    pendingExpense: context.pendingExpense,
+    messagesToDelete: [accMsgId],
+    lastAILogId: context.lastAILogId,
+  });
 }

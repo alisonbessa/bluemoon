@@ -15,7 +15,8 @@ export type TelegramConversationStep =
   | "AWAITING_TRANSFER_DEST"
   | "AWAITING_NEW_CATEGORY_CONFIRM"    // User can accept suggested category or choose existing
   | "AWAITING_NEW_CATEGORY_NAME"       // User is typing a custom name
-  | "AWAITING_NEW_CATEGORY_GROUP";     // User is selecting a group
+  | "AWAITING_NEW_CATEGORY_GROUP"      // User is selecting a group
+  | "AWAITING_NEW_ACCOUNT_CONFIRM";    // User can accept suggested account or choose existing
 
 // Context data stored during conversation
 export interface TelegramConversationContext {
@@ -26,6 +27,7 @@ export interface TelegramConversationContext {
     categoryName?: string;
     accountId?: string;
     accountName?: string;
+    paymentMethodLabel?: string;
     isInstallment?: boolean;
     totalInstallments?: number;
   };
@@ -47,6 +49,10 @@ export interface TelegramConversationContext {
     customName?: string;        // User's custom name if they changed it
     suggestedGroupId?: string;  // AI's suggested group
     groupId?: string;           // Selected group
+  };
+  pendingNewAccount?: {
+    suggestedName: string;
+    suggestedType: string;
   };
   verificationCode?: string;
   verificationExpiry?: string;

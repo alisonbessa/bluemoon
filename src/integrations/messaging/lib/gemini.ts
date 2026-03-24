@@ -174,6 +174,7 @@ function normalizeExtractedData(
         description: data.description as string | undefined,
         categoryHint: data.categoryHint as string | undefined,
         accountHint: data.accountHint as string | undefined,
+        paymentMethodHint: normalizePaymentMethodHint(data.paymentMethodHint as string | undefined),
         date: data.date ? new Date(data.date as string) : undefined,
         isInstallment: data.isInstallment === true,
         totalInstallments: normalizeInstallments(data.totalInstallments),
@@ -268,6 +269,16 @@ function normalizeScope(
 ): "individual" | "couple" | undefined {
   if (scope === "individual" || scope === "couple") return scope;
   return undefined;
+}
+
+/**
+ * Normalize payment method hint
+ */
+function normalizePaymentMethodHint(hint: string | undefined): string | undefined {
+  if (!hint) return undefined;
+  const valid = ["pix", "cartao_credito", "cartao_debito", "boleto", "dinheiro", "transferencia"];
+  const normalized = hint.toLowerCase().replace(/\s+/g, "_");
+  return valid.includes(normalized) ? normalized : undefined;
 }
 
 /**
