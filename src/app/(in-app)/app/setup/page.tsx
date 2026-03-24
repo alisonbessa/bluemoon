@@ -99,16 +99,16 @@ export default function SetupPage() {
       });
     }
 
-    const accounts = [
-      { name: mainAccountName.trim(), type: "checking" as const },
+    const accounts: { name: string; type: string; closingDay?: number; dueDay?: number }[] = [
+      { name: mainAccountName.trim(), type: "checking" },
     ];
     if (hasCreditCard && creditCardName.trim()) {
       accounts.push({
         name: creditCardName.trim(),
-        type: "credit_card" as const,
+        type: "credit_card",
         ...(creditCardClosingDay ? { closingDay: creditCardClosingDay } : {}),
         ...(creditCardDueDay ? { dueDay: creditCardDueDay } : {}),
-      } as typeof accounts[0]);
+      });
     }
     if (isDuo && hasJointAccount && jointAccountName.trim()) {
       accounts.push({
