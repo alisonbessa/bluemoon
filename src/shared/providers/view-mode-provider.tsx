@@ -25,7 +25,7 @@ const STORAGE_KEY = "hivebudget_view_mode";
 export function ViewModeProvider({ children }: { children: React.ReactNode }) {
   const { currentPlan } = useCurrentPlan();
   const { budget } = usePrimaryBudget();
-  const isDuoPlan = (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2;
+  const isDuoPlan = currentPlan?.codename === "duo" || (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2;
   const isUnifiedPrivacy = budget?.privacyMode === "unified";
 
   const [viewMode, setViewModeState] = useState<ViewMode>("mine");

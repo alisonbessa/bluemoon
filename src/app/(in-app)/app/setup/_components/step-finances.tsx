@@ -6,15 +6,10 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Button } from "@/shared/ui/button";
 import { Switch } from "@/shared/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
 import { ArrowRight, ArrowLeft } from "lucide-react";
-import { parseCurrency, formatAmount } from "@/shared/lib/formatters";
+import { DayPicker } from "@/shared/ui/day-picker";
+import { formatAmount } from "@/shared/lib/formatters";
+import { CurrencyInput } from "@/shared/ui/currency-input";
 
 export interface IncomeSourceInput {
   name: string;
@@ -31,10 +26,10 @@ export interface AccountInput {
 
 interface StepFinancesProps {
   isDuo: boolean;
-  myIncome: string;
-  onMyIncomeChange: (value: string) => void;
-  partnerIncome: string;
-  onPartnerIncomeChange: (value: string) => void;
+  myIncome: number;
+  onMyIncomeChange: (value: number) => void;
+  partnerIncome: number;
+  onPartnerIncomeChange: (value: number) => void;
   mainAccountName: string;
   onMainAccountNameChange: (value: string) => void;
   hasCreditCard: boolean;
@@ -52,8 +47,6 @@ interface StepFinancesProps {
   onNext: () => void;
   onBack?: () => void;
 }
-
-const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 export function StepFinances({
   isDuo,
@@ -80,14 +73,12 @@ export function StepFinances({
 }: StepFinancesProps) {
   const [errors, setErrors] = useState<string[]>([]);
 
-  const myIncomeCents = parseCurrency(myIncome);
-  const partnerIncomeCents = parseCurrency(partnerIncome);
-  const totalIncome = myIncomeCents + (isDuo ? partnerIncomeCents : 0);
+  const totalIncome = myIncome + (isDuo ? partnerIncome : 0);
 
   const handleNext = () => {
     const newErrors: string[] = [];
 
-    if (myIncomeCents <= 0) {
+    if (myIncome <= 0) {
       newErrors.push("Informe sua renda mensal");
     }
 
@@ -129,22 +120,20 @@ export function StepFinances({
           <CardContent className="p-4 space-y-4">
             <div>
               <Label className="text-xs">
-                {isDuo ? "Sua renda (R$)" : "Renda mensal (R$)"}
+                {isDuo ? "Sua renda" : "Renda mensal"}
               </Label>
-              <Input
-                placeholder="0,00"
+              <CurrencyInput
                 value={myIncome}
-                onChange={(e) => onMyIncomeChange(e.target.value)}
+                onChange={onMyIncomeChange}
               />
             </div>
 
             {isDuo && (
               <div>
-                <Label className="text-xs">Renda do parceiro(a) (R$)</Label>
-                <Input
-                  placeholder="0,00"
+                <Label className="text-xs">Renda do parceiro(a)</Label>
+                <CurrencyInput
                   value={partnerIncome}
-                  onChange={(e) => onPartnerIncomeChange(e.target.value)}
+                  onChange={onPartnerIncomeChange}
                 />
               </div>
             )}
@@ -199,43 +188,19 @@ export function StepFinances({
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <Label className="text-xs">Dia de fechamento</Label>
-                    <Select
-                      value={creditCardClosingDay?.toString() || ""}
-                      onValueChange={(v) =>
-                        onCreditCardClosingDayChange(parseInt(v))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Dia" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DAYS.map((d) => (
-                          <SelectItem key={d} value={d.toString()}>
-                            {d}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <DayPicker
+                      value={creditCardClosingDay}
+                      onChange={onCreditCardClosingDayChange}
+                      placeholder="Fechamento"
+                    />
                   </div>
                   <div className="flex-1">
                     <Label className="text-xs">Dia de vencimento</Label>
-                    <Select
-                      value={creditCardDueDay?.toString() || ""}
-                      onValueChange={(v) =>
-                        onCreditCardDueDayChange(parseInt(v))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Dia" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DAYS.map((d) => (
-                          <SelectItem key={d} value={d.toString()}>
-                            {d}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <DayPicker
+                      value={creditCardDueDay}
+                      onChange={onCreditCardDueDayChange}
+                      placeholder="Vencimento"
+                    />
                   </div>
                 </div>
               </>

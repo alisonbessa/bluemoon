@@ -1,9 +1,11 @@
 import { db } from "@/db";
 import { plans } from "@/db/schema/plans";
 import { users } from "@/db/schema/user";
+import { budgets, budgetMembers } from "@/db/schema";
 import { render } from "@react-email/components";
 import { eq } from "drizzle-orm";
 import { appConfig } from "../config";
+import { capitalizeWords } from "../utils";
 import Welcome from "@/emails/Welcome";
 import WelcomeBeta from "@/emails/WelcomeBeta";
 import sendMail from "../email/sendMail";
@@ -44,6 +46,31 @@ const onUserCreate = async (newUser: {
     } catch (error) {
       logger.error("Error assigning beta tester role", error);
     }
+  }
+
+  // Create an empty budget so the user always has a budgetId
+  try {
+    const displayName = capitalizeWords(newUser.name || "");
+    const budgetName = displayName
+      ? `Orcamento de ${displayName}`
+      : "Meu Orcamento";
+
+    const [newBudget] = await db
+      .insert(budgets)
+      .values({ name: budgetName })
+      .returning();
+
+    await db.insert(budgetMembers).values({
+      budgetId: newBudget.id,
+      userId: newUser.id,
+      name: displayName || "Eu",
+      type: "owner",
+      color: "#8b5cf6",
+    });
+
+    logger.info(`Empty budget created for user ${newUser.email}`);
+  } catch (error) {
+    logger.error("Error creating initial budget", error);
   }
 
   if (enableCredits) {

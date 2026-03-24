@@ -123,7 +123,7 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
               key={option.value}
               variant={isActive ? "default" : "outline"}
               className={`w-full justify-start h-auto py-3 px-4 whitespace-normal ${
-                isActive ? "" : "hover:bg-muted/50"
+                isActive ? "text-primary-foreground" : "hover:bg-muted/50"
               }`}
               onClick={() => handleRequestChange(option.value)}
               disabled={isActive || isSaving}
@@ -134,13 +134,13 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="font-medium">{option.label}</span>
                     {isActive && (
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Atual</Badge>
+                      <Badge className="text-[10px] px-1.5 py-0 bg-primary-foreground/20 text-primary-foreground border-0">Atual</Badge>
                     )}
                     {isPending && (
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500 text-amber-600">Pendente</Badge>
                     )}
                   </div>
-                  <span className="text-xs font-normal text-muted-foreground block">
+                  <span className={`text-xs font-normal block ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                     {option.description}
                   </span>
                 </div>

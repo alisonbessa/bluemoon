@@ -9,10 +9,12 @@ import {
   Check,
   X,
   Wallet,
+  CreditCard,
   Plus,
   MessageCircle,
   Users,
   Target,
+  PieChart,
   Compass,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
@@ -21,6 +23,7 @@ import confetti from "canvas-confetti";
 
 interface ChecklistData {
   hasBudget: boolean;
+  hasAccount: boolean;
   hasTransaction: boolean;
   hasGoal: boolean;
   hasMessagingConnected: boolean;
@@ -52,16 +55,25 @@ export function GettingStartedChecklist() {
   const items: ChecklistItem[] = data
     ? [
         {
-          key: "budget",
-          label: "Criar orçamento",
-          icon: Wallet,
-          done: data.hasBudget,
+          key: "account",
+          label: "Adicionar suas contas",
+          icon: CreditCard,
+          done: data.hasAccount,
+          href: "/app/accounts",
         },
         {
           key: "transaction",
           label: "Registrar primeiro gasto",
           icon: Plus,
           done: data.hasTransaction,
+          href: "/app/transactions",
+        },
+        {
+          key: "budget",
+          label: "Fazer seu planejamento",
+          icon: PieChart,
+          done: data.hasBudget,
+          href: "/app/budget",
         },
         {
           key: "goal",
@@ -69,13 +81,6 @@ export function GettingStartedChecklist() {
           icon: Target,
           done: data.hasGoal,
           href: "/app/goals",
-        },
-        {
-          key: "messaging",
-          label: "Conectar WhatsApp ou Telegram",
-          icon: MessageCircle,
-          done: data.hasMessagingConnected,
-          href: "/app/settings",
         },
         ...(data.isDuo
           ? [
@@ -88,6 +93,13 @@ export function GettingStartedChecklist() {
               } as ChecklistItem,
             ]
           : []),
+        {
+          key: "messaging",
+          label: "Conectar WhatsApp ou Telegram",
+          icon: MessageCircle,
+          done: data.hasMessagingConnected,
+          href: "/app/settings",
+        },
       ]
     : [];
 

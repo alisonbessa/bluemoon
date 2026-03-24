@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { appConfig } from "@/shared/lib/config";
 import { useCurrentPlan } from "@/shared/hooks/use-current-user";
-import { parseCurrency } from "@/shared/lib/formatters";
 import {
   getDefaultTemplateForPlan,
   calculatePlannedAmounts,
@@ -42,9 +41,9 @@ export default function SetupPage() {
   // Privacy state (Duo only)
   const [privacyMode, setPrivacyMode] = useState<PrivacyMode>("visible");
 
-  // Finances state (simplified)
-  const [myIncome, setMyIncome] = useState("");
-  const [partnerIncome, setPartnerIncome] = useState("");
+  // Finances state (simplified) — values in cents
+  const [myIncome, setMyIncome] = useState(0);
+  const [partnerIncome, setPartnerIncome] = useState(0);
   const [mainAccountName, setMainAccountName] = useState("");
   const [hasCreditCard, setHasCreditCard] = useState(false);
   const [creditCardName, setCreditCardName] = useState("");
@@ -58,9 +57,7 @@ export default function SetupPage() {
     CategoryWithAmount[]
   >([]);
 
-  const myIncomeCents = parseCurrency(myIncome);
-  const partnerIncomeCents = parseCurrency(partnerIncome);
-  const totalIncomeCents = myIncomeCents + (isDuo ? partnerIncomeCents : 0);
+  const totalIncomeCents = myIncome + (isDuo ? partnerIncome : 0);
 
   // Step definitions depend on plan type
   // Solo: Finanças → Orçamento → Quick Start
@@ -92,12 +89,12 @@ export default function SetupPage() {
   // Build API payload from simplified state
   const buildPayload = () => {
     const sources = [
-      { name: "Salário", amount: myIncomeCents, type: "salary" as const },
+      { name: "Salário", amount: myIncome, type: "salary" as const },
     ];
-    if (isDuo && partnerIncomeCents > 0) {
+    if (isDuo && partnerIncome > 0) {
       sources.push({
         name: "Salário (parceiro)",
-        amount: partnerIncomeCents,
+        amount: partnerIncome,
         type: "salary" as const,
       });
     }
@@ -149,12 +146,17 @@ export default function SetupPage() {
       }
 
       // Invalidate caches
-      await mutate("/api/app/me");
-      await mutate("/api/app/budgets");
+      await Promise.all([
+        mutate("/api/app/me"),
+        mutate("/api/app/budgets"),
+        mutate("/api/app/accounts"),
+        mutate("/api/app/income-sources"),
+        mutate("/api/app/categories"),
+        mutate("/api/app/onboarding/checklist"),
+      ]);
 
       toast.success("Orçamento criado com sucesso!");
-      setSetupComplete(true);
-      setStep(quickStartStep);
+      router.push("/app");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Erro ao configurar"

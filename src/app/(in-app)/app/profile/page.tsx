@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Loader2, User } from "lucide-react";
 
-import { useUser } from "@/shared/hooks/use-current-user";
+import { useCurrentUser } from "@/shared/hooks/use-current-user";
 import {
   profileUpdateSchema,
   ProfileUpdateValues,
@@ -30,9 +30,10 @@ import {
 import { Input } from "@/shared/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import { BlobUploader } from "@/shared/ui/blob-uploader";
+import { DataPrivacyCard } from "@/app/(in-app)/app/settings/_components/data-privacy-card";
 
 export default function ProfilePage() {
-  const { user, isLoading, mutate } = useUser();
+  const { user, isLoading, mutate } = useCurrentUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string>("");
 
@@ -237,6 +238,9 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Data Privacy & Account Deletion */}
+      <DataPrivacyCard user={user} />
     </div>
   );
 }

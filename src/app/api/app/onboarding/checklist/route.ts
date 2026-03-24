@@ -2,6 +2,7 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import {
   budgetMembers,
+  financialAccounts,
   transactions,
   whatsappUsers,
   telegramUsers,
@@ -17,20 +18,33 @@ import { checkUserAccess } from "@/shared/lib/users/checkPartnerAccess";
  * Returns the completion status of onboarding checklist items.
  */
 export const GET = withAuthRequired(async (_request, context) => {
-  const { session } = context;
+  const { session, getCurrentPlan } = context;
   const userId = session.user.id;
 
-  const accessInfo = await checkUserAccess(userId);
+  const [accessInfo, currentPlan] = await Promise.all([
+    checkUserAccess(userId),
+    getCurrentPlan(),
+  ]);
   const budgetId = accessInfo.primaryBudgetId;
 
   // Run all checks in parallel
   const [
+    accountCount,
     transactionCount,
     whatsappConnection,
     telegramConnection,
     members,
     goalCount,
   ] = await Promise.all([
+    // Has at least 1 financial account?
+    budgetId
+      ? db
+          .select({ count: count() })
+          .from(financialAccounts)
+          .where(eq(financialAccounts.budgetId, budgetId))
+          .then((r) => r[0]?.count ?? 0)
+      : Promise.resolve(0),
+
     // Has at least 1 transaction?
     budgetId
       ? db
@@ -76,11 +90,12 @@ export const GET = withAuthRequired(async (_request, context) => {
 
   return successResponse({
     hasBudget: !!budgetId,
+    hasAccount: accountCount > 0,
     hasTransaction: transactionCount > 0,
     hasGoal: goalCount > 0,
     hasMessagingConnected:
       whatsappConnection.length > 0 || telegramConnection.length > 0,
     hasPartnerInvited: members.length > 1,
-    isDuo: members.length > 1 || accessInfo.hasPartnerAccess,
+    isDuo: currentPlan?.codename === "duo" || (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2 || accessInfo.hasPartnerAccess,
   });
 });

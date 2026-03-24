@@ -94,29 +94,29 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   // Set tutorial conditions based on user plan
   useEffect(() => {
     if (currentPlan) {
-      const isDuoPlan = (currentPlan.quotas?.maxBudgetMembers ?? 1) >= 2;
+      const isDuoPlan = currentPlan.codename === "duo" || (currentPlan.quotas?.maxBudgetMembers ?? 1) >= 2;
       setCondition("hasDuoPlan", isDuoPlan);
     }
   }, [currentPlan, setCondition]);
 
-  // Redirect new users without a budget to the setup wizard
+  // Redirect new users who haven't completed onboarding to the setup wizard
   useEffect(() => {
     if (isLoading || !user) return;
 
     // Skip if already on setup or exempt paths
     if (pathname?.startsWith("/app/setup") || pathname?.startsWith("/app/choose-plan")) return;
 
-    // Only redirect users who have full access but no budget yet
+    // Only redirect users who have full access
     const hasActiveSubscription = user.stripeSubscriptionId !== null;
     const hasExemptRole = user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role);
     if (!hasActiveSubscription && !hasExemptRole && !hasPartnerAccess) return;
 
-    // If user already has a budget or completed onboarding, mark as initialized
-    if (hasBudget || user.onboardingCompletedAt) {
+    // If onboarding is done, mark as initialized
+    if (user.onboardingCompletedAt) {
       localStorage.setItem(BUDGET_INITIALIZED_KEY, "true");
 
       // Partners who haven't completed onboarding get a welcome page
-      if (hasPartnerAccess && !user.onboardingCompletedAt && !pathname?.startsWith("/app/partner-welcome")) {
+      if (hasPartnerAccess && !pathname?.startsWith("/app/partner-welcome")) {
         const partnerWelcomeDone = localStorage.getItem("hivebudget_partner_welcome_done") === "true";
         if (!partnerWelcomeDone) {
           router.replace("/app/partner-welcome");
@@ -127,12 +127,9 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // No budget yet — redirect to setup wizard
-    const budgetInitialized = localStorage.getItem(BUDGET_INITIALIZED_KEY) === "true";
-    if (!budgetInitialized) {
-      router.replace("/app/setup");
-    }
-  }, [user, isLoading, hasBudget, hasPartnerAccess, pathname, router]);
+    // Onboarding not completed — redirect to setup wizard
+    router.replace("/app/setup");
+  }, [user, isLoading, hasPartnerAccess, pathname, router]);
 
   // Detect when tutorial reaches the celebration step (after partner invite, before messaging)
   useEffect(() => {
@@ -239,7 +236,16 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   // Check if user has an active subscription or exempt role
   const hasActiveSubscription = user.stripeSubscriptionId !== null;
   const hasExemptRole = user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role);
+  const isOnSetupPage = pathname?.startsWith("/app/setup");
   const isOnChoosePlanPage = pathname === "/app/choose-plan";
+
+  // Prevent flicker: show skeleton while redirecting to setup
+  const needsOnboarding = !user.onboardingCompletedAt
+    && (hasActiveSubscription || hasExemptRole || hasPartnerAccess)
+    && !isOnSetupPage && !isOnChoosePlanPage;
+  if (needsOnboarding) {
+    return <DashboardSkeleton />;
+  }
 
   // Show minimal layout for choose-plan page when user doesn't have a subscription
   // Partners with access through owner's subscription can use full layout
