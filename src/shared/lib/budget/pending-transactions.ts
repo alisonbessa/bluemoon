@@ -339,17 +339,14 @@ export async function ensureCurrentMonthTransactions(budgetId: string): Promise<
 }
 
 /**
- * Auto-activate the current month if it's in "planning" state or doesn't exist yet.
- * Only activates if year/month match the current date. No-op for past/future months.
+ * Auto-activate a month if it's in "planning" state or doesn't exist yet.
+ * No-op if month is already "active" or "closed".
  */
-export async function autoActivateCurrentMonth(
+export async function autoActivateMonth(
   budgetId: string,
   year: number,
   month: number
 ): Promise<void> {
-  const now = new Date();
-  if (year !== now.getFullYear() || month !== now.getMonth() + 1) return;
-
   const [existing] = await db
     .select({ id: monthlyBudgetStatus.id, status: monthlyBudgetStatus.status })
     .from(monthlyBudgetStatus)
