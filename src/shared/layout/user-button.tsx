@@ -12,10 +12,8 @@ import { useUser } from "@/shared/hooks/use-current-user";
 import Link from "next/link";
 import {
   LayoutDashboard,
-  CreditCard,
   LogOut,
   UserIcon,
-  // TODO: reativar Ticket quando implementar LTD
 } from "lucide-react";
 
 interface UserButtonProps {
@@ -68,14 +66,7 @@ export function UserButton({ compact = false }: UserButtonProps) {
             Dashboard
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/app/plan" className="cursor-pointer">
-            <CreditCard className="h-4 w-4" />
-            Gerenciar Plano
-          </Link>
-        </DropdownMenuItem>
-
-        {/* TODO: reativar quando implementar LTD */}
+        {/* TODO: reativar "Gerenciar Plano" e melhorar a pagina /app/plan quando sairmos do beta */}
         <DropdownMenuItem asChild>
           <Link href="/app/profile" className="cursor-pointer">
             <UserIcon className="h-4 w-4" />

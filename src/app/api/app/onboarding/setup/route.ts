@@ -67,6 +67,7 @@ const setupSchema = z.object({
     )
     .min(1),
   partnerEmail: z.string().email().optional(),
+  privacyMode: z.enum(["visible", "unified", "private"]).optional(),
   categoryOverrides: z
     .array(
       z.object({
@@ -109,21 +110,29 @@ export const POST = withAuthRequired(async (request, context) => {
     );
     const firstName = displayName.split(" ")[0];
 
-    // Check if user already has a budget
+    // Find existing budget (created on signup)
     const existingMembership = await db
-      .select({ budgetId: budgetMembers.budgetId })
+      .select({ budgetId: budgetMembers.budgetId, memberId: budgetMembers.id })
       .from(budgetMembers)
       .where(eq(budgetMembers.userId, userId))
       .limit(1);
 
-    if (existingMembership.length > 0) {
-      return errorResponse("Orçamento já existe", 409);
+    if (!existingMembership.length) {
+      return errorResponse("Nenhum orcamento encontrado. Tente fazer login novamente.", 404);
+    }
+
+    const budgetId = existingMembership[0].budgetId;
+    const ownerMemberId = existingMembership[0].memberId;
+
+    // Check if setup was already completed
+    if (user?.displayName && user?.displayName !== user?.name) {
+      // Already configured - update instead of failing
     }
 
     // Get template
     const template = getTemplateByCodename(data.templateCodename);
     if (!template) {
-      return errorResponse("Template não encontrado", 404);
+      return errorResponse("Template nao encontrado", 404);
     }
 
     // Calculate total income
@@ -147,11 +156,20 @@ export const POST = withAuthRequired(async (request, context) => {
         })
         .where(eq(users.id, userId));
 
-      // Create budget
-      const [newBudget] = await tx
-        .insert(budgets)
-        .values({ name: `Orçamento De ${displayName}` })
-        .returning();
+      // Update existing budget
+      await tx
+        .update(budgets)
+        .set({
+          name: `Orcamento de ${displayName}`,
+          ...(data.privacyMode ? { privacyMode: data.privacyMode } : {}),
+        })
+        .where(eq(budgets.id, budgetId));
+
+      // Update owner member name
+      await tx
+        .update(budgetMembers)
+        .set({ name: displayName })
+        .where(eq(budgetMembers.id, ownerMemberId));
 
       // Ensure groups exist
       const existingGroups = await tx.select().from(groups);
@@ -168,18 +186,6 @@ export const POST = withAuthRequired(async (request, context) => {
       }
       const allGroups = await tx.select().from(groups);
 
-      // Create owner member
-      const [ownerMember] = await tx
-        .insert(budgetMembers)
-        .values({
-          budgetId: newBudget.id,
-          userId,
-          name: displayName,
-          type: "owner",
-          color: MEMBER_COLORS[0],
-        })
-        .returning();
-
       // Create categories from template
       for (const cat of template.categories) {
         const group = allGroups.find((g) => g.code === cat.groupCode);
@@ -189,11 +195,10 @@ export const POST = withAuthRequired(async (request, context) => {
         const plannedAmount = overridesMap.get(cat.name) ?? defaultAmount;
 
         if (cat.isPersonal) {
-          // Create personal category with memberId
           await tx.insert(categories).values({
-            budgetId: newBudget.id,
+            budgetId,
             groupId: group.id,
-            memberId: ownerMember.id,
+            memberId: ownerMemberId,
             name: `${cat.name} - ${firstName}`,
             icon: cat.icon,
             behavior: cat.behavior,
@@ -201,7 +206,7 @@ export const POST = withAuthRequired(async (request, context) => {
           });
         } else {
           await tx.insert(categories).values({
-            budgetId: newBudget.id,
+            budgetId,
             groupId: group.id,
             name: cat.name,
             icon: cat.icon,
@@ -215,8 +220,8 @@ export const POST = withAuthRequired(async (request, context) => {
       for (let i = 0; i < data.income.sources.length; i++) {
         const source = data.income.sources[i];
         await tx.insert(incomeSources).values({
-          budgetId: newBudget.id,
-          memberId: ownerMember.id,
+          budgetId,
+          memberId: ownerMemberId,
           name: source.name,
           type: source.type,
           amount: source.amount,
@@ -230,7 +235,8 @@ export const POST = withAuthRequired(async (request, context) => {
       for (let i = 0; i < data.accounts.length; i++) {
         const account = data.accounts[i];
         await tx.insert(financialAccounts).values({
-          budgetId: newBudget.id,
+          budgetId,
+          ownerId: ownerMemberId,
           name: account.name,
           type: account.type,
           balance: 0,
@@ -240,7 +246,7 @@ export const POST = withAuthRequired(async (request, context) => {
         });
       }
 
-      return { budgetId: newBudget.id };
+      return { budgetId };
     });
 
     logger.info(`Setup completed for user ${session.user.email}`, {

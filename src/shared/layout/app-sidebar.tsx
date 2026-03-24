@@ -86,7 +86,7 @@ const navItems = [
   },
   {
     href: "/app/settings",
-    label: "Config",
+    label: "Configurações",
     icon: SettingsIcon,
     tutorialId: "nav-settings",
   },

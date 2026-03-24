@@ -91,8 +91,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   callbacks: {
-    async signIn() {
-      return process.env.NEXT_PUBLIC_SIGNIN_ENABLED === "true";
+    async signIn({ user, account, profile }) {
+      if (process.env.NEXT_PUBLIC_SIGNIN_ENABLED !== "true") return false;
+
+      // Update profile image from Google on each sign-in
+      if (account?.provider === "google" && profile?.picture && user?.id) {
+        try {
+          await db
+            .update(users)
+            .set({ image: profile.picture as string })
+            .where(eq(users.id, user.id));
+        } catch (error) {
+          logger.error("Failed to update Google profile image", error);
+        }
+      }
+
+      return true;
     },
     async session({ session, token }) {
       if (token.sub) {

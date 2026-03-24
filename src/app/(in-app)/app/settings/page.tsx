@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/shared/ui/button";
-import { LogOut } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
+import { LogOut, Users, ArrowRight } from "lucide-react";
 import { MessagingConnectionCard } from "@/integrations/messaging/MessagingConnectionCard";
 import { MembersManagement } from "@/shared/settings/members-management";
 import { PrivacySettings } from "@/shared/settings/privacy-settings";
@@ -18,35 +20,18 @@ import { SupportCard } from "./_components/support-card";
 import { DataPrivacyCard } from "./_components/data-privacy-card";
 
 export default function SettingsPage() {
-  const { user, currentPlan, hasBudget, isLoading: isUserLoading, mutate: mutateUser } = useCurrentUser();
-  const [budgetId, setBudgetId] = useState<string | null>(null);
+  const { user, currentPlan, hasBudget, primaryBudgetId, isLoading: isUserLoading, mutate: mutateUser } = useCurrentUser();
+  const budgetId = primaryBudgetId;
   const { startTutorial, setCondition } = useTutorial();
   const router = useRouter();
+  const isDuo = currentPlan?.codename === "duo" || (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2;
 
   // Set tutorial condition for Duo plan
   useEffect(() => {
     if (currentPlan) {
-      const isDuoPlan = (currentPlan.quotas?.maxBudgetMembers ?? 1) >= 2;
-      setCondition("hasDuoPlan", isDuoPlan);
+      setCondition("hasDuoPlan", isDuo);
     }
-  }, [currentPlan, setCondition]);
-
-  useEffect(() => {
-    const fetchBudgets = async () => {
-      try {
-        const response = await fetch("/api/app/budgets");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.budgets?.length > 0) {
-            setBudgetId(data.budgets[0].id);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching budgets:", error);
-      }
-    };
-    fetchBudgets();
-  }, []);
+  }, [currentPlan, setCondition, isDuo]);
 
   const handleStartTutorial = (id: string) => {
     startTutorial(id);
@@ -74,12 +59,34 @@ export default function SettingsPage() {
           />
           <AppearanceCard />
 
-          {/* Members Management & Privacy - Only show for Duo plans (maxBudgetMembers >= 2) */}
-          {budgetId && (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2 && (
-            <>
-              <MembersManagement budgetId={budgetId} />
-              <PrivacySettings budgetId={budgetId} />
-            </>
+          {/* Members Management & Privacy - Only show for Duo plans */}
+          {isDuo && (
+            budgetId ? (
+              <>
+                <MembersManagement budgetId={budgetId} />
+                <PrivacySettings budgetId={budgetId} />
+              </>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                    <CardTitle className="text-lg">Membros</CardTitle>
+                  </div>
+                  <CardDescription>
+                    Complete a configuracao inicial para convidar seu parceiro(a) e gerenciar membros.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button asChild>
+                    <Link href="/app/setup">
+                      Completar configuracao
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            )
           )}
         </div>
 
