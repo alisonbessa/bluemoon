@@ -66,8 +66,9 @@ export function GoalFormModal({
 }: GoalFormModalProps) {
   const { viewMode, isUnifiedPrivacy } = useViewMode();
 
-  // Default memberId based on viewMode: "mine" → current user, "shared" → null (conjunta)
-  const defaultMemberId = viewMode === "shared" ? undefined : currentUserMemberId;
+  // Default memberId based on viewMode: "mine" → current user, "shared"/"all" → conjunta
+  // "all" is just a view aggregating mine + shared, so creating in "all" defaults to shared
+  const defaultMemberId = viewMode === "mine" ? currentUserMemberId : undefined;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
 
