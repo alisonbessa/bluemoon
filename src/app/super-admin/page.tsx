@@ -61,7 +61,7 @@ export default function SuperAdminDashboard() {
                     format(parseISO(date), "dd MMM", { locale: ptBR })
                   }
                 />
-                <YAxis />
+                <YAxis allowDecimals={false} />
                 <Tooltip
                   labelFormatter={(date: string) =>
                     format(parseISO(date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
