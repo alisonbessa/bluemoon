@@ -4,6 +4,7 @@ import {
   transactions,
   financialAccounts,
   recurringBills,
+  monthlyBudgetStatus,
 } from "@/db/schema";
 import { eq, and, gte, lte, isNotNull } from "drizzle-orm";
 
@@ -335,4 +336,41 @@ export async function ensureCurrentMonthTransactions(budgetId: string): Promise<
     now.getFullYear(),
     now.getMonth() + 1
   );
+}
+
+/**
+ * Auto-activate a month if it's in "planning" state or doesn't exist yet.
+ * No-op if month is already "active" or "closed".
+ */
+export async function autoActivateMonth(
+  budgetId: string,
+  year: number,
+  month: number
+): Promise<void> {
+  const [existing] = await db
+    .select({ id: monthlyBudgetStatus.id, status: monthlyBudgetStatus.status })
+    .from(monthlyBudgetStatus)
+    .where(
+      and(
+        eq(monthlyBudgetStatus.budgetId, budgetId),
+        eq(monthlyBudgetStatus.year, year),
+        eq(monthlyBudgetStatus.month, month)
+      )
+    )
+    .limit(1);
+
+  if (!existing) {
+    await db.insert(monthlyBudgetStatus).values({
+      budgetId,
+      year,
+      month,
+      status: "active",
+      startedAt: new Date(),
+    });
+  } else if (existing.status === "planning") {
+    await db
+      .update(monthlyBudgetStatus)
+      .set({ status: "active", startedAt: new Date(), updatedAt: new Date() })
+      .where(eq(monthlyBudgetStatus.id, existing.id));
+  }
 }
