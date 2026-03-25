@@ -79,7 +79,7 @@ export async function handleCategorySelection(
   }
 
   if (context.pendingExpense.accountName) {
-    message += `Conta: ${formatAccountDisplay(context.pendingExpense.accountName, context.pendingExpense.accountType)}\n`;
+    message += `${formatAccountDisplay(context.pendingExpense.accountName, context.pendingExpense.accountType)}\n`;
   }
   if (context.pendingExpense.description) {
     message += `Descrição: ${context.pendingExpense.description}\n`;
@@ -165,7 +165,7 @@ export async function handleAccountSelection(
       let confirmMsg = `*Confirmar registro?*\n\n`;
       confirmMsg += `${catMatch.category.icon || ""} ${catMatch.category.name}\n`;
       confirmMsg += valueText;
-      confirmMsg += `Conta: ${formatAccountDisplay(account.name, account.type)}\n`;
+      confirmMsg += `${formatAccountDisplay(account.name, account.type)}\n`;
       if (context.pendingExpense.description) {
         confirmMsg += `Descrição: ${context.pendingExpense.description}\n`;
       }
@@ -198,7 +198,7 @@ export async function handleAccountSelection(
       phoneNumber,
       `*Registrar gasto*\n\n` +
         valueText +
-        `Conta: ${formatAccountDisplay(account.name, account.type)}\n` +
+        `${formatAccountDisplay(account.name, account.type)}\n` +
         (context.pendingExpense.description
           ? `Descrição: ${context.pendingExpense.description}\n\n`
           : "\n") +
@@ -232,7 +232,7 @@ export async function handleAccountSelection(
     phoneNumber,
     `*Registrar gasto*\n\n` +
       valueText +
-      `Conta: ${formatAccountDisplay(account.name, account.type)}\n` +
+      `${formatAccountDisplay(account.name, account.type)}\n` +
       (context.pendingExpense.description
         ? `Descrição: ${context.pendingExpense.description}\n\n`
         : "\n") +
@@ -546,7 +546,7 @@ export async function handleGroupSelection(
         `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
         `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
         (context.pendingExpense.accountName
-          ? `Conta: ${formatAccountDisplay(context.pendingExpense.accountName, context.pendingExpense.accountType)}\n`
+          ? `${formatAccountDisplay(context.pendingExpense.accountName, context.pendingExpense.accountType)}\n`
           : "") +
         (capitalizedDescription
           ? `Descrição: ${capitalizedDescription}\n`
@@ -598,7 +598,7 @@ export async function handleGroupSelection(
         `Grupo: ${group?.name || "---"}\n\n` +
         `Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
         (context.pendingExpense.accountName
-          ? `Conta: ${formatAccountDisplay(context.pendingExpense.accountName, context.pendingExpense.accountType)}\n`
+          ? `${formatAccountDisplay(context.pendingExpense.accountName, context.pendingExpense.accountType)}\n`
           : "") +
         (capitalizedDescription
           ? `Descrição: ${capitalizedDescription}\n`
@@ -693,7 +693,7 @@ export async function handleNewAccountAccept(phoneNumber: string): Promise<void>
       confirmMsg += `*Confirmar registro?*\n\n`;
       confirmMsg += `${catMatch.category.icon || ""} ${catMatch.category.name}\n`;
       confirmMsg += `Valor: ${formatCurrency(context.pendingExpense.amount)}\n`;
-      confirmMsg += `Conta: ${formatAccountDisplay(accountName, accountType)}\n`;
+      confirmMsg += `${formatAccountDisplay(accountName, accountType)}\n`;
       if (context.pendingExpense.description) {
         confirmMsg += `Descrição: ${context.pendingExpense.description}\n`;
       }
@@ -720,7 +720,7 @@ export async function handleNewAccountAccept(phoneNumber: string): Promise<void>
       phoneNumber,
       `*Conta "${accountName}" criada!* (${typeName})\n\n` +
         `Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
-        `Conta: ${formatAccountDisplay(accountName, accountType)}\n` +
+        `${formatAccountDisplay(accountName, accountType)}\n` +
         (context.pendingExpense.description
           ? `Descrição: ${context.pendingExpense.description}\n\n`
           : "\n") +
@@ -746,7 +746,7 @@ export async function handleNewAccountAccept(phoneNumber: string): Promise<void>
     phoneNumber,
     `*Conta "${accountName}" criada!* (${typeName})\n\n` +
       `Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
-      `Conta: ${formatAccountDisplay(accountName, accountType)}\n` +
+      `${formatAccountDisplay(accountName, accountType)}\n` +
       (context.pendingExpense.description
         ? `Descrição: ${context.pendingExpense.description}\n\n`
         : "\n") +

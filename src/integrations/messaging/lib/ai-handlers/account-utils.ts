@@ -140,12 +140,39 @@ export function getAccountIcon(type: string): string {
 }
 
 /**
- * Format account display for messages: emoji + name.
- * e.g. "💳 Cartão Nubank", "🏦 Nubank", "💵 Dinheiro"
+ * Get the field label for an account based on its type.
+ * e.g. credit_card → "Cartão", checking → "Conta", cash → "Pagamento"
+ */
+export function getAccountFieldLabel(accountType?: string): string {
+  switch (accountType) {
+    case "credit_card": return "Cartão";
+    case "checking": return "Conta";
+    case "savings": return "Conta";
+    case "cash": return "Pagamento";
+    case "benefit": return "Benefício";
+    case "investment": return "Conta";
+    default: return "Pagamento";
+  }
+}
+
+/**
+ * Format account with icon only (no label prefix).
+ * e.g. "💳 Nubank", "🏦 Itaú"
+ * Use in contexts where a label is already provided (e.g. "De:", "Para:").
+ */
+export function formatAccountWithIcon(accountName: string, accountType?: string): string {
+  const icon = accountType ? getAccountIcon(accountType) : "💰";
+  return `${icon} ${accountName}`;
+}
+
+/**
+ * Format account display for messages: "Label: emoji name"
+ * e.g. "Cartão: 💳 Nubank", "Conta: 🏦 Itaú", "Pagamento: 💵 Dinheiro"
  */
 export function formatAccountDisplay(accountName: string, accountType?: string): string {
   const icon = accountType ? getAccountIcon(accountType) : "💰";
-  return `${icon} ${accountName}`;
+  const label = getAccountFieldLabel(accountType);
+  return `${label}: ${icon} ${accountName}`;
 }
 
 /**

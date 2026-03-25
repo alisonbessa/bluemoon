@@ -253,7 +253,7 @@ export async function handleExpenseIntent(
           `${categoryIcon || "📁"} ${categoryName}\n` +
           `Valor total: ${formatCurrency(data.amount)}\n` +
           `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
-          (accountName ? `Conta: ${formatAccountDisplay(accountName, accountType)}\n` : "") +
+          (accountName ? `${formatAccountDisplay(accountName, accountType)}\n` : "") +
           (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
           `Use /desfazer para remover.`
       );
@@ -288,7 +288,7 @@ export async function handleExpenseIntent(
       `✅ <b>Gasto registrado!</b>\n\n` +
         `${categoryIcon || "📁"} ${categoryName}\n` +
         `Valor: ${formatCurrency(data.amount)}\n` +
-        (accountName ? `Conta: ${formatAccountDisplay(accountName, accountType)}\n` : "") +
+        (accountName ? `${formatAccountDisplay(accountName, accountType)}\n` : "") +
         (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
         `Use /desfazer para remover.`
     );
@@ -312,7 +312,7 @@ export async function handleExpenseIntent(
     }
 
     if (accountName) {
-      message += `Conta: ${formatAccountDisplay(accountName, accountType)}\n`;
+      message += `${formatAccountDisplay(accountName, accountType)}\n`;
     }
     if (data.description) {
       message += `Descrição: ${data.description}\n`;
@@ -533,7 +533,7 @@ export async function handleExpenseIntent(
     chatId,
     `💰 <b>Registrar gasto</b>\n\n` +
       valueText +
-      (accountName ? `Conta: ${formatAccountDisplay(accountName, accountType)}\n` : "") +
+      (accountName ? `${formatAccountDisplay(accountName, accountType)}\n` : "") +
       (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
       `Selecione a categoria:`,
     categories.map(c => ({ id: `cat_${c.id}`, label: `${c.icon || "📁"} ${c.name}` })),
