@@ -429,6 +429,7 @@ export async function handleExpenseIntent(
         pendingExpense: {
           amount: data.amount,
           description: data.description,
+          categoryHint: data.categoryHint || undefined,
           paymentMethodLabel: paymentMethodLabel || undefined,
           isInstallment: data.isInstallment,
           totalInstallments: data.totalInstallments,
@@ -460,6 +461,7 @@ export async function handleExpenseIntent(
         pendingExpense: {
           amount: data.amount,
           description: data.description,
+          categoryHint: data.categoryHint || undefined,
           paymentMethodLabel: paymentMethodLabel || undefined,
           isInstallment: data.isInstallment,
           totalInstallments: data.totalInstallments,
@@ -486,6 +488,7 @@ export async function handleExpenseIntent(
       pendingExpense: {
         amount: data.amount,
         description: data.description,
+        categoryHint: data.categoryHint || undefined,
         paymentMethodLabel: paymentMethodLabel || undefined,
         isInstallment: data.isInstallment,
         totalInstallments: data.totalInstallments,
@@ -512,6 +515,7 @@ export async function handleExpenseIntent(
       pendingExpense: {
         amount: data.amount,
         description: data.description,
+        categoryHint: data.categoryHint || undefined,
         paymentMethodLabel: paymentMethodLabel || undefined,
         isInstallment: data.isInstallment,
         totalInstallments: data.totalInstallments,

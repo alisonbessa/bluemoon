@@ -80,6 +80,7 @@ export interface ConversationContext {
     description?: string;
     categoryId?: string;
     categoryName?: string;
+    categoryHint?: string; // AI's category suggestion, preserved for multi-step flows
     accountId?: string;
     accountName?: string;
     paymentMethodLabel?: string; // e.g., "💳 Cartão de crédito", "📱 PIX"

@@ -23,6 +23,8 @@ import {
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { getAccountIcon, getAccountTypeName } from "@/integrations/messaging/lib/ai-handlers/account-utils";
+import { matchCategory } from "@/integrations/messaging/lib/gemini";
+import { formatCategoryName, suggestGroupForCategory } from "@/integrations/messaging/lib/ai-handlers/category-utils";
 
 const logger = createLogger("whatsapp:selections");
 const adapter = new WhatsAppAdapter();
@@ -156,7 +158,83 @@ export async function handleAccountSelection(
       `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(context.pendingExpense.totalInstallments)}\n`;
   }
 
-  // Now ask for category
+  // Check if AI suggested a category that doesn't exist — offer to create it
+  const categoryHint = context.pendingExpense.categoryHint;
+  if (categoryHint) {
+    const catMatch = matchCategory(categoryHint, budgetInfo.categories);
+
+    if (catMatch) {
+      // Category exists — go straight to confirmation
+      let confirmMsg = `*Confirmar registro?*\n\n`;
+      confirmMsg += `${catMatch.category.icon || ""} ${catMatch.category.name}\n`;
+      confirmMsg += valueText;
+      if (context.pendingExpense.paymentMethodLabel) {
+        confirmMsg += `Pagamento: ${context.pendingExpense.paymentMethodLabel}\n`;
+      }
+      confirmMsg += `Conta: ${account.name}\n`;
+      if (context.pendingExpense.description) {
+        confirmMsg += `Descrição: ${context.pendingExpense.description}\n`;
+      }
+
+      const confirmMsgId = await adapter.sendConfirmation(phoneNumber, confirmMsg);
+
+      await adapter.updateState(phoneNumber, "AWAITING_CONFIRMATION", {
+        pendingExpense: {
+          ...context.pendingExpense,
+          accountId: account.id,
+          accountName: account.name,
+          categoryId: catMatch.category.id,
+          categoryName: catMatch.category.name,
+        },
+        messagesToDelete: [
+          ...(context.messagesToDelete || []),
+          confirmMsgId,
+        ],
+        lastAILogId: context.lastAILogId,
+      });
+      return;
+    }
+
+    // Category doesn't exist — offer to create it
+    const suggestedName = formatCategoryName(categoryHint);
+    const suggestedGroupCode = suggestGroupForCategory(categoryHint);
+
+    const newCatMsgId = await adapter.sendNewCategoryPrompt(
+      phoneNumber,
+      `*Registrar gasto*\n\n` +
+        valueText +
+        (context.pendingExpense.paymentMethodLabel
+          ? `Pagamento: ${context.pendingExpense.paymentMethodLabel}\n`
+          : "") +
+        `Conta: ${account.name}\n` +
+        (context.pendingExpense.description
+          ? `Descrição: ${context.pendingExpense.description}\n\n`
+          : "\n") +
+        `Não encontrei a categoria "*${categoryHint}*".\n` +
+        `Deseja criar uma nova categoria?`,
+      suggestedName
+    );
+
+    await adapter.updateState(phoneNumber, "AWAITING_NEW_CATEGORY_CONFIRM", {
+      pendingExpense: {
+        ...context.pendingExpense,
+        accountId: account.id,
+        accountName: account.name,
+      },
+      pendingNewCategory: {
+        suggestedName,
+        suggestedGroupId: suggestedGroupCode,
+      },
+      messagesToDelete: [
+        ...(context.messagesToDelete || []),
+        newCatMsgId,
+      ],
+      lastAILogId: context.lastAILogId,
+    });
+    return;
+  }
+
+  // No category hint — show category list
   const catSelectMsgId = await adapter.sendChoiceList(
     phoneNumber,
     `*Registrar gasto*\n\n` +
@@ -588,7 +666,78 @@ export async function handleNewAccountAccept(phoneNumber: string): Promise<void>
 
   const typeName = getAccountTypeName(accountType);
 
-  // Now proceed to category selection with the new account
+  const updatedExpense = {
+    ...context.pendingExpense,
+    accountId: newAccount.id,
+    accountName: newAccount.name,
+  };
+
+  // Check if AI suggested a category that doesn't exist — offer to create it
+  const categoryHint = context.pendingExpense.categoryHint;
+  if (categoryHint) {
+    const catMatch = matchCategory(categoryHint, budgetInfo.categories);
+
+    if (catMatch) {
+      // Category exists — go straight to confirmation
+      let confirmMsg = `*Conta "${accountName}" criada!* (${typeName})\n\n`;
+      confirmMsg += `*Confirmar registro?*\n\n`;
+      confirmMsg += `${catMatch.category.icon || ""} ${catMatch.category.name}\n`;
+      confirmMsg += `Valor: ${formatCurrency(context.pendingExpense.amount)}\n`;
+      if (context.pendingExpense.paymentMethodLabel) {
+        confirmMsg += `Pagamento: ${context.pendingExpense.paymentMethodLabel}\n`;
+      }
+      confirmMsg += `Conta: ${accountName}\n`;
+      if (context.pendingExpense.description) {
+        confirmMsg += `Descrição: ${context.pendingExpense.description}\n`;
+      }
+
+      const confirmMsgId = await adapter.sendConfirmation(phoneNumber, confirmMsg);
+
+      await adapter.updateState(phoneNumber, "AWAITING_CONFIRMATION", {
+        pendingExpense: {
+          ...updatedExpense,
+          categoryId: catMatch.category.id,
+          categoryName: catMatch.category.name,
+        },
+        messagesToDelete: [confirmMsgId],
+        lastAILogId: context.lastAILogId,
+      });
+      return;
+    }
+
+    // Category doesn't exist — offer to create it
+    const suggestedName = formatCategoryName(categoryHint);
+    const suggestedGroupCode = suggestGroupForCategory(categoryHint);
+
+    const newCatMsgId = await adapter.sendNewCategoryPrompt(
+      phoneNumber,
+      `*Conta "${accountName}" criada!* (${typeName})\n\n` +
+        `Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
+        (context.pendingExpense.paymentMethodLabel
+          ? `Pagamento: ${context.pendingExpense.paymentMethodLabel}\n`
+          : "") +
+        `Conta: ${accountName}\n` +
+        (context.pendingExpense.description
+          ? `Descrição: ${context.pendingExpense.description}\n\n`
+          : "\n") +
+        `Não encontrei a categoria "*${categoryHint}*".\n` +
+        `Deseja criar uma nova categoria?`,
+      suggestedName
+    );
+
+    await adapter.updateState(phoneNumber, "AWAITING_NEW_CATEGORY_CONFIRM", {
+      pendingExpense: updatedExpense,
+      pendingNewCategory: {
+        suggestedName,
+        suggestedGroupId: suggestedGroupCode,
+      },
+      messagesToDelete: [newCatMsgId],
+      lastAILogId: context.lastAILogId,
+    });
+    return;
+  }
+
+  // No category hint — show category list
   const catMsgId = await adapter.sendChoiceList(
     phoneNumber,
     `*Conta "${accountName}" criada!* (${typeName})\n\n` +
@@ -609,11 +758,7 @@ export async function handleNewAccountAccept(phoneNumber: string): Promise<void>
   );
 
   await adapter.updateState(phoneNumber, "AWAITING_CATEGORY", {
-    pendingExpense: {
-      ...context.pendingExpense,
-      accountId: newAccount.id,
-      accountName: newAccount.name,
-    },
+    pendingExpense: updatedExpense,
     messagesToDelete: [catMsgId],
     lastAILogId: context.lastAILogId,
   });
