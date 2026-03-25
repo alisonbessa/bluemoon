@@ -43,21 +43,34 @@ export const GET = withAuthRequired(async (req, context) => {
     conditions.push(eq(goals.isArchived, false));
   }
 
-  // View mode filtering via the linked account's ownerId
-  // Goals with NULL accountId (unlinked) should be visible in "mine" view
+  // View mode filtering considers both the goal's memberId and the linked account's ownerId
+  // - Shared goals (memberId IS NULL) appear in "shared" and "all" views
+  // - Individual goals (memberId = userMemberId) appear in "mine" and "all" views
   if (userMemberId) {
     const partnerPrivacy = viewMode === "all"
       ? await getPartnerPrivacyLevel(session.user.id, activeBudgetId)
       : undefined;
-    const viewCondition = getViewModeCondition({
+    const accountCondition = getViewModeCondition({
       viewMode,
       userMemberId,
       ownerField: financialAccounts.ownerId,
       partnerPrivacy,
     });
-    if (viewCondition) {
-      // Include goals with no linked account (NULL accountId → LEFT JOIN produces NULL ownerId)
-      conditions.push(or(viewCondition, isNull(goals.accountId))!);
+
+    if (viewMode === "mine") {
+      // "mine": goals owned by user (memberId = user) OR unlinked goals without explicit member
+      conditions.push(
+        or(
+          eq(goals.memberId, userMemberId),
+          isNull(goals.accountId),
+        )!
+      );
+    } else if (viewMode === "shared") {
+      // "shared": goals with no owner (memberId IS NULL = shared goals)
+      conditions.push(isNull(goals.memberId));
+    } else if (accountCondition) {
+      // "all": use account-based filter, but also include shared goals (memberId IS NULL)
+      conditions.push(or(accountCondition, isNull(goals.memberId), isNull(goals.accountId))!);
     }
   }
 

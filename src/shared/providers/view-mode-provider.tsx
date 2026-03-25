@@ -23,7 +23,7 @@ const ViewModeContext = createContext<ViewModeContextValue>({
 const STORAGE_KEY = "hivebudget_view_mode";
 
 export function ViewModeProvider({ children }: { children: React.ReactNode }) {
-  const { currentPlan } = useCurrentPlan();
+  const { currentPlan, isLoading: isPlanLoading } = useCurrentPlan();
   const { budget } = usePrimaryBudget();
   const isDuoPlan = currentPlan?.codename === "duo" || (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2;
   const isUnifiedPrivacy = budget?.privacyMode === "unified";
@@ -39,12 +39,14 @@ export function ViewModeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Reset to "mine" if user downgrades from Duo to Solo
+  // Only run after plan data has loaded to avoid false resets
   useEffect(() => {
+    if (isPlanLoading) return;
     if (!isDuoPlan && viewMode !== "mine") {
       setViewModeState("mine");
       localStorage.removeItem(STORAGE_KEY);
     }
-  }, [isDuoPlan, viewMode]);
+  }, [isDuoPlan, isPlanLoading, viewMode]);
 
   // Force "all" when privacy is unified (everything is shared)
   useEffect(() => {
