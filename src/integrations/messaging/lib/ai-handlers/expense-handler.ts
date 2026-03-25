@@ -410,7 +410,7 @@ export async function handleExpenseIntent(
 
     if (isSpecificName) {
       // Suggest creating a new account with this name
-      const suggestedType = suggestAccountTypeFromHint(data.accountHint);
+      const suggestedType = suggestAccountTypeFromHint(data.accountHint, data.paymentMethodHint);
       const suggestedTypeName = getAccountTypeName(suggestedType);
       const suggestedName = capitalizeFirst(data.accountHint) || data.accountHint;
 
