@@ -109,7 +109,7 @@ export const GET = withAuthRequired(async (req, context) => {
     })
     .filter(Boolean);
 
-  return cachedResponse({ goals: goalsWithMetrics, privacyMode }, { maxAge: 30, staleWhileRevalidate: 120 });
+  return cachedResponse({ goals: goalsWithMetrics, privacyMode }, { maxAge: 0, staleWhileRevalidate: 30 });
 });
 
 // POST - Create a new goal
