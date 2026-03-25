@@ -48,6 +48,8 @@ import {
   handleNewCategoryExisting,
   handleGroupSelection,
   handleCustomCategoryName,
+  handleNewAccountAccept,
+  handleNewAccountExisting,
 } from "./selections";
 
 const logger = createLogger("telegram:handlers");
@@ -228,6 +230,7 @@ export async function handleMessage(message: TelegramMessage) {
     case "AWAITING_CONFIRMATION":
     case "AWAITING_NEW_CATEGORY_CONFIRM":
     case "AWAITING_NEW_CATEGORY_GROUP":
+    case "AWAITING_NEW_ACCOUNT_CONFIRM":
       // User is in the middle of a flow, but sent text instead of using buttons
       // Reset and process as new message
       await updateTelegramUser(chatId, "IDLE", {});
@@ -268,6 +271,10 @@ export async function handleCallbackQuery(query: TelegramCallbackQuery) {
     await handleNewCategoryRename(chatId, query.id);
   } else if (data === "newcat_existing") {
     await handleNewCategoryExisting(chatId, query.id);
+  } else if (data === "newacc_accept") {
+    await handleNewAccountAccept(chatId, query.id);
+  } else if (data === "newacc_existing") {
+    await handleNewAccountExisting(chatId, query.id);
   } else if (data.startsWith("income_")) {
     // Income source selection (if implemented)
     await answerCallbackQuery(query.id, "Fonte selecionada");

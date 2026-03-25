@@ -494,3 +494,111 @@ export async function handleCustomCategoryName(chatId: number, text: string) {
     messagesToDelete: [...(context.messagesToDelete || []), groupMsgId],
   });
 }
+
+// ============================================
+// Account Creation Handlers
+// ============================================
+
+export async function handleNewAccountAccept(chatId: number, callbackQueryId: string) {
+  await answerCallbackQuery(callbackQueryId, "Criando conta...");
+
+  const [tgUser] = await db
+    .select()
+    .from(telegramUsers)
+    .where(eq(telegramUsers.chatId, chatId));
+
+  if (!tgUser?.userId) return;
+
+  const context = tgUser.context as TelegramConversationContext;
+
+  if (!context?.pendingNewAccount || !context?.pendingExpense) {
+    await sendMessage(chatId, "Erro: dados incompletos. Tente novamente.");
+    await updateTelegramUser(chatId, "IDLE", {});
+    return;
+  }
+
+  // Delete intermediate messages
+  if (context.messagesToDelete && context.messagesToDelete.length > 0) {
+    await deleteMessages(chatId, context.messagesToDelete);
+  }
+
+  const budgetInfo = await getUserBudgetInfo(tgUser.userId);
+  if (!budgetInfo) {
+    await sendMessage(chatId, "Erro ao carregar informações. Tente novamente.");
+    return;
+  }
+
+  const accountName = context.pendingNewAccount.suggestedName;
+  const accountType = context.pendingNewAccount.suggestedType;
+
+  // Create the new account
+  const [newAccount] = await db
+    .insert(financialAccounts)
+    .values({
+      budgetId: budgetInfo.budget.id,
+      name: accountName,
+      type: accountType as "credit_card" | "checking" | "savings" | "cash" | "investment" | "benefit",
+      balance: 0,
+      isArchived: false,
+    })
+    .returning();
+
+  // Now proceed to category selection with the new account
+  const catMsgId = await sendMessage(
+    chatId,
+    `✅ Conta "<b>${accountName}</b>" criada!\n\nSelecione a categoria:`,
+    {
+      parseMode: "HTML",
+      replyMarkup: createCategoryKeyboard(budgetInfo.categories),
+    }
+  );
+
+  await updateTelegramUser(chatId, "AWAITING_CATEGORY", {
+    pendingExpense: {
+      ...context.pendingExpense,
+      accountId: newAccount.id,
+      accountName: newAccount.name,
+    },
+    messagesToDelete: [catMsgId],
+    lastAILogId: context.lastAILogId,
+  });
+}
+
+export async function handleNewAccountExisting(chatId: number, callbackQueryId: string) {
+  await answerCallbackQuery(callbackQueryId, "Escolher conta existente");
+
+  const [tgUser] = await db
+    .select()
+    .from(telegramUsers)
+    .where(eq(telegramUsers.chatId, chatId));
+
+  if (!tgUser?.userId) return;
+
+  const budgetInfo = await getUserBudgetInfo(tgUser.userId);
+  if (!budgetInfo) {
+    await sendMessage(chatId, "Erro ao carregar informações. Tente novamente.");
+    return;
+  }
+
+  const context = tgUser.context as TelegramConversationContext;
+
+  // Delete intermediate messages
+  if (context?.messagesToDelete && context.messagesToDelete.length > 0) {
+    await deleteMessages(chatId, context.messagesToDelete);
+  }
+
+  const accMsgId = await sendMessage(
+    chatId,
+    "Selecione uma conta existente:",
+    {
+      parseMode: "HTML",
+      replyMarkup: createAccountKeyboard(budgetInfo.accounts),
+    }
+  );
+
+  await updateTelegramUser(chatId, "AWAITING_ACCOUNT", {
+    pendingExpense: context?.pendingExpense,
+    messagesToDelete: [accMsgId],
+    lastAILogId: context?.lastAILogId,
+  });
+}

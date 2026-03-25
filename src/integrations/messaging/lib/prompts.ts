@@ -106,6 +106,17 @@ REGRAS DE CONTA DE PAGAMENTO:
 - Se mencionar parcelamento sem conta explícita, deixe accountHint vazio (será assumido cartão de crédito)
 - Se não mencionar forma de pagamento, deixe accountHint vazio
 
+REGRAS DE MÉTODO DE PAGAMENTO (paymentMethodHint):
+- Identifique o MÉTODO de pagamento mencionado e preencha paymentMethodHint:
+  - "pix", "fiz um pix", "paguei no pix" → paymentMethodHint: "pix"
+  - "cartão", "crédito", "no cartão" → paymentMethodHint: "cartao_credito"
+  - "débito", "no débito" → paymentMethodHint: "cartao_debito"
+  - "boleto", "paguei o boleto" → paymentMethodHint: "boleto"
+  - "dinheiro", "em espécie", "cash" → paymentMethodHint: "dinheiro"
+  - "transferência", "transferi", "TED", "DOC" → paymentMethodHint: "transferencia"
+  - Parcelamento implica cartão de crédito → paymentMethodHint: "cartao_credito"
+- Se não mencionar método de pagamento, deixe paymentMethodHint vazio
+
 REGRAS DE PARCELAMENTO:
 - Identifique compras parceladas: "em X vezes", "Xx", "parcelado em X", "em X parcelas"
 - Exemplos: "3x", "em 10x", "em 12 vezes", "parcelei em 5x", "dividi em 6"
@@ -144,6 +155,7 @@ Responda APENAS com JSON válido no formato:
     "description": "descrição opcional",
     "categoryHint": "nome da categoria mais provável ou vazio",
     "accountHint": "nome da conta usada para pagar ou vazio",
+    "paymentMethodHint": "pix" | "cartao_credito" | "cartao_debito" | "boleto" | "dinheiro" | "transferencia" | "",
     "isInstallment": true ou false,
     "totalInstallments": número de parcelas (2-24) ou null se não parcelado,
     "date": "YYYY-MM-DD" ou null se não mencionado
@@ -183,40 +195,40 @@ Responda APENAS com JSON válido no formato:
 EXEMPLOS:
 
 Entrada: "gastei 50 no mercado"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "mercado", "categoryHint": "Alimentação", "accountHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "mercado", "categoryHint": "Alimentação", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
 
 Entrada: "gastei 177 e 34 no restaurante"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 177.34, "description": "restaurante", "categoryHint": "Alimentação", "accountHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 177.34, "description": "restaurante", "categoryHint": "Alimentação", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
 
 Entrada: "paguei 200 de luz ontem"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 200.00, "description": "conta de luz", "categoryHint": "Energia", "accountHint": "", "isInstallment": false, "totalInstallments": null, "date": "(data de ontem no formato YYYY-MM-DD)"}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 200.00, "description": "conta de luz", "categoryHint": "Energia", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": "(data de ontem no formato YYYY-MM-DD)"}}
 
 Entrada: "gastei 50 na churrascaria e paguei com o cartão flash"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "churrascaria", "categoryHint": "Alimentação", "accountHint": "Flash", "isInstallment": false, "totalInstallments": null, "date": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 50.00, "description": "churrascaria", "categoryHint": "Alimentação", "accountHint": "Flash", "paymentMethodHint": "cartao_credito", "isInstallment": false, "totalInstallments": null, "date": null}}
 
 Entrada: "comprei 80 de remédio no débito"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 80.00, "description": "remédio", "categoryHint": "Saúde", "accountHint": "debito", "isInstallment": false, "totalInstallments": null, "date": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 80.00, "description": "remédio", "categoryHint": "Saúde", "accountHint": "debito", "paymentMethodHint": "cartao_debito", "isInstallment": false, "totalInstallments": null, "date": null}}
 
 Entrada: "paguei 150 de luz pelo nubank"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 150.00, "description": "conta de luz", "categoryHint": "Energia", "accountHint": "nubank", "isInstallment": false, "totalInstallments": null, "date": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 150.00, "description": "conta de luz", "categoryHint": "Energia", "accountHint": "nubank", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
 
 Entrada: "paguei 50 no pix pro encanador"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.90, "data": {"amount": 50.00, "description": "encanador", "categoryHint": "Casa", "accountHint": "pix", "isInstallment": false, "totalInstallments": null, "date": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.90, "data": {"amount": 50.00, "description": "encanador", "categoryHint": "Casa", "accountHint": "pix", "paymentMethodHint": "pix", "isInstallment": false, "totalInstallments": null, "date": null}}
 
 Entrada: "comprei uma TV de 2000 em 10x no cartão"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 2000.00, "description": "TV", "categoryHint": "Eletrônicos", "accountHint": "cartao de credito", "isInstallment": true, "totalInstallments": 10, "date": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 2000.00, "description": "TV", "categoryHint": "Eletrônicos", "accountHint": "cartao de credito", "paymentMethodHint": "cartao_credito", "isInstallment": true, "totalInstallments": 10, "date": null}}
 
 Entrada: "comprei 300 no cartão nubank em 3x"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 300.00, "description": null, "categoryHint": "", "accountHint": "nubank", "isInstallment": true, "totalInstallments": 3, "date": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 300.00, "description": null, "categoryHint": "", "accountHint": "nubank", "paymentMethodHint": "cartao_credito", "isInstallment": true, "totalInstallments": 3, "date": null}}
 
 Entrada: "parcelei o sofá de 3500 em 12 vezes"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 3500.00, "description": "sofá", "categoryHint": "Casa", "accountHint": "", "isInstallment": true, "totalInstallments": 12, "date": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 3500.00, "description": "sofá", "categoryHint": "Casa", "accountHint": "", "paymentMethodHint": "cartao_credito", "isInstallment": true, "totalInstallments": 12, "date": null}}
 
 Entrada: "gastei 600 no dentista em 3x"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 600.00, "description": "dentista", "categoryHint": "Saúde", "accountHint": "", "isInstallment": true, "totalInstallments": 3, "date": null}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.92, "data": {"amount": 600.00, "description": "dentista", "categoryHint": "Saúde", "accountHint": "", "paymentMethodHint": "cartao_credito", "isInstallment": true, "totalInstallments": 3, "date": null}}
 
 Entrada: "gastei 30 no uber dia 15"
-Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 30.00, "description": "uber", "categoryHint": "Transporte", "accountHint": "", "isInstallment": false, "totalInstallments": null, "date": "(dia 15 do mês atual no formato YYYY-MM-DD)"}}
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.93, "data": {"amount": 30.00, "description": "uber", "categoryHint": "Transporte", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": "(dia 15 do mês atual no formato YYYY-MM-DD)"}}
 
 Entrada: "recebi 5000 de salário"
 Resposta: {"intent": "REGISTER_INCOME", "confidence": 0.95, "data": {"amount": 5000.00, "description": "salário", "incomeSourceHint": "Salário", "date": null}}
