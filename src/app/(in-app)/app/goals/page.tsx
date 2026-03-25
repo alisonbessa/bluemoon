@@ -18,6 +18,7 @@ import { formatCurrency } from "@/shared/lib/formatters";
 // canvas-confetti is loaded dynamically only when a goal is completed
 import { GoalFormModal, ContributeModal } from "@/features/goals";
 import { useGoals, useBudgets, useAccounts, useMembers } from "@/shared/hooks";
+import { useUser } from "@/shared/hooks/use-current-user";
 import type { Goal } from "@/features/goals";
 import {
   PageHeader,
@@ -49,9 +50,14 @@ export default function GoalsPage() {
   const { budgets, isLoading: budgetsLoading } = useBudgets();
   const { accounts, isLoading: accountsLoading, mutate: mutateAccounts } = useAccounts();
   const { members, isLoading: membersLoading } = useMembers();
+  const { user } = useUser();
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
 
   const isDuo = members.length > 1;
+  const currentUserMemberId = useMemo(
+    () => members.find((m) => m.userId === user?.id)?.id,
+    [members, user?.id]
+  );
   const membersMap = useMemo(
     () => new Map(members.map((m) => [m.id, m])),
     [members]
@@ -368,6 +374,7 @@ export default function GoalsPage() {
           budgetId={budgets[0].id}
           editingGoal={editingGoal}
           members={members}
+          currentUserMemberId={currentUserMemberId}
           onSuccess={handleFormSuccess}
         />
       )}

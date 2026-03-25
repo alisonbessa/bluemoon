@@ -47,6 +47,7 @@ interface GoalFormModalProps {
   budgetId: string;
   editingGoal?: Goal | null;
   members?: Member[];
+  currentUserMemberId?: string;
   onSuccess?: () => void;
 }
 
@@ -60,9 +61,13 @@ export function GoalFormModal({
   budgetId,
   editingGoal,
   members = [],
+  currentUserMemberId,
   onSuccess,
 }: GoalFormModalProps) {
-  const { isUnifiedPrivacy } = useViewMode();
+  const { viewMode, isUnifiedPrivacy } = useViewMode();
+
+  // Default memberId based on viewMode: "mine" → current user, "shared" → null (conjunta)
+  const defaultMemberId = viewMode === "shared" ? undefined : currentUserMemberId;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
 
@@ -77,7 +82,7 @@ export function GoalFormModal({
     initialAmount: 0, // only for creation
     targetDate: editingGoal?.targetDate?.split("T")[0] || "",
     accountId: editingGoal?.accountId || "",
-    memberId: editingGoal?.memberId ?? undefined as string | undefined,
+    memberId: editingGoal?.memberId ?? defaultMemberId as string | undefined,
   });
 
   // Fetch accounts when modal opens
@@ -112,10 +117,10 @@ export function GoalFormModal({
         initialAmount: 0,
         targetDate: "",
         accountId: "",
-        memberId: undefined,
+        memberId: defaultMemberId,
       });
     }
-  }, [editingGoal, open, randomColor]);
+  }, [editingGoal, open, randomColor, defaultMemberId]);
 
   const resetForm = () => {
     setFormData({
@@ -126,7 +131,7 @@ export function GoalFormModal({
       initialAmount: 0,
       targetDate: "",
       accountId: "",
-      memberId: undefined,
+      memberId: defaultMemberId,
     });
   };
 

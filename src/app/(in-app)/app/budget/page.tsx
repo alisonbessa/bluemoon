@@ -457,6 +457,7 @@ export default function BudgetPage() {
         onOpenChange={setIsGoalFormOpen}
         budgetId={budgetId || ''}
         members={members}
+        currentUserMemberId={userMemberId ?? undefined}
         onSuccess={refreshData}
       />
     </div>
