@@ -26,7 +26,11 @@ import {
   matchAccount,
   filterAccountsByHint,
   getPaymentMethodLabel,
+  getPaymentMethodDisplayLabel,
   getAccountIcon,
+  suggestAccountTypeFromHint,
+  getAccountTypeName,
+  formatAccountDisplay,
 } from "./account-utils";
 
 /**
@@ -63,22 +67,36 @@ export async function handleExpenseIntent(
   // For installments without explicit account, prefer credit card
   let accountId: string;
   let accountName: string;
+  let accountType: string | undefined;
   if (matchedAccount) {
     accountId = matchedAccount.id;
     accountName = matchedAccount.name;
+    accountType = accounts.find(a => a.id === matchedAccount.id)?.type;
   } else if (data?.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
     const creditCard = accounts.find(a => a.type === "credit_card");
     if (creditCard) {
       accountId = creditCard.id;
       accountName = creditCard.name;
+      accountType = creditCard.type;
     } else {
+      const defaultAcc = accounts.find(a => a.id === defaultAccountId);
       accountId = defaultAccountId;
-      accountName = accounts.find(a => a.id === defaultAccountId)?.name || "Conta padrão";
+      accountName = defaultAcc?.name || "Conta padrão";
+      accountType = defaultAcc?.type;
     }
   } else {
+    const defaultAcc = accounts.find(a => a.id === defaultAccountId);
     accountId = defaultAccountId;
-    accountName = accounts.find(a => a.id === defaultAccountId)?.name || "Conta padrão";
+    accountName = defaultAcc?.name || "Conta padrão";
+    accountType = defaultAcc?.type;
   }
+
+  // Resolve payment method display label
+  const paymentMethodLabel = getPaymentMethodDisplayLabel(
+    data?.paymentMethodHint,
+    accountType,
+    data?.accountHint
+  );
 
   // Try to match category (using privacy-filtered list)
   const categoryMatch = matchCategory(data?.categoryHint, categories);
@@ -235,7 +253,7 @@ export async function handleExpenseIntent(
           `${categoryIcon || "📁"} ${categoryName}\n` +
           `Valor total: ${formatCurrency(data.amount)}\n` +
           `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
-          (accountName ? `Conta: ${accountName}\n` : "") +
+          (accountName ? `${formatAccountDisplay(accountName, accountType)}\n` : "") +
           (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
           `Use /desfazer para remover.`
       );
@@ -270,7 +288,7 @@ export async function handleExpenseIntent(
       `✅ <b>Gasto registrado!</b>\n\n` +
         `${categoryIcon || "📁"} ${categoryName}\n` +
         `Valor: ${formatCurrency(data.amount)}\n` +
-        (accountName ? `Conta: ${accountName}\n` : "") +
+        (accountName ? `${formatAccountDisplay(accountName, accountType)}\n` : "") +
         (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
         `Use /desfazer para remover.`
     );
@@ -294,7 +312,7 @@ export async function handleExpenseIntent(
     }
 
     if (accountName) {
-      message += `Conta: ${accountName}\n`;
+      message += `${formatAccountDisplay(accountName, accountType)}\n`;
     }
     if (data.description) {
       message += `Descrição: ${data.description}\n`;
@@ -314,6 +332,8 @@ export async function handleExpenseIntent(
         categoryName,
         accountId,
         accountName,
+        accountType,
+        paymentMethodLabel: paymentMethodLabel || undefined,
         isInstallment: data.isInstallment,
         totalInstallments: data.totalInstallments,
       },
@@ -358,6 +378,8 @@ export async function handleExpenseIntent(
         description: data.description,
         accountId,
         accountName,
+        accountType,
+        paymentMethodLabel: paymentMethodLabel || undefined,
         isInstallment: data.isInstallment,
         totalInstallments: data.totalInstallments,
       },
@@ -380,32 +402,60 @@ export async function handleExpenseIntent(
       `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)} ${monthsText}\n`;
   }
 
-  // If no account was specified (or hint didn't match), ask for account first
-  if (!matchedAccount && accounts.length > 1) {
-    // Filter accounts by hint type if possible (e.g. "cartão" → show only credit cards)
-    const filteredAccounts = unmatchedAccountHint
-      ? filterAccountsByHint(data.accountHint!, accounts)
-      : null;
-    const accountsToShow = filteredAccounts || accounts;
+  // If user mentioned a specific account name we couldn't match, offer to CREATE it
+  if (unmatchedAccountHint && data.accountHint) {
+    const filteredAccounts = filterAccountsByHint(data.accountHint, accounts);
 
-    // If filtering narrowed it to exactly one account, auto-select it
-    if (filteredAccounts && filteredAccounts.length === 1) {
-      accountId = filteredAccounts[0].id;
-      accountName = filteredAccounts[0].name;
-    } else {
-      const headerNote = unmatchedAccountHint
-        ? (filteredAccounts
-            ? getPaymentMethodLabel(data.accountHint!)
-            : `Não encontrei a conta "<b>${data.accountHint}</b>".\nQual a forma de pagamento?`)
-        : `Qual a forma de pagamento?`;
+    // Check if the hint looks like a specific account name (not just a generic type like "cartão")
+    const isSpecificName = !["cartao", "credito", "debito", "pix", "boleto", "dinheiro", "cartao de credito"]
+      .includes(data.accountHint.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim());
 
+    if (isSpecificName) {
+      // Suggest creating a new account with this name
+      const suggestedType = suggestAccountTypeFromHint(data.accountHint, data.paymentMethodHint);
+      const suggestedTypeName = getAccountTypeName(suggestedType);
+      const suggestedName = capitalizeFirst(data.accountHint) || data.accountHint;
+
+      const newAccMsgId = await adapter.sendNewAccountPrompt(
+        chatId,
+        `💰 <b>Registrar gasto</b>\n\n` +
+          valueText +
+          (paymentMethodLabel ? `Pagamento: ${paymentMethodLabel}\n` : "") +
+          (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
+          `Não encontrei a conta "<b>${data.accountHint}</b>".\n` +
+          `Deseja criar como <b>${suggestedTypeName}</b>?`,
+        suggestedName
+      );
+
+      await adapter.updateState(chatId, "AWAITING_NEW_ACCOUNT_CONFIRM", {
+        pendingExpense: {
+          amount: data.amount,
+          description: data.description,
+          categoryHint: data.categoryHint || undefined,
+          paymentMethodLabel: paymentMethodLabel || undefined,
+          isInstallment: data.isInstallment,
+          totalInstallments: data.totalInstallments,
+        },
+        pendingNewAccount: {
+          suggestedName,
+          suggestedType,
+        },
+        messagesToDelete: [...initialMessagesToDelete, newAccMsgId],
+        lastAILogId: logId || undefined,
+      });
+      return;
+    }
+
+    // Generic type hint (e.g., "cartão") with multiple matches - show filtered list
+    if (filteredAccounts && filteredAccounts.length > 1) {
       const accSelectMsgId = await adapter.sendChoiceList(
         chatId,
         `💰 <b>Registrar gasto</b>\n\n` +
           valueText +
+          (paymentMethodLabel ? `Pagamento: ${paymentMethodLabel}\n` : "") +
           (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
-          headerNote,
-        accountsToShow.map(a => ({ id: `acc_${a.id}`, label: `${getAccountIcon(a.type)} ${a.name}` })),
+          getPaymentMethodLabel(data.accountHint),
+        filteredAccounts.map(a => ({ id: `acc_${a.id}`, label: `${getAccountIcon(a.type)} ${a.name}` })),
         "Contas"
       );
 
@@ -413,6 +463,8 @@ export async function handleExpenseIntent(
         pendingExpense: {
           amount: data.amount,
           description: data.description,
+          categoryHint: data.categoryHint || undefined,
+          paymentMethodLabel: paymentMethodLabel || undefined,
           isInstallment: data.isInstallment,
           totalInstallments: data.totalInstallments,
         },
@@ -421,6 +473,59 @@ export async function handleExpenseIntent(
       });
       return;
     }
+
+    // No filtered accounts OR no type detected - show all accounts
+    const accSelectMsgId = await adapter.sendChoiceList(
+      chatId,
+      `💰 <b>Registrar gasto</b>\n\n` +
+        valueText +
+        (paymentMethodLabel ? `Pagamento: ${paymentMethodLabel}\n` : "") +
+        (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
+        `Não encontrei a conta "<b>${data.accountHint}</b>".\nQual a forma de pagamento?`,
+      accounts.map(a => ({ id: `acc_${a.id}`, label: `${getAccountIcon(a.type)} ${a.name}` })),
+      "Contas"
+    );
+
+    await adapter.updateState(chatId, "AWAITING_ACCOUNT", {
+      pendingExpense: {
+        amount: data.amount,
+        description: data.description,
+        categoryHint: data.categoryHint || undefined,
+        paymentMethodLabel: paymentMethodLabel || undefined,
+        isInstallment: data.isInstallment,
+        totalInstallments: data.totalInstallments,
+      },
+      messagesToDelete: [...initialMessagesToDelete, accSelectMsgId],
+      lastAILogId: logId || undefined,
+    });
+    return;
+  }
+
+  // If no account was specified, ask for account first (if multiple accounts)
+  if (!matchedAccount && accounts.length > 1) {
+    const accSelectMsgId = await adapter.sendChoiceList(
+      chatId,
+      `💰 <b>Registrar gasto</b>\n\n` +
+        valueText +
+        (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
+        `Qual a forma de pagamento?`,
+      accounts.map(a => ({ id: `acc_${a.id}`, label: `${getAccountIcon(a.type)} ${a.name}` })),
+      "Contas"
+    );
+
+    await adapter.updateState(chatId, "AWAITING_ACCOUNT", {
+      pendingExpense: {
+        amount: data.amount,
+        description: data.description,
+        categoryHint: data.categoryHint || undefined,
+        paymentMethodLabel: paymentMethodLabel || undefined,
+        isInstallment: data.isInstallment,
+        totalInstallments: data.totalInstallments,
+      },
+      messagesToDelete: [...initialMessagesToDelete, accSelectMsgId],
+      lastAILogId: logId || undefined,
+    });
+    return;
   }
 
   // Account already selected (or only one account), ask for category
@@ -428,7 +533,7 @@ export async function handleExpenseIntent(
     chatId,
     `💰 <b>Registrar gasto</b>\n\n` +
       valueText +
-      (accountName ? `Conta: ${accountName}\n` : "") +
+      (accountName ? `${formatAccountDisplay(accountName, accountType)}\n` : "") +
       (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
       `Selecione a categoria:`,
     categories.map(c => ({ id: `cat_${c.id}`, label: `${c.icon || "📁"} ${c.name}` })),
@@ -441,6 +546,8 @@ export async function handleExpenseIntent(
       description: data.description,
       accountId,
       accountName,
+      accountType,
+      paymentMethodLabel: paymentMethodLabel || undefined,
       isInstallment: data.isInstallment,
       totalInstallments: data.totalInstallments,
     },

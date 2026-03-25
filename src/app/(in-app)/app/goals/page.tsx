@@ -8,11 +8,12 @@ import GoalsPageClient from "./client";
  * so the page renders instantly without a loading spinner.
  */
 export default async function GoalsPage() {
-  const [goals, budgets, accounts, members] = await Promise.all([
+  const [goals, budgets, accounts, members, me] = await Promise.all([
     serverFetch("/api/app/goals"),
     serverFetch("/api/app/budgets"),
     serverFetch("/api/app/accounts"),
     serverFetch("/api/app/members"),
+    serverFetch("/api/app/me"),
   ]);
 
   const fallback = buildFallbackMap([
@@ -20,6 +21,7 @@ export default async function GoalsPage() {
     ["/api/app/budgets", budgets],
     ["/api/app/accounts", accounts],
     ["/api/app/members", members],
+    ["/api/app/me", me],
   ]);
 
   return (

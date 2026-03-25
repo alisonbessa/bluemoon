@@ -85,6 +85,15 @@ export class WhatsAppAdapter implements MessagingAdapter {
     ]);
   }
 
+  async sendNewAccountPrompt(chatId: ChatId, text: string, suggestedName: string): Promise<MessageId> {
+    const plainText = stripHtml(text);
+    return sendButtonMessage(chatId, plainText, [
+      { id: "newacc_accept", title: `Criar "${suggestedName}"`.slice(0, 20) },
+      { id: "newacc_existing", title: "Escolher existente" },
+      { id: "cancel", title: "Cancelar" },
+    ]);
+  }
+
   async sendGroupList(chatId: ChatId, text: string, groups: Choice[]): Promise<MessageId> {
     const plainText = stripHtml(text);
 

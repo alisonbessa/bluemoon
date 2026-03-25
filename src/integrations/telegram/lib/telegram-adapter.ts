@@ -87,6 +87,21 @@ export class TelegramAdapter implements MessagingAdapter {
     return String(msgId);
   }
 
+  async sendNewAccountPrompt(chatId: ChatId, text: string, suggestedName: string): Promise<MessageId> {
+    const numericChatId = parseInt(chatId, 10);
+    const msgId = await telegramSendMessage(numericChatId, text, {
+      parseMode: "HTML",
+      replyMarkup: {
+        inline_keyboard: [
+          [{ text: `✅ Criar "${suggestedName}"`, callback_data: "newacc_accept" }],
+          [{ text: "📋 Escolher existente", callback_data: "newacc_existing" }],
+          [{ text: "❌ Cancelar", callback_data: "cancel" }],
+        ],
+      },
+    });
+    return String(msgId);
+  }
+
   async sendGroupList(chatId: ChatId, text: string, groups: Choice[]): Promise<MessageId> {
     const numericChatId = parseInt(chatId, 10);
     const buttons = groups.map((g) => ({

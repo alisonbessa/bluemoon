@@ -13,7 +13,7 @@ import {
   recurringBills,
 } from "@/db/schema";
 import { eq, and, inArray, gte, lte, sql, isNotNull, isNull, or } from "drizzle-orm";
-import { ensurePendingTransactionsForMonth } from "@/shared/lib/budget/pending-transactions";
+import { ensurePendingTransactionsForMonth, autoActivateMonth } from "@/shared/lib/budget/pending-transactions";
 import {
   getUserBudgetIds,
   getUserMemberIdInBudget,
@@ -99,12 +99,13 @@ export async function fetchDashboardData(opts: {
 
   const privacyMode = budgetRow?.privacyMode || "visible";
 
-  // Run partner privacy + pending transactions in parallel
+  // Run partner privacy + pending transactions + auto-activate in parallel
   const [partnerPrivacy] = await Promise.all([
     viewMode === "all" && userMemberId
       ? getPartnerPrivacyLevel(userId, budgetId)
       : Promise.resolve(undefined),
     ensurePendingTransactionsForMonth(budgetId, year, month),
+    autoActivateMonth(budgetId, year, month),
   ]);
 
   // Date range

@@ -43,6 +43,9 @@ import {
   handleNewCategoryExisting,
   handleCustomCategoryName,
   handleGroupSelection,
+  handleNewAccountAccept,
+  handleNewAccountExisting,
+  handleClosingDay,
 } from "./selections";
 
 const logger = createLogger("whatsapp:handlers");
@@ -179,6 +182,16 @@ async function handleInteractiveResponse(
     return;
   }
 
+  if (actionId === "newacc_accept") {
+    await handleNewAccountAccept(phoneNumber);
+    return;
+  }
+
+  if (actionId === "newacc_existing") {
+    await handleNewAccountExisting(phoneNumber);
+    return;
+  }
+
   if (actionId === "confirm") {
     // Determine what to confirm based on context
     if (context.pendingIncome) {
@@ -281,11 +294,16 @@ async function handleTextMessage(
       await handleCustomCategoryName(phoneNumber, text);
       break;
 
+    case "AWAITING_CLOSING_DAY":
+      await handleClosingDay(phoneNumber, text);
+      break;
+
     case "AWAITING_ACCOUNT":
     case "AWAITING_CATEGORY":
     case "AWAITING_CONFIRMATION":
     case "AWAITING_NEW_CATEGORY_CONFIRM":
     case "AWAITING_NEW_CATEGORY_GROUP":
+    case "AWAITING_NEW_ACCOUNT_CONFIRM":
     case "AWAITING_INCOME_SOURCE":
     case "AWAITING_TRANSFER_DEST": {
       // User is in the middle of a flow but sent text instead of using buttons

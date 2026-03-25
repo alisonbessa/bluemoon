@@ -16,6 +16,7 @@ import {
   formatCurrency,
   createCategoryKeyboard,
   createConfirmationKeyboard,
+  createNewCategoryKeyboard,
   createGroupKeyboard,
   createAccountKeyboard,
   deleteMessages,
@@ -25,6 +26,8 @@ import { formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import { markLogAsConfirmed } from "./ai-logger";
 import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { updateTelegramUser } from "./user-management";
+import { matchCategory } from "@/integrations/messaging/lib/gemini";
+import { formatCategoryName, suggestGroupForCategory } from "@/integrations/messaging/lib/ai-handlers/category-utils";
 
 // Handle category selection callback
 export async function handleCategorySelection(chatId: number, categoryId: string, callbackQueryId: string) {
@@ -129,7 +132,74 @@ export async function handleAccountSelection(chatId: number, accountId: string, 
       `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(context.pendingExpense.totalInstallments)}\n`;
   }
 
-  // Now ask for category
+  const updatedExpense = {
+    ...context.pendingExpense,
+    accountId: account.id,
+    accountName: account.name,
+  };
+
+  // Check if AI suggested a category that doesn't exist — offer to create it
+  const categoryHint = context.pendingExpense.categoryHint;
+  if (categoryHint) {
+    const catMatch = matchCategory(categoryHint, budgetInfo.categories);
+
+    if (catMatch) {
+      // Category exists — go straight to confirmation
+      const confirmMsgId = await sendMessage(
+        chatId,
+        `📝 <b>Confirmar registro?</b>\n\n` +
+          `${catMatch.category.icon || ""} ${catMatch.category.name}\n` +
+          valueText +
+          `Conta: ${account.name}\n` +
+          (context.pendingExpense.description ? `Descrição: ${context.pendingExpense.description}\n` : ""),
+        {
+          parseMode: "HTML",
+          replyMarkup: createConfirmationKeyboard(),
+        }
+      );
+
+      await updateTelegramUser(chatId, "AWAITING_CONFIRMATION", {
+        pendingExpense: {
+          ...updatedExpense,
+          categoryId: catMatch.category.id,
+          categoryName: catMatch.category.name,
+        },
+        messagesToDelete: [...(context.messagesToDelete || []), confirmMsgId],
+        lastAILogId: context.lastAILogId,
+      });
+      return;
+    }
+
+    // Category doesn't exist — offer to create it
+    const suggestedName = formatCategoryName(categoryHint);
+    const suggestedGroupCode = suggestGroupForCategory(categoryHint);
+
+    const newCatMsgId = await sendMessage(
+      chatId,
+      `💰 <b>Registrar gasto</b>\n\n` +
+        valueText +
+        `Conta: ${account.name}\n` +
+        (context.pendingExpense.description ? `Descrição: ${context.pendingExpense.description}\n\n` : "\n") +
+        `Não encontrei a categoria "<b>${categoryHint}</b>".\nDeseja criar uma nova categoria?`,
+      {
+        parseMode: "HTML",
+        replyMarkup: createNewCategoryKeyboard(suggestedName),
+      }
+    );
+
+    await updateTelegramUser(chatId, "AWAITING_NEW_CATEGORY_CONFIRM", {
+      pendingExpense: updatedExpense,
+      pendingNewCategory: {
+        suggestedName,
+        suggestedGroupId: suggestedGroupCode,
+      },
+      messagesToDelete: [...(context.messagesToDelete || []), newCatMsgId],
+      lastAILogId: context.lastAILogId,
+    });
+    return;
+  }
+
+  // No category hint — show category list
   const catSelectMsgId = await sendMessage(
     chatId,
     `💰 <b>Registrar gasto</b>\n\n` +
@@ -142,13 +212,8 @@ export async function handleAccountSelection(chatId: number, accountId: string, 
     }
   );
 
-  // Update context with account and proceed to category selection
   await updateTelegramUser(chatId, "AWAITING_CATEGORY", {
-    pendingExpense: {
-      ...context.pendingExpense,
-      accountId: account.id,
-      accountName: account.name,
-    },
+    pendingExpense: updatedExpense,
     messagesToDelete: [...(context.messagesToDelete || []), catSelectMsgId],
   });
 }
@@ -492,5 +557,113 @@ export async function handleCustomCategoryName(chatId: number, text: string) {
       customName: text.trim(),
     },
     messagesToDelete: [...(context.messagesToDelete || []), groupMsgId],
+  });
+}
+
+// ============================================
+// Account Creation Handlers
+// ============================================
+
+export async function handleNewAccountAccept(chatId: number, callbackQueryId: string) {
+  await answerCallbackQuery(callbackQueryId, "Criando conta...");
+
+  const [tgUser] = await db
+    .select()
+    .from(telegramUsers)
+    .where(eq(telegramUsers.chatId, chatId));
+
+  if (!tgUser?.userId) return;
+
+  const context = tgUser.context as TelegramConversationContext;
+
+  if (!context?.pendingNewAccount || !context?.pendingExpense) {
+    await sendMessage(chatId, "Erro: dados incompletos. Tente novamente.");
+    await updateTelegramUser(chatId, "IDLE", {});
+    return;
+  }
+
+  // Delete intermediate messages
+  if (context.messagesToDelete && context.messagesToDelete.length > 0) {
+    await deleteMessages(chatId, context.messagesToDelete);
+  }
+
+  const budgetInfo = await getUserBudgetInfo(tgUser.userId);
+  if (!budgetInfo) {
+    await sendMessage(chatId, "Erro ao carregar informações. Tente novamente.");
+    return;
+  }
+
+  const accountName = context.pendingNewAccount.suggestedName;
+  const accountType = context.pendingNewAccount.suggestedType;
+
+  // Create the new account
+  const [newAccount] = await db
+    .insert(financialAccounts)
+    .values({
+      budgetId: budgetInfo.budget.id,
+      name: accountName,
+      type: accountType as "credit_card" | "checking" | "savings" | "cash" | "investment" | "benefit",
+      balance: 0,
+      isArchived: false,
+    })
+    .returning();
+
+  // Now proceed to category selection with the new account
+  const catMsgId = await sendMessage(
+    chatId,
+    `✅ Conta "<b>${accountName}</b>" criada!\n\nSelecione a categoria:`,
+    {
+      parseMode: "HTML",
+      replyMarkup: createCategoryKeyboard(budgetInfo.categories),
+    }
+  );
+
+  await updateTelegramUser(chatId, "AWAITING_CATEGORY", {
+    pendingExpense: {
+      ...context.pendingExpense,
+      accountId: newAccount.id,
+      accountName: newAccount.name,
+    },
+    messagesToDelete: [catMsgId],
+    lastAILogId: context.lastAILogId,
+  });
+}
+
+export async function handleNewAccountExisting(chatId: number, callbackQueryId: string) {
+  await answerCallbackQuery(callbackQueryId, "Escolher conta existente");
+
+  const [tgUser] = await db
+    .select()
+    .from(telegramUsers)
+    .where(eq(telegramUsers.chatId, chatId));
+
+  if (!tgUser?.userId) return;
+
+  const budgetInfo = await getUserBudgetInfo(tgUser.userId);
+  if (!budgetInfo) {
+    await sendMessage(chatId, "Erro ao carregar informações. Tente novamente.");
+    return;
+  }
+
+  const context = tgUser.context as TelegramConversationContext;
+
+  // Delete intermediate messages
+  if (context?.messagesToDelete && context.messagesToDelete.length > 0) {
+    await deleteMessages(chatId, context.messagesToDelete);
+  }
+
+  const accMsgId = await sendMessage(
+    chatId,
+    "Selecione uma conta existente:",
+    {
+      parseMode: "HTML",
+      replyMarkup: createAccountKeyboard(budgetInfo.accounts),
+    }
+  );
+
+  await updateTelegramUser(chatId, "AWAITING_ACCOUNT", {
+    pendingExpense: context?.pendingExpense,
+    messagesToDelete: [accMsgId],
+    lastAILogId: context?.lastAILogId,
   });
 }

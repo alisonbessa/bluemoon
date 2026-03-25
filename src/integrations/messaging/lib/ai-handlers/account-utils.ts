@@ -28,6 +28,103 @@ export function getPaymentMethodLabel(hint: string): string {
 }
 
 /**
+ * Display labels for payment methods with icons.
+ * Used in confirmation and success messages to clearly show HOW the user paid.
+ */
+const PAYMENT_METHOD_DISPLAY: Record<string, string> = {
+  pix: "📱 PIX",
+  cartao_credito: "💳 Cartão de crédito",
+  cartao_debito: "💳 Cartão de débito",
+  boleto: "📄 Boleto",
+  dinheiro: "💵 Dinheiro",
+  transferencia: "🏦 Transferência",
+};
+
+/**
+ * Get a display label for the payment method.
+ * Resolves from: explicit paymentMethodHint > account type > accountHint keywords > null
+ */
+export function getPaymentMethodDisplayLabel(
+  paymentMethodHint?: string,
+  accountType?: string,
+  accountHint?: string
+): string | null {
+  // 1. Explicit payment method from AI
+  if (paymentMethodHint && PAYMENT_METHOD_DISPLAY[paymentMethodHint]) {
+    return PAYMENT_METHOD_DISPLAY[paymentMethodHint];
+  }
+
+  // 2. Infer from account type
+  if (accountType) {
+    const typeMap: Record<string, string> = {
+      credit_card: "💳 Cartão de crédito",
+      checking: "🏦 Conta corrente",
+      savings: "🐷 Poupança",
+      cash: "💵 Dinheiro",
+      benefit: "🍽️ Benefício",
+      investment: "📈 Investimento",
+    };
+    if (typeMap[accountType]) return typeMap[accountType];
+  }
+
+  // 3. Infer from accountHint keywords
+  if (accountHint) {
+    const normalized = normalizeText(accountHint);
+    if (normalized.includes("pix")) return PAYMENT_METHOD_DISPLAY.pix;
+    if (normalized.includes("boleto")) return PAYMENT_METHOD_DISPLAY.boleto;
+    if (normalized.includes("dinheiro") || normalized.includes("especie")) return PAYMENT_METHOD_DISPLAY.dinheiro;
+    if (normalized.includes("debito")) return PAYMENT_METHOD_DISPLAY.cartao_debito;
+    if (normalized.includes("credito") || normalized.includes("cartao")) return PAYMENT_METHOD_DISPLAY.cartao_credito;
+    if (normalized.includes("transferencia") || normalized.includes("ted") || normalized.includes("doc")) return PAYMENT_METHOD_DISPLAY.transferencia;
+  }
+
+  return null;
+}
+
+/**
+ * Suggest a default account type based on payment method hint and account hint.
+ * Prioritizes paymentMethodHint (from AI) over keyword detection in the account name.
+ */
+export function suggestAccountTypeFromHint(accountHint: string, paymentMethodHint?: string): string {
+  // 1. Use explicit payment method hint from AI (most reliable)
+  if (paymentMethodHint) {
+    const methodToType: Record<string, string> = {
+      cartao_credito: "credit_card",
+      cartao_debito: "checking",
+      pix: "checking",
+      boleto: "checking",
+      dinheiro: "cash",
+      transferencia: "checking",
+    };
+    if (methodToType[paymentMethodHint]) return methodToType[paymentMethodHint];
+  }
+
+  // 2. Fallback to keyword detection in the account name/hint
+  const normalized = normalizeText(accountHint);
+  if (normalized.includes("cartao") || normalized.includes("credito") || normalized.includes("credit")) return "credit_card";
+  if (normalized.includes("debito") || normalized.includes("conta corrente") || normalized.includes("pix")) return "checking";
+  if (normalized.includes("poupanca")) return "savings";
+  if (normalized.includes("dinheiro") || normalized.includes("especie")) return "cash";
+  if (normalized.includes("vr") || normalized.includes("va") || normalized.includes("flash") || normalized.includes("alelo") || normalized.includes("sodexo") || normalized.includes("ticket")) return "benefit";
+  return "checking";
+}
+
+/**
+ * Get a human-readable account type name in Portuguese
+ */
+export function getAccountTypeName(type: string): string {
+  const names: Record<string, string> = {
+    credit_card: "Cartão de crédito",
+    checking: "Conta corrente",
+    savings: "Poupança",
+    cash: "Dinheiro",
+    investment: "Investimento",
+    benefit: "Benefício",
+  };
+  return names[type] || "Conta";
+}
+
+/**
  * Get icon for account type
  */
 export function getAccountIcon(type: string): string {
@@ -40,6 +137,42 @@ export function getAccountIcon(type: string): string {
     case "investment": return "📈";
     default: return "💰";
   }
+}
+
+/**
+ * Get the field label for an account based on its type.
+ * e.g. credit_card → "Cartão", checking → "Conta", cash → "Pagamento"
+ */
+export function getAccountFieldLabel(accountType?: string): string {
+  switch (accountType) {
+    case "credit_card": return "Cartão";
+    case "checking": return "Conta";
+    case "savings": return "Conta";
+    case "cash": return "Pagamento";
+    case "benefit": return "Benefício";
+    case "investment": return "Conta";
+    default: return "Pagamento";
+  }
+}
+
+/**
+ * Format account with icon only (no label prefix).
+ * e.g. "💳 Nubank", "🏦 Itaú"
+ * Use in contexts where a label is already provided (e.g. "De:", "Para:").
+ */
+export function formatAccountWithIcon(accountName: string, accountType?: string): string {
+  const icon = accountType ? getAccountIcon(accountType) : "💰";
+  return `${icon} ${accountName}`;
+}
+
+/**
+ * Format account display for messages: "Label: emoji name"
+ * e.g. "Cartão: 💳 Nubank", "Conta: 🏦 Itaú", "Pagamento: 💵 Dinheiro"
+ */
+export function formatAccountDisplay(accountName: string, accountType?: string): string {
+  const icon = accountType ? getAccountIcon(accountType) : "💰";
+  const label = getAccountFieldLabel(accountType);
+  return `${label}: ${icon} ${accountName}`;
 }
 
 /**
