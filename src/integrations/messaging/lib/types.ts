@@ -72,7 +72,8 @@ export type ConversationStep =
   | "AWAITING_NEW_CATEGORY_CONFIRM"
   | "AWAITING_NEW_CATEGORY_NAME"
   | "AWAITING_NEW_CATEGORY_GROUP"
-  | "AWAITING_NEW_ACCOUNT_CONFIRM";
+  | "AWAITING_NEW_ACCOUNT_CONFIRM"
+  | "AWAITING_CLOSING_DAY";
 
 export interface ConversationContext {
   pendingExpense?: {
@@ -83,6 +84,7 @@ export interface ConversationContext {
     categoryHint?: string; // AI's category suggestion, preserved for multi-step flows
     accountId?: string;
     accountName?: string;
+    accountType?: string; // credit_card, checking, etc.
     paymentMethodLabel?: string; // e.g., "💳 Cartão de crédito", "📱 PIX"
     isInstallment?: boolean;
     totalInstallments?: number;
@@ -109,6 +111,7 @@ export interface ConversationContext {
   pendingNewAccount?: {
     suggestedName: string;
     suggestedType: string; // credit_card, checking, etc.
+    closingDay?: number; // 1-31, for credit cards
   };
   verificationCode?: string;
   verificationExpiry?: string;

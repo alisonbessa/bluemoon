@@ -140,6 +140,15 @@ export function getAccountIcon(type: string): string {
 }
 
 /**
+ * Format account display for messages: emoji + name.
+ * e.g. "💳 Cartão Nubank", "🏦 Nubank", "💵 Dinheiro"
+ */
+export function formatAccountDisplay(accountName: string, accountType?: string): string {
+  const icon = accountType ? getAccountIcon(accountType) : "💰";
+  return `${icon} ${accountName}`;
+}
+
+/**
  * Detect which account type the hint refers to (generic match).
  * e.g. "cartão" → "credit_card", "pix" → "checking"
  */
