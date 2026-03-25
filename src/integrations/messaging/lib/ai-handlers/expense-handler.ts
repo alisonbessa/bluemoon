@@ -30,6 +30,7 @@ import {
   getAccountIcon,
   suggestAccountTypeFromHint,
   getAccountTypeName,
+  formatAccountDisplay,
 } from "./account-utils";
 
 /**
@@ -66,30 +67,34 @@ export async function handleExpenseIntent(
   // For installments without explicit account, prefer credit card
   let accountId: string;
   let accountName: string;
+  let accountType: string | undefined;
   if (matchedAccount) {
     accountId = matchedAccount.id;
     accountName = matchedAccount.name;
+    accountType = accounts.find(a => a.id === matchedAccount.id)?.type;
   } else if (data?.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
     const creditCard = accounts.find(a => a.type === "credit_card");
     if (creditCard) {
       accountId = creditCard.id;
       accountName = creditCard.name;
+      accountType = creditCard.type;
     } else {
+      const defaultAcc = accounts.find(a => a.id === defaultAccountId);
       accountId = defaultAccountId;
-      accountName = accounts.find(a => a.id === defaultAccountId)?.name || "Conta padrão";
+      accountName = defaultAcc?.name || "Conta padrão";
+      accountType = defaultAcc?.type;
     }
   } else {
+    const defaultAcc = accounts.find(a => a.id === defaultAccountId);
     accountId = defaultAccountId;
-    accountName = accounts.find(a => a.id === defaultAccountId)?.name || "Conta padrão";
+    accountName = defaultAcc?.name || "Conta padrão";
+    accountType = defaultAcc?.type;
   }
 
   // Resolve payment method display label
-  const matchedAccountType = matchedAccount
-    ? accounts.find(a => a.id === matchedAccount.id)?.type
-    : (data?.isInstallment ? "credit_card" : undefined);
   const paymentMethodLabel = getPaymentMethodDisplayLabel(
     data?.paymentMethodHint,
-    matchedAccountType || undefined,
+    accountType,
     data?.accountHint
   );
 
@@ -248,8 +253,7 @@ export async function handleExpenseIntent(
           `${categoryIcon || "📁"} ${categoryName}\n` +
           `Valor total: ${formatCurrency(data.amount)}\n` +
           `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
-          (paymentMethodLabel ? `Pagamento: ${paymentMethodLabel}\n` : "") +
-          (accountName ? `Conta: ${accountName}\n` : "") +
+          (accountName ? `${formatAccountDisplay(accountName, accountType)}\n` : "") +
           (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
           `Use /desfazer para remover.`
       );
@@ -284,8 +288,7 @@ export async function handleExpenseIntent(
       `✅ <b>Gasto registrado!</b>\n\n` +
         `${categoryIcon || "📁"} ${categoryName}\n` +
         `Valor: ${formatCurrency(data.amount)}\n` +
-        (paymentMethodLabel ? `Pagamento: ${paymentMethodLabel}\n` : "") +
-        (accountName ? `Conta: ${accountName}\n` : "") +
+        (accountName ? `${formatAccountDisplay(accountName, accountType)}\n` : "") +
         (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
         `Use /desfazer para remover.`
     );
@@ -308,11 +311,8 @@ export async function handleExpenseIntent(
       message += `Valor: ${formatCurrency(data.amount)}\n`;
     }
 
-    if (paymentMethodLabel) {
-      message += `Pagamento: ${paymentMethodLabel}\n`;
-    }
     if (accountName) {
-      message += `Conta: ${accountName}\n`;
+      message += `${formatAccountDisplay(accountName, accountType)}\n`;
     }
     if (data.description) {
       message += `Descrição: ${data.description}\n`;
@@ -332,6 +332,7 @@ export async function handleExpenseIntent(
         categoryName,
         accountId,
         accountName,
+        accountType,
         paymentMethodLabel: paymentMethodLabel || undefined,
         isInstallment: data.isInstallment,
         totalInstallments: data.totalInstallments,
@@ -377,6 +378,7 @@ export async function handleExpenseIntent(
         description: data.description,
         accountId,
         accountName,
+        accountType,
         paymentMethodLabel: paymentMethodLabel || undefined,
         isInstallment: data.isInstallment,
         totalInstallments: data.totalInstallments,
@@ -410,7 +412,7 @@ export async function handleExpenseIntent(
 
     if (isSpecificName) {
       // Suggest creating a new account with this name
-      const suggestedType = suggestAccountTypeFromHint(data.accountHint);
+      const suggestedType = suggestAccountTypeFromHint(data.accountHint, data.paymentMethodHint);
       const suggestedTypeName = getAccountTypeName(suggestedType);
       const suggestedName = capitalizeFirst(data.accountHint) || data.accountHint;
 
@@ -429,6 +431,7 @@ export async function handleExpenseIntent(
         pendingExpense: {
           amount: data.amount,
           description: data.description,
+          categoryHint: data.categoryHint || undefined,
           paymentMethodLabel: paymentMethodLabel || undefined,
           isInstallment: data.isInstallment,
           totalInstallments: data.totalInstallments,
@@ -460,6 +463,7 @@ export async function handleExpenseIntent(
         pendingExpense: {
           amount: data.amount,
           description: data.description,
+          categoryHint: data.categoryHint || undefined,
           paymentMethodLabel: paymentMethodLabel || undefined,
           isInstallment: data.isInstallment,
           totalInstallments: data.totalInstallments,
@@ -486,6 +490,7 @@ export async function handleExpenseIntent(
       pendingExpense: {
         amount: data.amount,
         description: data.description,
+        categoryHint: data.categoryHint || undefined,
         paymentMethodLabel: paymentMethodLabel || undefined,
         isInstallment: data.isInstallment,
         totalInstallments: data.totalInstallments,
@@ -512,6 +517,7 @@ export async function handleExpenseIntent(
       pendingExpense: {
         amount: data.amount,
         description: data.description,
+        categoryHint: data.categoryHint || undefined,
         paymentMethodLabel: paymentMethodLabel || undefined,
         isInstallment: data.isInstallment,
         totalInstallments: data.totalInstallments,
@@ -527,8 +533,7 @@ export async function handleExpenseIntent(
     chatId,
     `💰 <b>Registrar gasto</b>\n\n` +
       valueText +
-      (paymentMethodLabel ? `Pagamento: ${paymentMethodLabel}\n` : "") +
-      (accountName ? `Conta: ${accountName}\n` : "") +
+      (accountName ? `${formatAccountDisplay(accountName, accountType)}\n` : "") +
       (data.description ? `Descrição: ${data.description}\n\n` : "\n") +
       `Selecione a categoria:`,
     categories.map(c => ({ id: `cat_${c.id}`, label: `${c.icon || "📁"} ${c.name}` })),
@@ -541,6 +546,7 @@ export async function handleExpenseIntent(
       description: data.description,
       accountId,
       accountName,
+      accountType,
       paymentMethodLabel: paymentMethodLabel || undefined,
       isInstallment: data.isInstallment,
       totalInstallments: data.totalInstallments,

@@ -82,11 +82,25 @@ export function getPaymentMethodDisplayLabel(
 }
 
 /**
- * Suggest a default account type based on payment method hint.
- * Used when offering to create a new account.
+ * Suggest a default account type based on payment method hint and account hint.
+ * Prioritizes paymentMethodHint (from AI) over keyword detection in the account name.
  */
-export function suggestAccountTypeFromHint(hint: string): string {
-  const normalized = normalizeText(hint);
+export function suggestAccountTypeFromHint(accountHint: string, paymentMethodHint?: string): string {
+  // 1. Use explicit payment method hint from AI (most reliable)
+  if (paymentMethodHint) {
+    const methodToType: Record<string, string> = {
+      cartao_credito: "credit_card",
+      cartao_debito: "checking",
+      pix: "checking",
+      boleto: "checking",
+      dinheiro: "cash",
+      transferencia: "checking",
+    };
+    if (methodToType[paymentMethodHint]) return methodToType[paymentMethodHint];
+  }
+
+  // 2. Fallback to keyword detection in the account name/hint
+  const normalized = normalizeText(accountHint);
   if (normalized.includes("cartao") || normalized.includes("credito") || normalized.includes("credit")) return "credit_card";
   if (normalized.includes("debito") || normalized.includes("conta corrente") || normalized.includes("pix")) return "checking";
   if (normalized.includes("poupanca")) return "savings";
@@ -123,6 +137,42 @@ export function getAccountIcon(type: string): string {
     case "investment": return "📈";
     default: return "💰";
   }
+}
+
+/**
+ * Get the field label for an account based on its type.
+ * e.g. credit_card → "Cartão", checking → "Conta", cash → "Pagamento"
+ */
+export function getAccountFieldLabel(accountType?: string): string {
+  switch (accountType) {
+    case "credit_card": return "Cartão";
+    case "checking": return "Conta";
+    case "savings": return "Conta";
+    case "cash": return "Pagamento";
+    case "benefit": return "Benefício";
+    case "investment": return "Conta";
+    default: return "Pagamento";
+  }
+}
+
+/**
+ * Format account with icon only (no label prefix).
+ * e.g. "💳 Nubank", "🏦 Itaú"
+ * Use in contexts where a label is already provided (e.g. "De:", "Para:").
+ */
+export function formatAccountWithIcon(accountName: string, accountType?: string): string {
+  const icon = accountType ? getAccountIcon(accountType) : "💰";
+  return `${icon} ${accountName}`;
+}
+
+/**
+ * Format account display for messages: "Label: emoji name"
+ * e.g. "Cartão: 💳 Nubank", "Conta: 🏦 Itaú", "Pagamento: 💵 Dinheiro"
+ */
+export function formatAccountDisplay(accountName: string, accountType?: string): string {
+  const icon = accountType ? getAccountIcon(accountType) : "💰";
+  const label = getAccountFieldLabel(accountType);
+  return `${label}: ${icon} ${accountName}`;
 }
 
 /**

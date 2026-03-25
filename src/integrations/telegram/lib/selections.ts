@@ -16,6 +16,7 @@ import {
   formatCurrency,
   createCategoryKeyboard,
   createConfirmationKeyboard,
+  createNewCategoryKeyboard,
   createGroupKeyboard,
   createAccountKeyboard,
   deleteMessages,
@@ -25,6 +26,8 @@ import { formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import { markLogAsConfirmed } from "./ai-logger";
 import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { updateTelegramUser } from "./user-management";
+import { matchCategory } from "@/integrations/messaging/lib/gemini";
+import { formatCategoryName, suggestGroupForCategory } from "@/integrations/messaging/lib/ai-handlers/category-utils";
 
 // Handle category selection callback
 export async function handleCategorySelection(chatId: number, categoryId: string, callbackQueryId: string) {
@@ -129,7 +132,74 @@ export async function handleAccountSelection(chatId: number, accountId: string, 
       `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(context.pendingExpense.totalInstallments)}\n`;
   }
 
-  // Now ask for category
+  const updatedExpense = {
+    ...context.pendingExpense,
+    accountId: account.id,
+    accountName: account.name,
+  };
+
+  // Check if AI suggested a category that doesn't exist — offer to create it
+  const categoryHint = context.pendingExpense.categoryHint;
+  if (categoryHint) {
+    const catMatch = matchCategory(categoryHint, budgetInfo.categories);
+
+    if (catMatch) {
+      // Category exists — go straight to confirmation
+      const confirmMsgId = await sendMessage(
+        chatId,
+        `📝 <b>Confirmar registro?</b>\n\n` +
+          `${catMatch.category.icon || ""} ${catMatch.category.name}\n` +
+          valueText +
+          `Conta: ${account.name}\n` +
+          (context.pendingExpense.description ? `Descrição: ${context.pendingExpense.description}\n` : ""),
+        {
+          parseMode: "HTML",
+          replyMarkup: createConfirmationKeyboard(),
+        }
+      );
+
+      await updateTelegramUser(chatId, "AWAITING_CONFIRMATION", {
+        pendingExpense: {
+          ...updatedExpense,
+          categoryId: catMatch.category.id,
+          categoryName: catMatch.category.name,
+        },
+        messagesToDelete: [...(context.messagesToDelete || []), confirmMsgId],
+        lastAILogId: context.lastAILogId,
+      });
+      return;
+    }
+
+    // Category doesn't exist — offer to create it
+    const suggestedName = formatCategoryName(categoryHint);
+    const suggestedGroupCode = suggestGroupForCategory(categoryHint);
+
+    const newCatMsgId = await sendMessage(
+      chatId,
+      `💰 <b>Registrar gasto</b>\n\n` +
+        valueText +
+        `Conta: ${account.name}\n` +
+        (context.pendingExpense.description ? `Descrição: ${context.pendingExpense.description}\n\n` : "\n") +
+        `Não encontrei a categoria "<b>${categoryHint}</b>".\nDeseja criar uma nova categoria?`,
+      {
+        parseMode: "HTML",
+        replyMarkup: createNewCategoryKeyboard(suggestedName),
+      }
+    );
+
+    await updateTelegramUser(chatId, "AWAITING_NEW_CATEGORY_CONFIRM", {
+      pendingExpense: updatedExpense,
+      pendingNewCategory: {
+        suggestedName,
+        suggestedGroupId: suggestedGroupCode,
+      },
+      messagesToDelete: [...(context.messagesToDelete || []), newCatMsgId],
+      lastAILogId: context.lastAILogId,
+    });
+    return;
+  }
+
+  // No category hint — show category list
   const catSelectMsgId = await sendMessage(
     chatId,
     `💰 <b>Registrar gasto</b>\n\n` +
@@ -142,13 +212,8 @@ export async function handleAccountSelection(chatId: number, accountId: string, 
     }
   );
 
-  // Update context with account and proceed to category selection
   await updateTelegramUser(chatId, "AWAITING_CATEGORY", {
-    pendingExpense: {
-      ...context.pendingExpense,
-      accountId: account.id,
-      accountName: account.name,
-    },
+    pendingExpense: updatedExpense,
     messagesToDelete: [...(context.messagesToDelete || []), catSelectMsgId],
   });
 }

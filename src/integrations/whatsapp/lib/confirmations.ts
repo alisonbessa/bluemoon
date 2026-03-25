@@ -24,6 +24,7 @@ import {
 } from "@/shared/lib/billing-cycle";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { formatCurrency } from "@/shared/lib/formatters";
+import { formatAccountDisplay, formatAccountWithIcon } from "@/integrations/messaging/lib/ai-handlers/account-utils";
 
 const logger = createLogger("whatsapp:confirmations");
 const adapter = new WhatsAppAdapter();
@@ -96,8 +97,8 @@ export async function handleExpenseConfirmation(
       `*Despesa confirmada!*\n\n` +
         `Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
         `Categoria: ${context.pendingExpense.categoryName}\n` +
-        (context.pendingExpense.paymentMethodLabel
-          ? `Pagamento: ${context.pendingExpense.paymentMethodLabel}\n`
+        (context.pendingExpense.accountName
+          ? `${formatAccountDisplay(context.pendingExpense.accountName, context.pendingExpense.accountType)}\n`
           : "") +
         (context.pendingExpense.description
           ? `Descrição: ${context.pendingExpense.description}\n\n`
@@ -216,11 +217,8 @@ export async function handleExpenseConfirmation(
         `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
         `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(totalInstallments)}\n` +
         `Categoria: ${context.pendingExpense.categoryName}\n` +
-        (context.pendingExpense.paymentMethodLabel
-          ? `Pagamento: ${context.pendingExpense.paymentMethodLabel}\n`
-          : "") +
         (context.pendingExpense.accountName
-          ? `Conta: ${context.pendingExpense.accountName}\n`
+          ? `${formatAccountDisplay(context.pendingExpense.accountName, context.pendingExpense.accountType)}\n`
           : "") +
         (capitalizedDescription
           ? `Descrição: ${capitalizedDescription}\n`
@@ -264,11 +262,8 @@ export async function handleExpenseConfirmation(
       `*Gasto registrado!*\n\n` +
         `Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
         `Categoria: ${context.pendingExpense.categoryName}\n` +
-        (context.pendingExpense.paymentMethodLabel
-          ? `Pagamento: ${context.pendingExpense.paymentMethodLabel}\n`
-          : "") +
         (context.pendingExpense.accountName
-          ? `Conta: ${context.pendingExpense.accountName}\n`
+          ? `${formatAccountDisplay(context.pendingExpense.accountName, context.pendingExpense.accountType)}\n`
           : "") +
         (capitalizedDescription
           ? `Descrição: ${capitalizedDescription}\n`
@@ -491,8 +486,8 @@ export async function handleTransferConfirmation(
   await adapter.sendMessage(
     phoneNumber,
     `*Transferência realizada!*\n\n` +
-      `De: ${fromAccount?.name || "Conta"}\n` +
-      `Para: ${toAccount?.name || "Conta"}\n` +
+      `De: ${fromAccount ? formatAccountWithIcon(fromAccount.name, fromAccount.type) : "Conta"}\n` +
+      `Para: ${toAccount ? formatAccountWithIcon(toAccount.name, toAccount.type) : "Conta"}\n` +
       `Valor: ${formatCurrency(context.pendingTransfer.amount)}\n\n` +
       `Envie *desfazer* para reverter.`
   );

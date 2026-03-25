@@ -25,6 +25,7 @@ export interface TelegramConversationContext {
     description?: string;
     categoryId?: string;
     categoryName?: string;
+    categoryHint?: string;
     accountId?: string;
     accountName?: string;
     paymentMethodLabel?: string;

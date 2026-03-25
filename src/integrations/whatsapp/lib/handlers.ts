@@ -45,6 +45,7 @@ import {
   handleGroupSelection,
   handleNewAccountAccept,
   handleNewAccountExisting,
+  handleClosingDay,
 } from "./selections";
 
 const logger = createLogger("whatsapp:handlers");
@@ -291,6 +292,10 @@ async function handleTextMessage(
   switch (currentStep) {
     case "AWAITING_NEW_CATEGORY_NAME":
       await handleCustomCategoryName(phoneNumber, text);
+      break;
+
+    case "AWAITING_CLOSING_DAY":
+      await handleClosingDay(phoneNumber, text);
       break;
 
     case "AWAITING_ACCOUNT":
