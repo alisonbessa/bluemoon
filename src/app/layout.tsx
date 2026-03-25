@@ -10,7 +10,7 @@ import { CookieConsent } from "@/shared/components/cookie-consent";
 // This ensures build succeeds in all environments
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com.br"),
   title: {
     template: `%s | ${appConfig.projectName}`,
     absolute: appConfig.projectName,

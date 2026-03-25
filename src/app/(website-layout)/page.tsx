@@ -37,9 +37,9 @@ function FAQPageSchema({ items }: { items: { question: string; answer: string }[
 }
 
 export const metadata: Metadata = {
-  title: "HiveBudget - O Jeito Mais Simples de Organizar o Dinheiro do Casal",
+  title: "HiveBudget - Organize o Dinheiro do Casal",
   description:
-    "Organize as finanças do casal sem planilha e sem estresse. Planejem juntos, registrem gastos por mensagem e saibam exatamente para onde vai cada real. Comece grátis!",
+    "Organize as finanças do casal sem planilha. Planejem juntos, registrem gastos por mensagem no WhatsApp e saibam para onde vai cada real. Comece gratis!",
   keywords: [
     "controle financeiro casal",
     "orçamento casal",
@@ -53,9 +53,9 @@ export const metadata: Metadata = {
     "como organizar dinheiro em casal",
   ],
   openGraph: {
-    title: "HiveBudget - O Jeito Mais Simples de Organizar o Dinheiro do Casal",
+    title: "HiveBudget - Organize o Dinheiro do Casal",
     description:
-      "Planejem juntos, registrem gastos por mensagem e saibam exatamente para onde vai cada real. Feito para casais brasileiros.",
+      "Planejem juntos, registrem gastos por mensagem no WhatsApp e saibam para onde vai cada real. Feito para casais brasileiros.",
     type: "website",
     url: process.env.NEXT_PUBLIC_APP_URL,
     images: [
@@ -69,8 +69,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "HiveBudget - Organize o dinheiro do casal",
-    description: "Planejem juntos, registrem gastos por mensagem. Comece grátis!",
+    title: "HiveBudget - Organize o Dinheiro do Casal",
+    description: "Planejem juntos, registrem gastos por mensagem no WhatsApp. Comece gratis!",
     images: ["/images/og.png"],
   },
   alternates: {

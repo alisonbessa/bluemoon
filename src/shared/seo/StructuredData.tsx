@@ -6,7 +6,7 @@ interface StructuredDataProps {
 }
 
 export function StructuredData({ type = "WebSite", data = {} }: StructuredDataProps) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com.br";
 
   const getStructuredData = () => {
     const baseData = {
@@ -37,24 +37,38 @@ export function StructuredData({ type = "WebSite", data = {} }: StructuredDataPr
           url: baseUrl,
           applicationCategory: "FinanceApplication",
           operatingSystem: "Web",
-          offers: {
-            "@type": "Offer",
-            price: "0",
-            priceCurrency: "BRL",
-            availability: "https://schema.org/InStock",
-          },
+          offers: [
+            {
+              "@type": "Offer",
+              name: "Solo",
+              price: "14.90",
+              priceCurrency: "BRL",
+              availability: "https://schema.org/InStock",
+              description: "Para organizar suas finanças pessoais",
+            },
+            {
+              "@type": "Offer",
+              name: "Duo",
+              price: "19.90",
+              priceCurrency: "BRL",
+              availability: "https://schema.org/InStock",
+              description: "Para casais organizarem as finanças juntos",
+            },
+          ],
           author: {
             "@type": "Organization",
             name: appConfig.projectName,
             url: baseUrl,
           },
           featureList: [
-            "Gestão de Transações",
-            "Hives Colaborativos",
-            "Categorização Inteligente",
-            "Relatórios e Análises",
-            "Controle de Orçamentos",
-            "Interface Responsiva",
+            "Orçamento inteligente",
+            "Controle de parcelamentos",
+            "Cartões de crédito brasileiros",
+            "Registro de gastos por mensagem no WhatsApp",
+            "Metas financeiras",
+            "Relatórios e dashboards",
+            "Orçamento compartilhado para casais",
+            "Privacidade em contas individuais",
           ],
           ...data,
         };
