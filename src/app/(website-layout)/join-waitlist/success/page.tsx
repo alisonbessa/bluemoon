@@ -6,6 +6,7 @@ import { CheckCircle } from "lucide-react";
 export const metadata: Metadata = {
   title: "Lista de Espera - Confirmação",
   description: "Inscrição na lista de espera confirmada com sucesso.",
+  robots: { index: false, follow: false },
 };
 
 export default function WaitlistSuccessPage() {

@@ -19,7 +19,7 @@ export const appConfig: AppConfigPublic = {
     "Controle Financeiro por Mensagem",
   ],
   description:
-    "HiveBudget: Planeje seu orçamento antes de gastar. Controle suas finanças pessoais ou em família com suporte a parcelamentos, cartões de crédito brasileiros e registro rápido por mensagem. Defina o destino de cada real.",
+    "Controle financeiro para casais e familias. Planeje o orcamento, registre gastos pelo WhatsApp e acompanhe parcelamentos e cartoes de credito.",
   auth: {
     enablePasswordAuth: false,
   },
