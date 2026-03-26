@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { goals, goalContributions, transactions, financialAccounts } from "@/db/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import { getUserBudgetIds, getUserMemberIdInBudget } from "@/shared/lib/api/permissions";
 import {
   validationError,
   notFoundError,
@@ -62,6 +62,12 @@ export const POST = withAuthRequired(async (req, context) => {
     return notFoundError("Conta de origem");
   }
 
+  // Get user's member ID for paidByMemberId
+  const currentMemberId = await getUserMemberIdInBudget(session.user.id, existingGoal.budgetId);
+  if (!currentMemberId) {
+    return notFoundError("Membro do orçamento");
+  }
+
   // All balance-affecting operations inside a single atomic transaction (fix 1.3)
   const result = await db.transaction(async (tx) => {
     const transactionDate = new Date(year, month - 1, new Date().getDate());
@@ -79,6 +85,8 @@ export const POST = withAuthRequired(async (req, context) => {
         description: `Contribuição para meta: ${existingGoal.name}`,
         date: transactionDate,
         source: "web",
+        memberId: existingGoal.memberId,
+        paidByMemberId: currentMemberId,
       })
       .returning();
 

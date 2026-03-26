@@ -79,6 +79,7 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
         accountId: fromAccountId,
         toAccountId,
         memberId: userMemberId,
+        paidByMemberId: userMemberId!,
         type: "transfer",
         status: "cleared",
         amount,

@@ -25,6 +25,7 @@ import { getTodayNoonUTC } from "./telegram-utils";
 import { formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import { markLogAsConfirmed } from "./ai-logger";
 import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib/billing-cycle";
+import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
 import { updateTelegramUser } from "./user-management";
 import { matchCategory } from "@/integrations/messaging/lib/gemini";
 import { formatCategoryName, suggestGroupForCategory } from "@/integrations/messaging/lib/ai-handlers/category-utils";
@@ -403,6 +404,10 @@ export async function handleGroupSelection(chatId: number, groupId: string, call
       });
     }
 
+    // Derive scope from the new category
+    const allCategories = [...budgetInfo.categories, newCategory];
+    const scopeMemberId = getScopeFromCategory(newCategory.id, allCategories, budgetInfo.member.id);
+
     // Create parent transaction (first installment)
     const [parentTransaction] = await db
       .insert(transactions)
@@ -410,7 +415,8 @@ export async function handleGroupSelection(chatId: number, groupId: string, call
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: newCategory.id,
-        memberId: budgetInfo.member.id,
+        memberId: scopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense",
         status: "cleared",
         amount: installmentAmount,
@@ -428,7 +434,8 @@ export async function handleGroupSelection(chatId: number, groupId: string, call
       budgetId: budgetInfo.budget.id,
       accountId: transactionAccountId,
       categoryId: newCategory.id,
-      memberId: budgetInfo.member.id,
+      memberId: scopeMemberId,
+      paidByMemberId: budgetInfo.member.id,
       type: "expense" as const,
       status: "cleared" as const,
       amount: installmentAmount,
@@ -472,6 +479,10 @@ export async function handleGroupSelection(chatId: number, groupId: string, call
         `Use /desfazer para remover o gasto.`
     );
   } else {
+    // Derive scope from the new category
+    const allCategories = [...budgetInfo.categories, newCategory];
+    const scopeMemberId = getScopeFromCategory(newCategory.id, allCategories, budgetInfo.member.id);
+
     // Non-installment transaction
     const [newTransaction] = await db
       .insert(transactions)
@@ -479,7 +490,8 @@ export async function handleGroupSelection(chatId: number, groupId: string, call
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: newCategory.id,
-        memberId: budgetInfo.member.id,
+        memberId: scopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense",
         status: "cleared",
         amount: context.pendingExpense.amount,

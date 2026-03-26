@@ -4,9 +4,11 @@ import {
   transactions,
   financialAccounts,
   recurringBills,
+  categories,
   monthlyBudgetStatus,
 } from "@/db/schema";
-import { eq, and, gte, lte, isNotNull } from "drizzle-orm";
+import { eq, and, gte, lte, isNotNull, inArray } from "drizzle-orm";
+import { getScopeFromCategory, getScopeFromIncomeSource } from "@/shared/lib/transactions/scope";
 
 interface EnsureResult {
   created: number;
@@ -146,6 +148,37 @@ export async function ensurePendingTransactionsForMonth(
     return { created: 0, expenses: 0, income: 0, noAccount: true };
   }
 
+  // Fetch categories for scope (memberId) derivation
+  const categoryIds = [...new Set(activeBills.map((b) => b.categoryId))];
+  const billCategories = categoryIds.length > 0
+    ? await db
+        .select({ id: categories.id, memberId: categories.memberId })
+        .from(categories)
+        .where(inArray(categories.id, categoryIds))
+    : [];
+
+  // Fetch account owners for paidByMemberId
+  const allAccountIds = [
+    ...new Set([
+      ...activeBills.map((b) => b.accountId),
+      ...incomeSourcesWithDay.map(({ account }) => account?.id).filter(Boolean),
+      defaultAccount[0].id,
+    ]),
+  ] as string[];
+  const accountOwners = allAccountIds.length > 0
+    ? await db
+        .select({ id: financialAccounts.id, ownerId: financialAccounts.ownerId })
+        .from(financialAccounts)
+        .where(inArray(financialAccounts.id, allAccountIds))
+    : [];
+  const accountOwnerMap = new Map(accountOwners.map((a) => [a.id, a.ownerId]));
+
+  // Build income source list for scope helper
+  const incomeSourceList = incomeSourcesWithDay.map(({ incomeSource }) => ({
+    id: incomeSource.id,
+    memberId: incomeSource.memberId,
+  }));
+
   // Create pending expense transactions from recurring bills
   const expenseTransactions = [];
   for (const bill of activeBills) {
@@ -153,6 +186,11 @@ export async function ensurePendingTransactionsForMonth(
 
     // Skip bills outside their active date range (fix 4.3)
     if (!isBillActiveForMonth(bill, year, month)) continue;
+
+    // Derive scope and payer for this bill
+    const billPaidBy = accountOwnerMap.get(bill.accountId);
+    if (!billPaidBy) continue; // Skip bills with accounts that have no owner
+    const billMemberId = getScopeFromCategory(bill.categoryId, billCategories, billPaidBy);
 
     // Handle different frequencies
     if (bill.frequency === "weekly") {
@@ -181,6 +219,8 @@ export async function ensurePendingTransactionsForMonth(
             description: `${bill.name} (${date.getUTCDate()}/${month})`,
             date,
             source: "recurring",
+            memberId: billMemberId,
+            paidByMemberId: billPaidBy,
           });
         }
       }
@@ -205,6 +245,8 @@ export async function ensurePendingTransactionsForMonth(
         description: bill.name,
         date: dueDate,
         source: "recurring",
+        memberId: billMemberId,
+        paidByMemberId: billPaidBy,
       });
     } else {
       // Monthly bills (default)
@@ -225,6 +267,8 @@ export async function ensurePendingTransactionsForMonth(
         description: bill.name,
         date: dueDate,
         source: "recurring",
+        memberId: billMemberId,
+        paidByMemberId: billPaidBy,
       });
     }
   }
@@ -237,6 +281,12 @@ export async function ensurePendingTransactionsForMonth(
     const frequency = incomeSource.frequency || "monthly";
     const existingDates = existingIncomeDates.get(incomeSource.id) || new Set();
     const accountId = account?.id || defaultAccount[0].id;
+
+    // Derive scope and payer for this income source
+    const incomeAccountOwner = accountOwnerMap.get(accountId);
+    if (!incomeAccountOwner) continue; // Skip if account has no owner
+    const incomeMemberId = getScopeFromIncomeSource(incomeSource.id, incomeSourceList, incomeAccountOwner);
+    const incomePaidBy = incomeSource.memberId || incomeAccountOwner;
 
     if (frequency === "weekly") {
       // Weekly income: generate for each week of the month
@@ -260,6 +310,8 @@ export async function ensurePendingTransactionsForMonth(
             description: `${incomeSource.name} (${date.getUTCDate()}/${month})`,
             date,
             source: "scheduled",
+            memberId: incomeMemberId,
+            paidByMemberId: incomePaidBy,
           });
         }
       }
@@ -287,6 +339,8 @@ export async function ensurePendingTransactionsForMonth(
           description: `${incomeSource.name} (dia ${day})`,
           date,
           source: "scheduled",
+          memberId: incomeMemberId,
+          paidByMemberId: incomePaidBy,
         });
       }
     } else {
@@ -306,6 +360,8 @@ export async function ensurePendingTransactionsForMonth(
         description: `${incomeSource.name} (agendado)`,
         date: dueDate,
         source: "scheduled",
+        memberId: incomeMemberId,
+        paidByMemberId: incomePaidBy,
       });
     }
   }

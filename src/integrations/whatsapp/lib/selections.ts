@@ -21,6 +21,7 @@ import {
   calculateInstallmentDates,
 } from "@/shared/lib/billing-cycle";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
+import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { getAccountIcon, getAccountTypeName, formatAccountDisplay } from "@/integrations/messaging/lib/ai-handlers/account-utils";
 import { matchCategory } from "@/integrations/messaging/lib/gemini";
@@ -474,6 +475,13 @@ export async function handleGroupSelection(
       );
     }
 
+    // Derive scope from the newly created category
+    const scopeMemberId = getScopeFromCategory(
+      newCategory.id,
+      [...budgetInfo.categories, { id: newCategory.id, memberId: newCategory.memberId }],
+      budgetInfo.member.id,
+    );
+
     // Create parent transaction (first installment)
     const [parentTransaction] = await db
       .insert(transactions)
@@ -481,7 +489,8 @@ export async function handleGroupSelection(
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: newCategory.id,
-        memberId: budgetInfo.member.id,
+        memberId: scopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense",
         status: "cleared",
         amount: installmentAmount,
@@ -501,7 +510,8 @@ export async function handleGroupSelection(
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: newCategory.id,
-        memberId: budgetInfo.member.id,
+        memberId: scopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense" as const,
         status: "cleared" as const,
         amount: installmentAmount,
@@ -555,6 +565,13 @@ export async function handleGroupSelection(
         `Envie *desfazer* para remover.`
     );
   } else {
+    // Derive scope from the newly created category
+    const nonInstallScopeMemberId = getScopeFromCategory(
+      newCategory.id,
+      [...budgetInfo.categories, { id: newCategory.id, memberId: newCategory.memberId }],
+      budgetInfo.member.id,
+    );
+
     // Non-installment transaction
     const [newTransaction] = await db
       .insert(transactions)
@@ -562,7 +579,8 @@ export async function handleGroupSelection(
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: newCategory.id,
-        memberId: budgetInfo.member.id,
+        memberId: nonInstallScopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense",
         status: "cleared",
         amount: context.pendingExpense.amount,

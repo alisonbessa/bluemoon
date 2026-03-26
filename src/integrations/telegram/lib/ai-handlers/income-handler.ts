@@ -131,6 +131,7 @@ export async function handleIncomeIntent(
         accountId,
         incomeSourceId,
         memberId,
+        paidByMemberId: memberId,
         type: "income",
         status: "cleared",
         amount: data.amount,

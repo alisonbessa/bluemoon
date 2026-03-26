@@ -112,7 +112,7 @@ export async function fetchDashboardData(opts: {
 
   // Build reusable view mode conditions
   const txViewCondition = userMemberId
-    ? getViewModeCondition({ viewMode, userMemberId, ownerField: transactions.memberId, partnerPrivacy })
+    ? getViewModeCondition({ viewMode, userMemberId, ownerField: transactions.memberId, partnerPrivacy, paidByField: transactions.paidByMemberId })
     : undefined;
   const categoryViewCondition = userMemberId
     ? getViewModeCondition({ viewMode, userMemberId, ownerField: categories.memberId, partnerPrivacy, includeSharedInMine: true })

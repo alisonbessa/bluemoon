@@ -39,7 +39,8 @@ export const budgetMembersRelations = relations(budgetMembers, ({ one, many }) =
     fields: [budgetMembers.userId],
     references: [users.id],
   }),
-  transactions: many(transactions),
+  scopedTransactions: many(transactions, { relationName: "scopeMember" }),
+  paidTransactions: many(transactions, { relationName: "paidByMember" }),
 }));
 
 import { transactions } from "./transactions";

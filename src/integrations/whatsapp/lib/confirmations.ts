@@ -23,6 +23,7 @@ import {
   calculateInstallmentDates,
 } from "@/shared/lib/billing-cycle";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
+import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { formatAccountDisplay, formatAccountWithIcon } from "@/integrations/messaging/lib/ai-handlers/account-utils";
 
@@ -153,6 +154,13 @@ export async function handleExpenseConfirmation(
       );
     }
 
+    // Derive scope from the category
+    const scopeMemberId = getScopeFromCategory(
+      context.pendingExpense.categoryId,
+      budgetInfo.categories,
+      budgetInfo.member.id,
+    );
+
     // Create parent transaction (first installment)
     const [parentTransaction] = await db
       .insert(transactions)
@@ -160,7 +168,8 @@ export async function handleExpenseConfirmation(
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: context.pendingExpense.categoryId,
-        memberId: budgetInfo.member.id,
+        memberId: scopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense",
         status: "cleared",
         amount: installmentAmount,
@@ -180,7 +189,8 @@ export async function handleExpenseConfirmation(
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: context.pendingExpense!.categoryId,
-        memberId: budgetInfo.member.id,
+        memberId: scopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense" as const,
         status: "cleared" as const,
         amount: installmentAmount,
@@ -227,6 +237,13 @@ export async function handleExpenseConfirmation(
         `Envie *desfazer* para remover.`
     );
   } else {
+    // Derive scope from the category
+    const nonInstallScopeMemberId = getScopeFromCategory(
+      context.pendingExpense.categoryId,
+      budgetInfo.categories,
+      budgetInfo.member.id,
+    );
+
     // Non-installment transaction
     const [newTransaction] = await db
       .insert(transactions)
@@ -234,7 +251,8 @@ export async function handleExpenseConfirmation(
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: context.pendingExpense.categoryId,
-        memberId: budgetInfo.member.id,
+        memberId: nonInstallScopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense",
         status: "cleared",
         amount: context.pendingExpense.amount,
@@ -361,6 +379,7 @@ export async function handleIncomeConfirmation(
         accountId: incomeAccountId,
         incomeSourceId: context.pendingIncome.incomeSourceId,
         memberId: budgetInfo.member.id,
+        paidByMemberId: budgetInfo.member.id,
         type: "income",
         status: "cleared",
         amount: context.pendingIncome.amount,
@@ -448,6 +467,7 @@ export async function handleTransferConfirmation(
       accountId: context.pendingTransfer.fromAccountId,
       toAccountId: context.pendingTransfer.toAccountId,
       memberId: budgetInfo.member.id,
+      paidByMemberId: budgetInfo.member.id,
       type: "transfer",
       status: "cleared",
       amount: context.pendingTransfer.amount,
