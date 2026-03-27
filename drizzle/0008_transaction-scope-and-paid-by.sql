@@ -37,7 +37,14 @@ WHERE t.category_id = c.id
 -- Step 6: Add index for paid_by_member_id
 CREATE INDEX idx_transactions_paid_by ON transactions(paid_by_member_id);
 
--- Step 7: Add partial unique indexes for category name uniqueness per scope
+-- Step 7: Fix partner income sources created during onboarding with owner's memberId
+-- These should be shared (memberId = NULL) since the partner hasn't joined yet
+UPDATE income_sources
+SET member_id = NULL
+WHERE name ILIKE '%parceiro%'
+  AND member_id IS NOT NULL;
+
+-- Step 8: Add partial unique indexes for category name uniqueness per scope
 CREATE UNIQUE INDEX idx_categories_unique_name_shared
   ON categories (budget_id, name)
   WHERE member_id IS NULL AND is_archived = false;
