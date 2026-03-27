@@ -229,7 +229,7 @@ async function fetchAllocations(opts: {
         eq(transactions.type, "income"),
         gte(transactions.date, startDate),
         lte(transactions.date, endDate),
-        inArray(transactions.status, ["pending", "cleared", "reconciled"])
+        inArray(transactions.status, ["cleared", "reconciled"])
       ))
       .groupBy(transactions.incomeSourceId),
   ]);
