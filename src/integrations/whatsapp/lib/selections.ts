@@ -7,7 +7,7 @@ import {
   groups,
   transactions,
 } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import type { ConversationContext } from "@/integrations/messaging/lib/types";
 import { WhatsAppAdapter } from "./whatsapp-adapter";
 import {
@@ -416,6 +416,29 @@ export async function handleGroupSelection(
   const categoryName =
     context.pendingNewCategory.customName ||
     context.pendingNewCategory.suggestedName;
+
+  // Check for duplicate category name
+  const existingCategory = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(
+      and(
+        eq(categories.budgetId, budgetInfo.budget.id),
+        isNull(categories.memberId),
+        eq(categories.name, categoryName),
+        eq(categories.isArchived, false)
+      )
+    )
+    .limit(1);
+
+  if (existingCategory.length > 0) {
+    await adapter.sendMessage(
+      phoneNumber,
+      `Ja existe uma categoria com o nome "*${categoryName}*".\nTente novamente com outro nome.`
+    );
+    await adapter.updateState(phoneNumber, "IDLE", {});
+    return;
+  }
 
   // Create the new category
   const [newCategory] = await db

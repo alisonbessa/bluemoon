@@ -12,7 +12,7 @@ interface UseTransactionFormOptions {
   budgets: Budget[];
   onSuccess: () => void;
   memberId?: string;
-  paidByMemberId?: string;
+  defaultPaidByMemberId?: string;
 }
 
 interface UseTransactionFormReturn {
@@ -35,7 +35,7 @@ interface UseTransactionFormReturn {
 export function useTransactionForm(
   options: UseTransactionFormOptions
 ): UseTransactionFormReturn {
-  const { accounts, budgets, onSuccess, memberId, paidByMemberId } = options;
+  const { accounts, budgets, onSuccess, memberId, defaultPaidByMemberId } = options;
 
   const [isOpen, setIsOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -58,10 +58,11 @@ export function useTransactionForm(
       ...initialFormData,
       accountId: accounts[0]?.id || "",
       date: format(new Date(), "yyyy-MM-dd"),
+      paidByMemberId: defaultPaidByMemberId,
     });
     setEditingTransaction(null);
     setIsOpen(true);
-  }, [accounts]);
+  }, [accounts, defaultPaidByMemberId]);
 
   const openEdit = useCallback((transaction: Transaction) => {
     setFormData({
@@ -75,10 +76,11 @@ export function useTransactionForm(
       date: format(parseLocalDate(transaction.date), "yyyy-MM-dd"),
       isInstallment: false, // Editing doesn't allow changing installment
       totalInstallments: 2,
+      paidByMemberId: transaction.paidByMemberId || defaultPaidByMemberId,
     });
     setEditingTransaction(transaction);
     setIsOpen(true);
-  }, []);
+  }, [defaultPaidByMemberId]);
 
   const handleSubmit = useCallback(async () => {
     if (!formData.amount || !formData.accountId) {
@@ -119,7 +121,7 @@ export function useTransactionForm(
         date: new Date(formData.date).toISOString(),
         status: "cleared", // Manual transactions are confirmed by default
         memberId: memberId || undefined,
-        paidByMemberId: paidByMemberId || memberId || undefined,
+        paidByMemberId: formData.paidByMemberId || defaultPaidByMemberId || memberId || undefined,
         // Installment fields (only for new credit card expenses)
         ...(canBeInstallment && formData.isInstallment
           ? {
@@ -169,7 +171,7 @@ export function useTransactionForm(
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, budgets, accounts, editingTransaction, applyToSeries, onSuccess, memberId, paidByMemberId]);
+  }, [formData, budgets, accounts, editingTransaction, applyToSeries, onSuccess, memberId, defaultPaidByMemberId]);
 
   return {
     // State

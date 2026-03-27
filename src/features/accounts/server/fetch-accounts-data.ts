@@ -162,5 +162,8 @@ export async function fetchAccountsData(params: {
         : null,
   }));
 
+  // Cast is safe: the select shape + computed currentBill match the Account interface.
+  // Drizzle infers nullable joins (owner) and bigint fields differently from our domain type,
+  // but the runtime values are structurally compatible.
   return { accounts: accountsWithBill as Account[] };
 }

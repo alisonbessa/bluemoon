@@ -19,9 +19,17 @@ import {
   getUserMemberIdInBudget,
   getPartnerPrivacyLevel,
 } from "@/shared/lib/api/permissions";
-import { parseViewMode, getViewModeCondition, type ViewMode } from "@/shared/lib/api/view-mode-filter";
+import { getViewModeCondition, type ViewMode } from "@/shared/lib/api/view-mode-filter";
 import { getBillingCycleDates } from "@/shared/lib/billing-cycle";
 import { calculateGoalMetrics } from "@/shared/lib/goals/calculate-metrics";
+
+/**
+ * Goal row from DB merged with calculated metrics and visibility flag.
+ */
+export type DashboardGoal = typeof goals.$inferSelect &
+  ReturnType<typeof calculateGoalMetrics> & {
+    isOtherMemberGoal: boolean;
+  };
 
 /**
  * Result shape returned by fetchDashboardData.
@@ -41,8 +49,7 @@ export interface DashboardDataResult {
     allocated: number;
     group: { id: string; name: string; code: string };
   }>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  goals: Array<Record<string, any>>;
+  goals: DashboardGoal[];
   stats: {
     dailyChartData: Array<{
       day: number;
@@ -148,7 +155,7 @@ async function fetchAllocations(opts: {
   txViewCondition: ReturnType<typeof getViewModeCondition>;
   userMemberId: string | null;
   privacyMode: string;
-  viewMode: ReturnType<typeof parseViewMode>;
+  viewMode: ViewMode;
   partnerPrivacy: Awaited<ReturnType<typeof getPartnerPrivacyLevel>> | undefined;
 }) {
   const { budgetId, year, month, startDate, endDate, categoryViewCondition, txViewCondition, userMemberId, privacyMode, viewMode, partnerPrivacy } = opts;
@@ -361,7 +368,7 @@ async function fetchCommitments(opts: {
 async function fetchGoals(opts: {
   budgetId: string;
   budgetIds: string[];
-  viewMode: ReturnType<typeof parseViewMode>;
+  viewMode: ViewMode;
   userMemberId: string | null;
   partnerPrivacy: Awaited<ReturnType<typeof getPartnerPrivacyLevel>> | undefined;
   privacyMode: string;

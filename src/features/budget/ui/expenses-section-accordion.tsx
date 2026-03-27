@@ -34,6 +34,8 @@ interface ExpensesSectionAccordionProps {
   onAddCategory: (groupId: string, groupCode: string) => void;
   onBillsChange: () => void;
   mobileViewMode?: MobileViewMode;
+  /** Optional section title override (e.g. "Planejamento Compartilhado") */
+  sectionTitle?: string;
 }
 
 // Helper to get the value based on view mode for expenses
@@ -72,6 +74,7 @@ export function ExpensesSectionAccordion({
   onAddCategory,
   onBillsChange,
   mobileViewMode = 'available',
+  sectionTitle,
 }: ExpensesSectionAccordionProps) {
   const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
 
@@ -99,7 +102,7 @@ export function ExpensesSectionAccordion({
         <div className="flex items-center gap-2">
           <span className="text-lg">💸</span>
           <span className="font-bold text-sm text-red-800 dark:text-red-200">
-            DESPESAS
+            {sectionTitle ?? 'DESPESAS'}
           </span>
         </div>
         <div className="hidden sm:block text-sm font-bold tabular-nums text-red-800 dark:text-red-200">

@@ -8,18 +8,21 @@ import { GoalFormModal } from '@/features/goals';
 import { useTutorial } from '@/shared/tutorial/tutorial-provider';
 import { PageHeader } from '@/shared/molecules';
 import { useUser } from '@/shared/hooks/use-current-user';
+import { useViewMode } from '@/shared/providers/view-mode-provider';
 
 import {
   useBudgetPeriod,
   useBudgetUIState,
   useBudgetPageData,
-  useBudgetViewFilter,
+  useBudgetSections,
   useAllocationForm,
   useCategoryForm,
   useIncomeAllocationForm,
   useIncomeSourceForm,
   useBudgetActions,
 } from '@/features/budget/hooks';
+
+import type { BudgetSection } from '@/features/budget/hooks';
 
 import {
   BudgetHeader,
@@ -42,6 +45,7 @@ import { formatCurrency } from '@/shared/lib/formatters';
 import type {
   IncomeSource,
   IncomeSourceData,
+  Account,
 } from '@/features/budget/types';
 
 export interface BudgetPageClientProps {
@@ -59,6 +63,7 @@ export function BudgetPageClient({
   const router = useRouter();
   const { user } = useUser();
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
+  const { viewMode } = useViewMode();
 
   // Period navigation
   const {
@@ -85,7 +90,6 @@ export function BudgetPageClient({
     totalIncome,
     totalContribution,
     hasContributionModel,
-    totalGoals,
     hasPreviousMonthData,
     goals,
     isLoading,
@@ -94,48 +98,34 @@ export function BudgetPageClient({
     fallbackAllocationsData: isInitialMonth ? initialAllocationsData as never : undefined,
   });
 
-  // Filter data based on shared/personal view mode
-  const {
-    isPersonalView,
-    filteredGroupsData,
-    filteredTotals,
-    filteredIncomeData,
-    effectiveTotalIncome,
-  } = useBudgetViewFilter({
-    groupsData,
-    totals,
-    incomeData,
-    totalIncome,
-    totalContribution,
-    hasContributionModel,
-    budgetViewMode: uiState.budgetViewMode,
-  });
-
   // Current user for member matching
   const userMemberId = useMemo(
     () => members.find((m) => m.userId === user?.id)?.id ?? null,
     [members, user?.id]
   );
 
-  // Filter goals by view mode (shared vs personal)
-  const filteredGoals = useMemo(() => {
-    if (!hasContributionModel) return goals;
-    if (isPersonalView) {
-      return goals.filter((g) => g.memberId === userMemberId);
-    }
-    return goals.filter((g) => !g.memberId);
-  }, [goals, hasContributionModel, isPersonalView, userMemberId]);
-
-  const filteredTotalGoals = useMemo(
-    () => filteredGoals.reduce((sum, g) => sum + (g.monthlyTarget || 0), 0),
-    [filteredGoals]
-  );
+  // Split data into sections based on global viewMode
+  const {
+    sections,
+    aggregatedTotals,
+    aggregatedTotalGoals,
+    aggregatedTotalIncome,
+  } = useBudgetSections({
+    groupsData,
+    totals,
+    incomeData,
+    totalIncome,
+    totalContribution,
+    hasContributionModel,
+    goals,
+    userMemberId,
+    members,
+    viewMode,
+  });
 
   // Local UI state
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
   const [showCopyHintModal, setShowCopyHintModal] = useState(false);
-
-  // All accordion sections (income members, expense groups) start collapsed by default
 
   // Show copy hint modal when no allocations exist for current month
   useEffect(() => {
@@ -224,12 +214,15 @@ export function BudgetPageClient({
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
         <PiggyBank className="h-16 w-16 text-muted-foreground" />
-        <h2 className="text-xl font-semibold">Nenhum orçamento encontrado</h2>
-        <p className="text-muted-foreground">Complete o onboarding para começar</p>
+        <h2 className="text-xl font-semibold">Nenhum orcamento encontrado</h2>
+        <p className="text-muted-foreground">Complete o onboarding para comecar</p>
         <Button onClick={() => router.push('/app')}>Ir para o Dashboard</Button>
       </div>
     );
   }
+
+  // Check if all sections have empty groups (for empty state)
+  const hasAnyGroups = sections.some((s) => s.groupsData.length > 0);
 
   return (
     <div className="flex flex-col h-full">
@@ -246,9 +239,9 @@ export function BudgetPageClient({
           year={currentYear}
           month={currentMonth}
           onMonthChange={handleMonthChange}
-          totalIncome={effectiveTotalIncome}
-          totalAllocated={filteredTotals.allocated}
-          totalGoals={filteredTotalGoals}
+          totalIncome={aggregatedTotalIncome}
+          totalAllocated={aggregatedTotals.allocated}
+          totalGoals={aggregatedTotalGoals}
         />
 
         <BudgetFilters
@@ -258,54 +251,35 @@ export function BudgetPageClient({
           isCopying={budgetActions.isCopying}
           mobileViewMode={uiState.mobileViewMode}
           onViewModeChange={uiState.setMobileViewMode}
-          hasContributionModel={hasContributionModel}
-          budgetViewMode={uiState.budgetViewMode}
-          onBudgetViewModeChange={uiState.setBudgetViewMode}
         />
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-auto">
-        {/* Income Section */}
-        {filteredIncomeData && (
-          <IncomeSectionAccordion
-            incomeData={filteredIncomeData}
-            isExpanded={uiState.isIncomeExpanded}
-            onToggle={uiState.toggleIncomeSection}
-            expandedMembers={uiState.expandedIncomeMembers}
-            onToggleMember={uiState.toggleIncomeMember}
-            onEditIncome={(item: IncomeSourceData) => incomeAllocationForm.open(item)}
-            onEditIncomeSource={(source: IncomeSource) => incomeSourceForm.openEdit(source)}
-            onDeleteIncomeSource={(source: IncomeSource) => incomeSourceForm.setDeletingSource(source)}
-            onAddIncomeSource={(memberId?: string) => incomeSourceForm.openCreate(memberId)}
-            mobileViewMode={uiState.mobileViewMode}
-          />
-        )}
-
-        {/* Expenses Section */}
-        {filteredGroupsData.length > 0 ? (
-          <ExpensesSectionAccordion
-            groupsData={filteredGroupsData}
-            totals={filteredTotals}
-            budgetId={budgetId || ''}
-            accounts={accounts}
-            isExpanded={uiState.isExpensesExpanded}
-            onToggle={uiState.toggleExpensesSection}
-            expandedGroups={uiState.expandedGroups}
-            onToggleGroup={uiState.toggleGroup}
-            onEditAllocation={(category, allocated) => allocationForm.open(category, allocated)}
-            onEditCategory={(category) => categoryForm.openEdit(category)}
-            onDeleteCategory={(category) => categoryForm.setDeletingCategory(category)}
-            onAddCategory={(groupId, groupCode) => categoryForm.openCreate(groupId, groupCode)}
-            onBillsChange={refreshData}
-            mobileViewMode={uiState.mobileViewMode}
-          />
-        ) : isPersonalView ? (
+        {hasAnyGroups || sections.some((s) => s.goals.length > 0) ? (
+          sections.map((section) => (
+            <BudgetSectionBlock
+              key={section.key}
+              section={section}
+              uiState={uiState}
+              budgetId={budgetId || ''}
+              accounts={accounts}
+              allocationForm={allocationForm}
+              categoryForm={categoryForm}
+              incomeAllocationForm={incomeAllocationForm}
+              incomeSourceForm={incomeSourceForm}
+              refreshData={refreshData}
+              onAddGoal={() => setIsGoalFormOpen(true)}
+              hasContributionModel={hasContributionModel}
+              showSectionHeaders={hasContributionModel}
+            />
+          ))
+        ) : viewMode === 'mine' ? (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <User className="h-12 w-12 text-muted-foreground" />
             <h3 className="font-semibold">Nenhuma categoria pessoal</h3>
             <p className="text-sm text-muted-foreground text-center max-w-md">
-              Categorias pessoais são criadas automaticamente (ex: Prazeres) ou você pode criar novas na página de categorias.
+              Categorias pessoais sao criadas automaticamente (ex: Prazeres) ou voce pode criar novas na pagina de categorias.
             </p>
           </div>
         ) : (
@@ -318,22 +292,13 @@ export function BudgetPageClient({
           </div>
         )}
 
-        {/* Goals Section - shown in both views, filtered by member */}
-        <GoalsSectionAccordion
-          goals={filteredGoals}
-          totalGoals={filteredTotalGoals}
-          isExpanded={uiState.isGoalsExpanded}
-          onToggle={uiState.toggleGoalsSection}
-          onAddGoal={() => setIsGoalFormOpen(true)}
-        />
-
-        {/* Personal reserve summary - only in personal view */}
-        {isPersonalView && effectiveTotalIncome > 0 && (
+        {/* Personal reserve summary - only in "mine" viewMode with contribution model */}
+        {viewMode === 'mine' && hasContributionModel && aggregatedTotalIncome > 0 && (
           <div className="px-3 sm:px-4 py-4 border-b">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <User className="h-4 w-4" />
               <span>
-                Sua reserva pessoal: <strong className="text-foreground">{formatCurrency(effectiveTotalIncome)}</strong> por mês
+                Sua reserva pessoal: <strong className="text-foreground">{formatCurrency(aggregatedTotalIncome)}</strong> por mes
               </span>
             </div>
           </div>
@@ -475,6 +440,117 @@ export function BudgetPageClient({
         currentUserMemberId={userMemberId ?? undefined}
         onSuccess={refreshData}
       />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// BudgetSectionBlock - renders a single section (income + expenses + goals)
+// ---------------------------------------------------------------------------
+
+interface BudgetSectionBlockProps {
+  section: BudgetSection;
+  uiState: ReturnType<typeof useBudgetUIState>;
+  budgetId: string;
+  accounts: Account[];
+  allocationForm: ReturnType<typeof useAllocationForm>;
+  categoryForm: ReturnType<typeof useCategoryForm>;
+  incomeAllocationForm: ReturnType<typeof useIncomeAllocationForm>;
+  incomeSourceForm: ReturnType<typeof useIncomeSourceForm>;
+  refreshData: () => void;
+  onAddGoal: () => void;
+  hasContributionModel: boolean;
+  showSectionHeaders: boolean;
+}
+
+function BudgetSectionBlock({
+  section,
+  uiState,
+  budgetId,
+  accounts,
+  allocationForm,
+  categoryForm,
+  incomeAllocationForm,
+  incomeSourceForm,
+  refreshData,
+  onAddGoal,
+  hasContributionModel,
+  showSectionHeaders,
+}: BudgetSectionBlockProps) {
+  // Skip rendering completely empty sections (no groups and no goals)
+  if (section.groupsData.length === 0 && section.goals.length === 0 && !section.incomeData) {
+    return null;
+  }
+
+  return (
+    <div>
+      {/* Section header */}
+      {showSectionHeaders && (
+        <div className="px-3 sm:px-4 py-2 bg-muted/60 border-b">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            {section.title}
+          </h3>
+        </div>
+      )}
+
+      {/* Income (only for shared and personal sections, not partner) */}
+      {section.incomeData && !section.isPartnerSection && (
+        <IncomeSectionAccordion
+          incomeData={section.incomeData}
+          isExpanded={uiState.isIncomeExpanded}
+          onToggle={uiState.toggleIncomeSection}
+          expandedMembers={uiState.expandedIncomeMembers}
+          onToggleMember={uiState.toggleIncomeMember}
+          onEditIncome={(item: IncomeSourceData) => incomeAllocationForm.open(item)}
+          onEditIncomeSource={(source: IncomeSource) => incomeSourceForm.openEdit(source)}
+          onDeleteIncomeSource={(source: IncomeSource) => incomeSourceForm.setDeletingSource(source)}
+          onAddIncomeSource={(memberId?: string) => incomeSourceForm.openCreate(memberId)}
+          mobileViewMode={uiState.mobileViewMode}
+        />
+      )}
+
+      {/* Expenses */}
+      {section.groupsData.length > 0 && (
+        <ExpensesSectionAccordion
+          groupsData={section.groupsData}
+          totals={section.totals}
+          budgetId={budgetId}
+          accounts={accounts}
+          isExpanded={uiState.isExpensesExpanded}
+          onToggle={uiState.toggleExpensesSection}
+          expandedGroups={uiState.expandedGroups}
+          onToggleGroup={uiState.toggleGroup}
+          onEditAllocation={(category, allocated) => allocationForm.open(category, allocated)}
+          onEditCategory={(category) => categoryForm.openEdit(category)}
+          onDeleteCategory={(category) => categoryForm.setDeletingCategory(category)}
+          onAddCategory={(groupId, groupCode) => categoryForm.openCreate(groupId, groupCode)}
+          onBillsChange={refreshData}
+          mobileViewMode={uiState.mobileViewMode}
+        />
+      )}
+
+      {/* Goals */}
+      {(section.goals.length > 0 || (!section.isPartnerSection && hasContributionModel)) && (
+        <GoalsSectionAccordion
+          goals={section.goals}
+          totalGoals={section.totalGoals}
+          isExpanded={uiState.isGoalsExpanded}
+          onToggle={uiState.toggleGoalsSection}
+          onAddGoal={onAddGoal}
+        />
+      )}
+
+      {/* Personal reserve summary within the "mine" section */}
+      {section.key === 'mine' && hasContributionModel && section.effectiveTotalIncome > 0 && (
+        <div className="px-3 sm:px-4 py-4 border-b">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <User className="h-4 w-4" />
+            <span>
+              Sua reserva pessoal: <strong className="text-foreground">{formatCurrency(section.effectiveTotalIncome)}</strong> por mes
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

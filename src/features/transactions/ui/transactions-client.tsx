@@ -8,6 +8,7 @@ import { parseLocalDate } from "@/shared/lib/formatters";
 import { PageHeader, PageContent, ResponsiveButton } from "@/shared/molecules";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 import { useMembers, useUser } from "@/shared/hooks";
+import { useViewMode } from "@/shared/providers/view-mode-provider";
 import {
   TransactionSummary,
   TransactionFiltersBar,
@@ -40,7 +41,13 @@ export function TransactionsClient({
   // ============== CURRENT USER MEMBER ==============
   const { user } = useUser();
   const { members } = useMembers();
+  const { isDuoPlan } = useViewMode();
   const currentMemberId = members.find((m) => m.userId === user?.id)?.id;
+
+  // Members with userId (owner + partner) for "Quem pagou?" selector
+  const payerMembers = members
+    .filter((m) => m.userId)
+    .map((m) => ({ id: m.id, name: m.name }));
 
   // ============== DATA HOOK ==============
   const {
@@ -95,6 +102,7 @@ export function TransactionsClient({
     accounts,
     budgets,
     memberId: currentMemberId,
+    defaultPaidByMemberId: currentMemberId,
     onSuccess: () => {
       fetchData();
       triggerWidgetRefresh();
@@ -420,6 +428,8 @@ export function TransactionsClient({
           budgetId={budgets[0].id}
           refreshKey={widgetRefreshKey}
           confirmedTransactions={confirmedTransactions}
+          currentMemberId={currentMemberId}
+          members={members}
           searchTerm={searchTerm}
           typeFilter={typeFilter}
           categoryFilter={categoryFilter}
@@ -450,6 +460,8 @@ export function TransactionsClient({
         onSubmit={handleSubmit}
         applyToSeries={applyToSeries}
         onApplyToSeriesChange={setApplyToSeries}
+        isDuoPlan={isDuoPlan}
+        members={payerMembers}
       />
 
       {/* Delete Confirmation Dialog */}

@@ -97,6 +97,10 @@ export async function fetchTransactionsData(opts: {
       account: t.account,
       category: t.category,
       incomeSource: t.incomeSource,
+    // Cast is safe: we spread the full transaction row (which includes memberId,
+    // paidByMemberId, etc.) and override `date` to ISO string. Drizzle's inferred
+    // types differ from our domain Transaction (e.g. nullable joins, Date vs string)
+    // but the runtime shape matches.
     })) as Transaction[],
   };
 }

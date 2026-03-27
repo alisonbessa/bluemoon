@@ -6,7 +6,7 @@ import {
   groups,
   transactions,
 } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import type { TelegramConversationContext } from "@/db/schema/telegram-users";
 import { getUserBudgetInfo, getCategoryBalanceSummary } from "@/integrations/messaging/lib/user-context";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
@@ -361,6 +361,29 @@ export async function handleGroupSelection(chatId: number, groupId: string, call
   }
 
   const categoryName = context.pendingNewCategory.customName || context.pendingNewCategory.suggestedName;
+
+  // Check for duplicate category name
+  const existingCategory = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(
+      and(
+        eq(categories.budgetId, budgetInfo.budget.id),
+        isNull(categories.memberId),
+        eq(categories.name, categoryName),
+        eq(categories.isArchived, false)
+      )
+    )
+    .limit(1);
+
+  if (existingCategory.length > 0) {
+    await sendMessage(
+      chatId,
+      `⚠️ Ja existe uma categoria com o nome "<b>${categoryName}</b>".\nTente novamente com outro nome.`
+    );
+    await updateTelegramUser(chatId, "IDLE", {});
+    return;
+  }
 
   // Create the new category
   const [newCategory] = await db
