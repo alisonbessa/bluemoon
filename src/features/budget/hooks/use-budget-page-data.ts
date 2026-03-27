@@ -37,11 +37,23 @@ interface GoalsResponse {
   privacyMode?: string;
 }
 
+interface UseBudgetPageDataOptions {
+  /** Server-fetched allocations data to use as SWR fallback (avoids loading state on initial render) */
+  fallbackAllocationsData?: AllocationsResponse | null;
+}
+
 /**
  * Consolidated hook for all budget page data
- * Uses SWR for automatic caching and deduplication
+ * Uses SWR for automatic caching and deduplication.
+ *
+ * When fallbackAllocationsData is provided (from Server Component), renders
+ * instantly without a loading state for the initial month.
  */
-export function useBudgetPageData(year: number, month: number) {
+export function useBudgetPageData(
+  year: number,
+  month: number,
+  options?: UseBudgetPageDataOptions,
+) {
   const { viewMode, isDuoPlan } = useViewMode();
   const vm = isDuoPlan ? `&viewMode=${viewMode}` : '';
 
@@ -73,7 +85,9 @@ export function useBudgetPageData(year: number, month: number) {
     data: allocationsData,
     isLoading: allocationsLoading,
     mutate: mutateAllocations,
-  } = useSWR<AllocationsResponse>(allocationsKey);
+  } = useSWR<AllocationsResponse>(allocationsKey, {
+    fallbackData: options?.fallbackAllocationsData ?? undefined,
+  });
 
   // Fetch goals (only when we have a budget, filtered by viewMode)
   const goalsKey = primaryBudgetId

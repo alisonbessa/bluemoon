@@ -5,23 +5,33 @@ import { useViewMode } from '@/shared/providers/view-mode-provider';
 import type { Account } from '../types';
 import { optimisticMutate, invalidatePrefix } from '@/shared/lib/swr/optimistic';
 
-interface AccountsResponse {
+export interface AccountsResponse {
   accounts: Account[];
 }
 
 const BASE_KEY = '/api/app/accounts';
+
+interface UseAccountsOptions {
+  /** Server-fetched data to use as SWR fallback (avoids loading state on initial render) */
+  fallbackData?: AccountsResponse;
+}
 
 /**
  * Hook for fetching and caching accounts data
  * Uses SWR for automatic caching and deduplication
  * Includes optimistic mutation methods
  * SWR key includes viewMode so data re-fetches on view change
+ *
+ * When fallbackData is provided (from Server Component), renders instantly
+ * without a loading state for the initial view mode.
  */
-export function useAccounts() {
+export function useAccounts(options?: UseAccountsOptions) {
   const { viewMode, isDuoPlan } = useViewMode();
   const swrKey = isDuoPlan ? `${BASE_KEY}?viewMode=${viewMode}` : BASE_KEY;
 
-  const { data, error, isLoading, mutate } = useSWR<AccountsResponse>(swrKey);
+  const { data, error, isLoading, mutate } = useSWR<AccountsResponse>(swrKey, {
+    fallbackData: options?.fallbackData,
+  });
 
   const accounts = data?.accounts ?? [];
 
