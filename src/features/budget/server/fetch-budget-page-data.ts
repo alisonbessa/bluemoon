@@ -278,7 +278,10 @@ export async function fetchBudgetAllocationsData(opts: {
       budgetCategories.map(({ category }) => [category.id, category.behavior])
     );
 
-    // Calculate carriedOver for each category
+    // Calculate carriedOver for each category (batched to avoid N+1)
+    const carryOverUpdates: { id: string; carriedOver: number }[] = [];
+    const carryOverInserts: { budgetId: string; categoryId: string; year: number; month: number; allocated: number; carriedOver: number }[] = [];
+
     for (const prevAlloc of prevMonthAllocationsList) {
       const prevSpent = prevSpendingMap.get(prevAlloc.categoryId) || 0;
       const prevAvailable =
@@ -294,29 +297,43 @@ export async function fetchBudgetAllocationsData(opts: {
 
       if (currentAlloc) {
         if (currentAlloc.carriedOver !== carryOver) {
-          await db
-            .update(monthlyAllocations)
-            .set({ carriedOver: carryOver, updatedAt: new Date() })
-            .where(eq(monthlyAllocations.id, currentAlloc.id));
-
+          carryOverUpdates.push({ id: currentAlloc.id, carriedOver: carryOver });
           currentAlloc.carriedOver = carryOver;
         }
       } else if (carryOver > 0) {
-        const [newAlloc] = await db
-          .insert(monthlyAllocations)
-          .values({
-            budgetId,
-            categoryId: prevAlloc.categoryId,
-            year,
-            month,
-            allocated: 0,
-            carriedOver: carryOver,
-          })
-          .returning();
-
-        allocationsMap.set(prevAlloc.categoryId, newAlloc);
+        carryOverInserts.push({
+          budgetId,
+          categoryId: prevAlloc.categoryId,
+          year,
+          month,
+          allocated: 0,
+          carriedOver: carryOver,
+        });
       }
     }
+
+    // Batch updates in parallel, batch inserts in one call
+    const batchPromises: Promise<unknown>[] = [];
+    if (carryOverUpdates.length > 0) {
+      batchPromises.push(
+        Promise.all(carryOverUpdates.map(u =>
+          db.update(monthlyAllocations)
+            .set({ carriedOver: u.carriedOver, updatedAt: new Date() })
+            .where(eq(monthlyAllocations.id, u.id))
+        ))
+      );
+    }
+    if (carryOverInserts.length > 0) {
+      batchPromises.push(
+        db.insert(monthlyAllocations).values(carryOverInserts).returning()
+          .then(newAllocs => {
+            for (const newAlloc of newAllocs) {
+              allocationsMap.set(newAlloc.categoryId, newAlloc);
+            }
+          })
+      );
+    }
+    await Promise.all(batchPromises);
   }
 
   // Group bills by categoryId

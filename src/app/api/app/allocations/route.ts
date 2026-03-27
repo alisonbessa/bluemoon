@@ -198,7 +198,10 @@ export const GET = withAuthRequired(async (req, context) => {
       budgetCategories.map(({ category }) => [category.id, category.behavior])
     );
 
-    // Calculate carriedOver for each category
+    // Calculate carriedOver for each category (batched to avoid N+1)
+    const carryOverUpdates: { id: string; carriedOver: number }[] = [];
+    const carryOverInserts: { budgetId: string; categoryId: string; year: number; month: number; allocated: number; carriedOver: number }[] = [];
+
     for (const prevAlloc of prevMonthAllocationsList) {
       const prevSpent = prevSpendingMap.get(prevAlloc.categoryId) || 0;
       const prevAvailable = (prevAlloc.allocated || 0) + (prevAlloc.carriedOver || 0) - prevSpent;
@@ -214,31 +217,45 @@ export const GET = withAuthRequired(async (req, context) => {
       if (currentAlloc) {
         // Update if carriedOver is different
         if (currentAlloc.carriedOver !== carryOver) {
-          await db
-            .update(monthlyAllocations)
-            .set({ carriedOver: carryOver, updatedAt: new Date() })
-            .where(eq(monthlyAllocations.id, currentAlloc.id));
-
+          carryOverUpdates.push({ id: currentAlloc.id, carriedOver: carryOver });
           // Update local map for this request
           currentAlloc.carriedOver = carryOver;
         }
       } else if (carryOver > 0) {
-        // Create new allocation with carriedOver (only if there's something to carry)
-        const [newAlloc] = await db
-          .insert(monthlyAllocations)
-          .values({
-            budgetId,
-            categoryId: prevAlloc.categoryId,
-            year,
-            month,
-            allocated: 0,
-            carriedOver: carryOver,
-          })
-          .returning();
-
-        allocationsMap.set(prevAlloc.categoryId, newAlloc);
+        // Queue new allocation with carriedOver (only if there's something to carry)
+        carryOverInserts.push({
+          budgetId,
+          categoryId: prevAlloc.categoryId,
+          year,
+          month,
+          allocated: 0,
+          carriedOver: carryOver,
+        });
       }
     }
+
+    // Batch updates in parallel, batch inserts in one call
+    const batchPromises: Promise<unknown>[] = [];
+    if (carryOverUpdates.length > 0) {
+      batchPromises.push(
+        Promise.all(carryOverUpdates.map(u =>
+          db.update(monthlyAllocations)
+            .set({ carriedOver: u.carriedOver, updatedAt: new Date() })
+            .where(eq(monthlyAllocations.id, u.id))
+        ))
+      );
+    }
+    if (carryOverInserts.length > 0) {
+      batchPromises.push(
+        db.insert(monthlyAllocations).values(carryOverInserts).returning()
+          .then(newAllocs => {
+            for (const newAlloc of newAllocs) {
+              allocationsMap.set(newAlloc.categoryId, newAlloc);
+            }
+          })
+      );
+    }
+    await Promise.all(batchPromises);
   }
 
   // Group bills by categoryId

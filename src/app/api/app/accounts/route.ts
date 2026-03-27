@@ -135,6 +135,14 @@ export const GET = withAuthRequired(async (req, context) => {
         )
       );
 
+    // Group transactions by accountId for O(n+m) instead of O(n*m)
+    const txByAccount = new Map<string, typeof ccBills>();
+    for (const row of ccBills) {
+      const list = txByAccount.get(row.accountId) ?? [];
+      list.push(row);
+      txByAccount.set(row.accountId, list);
+    }
+
     // Aggregate per account filtered by its specific billing cycle
     for (const account of creditCardAccounts) {
       const range = billingRanges.get(account.id)!;
@@ -142,12 +150,10 @@ export const GET = withAuthRequired(async (req, context) => {
       const endTime = range.end.getTime();
 
       let total = 0;
-      for (const row of ccBills) {
-        if (row.accountId === account.id) {
-          const txTime = new Date(row.date).getTime();
-          if (txTime >= startTime && txTime <= endTime) {
-            total += Number(row.amount) || 0;
-          }
+      for (const row of txByAccount.get(account.id) ?? []) {
+        const txTime = new Date(row.date).getTime();
+        if (txTime >= startTime && txTime <= endTime) {
+          total += Number(row.amount) || 0;
         }
       }
       billsMap.set(account.id, total);

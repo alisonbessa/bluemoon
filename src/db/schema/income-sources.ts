@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text, integer, bigint, boolean } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, bigint, boolean, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { budgetMembers } from "./budget-members";
@@ -49,7 +49,11 @@ export const incomeSources = pgTable("income_sources", {
 
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-});
+}, (table) => [
+  index("idx_income_sources_budget_id").on(table.budgetId),
+  index("idx_income_sources_budget_active").on(table.budgetId, table.isActive),
+  index("idx_income_sources_member_id").on(table.memberId),
+]);
 
 export const incomeSourcesRelations = relations(incomeSources, ({ one }) => ({
   budget: one(budgets, {

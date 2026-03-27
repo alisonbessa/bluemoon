@@ -554,17 +554,23 @@ async function fetchStats(opts: {
         inArray(transactions.status, ["pending", "cleared", "reconciled"])
       ));
 
+    // Group transactions by accountId for O(n+m) instead of O(n*m)
+    const txByAccount = new Map<string, typeof ccTransactions>();
+    for (const tx of ccTransactions) {
+      const list = txByAccount.get(tx.accountId) ?? [];
+      list.push(tx);
+      txByAccount.set(tx.accountId, list);
+    }
+
     creditCards = creditCardAccounts.map((cc) => {
       const range = billingRanges.get(cc.id)!;
       const startTime = range.start.getTime();
       const endTime = range.end.getTime();
       let spent = 0;
-      for (const tx of ccTransactions) {
-        if (tx.accountId === cc.id) {
-          const txTime = new Date(tx.date).getTime();
-          if (txTime >= startTime && txTime <= endTime) {
-            spent += Math.abs(Number(tx.amount) || 0);
-          }
+      for (const tx of txByAccount.get(cc.id) ?? []) {
+        const txTime = new Date(tx.date).getTime();
+        if (txTime >= startTime && txTime <= endTime) {
+          spent += Math.abs(Number(tx.amount) || 0);
         }
       }
       return {

@@ -6,6 +6,7 @@ import {
   bigint,
   boolean,
   unique,
+  index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
@@ -38,7 +39,11 @@ export const goals = pgTable("goals", {
   displayOrder: integer("display_order").default(0),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-});
+}, (table) => [
+  index("idx_goals_budget_id").on(table.budgetId),
+  index("idx_goals_member_id").on(table.memberId),
+  index("idx_goals_budget_archived").on(table.budgetId, table.isArchived),
+]);
 
 export const goalsRelations = relations(goals, ({ one, many }) => ({
   budget: one(budgets, {
@@ -76,7 +81,11 @@ export const goalContributions = pgTable(
     month: integer("month").notNull(), // 1-12
     amount: bigint("amount", { mode: "number" }).notNull(), // Valor contribuído em centavos
     createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
-  }
+  },
+  (table) => [
+    index("idx_goal_contributions_goal_id").on(table.goalId),
+    index("idx_goal_contributions_year_month").on(table.year, table.month),
+  ]
 );
 
 export const goalContributionsRelations = relations(
