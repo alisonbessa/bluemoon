@@ -1,4 +1,3 @@
-import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import {
   whatsappUsers,
@@ -27,7 +26,6 @@ import { getScopeFromCategory, getScopeFromIncomeSource } from "@/shared/lib/tra
 import { formatCurrency } from "@/shared/lib/formatters";
 import { formatAccountDisplay, formatAccountWithIcon } from "@/integrations/messaging/lib/ai-handlers/account-utils";
 
-const logger = createLogger("whatsapp:confirmations");
 const adapter = new WhatsAppAdapter();
 
 export async function handleExpenseConfirmation(

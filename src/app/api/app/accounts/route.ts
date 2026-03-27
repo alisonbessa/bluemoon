@@ -3,7 +3,7 @@ import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionReq
 import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
 import { financialAccounts, budgetMembers, transactions } from "@/db/schema";
-import { eq, and, inArray, or, isNull, gte, lte, sql } from "drizzle-orm";
+import { eq, and, inArray, isNull, gte, lte } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
 import {
   getUserBudgetIds,
@@ -195,7 +195,7 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
 
   // Get display order
   const existingAccounts = await db
-    .select()
+    .select({ id: financialAccounts.id })
     .from(financialAccounts)
     .where(eq(financialAccounts.budgetId, budgetId));
 

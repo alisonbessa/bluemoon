@@ -84,9 +84,25 @@ export const GET = withAuthRequired(async (req, context) => {
   const userTransactions = await db
     .select({
       transaction: transactions,
-      account: financialAccounts,
-      category: categories,
-      incomeSource: incomeSources,
+      account: {
+        id: financialAccounts.id,
+        name: financialAccounts.name,
+        icon: financialAccounts.icon,
+        type: financialAccounts.type,
+        color: financialAccounts.color,
+      },
+      category: {
+        id: categories.id,
+        name: categories.name,
+        icon: categories.icon,
+        color: categories.color,
+        groupId: categories.groupId,
+      },
+      incomeSource: {
+        id: incomeSources.id,
+        name: incomeSources.name,
+        type: incomeSources.type,
+      },
     })
     .from(transactions)
     .leftJoin(financialAccounts, eq(transactions.accountId, financialAccounts.id))

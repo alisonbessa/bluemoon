@@ -1,4 +1,3 @@
-import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import {
   whatsappUsers,
@@ -27,7 +26,6 @@ import { getAccountIcon, getAccountTypeName, formatAccountDisplay } from "@/inte
 import { matchCategory } from "@/integrations/messaging/lib/gemini";
 import { formatCategoryName, suggestGroupForCategory } from "@/integrations/messaging/lib/ai-handlers/category-utils";
 
-const logger = createLogger("whatsapp:selections");
 const adapter = new WhatsAppAdapter();
 
 export async function handleCategorySelection(
