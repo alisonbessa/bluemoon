@@ -28,6 +28,7 @@ interface ChecklistData {
   hasGoal: boolean;
   hasMessagingConnected: boolean;
   hasPartnerInvited: boolean;
+  hasContribution: boolean;
   isDuo: boolean;
 }
 

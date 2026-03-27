@@ -7,8 +7,9 @@ import {
   whatsappUsers,
   telegramUsers,
   goals,
+  incomeSources,
 } from "@/db/schema";
-import { eq, and, count } from "drizzle-orm";
+import { eq, and, count, isNotNull } from "drizzle-orm";
 import { successResponse } from "@/shared/lib/api/responses";
 import { checkUserAccess } from "@/shared/lib/users/checkPartnerAccess";
 
@@ -35,6 +36,7 @@ export const GET = withAuthRequired(async (_request, context) => {
     telegramConnection,
     members,
     goalCount,
+    hasContribution,
   ] = await Promise.all([
     // Has at least 1 financial account?
     budgetId
@@ -86,6 +88,21 @@ export const GET = withAuthRequired(async (_request, context) => {
           )
           .then((r) => r[0]?.count ?? 0)
       : Promise.resolve(0),
+
+    // Has contribution model configured? (any income source with contributionAmount set)
+    budgetId
+      ? db
+          .select({ count: count() })
+          .from(incomeSources)
+          .where(
+            and(
+              eq(incomeSources.budgetId, budgetId),
+              eq(incomeSources.isActive, true),
+              isNotNull(incomeSources.contributionAmount)
+            )
+          )
+          .then((r) => (r[0]?.count ?? 0) > 0)
+      : Promise.resolve(false),
   ]);
 
   return successResponse({
@@ -96,6 +113,7 @@ export const GET = withAuthRequired(async (_request, context) => {
     hasMessagingConnected:
       whatsappConnection.length > 0 || telegramConnection.length > 0,
     hasPartnerInvited: members.length > 1,
+    hasContribution: hasContribution,
     isDuo: currentPlan?.codename === "duo" || (currentPlan?.quotas?.maxBudgetMembers ?? 1) >= 2 || accessInfo.hasPartnerAccess,
   });
 });
