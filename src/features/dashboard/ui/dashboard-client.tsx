@@ -87,6 +87,7 @@ export function DashboardClient({
     isLoading: dataLoading,
     chartsLoading,
     goalsLoading,
+    refreshDashboard,
     viewMode: dataViewMode,
     isDuoPlan,
   } = useDashboardData(currentYear, currentMonth, {
@@ -275,6 +276,7 @@ export function DashboardClient({
               budgetId={primaryBudgetId}
               year={currentYear}
               month={currentMonth}
+              onTransactionConfirmed={refreshDashboard}
             />
           </div>
         )}

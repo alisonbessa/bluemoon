@@ -170,9 +170,11 @@ export function SharedExpensesBalance({
         description: `Transferência de ${formatCurrency(settlement.amount)} de ${settlement.fromName} para ${settlement.toName}`,
       });
 
-      // Revalidate shared balance and accounts data
+      // Revalidate shared balance, accounts, and dashboard summary
       await mutate(`/api/app/dashboard/shared-balance?budgetId=${budgetId}&year=${year}&month=${month}`);
       await mutate(`/api/app/accounts?budgetId=${budgetId}`);
+      // Invalidate dashboard caches so summary cards reflect the new transfer
+      await mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/app/dashboard?'));
 
       setShowSettleDialog(false);
     } catch (err) {

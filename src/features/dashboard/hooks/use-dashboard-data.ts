@@ -56,7 +56,7 @@ export function useDashboardData(
     ? `/api/app/dashboard?budgetId=${primaryBudgetId}&year=${year}&month=${month}${vm}`
     : null;
 
-  const { data, isLoading: dashboardLoading } = useSWR<DashboardResponse>(
+  const { data, isLoading: dashboardLoading, mutate: mutateDashboard } = useSWR<DashboardResponse>(
     dashboardKey,
     {
       fallbackData: options?.fallbackData ?? undefined,
@@ -98,6 +98,8 @@ export function useDashboardData(
     chartsLoading: dashboardLoading,
     goalsLoading: dashboardLoading,
     commitmentsLoading: dashboardLoading,
+    // Mutations
+    refreshDashboard: mutateDashboard,
     // View mode info
     viewMode,
     isDuoPlan,
