@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/shared/ui/button";
 import {
   Card,
@@ -34,6 +34,7 @@ import {
   GettingStartedChecklist,
 } from "@/features/dashboard/ui";
 import { useDashboardData, type DashboardResponse } from "@/features/dashboard/hooks/use-dashboard-data";
+import { useViewMode } from "@/shared/providers/view-mode-provider";
 
 // Lazy load charts since recharts is a heavy library (~200KB)
 const DashboardCharts = dynamic(
@@ -95,6 +96,14 @@ export function DashboardClient({
       ? (initialData as DashboardResponse | undefined) ?? undefined
       : undefined,
   });
+
+  // Sync hasContributionModel to the global ViewMode context
+  const { setHasContributionModel } = useViewMode();
+  useEffect(() => {
+    if (!dataLoading) {
+      setHasContributionModel(hasContributionModel);
+    }
+  }, [hasContributionModel, dataLoading, setHasContributionModel]);
 
   // In "shared" mode with contribution model, use contribution as income base
   const effectiveIncomePlanned = viewMode === "shared" && hasContributionModel

@@ -63,7 +63,7 @@ export function BudgetPageClient({
   const router = useRouter();
   const { user } = useUser();
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
-  const { viewMode } = useViewMode();
+  const { viewMode, setHasContributionModel } = useViewMode();
 
   // Period navigation
   const {
@@ -97,6 +97,13 @@ export function BudgetPageClient({
   } = useBudgetPageData(currentYear, currentMonth, {
     fallbackAllocationsData: isInitialMonth ? initialAllocationsData as never : undefined,
   });
+
+  // Sync hasContributionModel to the global ViewMode context
+  useEffect(() => {
+    if (!isLoading) {
+      setHasContributionModel(hasContributionModel);
+    }
+  }, [hasContributionModel, isLoading, setHasContributionModel]);
 
   // Current user for member matching
   const userMemberId = useMemo(

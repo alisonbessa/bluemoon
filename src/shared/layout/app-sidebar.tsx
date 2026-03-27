@@ -103,14 +103,20 @@ const viewModeOptions: {
 ];
 
 function ViewModeSelector() {
-  const { viewMode, setViewMode, isDuoPlan, isUnifiedPrivacy } = useViewMode();
+  const { viewMode, setViewMode, isDuoPlan, isUnifiedPrivacy, privacyMode, hasContributionModel } = useViewMode();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const pathname = usePathname();
 
-  if (!isDuoPlan || isUnifiedPrivacy || pathname === "/app/settings") return null;
+  // Hide toggle: not duo, unified privacy, no contribution model, or on settings page
+  if (!isDuoPlan || isUnifiedPrivacy || !hasContributionModel || pathname === "/app/settings") return null;
 
-  const activeOption = viewModeOptions.find((o) => o.value === viewMode)!;
+  // When privacy is "private", exclude the "all" option (partner data is hidden)
+  const availableOptions = privacyMode === "private"
+    ? viewModeOptions.filter((o) => o.value !== "all")
+    : viewModeOptions;
+
+  const activeOption = availableOptions.find((o) => o.value === viewMode) ?? availableOptions[0];
   const ActiveIcon = activeOption.icon;
 
   if (isCollapsed) {
@@ -128,7 +134,7 @@ function ViewModeSelector() {
             <TooltipContent side="right">{activeOption.label}</TooltipContent>
           </Tooltip>
           <DropdownMenuContent side="right" align="start">
-            {viewModeOptions.map((option) => {
+            {availableOptions.map((option) => {
               const Icon = option.icon;
               return (
                 <DropdownMenuItem
@@ -160,7 +166,7 @@ function ViewModeSelector() {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-[--radix-dropdown-menu-trigger-width]">
-          {viewModeOptions.map((option) => {
+          {availableOptions.map((option) => {
             const Icon = option.icon;
             return (
               <DropdownMenuItem
