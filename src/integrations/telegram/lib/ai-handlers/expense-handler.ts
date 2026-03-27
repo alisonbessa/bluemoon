@@ -20,6 +20,7 @@ import {
   deleteMessages,
 } from "../bot";
 import { updateTelegramContext, matchAccount, formatCategoryName, suggestGroupForCategory } from "./shared-utils";
+import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
 
 /**
  * Handle expense intent - register or update an expense
@@ -118,6 +119,9 @@ export async function handleExpenseIntent(
     ? await findMatchingScheduledTransaction(budgetId, categoryId, data.amount, currentYear, currentMonth)
     : null;
 
+  // Derive scope from category (NULL = shared, set = personal to category owner)
+  const scopeMemberId = getScopeFromCategory(categoryId, categories, memberId);
+
   // HIGH CONFIDENCE without scheduled match: Auto-save new transaction
   // Note: We NEVER auto-save when updating scheduled transactions - always confirm
   if (finalConfidence >= CONFIDENCE_THRESHOLDS.HIGH && categoryId && !scheduledMatch) {
@@ -157,7 +161,7 @@ export async function handleExpenseIntent(
           budgetId,
           accountId,
           categoryId,
-          memberId,
+          memberId: scopeMemberId,
           paidByMemberId: memberId,
           type: "expense",
           status: "cleared",
@@ -176,7 +180,7 @@ export async function handleExpenseIntent(
         budgetId,
         accountId,
         categoryId,
-        memberId,
+        memberId: scopeMemberId,
         paidByMemberId: memberId,
         type: "expense" as const,
         status: "cleared" as const,
@@ -220,7 +224,7 @@ export async function handleExpenseIntent(
         budgetId,
         accountId,
         categoryId,
-        memberId,
+        memberId: scopeMemberId,
         paidByMemberId: memberId,
         type: "expense",
         status: "cleared",

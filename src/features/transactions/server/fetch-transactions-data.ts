@@ -5,7 +5,7 @@ import {
   categories,
   incomeSources,
 } from "@/db/schema";
-import { eq, and, inArray, desc, gte, lte } from "drizzle-orm";
+import { eq, and, desc, gte, lte } from "drizzle-orm";
 import {
   getUserBudgetIds,
   getUserMemberIdInBudget,
@@ -49,7 +49,7 @@ export async function fetchTransactionsData(opts: {
 
   // Build conditions
   const conditions = [
-    inArray(transactions.budgetId, budgetIds),
+    eq(transactions.budgetId, budgetId),
     gte(transactions.date, startDate),
     lte(transactions.date, endDate),
   ];
@@ -57,7 +57,7 @@ export async function fetchTransactionsData(opts: {
   // View mode filtering
   if (userMemberId) {
     const partnerPrivacy =
-      viewMode === "all"
+      (viewMode === "all" || viewMode === "mine")
         ? await getPartnerPrivacyLevel(userId, budgetId)
         : undefined;
     const viewCondition = getViewModeCondition({

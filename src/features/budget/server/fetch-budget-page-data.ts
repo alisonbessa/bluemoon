@@ -94,7 +94,7 @@ export async function fetchBudgetAllocationsData(opts: {
   month: number;
   viewMode?: ViewMode;
 }): Promise<BudgetAllocationsResult | null> {
-  const { userId, budgetId, year, month, viewMode = "all" } = opts;
+  const { userId, budgetId, year, month, viewMode = "mine" } = opts;
 
   // Verify access
   const budgetIds = await getUserBudgetIds(userId);

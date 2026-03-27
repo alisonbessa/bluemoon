@@ -49,7 +49,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   // View mode filtering on transactions.memberId
   if (userMemberId) {
-    const partnerPrivacy = viewMode === "all"
+    const partnerPrivacy = (viewMode === "all" || viewMode === "mine")
       ? await getPartnerPrivacyLevel(session.user.id, activeBudgetId)
       : undefined;
     const viewCondition = getViewModeCondition({

@@ -67,12 +67,11 @@ export const GET = withAuthRequired(async (req, context) => {
   // Group by account owner to see who paid what
   const sharedExpensesByPayer = await db
     .select({
-      accountOwnerId: financialAccounts.ownerId,
+      payerMemberId: transactions.paidByMemberId,
       total: sql<number>`COALESCE(ABS(SUM(${transactions.amount})), 0)`,
     })
     .from(transactions)
     .innerJoin(categories, eq(transactions.categoryId, categories.id))
-    .innerJoin(financialAccounts, eq(transactions.accountId, financialAccounts.id))
     .where(
       and(
         eq(transactions.budgetId, budgetId),
@@ -81,10 +80,10 @@ export const GET = withAuthRequired(async (req, context) => {
         gte(transactions.date, startDate),
         lte(transactions.date, endDate),
         isNull(categories.memberId), // Shared category
-        isNotNull(financialAccounts.ownerId) // Personal account
+        isNotNull(transactions.paidByMemberId) // Has a payer
       )
     )
-    .groupBy(financialAccounts.ownerId);
+    .groupBy(transactions.paidByMemberId);
 
   // Also get total shared expenses (from shared accounts) for context
   const [sharedAccountExpenses] = await db
@@ -109,7 +108,7 @@ export const GET = withAuthRequired(async (req, context) => {
   // Build per-member data
   const memberData = members.map((member) => {
     const paidFromPersonal = sharedExpensesByPayer.find(
-      (e) => e.accountOwnerId === member.id
+      (e) => e.payerMemberId === member.id
     );
     return {
       id: member.id,
