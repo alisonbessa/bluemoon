@@ -45,6 +45,7 @@ const setupSchema = z.object({
             "investment",
             "other",
           ]),
+          isPartner: z.boolean().optional(),
         })
       )
       .min(1),
@@ -230,11 +231,13 @@ export const POST = withAuthRequired(async (request, context) => {
       }
 
       // Create income sources
+      // Partner income sources get memberId = null (shared) until the partner
+      // joins and gets their own memberId assigned
       for (let i = 0; i < data.income.sources.length; i++) {
         const source = data.income.sources[i];
         await tx.insert(incomeSources).values({
           budgetId,
-          memberId: ownerMemberId,
+          memberId: source.isPartner ? null : ownerMemberId,
           name: source.name,
           type: source.type,
           amount: source.amount,

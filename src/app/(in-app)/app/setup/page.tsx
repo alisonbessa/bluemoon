@@ -88,14 +88,15 @@ export default function SetupPage() {
 
   // Build API payload from simplified state
   const buildPayload = () => {
-    const sources = [
-      { name: "Salário", amount: myIncome, type: "salary" as const },
+    const sources: { name: string; amount: number; type: "salary"; isPartner?: boolean }[] = [
+      { name: "Salário", amount: myIncome, type: "salary" },
     ];
     if (isDuo && partnerIncome > 0) {
       sources.push({
         name: "Salário (parceiro)",
         amount: partnerIncome,
-        type: "salary" as const,
+        type: "salary",
+        isPartner: true,
       });
     }
 
