@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import useSWR, { mutate } from "swr";
+import useSWR from "swr";
+import { mutate } from "swr";
 import {
   Card,
   CardContent,
@@ -170,8 +171,8 @@ export function SharedExpensesBalance({
       });
 
       // Revalidate shared balance and accounts data
-      mutate(`/api/app/dashboard/shared-balance?budgetId=${budgetId}&year=${year}&month=${month}`);
-      mutate(`/api/app/accounts?budgetId=${budgetId}`);
+      await mutate(`/api/app/dashboard/shared-balance?budgetId=${budgetId}&year=${year}&month=${month}`);
+      await mutate(`/api/app/accounts?budgetId=${budgetId}`);
 
       setShowSettleDialog(false);
     } catch (err) {

@@ -116,11 +116,11 @@ export function useBudgetPageData(year: number, month: number) {
 
   const isLoading = budgetsLoading || membersLoading || accountsLoading || allocationsLoading || goalsLoading;
 
-  // Refresh all data
+  // Refresh all data after mutations
   const refreshData = async () => {
     await Promise.all([
-      mutateAllocations(),
-      mutateGoals(),
+      allocationsKey ? mutateAllocations() : Promise.resolve(),
+      goalsKey ? mutateGoals() : Promise.resolve(),
     ]);
   };
 

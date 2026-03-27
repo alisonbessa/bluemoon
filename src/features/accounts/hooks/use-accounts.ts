@@ -3,7 +3,7 @@
 import useSWR from 'swr';
 import { useViewMode } from '@/shared/providers/view-mode-provider';
 import type { Account } from '../types';
-import { optimisticMutate } from '@/shared/lib/swr/optimistic';
+import { optimisticMutate, invalidatePrefix } from '@/shared/lib/swr/optimistic';
 
 interface AccountsResponse {
   accounts: Account[];
@@ -55,6 +55,7 @@ export function useAccounts() {
           throw new Error(error.message || 'Erro ao criar conta');
         }
       },
+      invalidateKeyPrefix: BASE_KEY,
       successMessage: 'Conta criada com sucesso!',
     });
   };
@@ -84,6 +85,7 @@ export function useAccounts() {
           throw new Error(error.message || 'Erro ao atualizar conta');
         }
       },
+      invalidateKeyPrefix: BASE_KEY,
       successMessage: 'Conta atualizada com sucesso!',
     });
   };
@@ -106,15 +108,20 @@ export function useAccounts() {
           throw new Error(error.message || 'Erro ao excluir conta');
         }
       },
+      invalidateKeyPrefix: BASE_KEY,
       successMessage: 'Conta excluída com sucesso!',
     });
   };
+
+  /** Revalidate all account caches (all viewMode variants) */
+  const refresh = () => invalidatePrefix(BASE_KEY);
 
   return {
     accounts,
     isLoading,
     error,
     mutate,
+    refresh,
     viewMode,
     isDuoPlan,
     // Optimistic mutations

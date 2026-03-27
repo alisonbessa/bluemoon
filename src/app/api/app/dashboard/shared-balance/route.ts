@@ -5,7 +5,7 @@ import { eq, and, inArray, gte, lte, isNotNull, isNull, sql } from "drizzle-orm"
 import { getUserBudgetIds, getUserMemberIdInBudget } from "@/shared/lib/api/permissions";
 import {
   forbiddenError,
-  cachedResponse,
+  successResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
 
@@ -36,7 +36,7 @@ export const GET = withAuthRequired(async (req, context) => {
     .limit(1);
 
   if (budget?.privacyMode === "unified") {
-    return cachedResponse({ members: [], settlement: null, privacyMode: "unified" });
+    return successResponse({ members: [], settlement: null, privacyMode: "unified" });
   }
 
   // Get all members in the budget
@@ -52,7 +52,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   // Only relevant for duo budgets (2+ members)
   if (members.length < 2) {
-    return cachedResponse({ members: [], settlement: null });
+    return successResponse({ members: [], settlement: null });
   }
 
   const userMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
@@ -157,14 +157,11 @@ export const GET = withAuthRequired(async (req, context) => {
     }
   }
 
-  return cachedResponse(
-    {
-      members: memberData,
-      totalFromPersonalAccounts: totalPaidFromPersonal,
-      totalFromSharedAccounts: Number(sharedAccountExpenses?.total ?? 0),
-      settlement,
-      privacyMode: budget?.privacyMode ?? "visible",
-    },
-    { maxAge: 30, staleWhileRevalidate: 120 }
-  );
+  return successResponse({
+    members: memberData,
+    totalFromPersonalAccounts: totalPaidFromPersonal,
+    totalFromSharedAccounts: Number(sharedAccountExpenses?.total ?? 0),
+    settlement,
+    privacyMode: budget?.privacyMode ?? "visible",
+  });
 });

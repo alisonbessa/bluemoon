@@ -145,7 +145,7 @@ export default function SetupPage() {
         throw new Error(error.error || "Erro ao configurar orçamento");
       }
 
-      // Invalidate caches
+      // Invalidate caches after setup
       await Promise.all([
         mutate("/api/app/me"),
         mutate("/api/app/budgets"),

@@ -3,6 +3,7 @@
 import useSWR from 'swr';
 import { useViewMode } from '@/shared/providers/view-mode-provider';
 import type { IncomeSource, IncomeType } from '../types';
+import { invalidatePrefix } from '@/shared/lib/swr/optimistic';
 
 interface Budget {
   id: string;
@@ -102,7 +103,7 @@ export function useIncomePageData(): IncomePageData {
   const error = budgetsError || membersError || accountsError || incomeError;
 
   const refresh = async () => {
-    await mutateIncome();
+    await invalidatePrefix('/api/app/income-sources');
   };
 
   return {

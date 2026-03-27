@@ -6,7 +6,6 @@ import { capitalizeWords } from "@/shared/lib/utils";
 import {
   validationError,
   successResponse,
-  cachedResponse,
 } from "@/shared/lib/api/responses";
 import { createBudgetSchema } from "@/shared/lib/validations";
 import { recordAuditLog } from "@/shared/lib/security/audit-log";
@@ -29,8 +28,7 @@ export const GET = withAuthRequired(async (req, context) => {
     .innerJoin(budgets, eq(budgetMembers.budgetId, budgets.id))
     .where(eq(budgetMembers.userId, session.user.id));
 
-  // PERFORMANCE: Cache for 60 seconds, stale-while-revalidate for 5 minutes
-  return cachedResponse({ budgets: userBudgets }, { maxAge: 60, staleWhileRevalidate: 300 });
+  return successResponse({ budgets: userBudgets });
 });
 
 // POST - Create a new budget

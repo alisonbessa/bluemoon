@@ -47,7 +47,7 @@ const TYPE_CONFIG = {
 
 export default function AccountsPage() {
   // SWR hooks for cached data fetching
-  const { accounts, isLoading: accountsLoading, mutate: mutateAccounts } = useAccounts();
+  const { accounts, isLoading: accountsLoading, deleteAccount, updateAccount, createAccount } = useAccounts();
   const { budgets, isLoading: budgetsLoading } = useBudgets();
   const { members, isLoading: membersLoading } = useMembers();
   const { user, isLoading: userLoading } = useUser();
@@ -65,18 +65,21 @@ export default function AccountsPage() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const [includeInvestments, setIncludeInvestments] = useState(false);
-  const [ownershipFilter, setOwnershipFilter] = useState<'mine' | 'shared'>('mine');
+  // Derive ownership filter from viewMode - no separate state needed
+  // "all" shows everything (no client filter), "mine"/"shared" match directly
+  const ownershipFilter = viewMode === "all" ? "all" : viewMode === "shared" ? "shared" : "mine";
+  const setOwnershipFilter = (filter: 'mine' | 'shared') => {
+    setViewMode(filter === 'mine' ? 'mine' : 'shared');
+  };
   const { isExpanded, toggleGroup } = useExpandedGroups([], { accordion: true });
 
   // Get current user's member id by matching member.userId with current user's id
   const currentUserMemberId = members.find(m => m.userId === user?.id)?.id;
 
   const handleCreateAccount = async (data: AccountFormData) => {
-    // Get budgetId - try from cached data first, fallback to fetching fresh
     let budgetId = budgets[0]?.id;
 
     if (!budgetId) {
-      // Try fetching fresh budgets data
       try {
         const freshBudgets = await fetch("/api/app/budgets").then(r => r.json());
         budgetId = freshBudgets.budgets?.[0]?.id;
@@ -90,33 +93,18 @@ export default function AccountsPage() {
       return;
     }
 
-    const response = await fetch("/api/app/accounts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...data, budgetId }),
-    });
+    // createAccount does optimistic update + invalidates all /api/app/accounts* caches
+    await createAccount({ ...data, budgetId } as Parameters<typeof createAccount>[0]);
 
-    if (!response.ok) {
-      const text = await response.text();
-      const error = text ? JSON.parse(text) : { message: `Erro ${response.status}` };
-      throw new Error(error.message || error.error || "Erro ao criar conta");
-    }
-
-    const createdAccount = await response.json();
-    toast.success("Conta criada com sucesso!");
-
-    // Switch view mode to match the created account's ownership
+    // Switch view mode to show the created account
     if (isDuoPlan) {
-      const isSharedAccount = !createdAccount.account?.ownerId && !data.ownerId;
+      const isSharedAccount = !data.ownerId;
       const targetView = isSharedAccount ? "shared" : "mine";
       if (viewMode !== targetView && viewMode !== "all") {
         setViewMode(targetView);
       }
     }
 
-    mutateAccounts();
-
-    // Notify tutorial that user created an account
     if (isTutorialActive) {
       notifyActionCompleted("hasAccounts");
     }
@@ -124,52 +112,25 @@ export default function AccountsPage() {
 
   const handleEditAccount = async (data: AccountFormData) => {
     if (!editingAccount) return;
-
-    const response = await fetch(`/api/app/accounts/${editingAccount.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Erro ao atualizar conta");
-    }
-
-    toast.success("Conta atualizada com sucesso!");
     setEditingAccount(null);
-    mutateAccounts();
+    await updateAccount(editingAccount.id, data);
   };
 
   const handleDeleteAccount = async () => {
     if (!deletingAccount) return;
-
-    try {
-      const response = await fetch(`/api/app/accounts/${deletingAccount.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao excluir conta");
-      }
-
-      toast.success("Conta excluída com sucesso!");
-      setDeletingAccount(null);
-      mutateAccounts();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao excluir conta");
-    }
+    setDeletingAccount(null);
+    await deleteAccount(deletingAccount.id);
   };
 
-  // Filter accounts by ownership
+  // Filter accounts by ownership (client-side, complements server-side viewMode filter)
   const filterByOwnership = (account: Account) => {
+    if (ownershipFilter === 'all') return true;
     if (ownershipFilter === 'mine') return account.ownerId === currentUserMemberId;
     if (ownershipFilter === 'shared') return !account.ownerId;
     return true;
   };
 
-  const filteredAccounts = accounts.filter(filterByOwnership);
+  const filteredAccounts = isDuoPlan ? accounts.filter(filterByOwnership) : accounts;
 
   // Group accounts by type
   const accountsByType = {
@@ -524,7 +485,7 @@ export default function AccountsPage() {
         currentUserMemberId={currentUserMemberId}
         initialData={{
           ...(preselectedType ? { type: preselectedType as "checking" | "savings" | "credit_card" | "cash" | "investment" | "benefit" } : {}),
-          ...(isDuoPlan && viewMode !== "shared" && currentUserMemberId ? { ownerId: currentUserMemberId } : {}),
+          ...(isDuoPlan && viewMode === "mine" && currentUserMemberId ? { ownerId: currentUserMemberId } : {}),
         }}
       />
 

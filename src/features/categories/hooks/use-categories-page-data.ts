@@ -2,6 +2,7 @@
 
 import useSWR from 'swr';
 import type { CategoryGroup } from '../types';
+import { invalidatePrefix } from '@/shared/lib/swr/optimistic';
 
 interface Budget {
   id: string;
@@ -45,7 +46,7 @@ export function useCategoriesPageData(): CategoriesPageData {
   const error = categoriesError || budgetsError;
 
   const refresh = async () => {
-    await mutateCategories();
+    await invalidatePrefix('/api/app/categories');
   };
 
   return {

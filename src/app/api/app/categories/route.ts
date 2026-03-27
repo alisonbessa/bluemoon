@@ -9,7 +9,6 @@ import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
   validationError,
   forbiddenError,
-  cachedResponse,
   successResponse,
 } from "@/shared/lib/api/responses";
 import { suggestEmojiForCategory } from "@/shared/lib/category/suggest-emoji";
@@ -59,7 +58,7 @@ export const GET = withAuthRequired(async (req, context) => {
       .map((c) => c.category),
   }));
 
-  return cachedResponse({
+  return successResponse({
     groups: categoriesByGroup,
     flatCategories: userCategories.map((c) => ({
       ...c.category,

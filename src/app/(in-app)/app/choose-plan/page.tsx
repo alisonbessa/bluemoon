@@ -114,8 +114,7 @@ export default function ChoosePlanPage() {
           body: JSON.stringify({ codename }),
         });
         if (!response.ok) throw new Error("Erro ao selecionar plano");
-        // Force a fresh fetch bypassing both SWR dedup and browser HTTP cache
-        await mutate("/api/app/me", undefined, { revalidate: true });
+        await mutate("/api/app/me");
         router.push("/app");
       } catch {
         setIsRedirecting(false);

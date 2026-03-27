@@ -1,6 +1,6 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { parseViewMode } from "@/shared/lib/api/view-mode-filter";
-import { cachedResponse, errorResponse } from "@/shared/lib/api/responses";
+import { successResponse, errorResponse } from "@/shared/lib/api/responses";
 import { fetchDashboardData } from "@/features/dashboard/server/fetch-dashboard-data";
 
 /**
@@ -32,5 +32,5 @@ export const GET = withAuthRequired(async (req, context) => {
     return errorResponse("Budget not found or access denied", 403);
   }
 
-  return cachedResponse(result, { maxAge: 30, staleWhileRevalidate: 120 });
+  return successResponse(result);
 });

@@ -46,9 +46,9 @@ function formatFullDate(dateString: string): string {
 
 export default function GoalsPage() {
   // SWR hooks for cached data fetching
-  const { goals, isLoading: goalsLoading, mutate: mutateGoals } = useGoals();
+  const { goals, isLoading: goalsLoading, refresh: refreshGoals, archiveGoal, contributeToGoal } = useGoals();
   const { budgets, isLoading: budgetsLoading } = useBudgets();
-  const { accounts, isLoading: accountsLoading, mutate: mutateAccounts } = useAccounts();
+  const { accounts, isLoading: accountsLoading, refresh: refreshAccounts } = useAccounts();
   const { members, isLoading: membersLoading } = useMembers();
   const { user } = useUser();
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
@@ -85,7 +85,7 @@ export default function GoalsPage() {
   const handleFormSuccess = () => {
     setIsFormOpen(false);
     setEditingGoal(null);
-    mutateGoals();
+    refreshGoals();
     // Notify tutorial that user created a goal
     if (isTutorialActive) {
       notifyActionCompleted("hasGoals");
@@ -94,23 +94,8 @@ export default function GoalsPage() {
 
   const handleDelete = async () => {
     if (!deletingGoal) return;
-
-    try {
-      const response = await fetch(`/api/app/goals/${deletingGoal.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao arquivar meta");
-      }
-
-      toast.success("Meta arquivada!");
-      setDeletingGoal(null);
-      mutateGoals();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erro ao arquivar meta");
-    }
+    setDeletingGoal(null);
+    await archiveGoal(deletingGoal.id);
   };
 
   const handleContribute = async () => {
@@ -162,8 +147,8 @@ export default function GoalsPage() {
       setContributeGoal(null);
       setContributeAmountCents(0);
       setContributeFromAccountId("");
-      mutateGoals();
-      mutateAccounts(); // Account balance changed
+      refreshGoals();
+      refreshAccounts();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao contribuir");
     }

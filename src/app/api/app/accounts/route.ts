@@ -13,7 +13,6 @@ import {
 import {
   validationError,
   forbiddenError,
-  cachedResponse,
   successResponse,
 } from "@/shared/lib/api/responses";
 import { createAccountSchema } from "@/shared/lib/validations/account.schema";
@@ -162,7 +161,7 @@ export const GET = withAuthRequired(async (req, context) => {
       : null,
   }));
 
-  return cachedResponse({ accounts: accountsWithBill });
+  return successResponse({ accounts: accountsWithBill });
 });
 
 // POST - Create a new account
