@@ -6,10 +6,18 @@ const MAX_CENTS = 1_000_000_000;
 /**
  * Schema for creating a new goal
  */
+const memberSettingSchema = z.object({
+  memberId: z.string().uuid(),
+  fromAccountId: z.string().uuid().optional().nullable(),
+  monthlyAmount: z.number().int().min(0).optional().nullable(),
+});
+
 export const createGoalSchema = z.object({
   budgetId: z.string().uuid("Invalid budget ID"),
   memberId: z.string().uuid("Invalid member ID").nullable().optional(), // null = shared goal
   accountId: z.string().uuid("Invalid account ID"), // Account where goal savings are stored
+  fromAccountId: z.string().uuid("Invalid account ID").optional().nullable(), // Source account for personal goals
+  memberSettings: z.array(memberSettingSchema).optional(), // Per-member settings for shared Duo goals
   name: z
     .string()
     .min(1, "Goal name is required")
@@ -30,6 +38,9 @@ export const createGoalSchema = z.object({
  */
 export const updateGoalSchema = z.object({
   memberId: z.string().uuid("Invalid member ID").nullable().optional(),
+  accountId: z.string().uuid("Invalid account ID").optional().nullable(),
+  fromAccountId: z.string().uuid("Invalid account ID").optional().nullable(),
+  memberSettings: z.array(memberSettingSchema).optional(),
   name: z
     .string()
     .min(1, "Goal name is required")

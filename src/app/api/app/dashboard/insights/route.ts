@@ -10,7 +10,7 @@ import { eq, and, inArray, gte, lte, sql, desc } from "drizzle-orm";
 import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import {
   forbiddenError,
-  cachedResponse,
+  successResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
 import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
@@ -46,7 +46,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   // Build transaction view mode condition
   const txViewCondition = userMemberId
-    ? getViewModeCondition({ viewMode, userMemberId, ownerField: transactions.memberId, partnerPrivacy })
+    ? getViewModeCondition({ viewMode, userMemberId, ownerField: transactions.memberId, partnerPrivacy, paidByField: transactions.paidByMemberId })
     : undefined;
   const txViewConditions = txViewCondition ? [txViewCondition] : [];
 
@@ -323,43 +323,40 @@ export const GET = withAuthRequired(async (req, context) => {
       ? Math.round(((savings - prevSavings) / Math.abs(prevSavings)) * 100)
       : null;
 
-  return cachedResponse(
-    {
-      month: { year, month, daysInMonth, dayOfMonth, isCurrentMonth },
-      summary: {
-        income,
-        expense,
-        savings,
-        transactionCount,
-        totalAllocated,
-      },
-      budgetHealth: {
-        spentPercent: Math.round(budgetSpentPercent),
-        monthProgress: Math.round(monthProgress),
-        healthRatio: Math.round(budgetHealth * 100) / 100,
-        status:
-          budgetHealth >= 1.2
-            ? "excellent"
-            : budgetHealth >= 0.9
-              ? "good"
-              : budgetHealth >= 0.7
-                ? "warning"
-                : "critical",
-      },
-      projection: {
-        dailyAvgExpense: Math.round(dailyAvgExpense),
-        projectedExpense: Math.round(projectedExpense),
-        projectedSavings: Math.round(income - projectedExpense),
-        isOnTrack: projectedExpense <= totalAllocated,
-      },
-      topCategories: topCategoriesWithComparison,
-      overBudgetCategories,
-      comparison: {
-        income: { current: income, previous: prevIncome, variation: incomeVariation },
-        expense: { current: expense, previous: prevExpense, variation: expenseVariation },
-        savings: { current: savings, previous: prevSavings, variation: savingsVariation },
-      },
+  return successResponse({
+    month: { year, month, daysInMonth, dayOfMonth, isCurrentMonth },
+    summary: {
+      income,
+      expense,
+      savings,
+      transactionCount,
+      totalAllocated,
     },
-    { maxAge: 30, staleWhileRevalidate: 120 }
-  );
+    budgetHealth: {
+      spentPercent: Math.round(budgetSpentPercent),
+      monthProgress: Math.round(monthProgress),
+      healthRatio: Math.round(budgetHealth * 100) / 100,
+      status:
+        budgetHealth >= 1.2
+          ? "excellent"
+          : budgetHealth >= 0.9
+            ? "good"
+            : budgetHealth >= 0.7
+              ? "warning"
+              : "critical",
+    },
+    projection: {
+      dailyAvgExpense: Math.round(dailyAvgExpense),
+      projectedExpense: Math.round(projectedExpense),
+      projectedSavings: Math.round(income - projectedExpense),
+      isOnTrack: projectedExpense <= totalAllocated,
+    },
+    topCategories: topCategoriesWithComparison,
+    overBudgetCategories,
+    comparison: {
+      income: { current: income, previous: prevIncome, variation: incomeVariation },
+      expense: { current: expense, previous: prevExpense, variation: expenseVariation },
+      savings: { current: savings, previous: prevSavings, variation: savingsVariation },
+    },
+  });
 });

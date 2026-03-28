@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, Plus, Pencil, Trash2, MoreVertical, DollarSign } from 'lucide-react';
+import { ChevronDown, Plus, Trash2, MoreVertical, DollarSign, RotateCcw, Pencil } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +28,9 @@ interface IncomeSectionAccordionProps {
   expandedMembers: string[];
   onToggleMember: (memberId: string) => void;
   onEditIncome: (item: IncomeSourceData) => void;
-  onEditIncomeSource: (source: IncomeSource) => void;
+  onEditIncomeSource: (source: IncomeSource, item: IncomeSourceData) => void;
+  onIgnoreIncome: (item: IncomeSourceData) => void;
+  onRestoreIncome: (item: IncomeSourceData) => void;
   onDeleteIncomeSource: (source: IncomeSource) => void;
   onAddIncomeSource: (preselectedMemberId?: string) => void;
   mobileViewMode?: MobileViewMode;
@@ -63,6 +65,8 @@ export function IncomeSectionAccordion({
   onToggleMember,
   onEditIncome,
   onEditIncomeSource,
+  onIgnoreIncome,
+  onRestoreIncome,
   onDeleteIncomeSource,
   onAddIncomeSource,
   mobileViewMode = 'available',
@@ -171,7 +175,9 @@ export function IncomeSectionAccordion({
                 item={item}
                 indent={false}
                 onEditIncome={() => onEditIncome(item)}
-                onEditSource={() => onEditIncomeSource(item.incomeSource)}
+                onEditSource={() => onEditIncomeSource(item.incomeSource, item)}
+                onIgnore={() => onIgnoreIncome(item)}
+                onRestore={() => onRestoreIncome(item)}
                 onDeleteSource={() => onDeleteIncomeSource(item.incomeSource)}
                 mobileViewMode={mobileViewMode}
               />
@@ -189,7 +195,9 @@ export function IncomeSectionAccordion({
                   onToggleMember(memberGroup.member?.id || 'no-member')
                 }
                 onEditIncome={onEditIncome}
-                onEditSource={onEditIncomeSource}
+                onEditSource={(source, item) => onEditIncomeSource(source, item)}
+                onIgnore={onIgnoreIncome}
+                onRestore={onRestoreIncome}
                 onDeleteSource={onDeleteIncomeSource}
                 onAddSource={() => onAddIncomeSource(memberGroup.member?.id)}
                 mobileViewMode={mobileViewMode}
@@ -207,7 +215,9 @@ interface IncomeMemberSectionProps {
   isExpanded: boolean;
   onToggle: () => void;
   onEditIncome: (item: IncomeSourceData) => void;
-  onEditSource: (source: IncomeSource) => void;
+  onEditSource: (source: IncomeSource, item: IncomeSourceData) => void;
+  onIgnore: (item: IncomeSourceData) => void;
+  onRestore: (item: IncomeSourceData) => void;
   onDeleteSource: (source: IncomeSource) => void;
   onAddSource: () => void;
   mobileViewMode?: MobileViewMode;
@@ -219,6 +229,8 @@ function IncomeMemberSection({
   onToggle,
   onEditIncome,
   onEditSource,
+  onIgnore,
+  onRestore,
   onDeleteSource,
   onAddSource,
   mobileViewMode = 'available',
@@ -326,7 +338,9 @@ function IncomeMemberSection({
             item={item}
             indent={true}
             onEditIncome={() => onEditIncome(item)}
-            onEditSource={() => onEditSource(item.incomeSource)}
+            onEditSource={() => onEditSource(item.incomeSource, item)}
+            onIgnore={() => onIgnore(item)}
+            onRestore={() => onRestore(item)}
             onDeleteSource={() => onDeleteSource(item.incomeSource)}
             mobileViewMode={mobileViewMode}
           />
@@ -341,6 +355,8 @@ interface IncomeSourceRowProps {
   indent: boolean;
   onEditIncome: () => void;
   onEditSource: () => void;
+  onIgnore: () => void;
+  onRestore: () => void;
   onDeleteSource: () => void;
   mobileViewMode?: MobileViewMode;
 }
@@ -350,26 +366,39 @@ function IncomeSourceRow({
   indent,
   onEditIncome,
   onEditSource,
+  onIgnore,
+  onRestore,
   onDeleteSource,
   mobileViewMode = 'available',
 }: IncomeSourceRowProps) {
-  const isEdited = item.planned !== item.defaultAmount;
+  const isIgnored = item.planned === 0 && item.defaultAmount > 0;
+  const isEdited = !isIgnored && item.planned !== item.defaultAmount;
   const available = item.planned - item.received;
 
   return (
     <div
-      className="group/row grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center border-b hover:bg-green-50/50 dark:hover:bg-green-950/20 text-sm cursor-pointer"
-      onClick={onEditIncome}
+      className={cn(
+        'group/row grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center border-b text-sm',
+        isIgnored
+          ? 'opacity-50 hover:opacity-70'
+          : 'hover:bg-green-50/50 dark:hover:bg-green-950/20 cursor-pointer'
+      )}
+      onClick={isIgnored ? undefined : onEditIncome}
     >
       <div />
       <div className={cn('flex items-center gap-1 sm:gap-1.5 min-w-0', indent ? 'pl-4 sm:pl-6' : 'pl-1 sm:pl-3')}>
         <span className="shrink-0">
           {INCOME_TYPE_CONFIG[item.incomeSource.type]?.icon || '💵'}
         </span>
-        <span className="truncate">{item.incomeSource.name}</span>
+        <span className={cn('truncate', isIgnored && 'line-through')}>{item.incomeSource.name}</span>
         <span className="hidden sm:inline text-[10px] text-muted-foreground bg-muted px-1 rounded shrink-0">
           {FREQUENCY_LABELS[item.incomeSource.frequency] || 'Mensal'}
         </span>
+        {isIgnored && (
+          <span className="hidden sm:inline text-[10px] text-muted-foreground bg-muted px-1 rounded shrink-0">
+            ignorado
+          </span>
+        )}
         {isEdited && (
           <span className="hidden sm:inline text-[10px] text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-1 rounded shrink-0">
             editado
@@ -378,25 +407,29 @@ function IncomeSourceRow({
         {/* Desktop: hover to show action buttons */}
         <div className="hidden sm:flex items-center gap-0.5 ml-1 opacity-0 group-hover/row:opacity-100 transition-opacity shrink-0">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEditSource();
-            }}
+            onClick={(e) => { e.stopPropagation(); onEditSource(); }}
             className="p-1 rounded hover:bg-green-200 dark:hover:bg-green-800"
             title="Editar fonte de renda"
           >
             <Pencil className="h-3 w-3 text-muted-foreground" />
           </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteSource();
-            }}
-            className="p-1 rounded hover:bg-destructive/10"
-            title="Excluir fonte de renda"
-          >
-            <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-          </button>
+          {isIgnored ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); onRestore(); }}
+              className="p-1 rounded hover:bg-green-200 dark:hover:bg-green-800"
+              title="Restaurar para este mês"
+            >
+              <RotateCcw className="h-3 w-3 text-muted-foreground" />
+            </button>
+          ) : (
+            <button
+              onClick={(e) => { e.stopPropagation(); onIgnore(); }}
+              className="p-1 rounded hover:bg-destructive/10"
+              title="Ignorar neste mês"
+            >
+              <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+            </button>
+          )}
         </div>
       </div>
       <div className="hidden sm:block text-xs tabular-nums">
@@ -435,22 +468,32 @@ function IncomeSourceRow({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onEditIncome}>
-              <DollarSign className="h-4 w-4 mr-2" />
-              Editar valor planejado
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onEditSource}>
               <Pencil className="h-4 w-4 mr-2" />
               Editar fonte de renda
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={onDeleteSource}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Excluir fonte de renda
-            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {isIgnored ? (
+              <DropdownMenuItem onClick={onRestore}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Restaurar neste mês
+              </DropdownMenuItem>
+            ) : (
+              <>
+                <DropdownMenuItem onClick={onEditIncome}>
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Editar valor planejado
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={onIgnore}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Ignorar neste mês
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

@@ -69,6 +69,9 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
   }
 
   const userMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
+  if (!userMemberId) {
+    return errorResponse("Could not determine member for this budget", 400);
+  }
 
   // Create transfer transaction and update balances atomically
   const newTransaction = await db.transaction(async (tx) => {
@@ -79,6 +82,7 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
         accountId: fromAccountId,
         toAccountId,
         memberId: userMemberId,
+        paidByMemberId: userMemberId,
         type: "transfer",
         status: "cleared",
         amount,

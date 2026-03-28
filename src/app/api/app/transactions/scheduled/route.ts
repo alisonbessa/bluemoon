@@ -353,7 +353,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
     const frequency = source.frequency || "monthly";
     const paidDates = paidIncomeDates.get(source.id) || new Set();
-    const incomeIcon = source.type === "salary" ? "💼" : source.type === "benefit" ? "🎁" : "💰";
+    const incomeIcon = source.type === "salary" ? "💼" : source.type === "benefit" ? "🍽️" : "💰";
 
     if (frequency === "weekly") {
       // Weekly income: generate for each week of the month

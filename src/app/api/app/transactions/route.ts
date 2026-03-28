@@ -49,7 +49,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   // View mode filtering on transactions.memberId
   if (userMemberId) {
-    const partnerPrivacy = viewMode === "all"
+    const partnerPrivacy = (viewMode === "all" || viewMode === "mine")
       ? await getPartnerPrivacyLevel(session.user.id, activeBudgetId)
       : undefined;
     const viewCondition = getViewModeCondition({
@@ -58,6 +58,7 @@ export const GET = withAuthRequired(async (req, context) => {
       ownerField: transactions.memberId,
       partnerPrivacy,
       isTransactionFilter: true,
+      paidByField: transactions.paidByMemberId,
     });
     if (viewCondition) {
       conditions.push(viewCondition);
@@ -83,9 +84,25 @@ export const GET = withAuthRequired(async (req, context) => {
   const userTransactions = await db
     .select({
       transaction: transactions,
-      account: financialAccounts,
-      category: categories,
-      incomeSource: incomeSources,
+      account: {
+        id: financialAccounts.id,
+        name: financialAccounts.name,
+        icon: financialAccounts.icon,
+        type: financialAccounts.type,
+        color: financialAccounts.color,
+      },
+      category: {
+        id: categories.id,
+        name: categories.name,
+        icon: categories.icon,
+        color: categories.color,
+        groupId: categories.groupId,
+      },
+      incomeSource: {
+        id: incomeSources.id,
+        name: incomeSources.name,
+        type: incomeSources.type,
+      },
     })
     .from(transactions)
     .leftJoin(financialAccounts, eq(transactions.accountId, financialAccounts.id))
@@ -136,7 +153,7 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     date,
     isInstallment,
     totalInstallments,
-    memberId,
+    paidByMemberId: requestedPaidByMemberId,
   } = validation.data;
 
   // Check user has access to budget
@@ -144,6 +161,9 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
   if (!budgetIds.includes(budgetId)) {
     return forbiddenError("Budget not found or access denied");
   }
+
+  // Get current user's member ID in this budget
+  const userMemberIdInBudget = await getUserMemberIdInBudget(session.user.id, budgetId);
 
   // Validate transfer has toAccountId
   if (type === "transfer" && !toAccountId) {
@@ -180,10 +200,11 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     }
   }
 
-  // Validate categoryId belongs to the budget (fix 5.1)
+  // Validate categoryId belongs to the budget and get its scope (memberId)
+  let categoryScopeMemberId: string | null = null;
   if (categoryId) {
     const [cat] = await db
-      .select({ id: categories.id })
+      .select({ id: categories.id, memberId: categories.memberId })
       .from(categories)
       .where(
         and(
@@ -194,21 +215,50 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     if (!cat) {
       return errorResponse("Category does not belong to this budget", 400);
     }
+    categoryScopeMemberId = cat.memberId;
   }
 
-  // Validate memberId belongs to the budget (fix 5.2)
-  if (memberId) {
+  // Validate incomeSourceId and get its scope (memberId)
+  let incomeSourceScopeMemberId: string | null = null;
+  if (incomeSourceId) {
+    const [source] = await db
+      .select({ id: incomeSources.id, memberId: incomeSources.memberId })
+      .from(incomeSources)
+      .where(eq(incomeSources.id, incomeSourceId));
+    if (source) {
+      incomeSourceScopeMemberId = source.memberId;
+    }
+  }
+
+  // Derive scope memberId based on transaction type:
+  // - Expenses: inherit from category (NULL = shared, set = personal)
+  // - Income: inherit from income source
+  // - Transfer: personal to current user
+  const scopeMemberId = type === "expense"
+    ? categoryScopeMemberId
+    : type === "income"
+      ? (incomeSourceScopeMemberId ?? userMemberIdInBudget ?? null)
+      : (userMemberIdInBudget ?? null);
+
+  // Determine paidByMemberId: use request value or default to current user
+  const paidByMemberId = requestedPaidByMemberId || userMemberIdInBudget;
+  if (!paidByMemberId) {
+    return errorResponse("Could not determine member for this budget", 400);
+  }
+
+  // Validate paidByMemberId belongs to the budget
+  if (requestedPaidByMemberId && requestedPaidByMemberId !== userMemberIdInBudget) {
     const [member] = await db
       .select({ id: budgetMembers.id })
       .from(budgetMembers)
       .where(
         and(
-          eq(budgetMembers.id, memberId),
+          eq(budgetMembers.id, requestedPaidByMemberId),
           eq(budgetMembers.budgetId, budgetId)
         )
       );
     if (!member) {
-      return errorResponse("Member does not belong to this budget", 400);
+      return errorResponse("Paid-by member does not belong to this budget", 400);
     }
   }
 
@@ -245,7 +295,8 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
           categoryId: type === "expense" ? categoryId : undefined,
           incomeSourceId: type === "income" ? incomeSourceId : undefined,
           toAccountId: type === "transfer" ? toAccountId : undefined,
-          memberId,
+          memberId: scopeMemberId,
+          paidByMemberId,
           type,
           amount: installmentAmount,
           description,
@@ -265,7 +316,8 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
         categoryId: type === "expense" ? categoryId : undefined,
         incomeSourceId: type === "income" ? incomeSourceId : undefined,
         toAccountId: type === "transfer" ? toAccountId : undefined,
-        memberId,
+        memberId: scopeMemberId,
+        paidByMemberId,
         type,
         amount: installmentAmount,
         description,
@@ -326,7 +378,8 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
         categoryId: type === "expense" ? categoryId : undefined,
         incomeSourceId: type === "income" ? incomeSourceId : undefined,
         recurringBillId,
-        memberId,
+        memberId: scopeMemberId,
+        paidByMemberId,
         toAccountId,
         type,
         status: status || "pending",

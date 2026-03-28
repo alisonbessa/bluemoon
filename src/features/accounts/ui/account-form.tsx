@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { FormModalWrapper } from "@/shared/molecules";
+import { DayPicker } from "@/shared/ui/day-picker";
 import { formatAmount, formatCurrencyFromDigits, parseCurrency } from "@/shared/lib/formatters";
 import { useViewMode } from "@/shared/providers/view-mode-provider";
 import type { AccountType, AccountFormData, AccountOwner } from "../types";
@@ -40,8 +41,6 @@ const ACCOUNT_TYPES: { value: AccountType; label: string; icon: string }[] = [
   { value: "investment", label: "Investimento", icon: "📈" },
   { value: "benefit", label: "Benefício", icon: "🍽️" },
 ];
-
-const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 export function AccountForm({
   open,
@@ -370,26 +369,13 @@ export function AccountForm({
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="closingDay">Dia do Fechamento</Label>
-              <Select
-                value={formData.closingDay?.toString() || ""}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    closingDay: parseInt(value),
-                  }))
+              <DayPicker
+                value={formData.closingDay}
+                onChange={(day) =>
+                  setFormData((prev) => ({ ...prev, closingDay: day }))
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Dia" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DAYS.map((day) => (
-                    <SelectItem key={day} value={day.toString()}>
-                      {day}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Dia"
+              />
               <p className="text-xs text-muted-foreground">
                 Quando a fatura &quot;vira&quot;
               </p>
@@ -397,26 +383,13 @@ export function AccountForm({
 
             <div className="grid gap-2">
               <Label htmlFor="dueDay">Dia do Vencimento</Label>
-              <Select
-                value={formData.dueDay?.toString() || ""}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    dueDay: parseInt(value),
-                  }))
+              <DayPicker
+                value={formData.dueDay}
+                onChange={(day) =>
+                  setFormData((prev) => ({ ...prev, dueDay: day }))
                 }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Dia" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DAYS.map((day) => (
-                    <SelectItem key={day} value={day.toString()}>
-                      {day}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Dia"
+              />
               <p className="text-xs text-muted-foreground">
                 Dia do pagamento
               </p>

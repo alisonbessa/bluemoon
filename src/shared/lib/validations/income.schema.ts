@@ -35,6 +35,10 @@ export const createIncomeSourceSchema = z
       .nullable(),
     frequency: incomeFrequencyEnum.default("monthly"),
     dayOfMonth: z.number().int().min(0).max(31).optional().nullable(),
+    monthOfYear: z.number().int().min(1).max(12).optional().nullable(),
+    yearOfPayment: z.number().int().min(2000).max(2100).optional().nullable(),
+    startYear: z.number().int().min(2000).max(2100).optional().nullable(),
+    startMonth: z.number().int().min(1).max(12).optional().nullable(),
     isAutoConfirm: z.boolean().optional().default(false),
   })
   .refine(
@@ -100,6 +104,12 @@ export const updateIncomeSourceSchema = z.object({
   contributionAmount: z.number().int().min(0).max(MAX_CENTS).optional().nullable(),
   frequency: incomeFrequencyEnum.optional(),
   dayOfMonth: z.number().int().min(0).max(31).optional().nullable(),
+  monthOfYear: z.number().int().min(1).max(12).optional().nullable(),
+  yearOfPayment: z.number().int().min(2000).max(2100).optional().nullable(),
+  startYear: z.number().int().min(2000).max(2100).optional().nullable(),
+  startMonth: z.number().int().min(1).max(12).optional().nullable(),
+  endYear: z.number().int().min(2000).max(2100).optional().nullable(),
+  endMonth: z.number().int().min(1).max(12).optional().nullable(),
   isAutoConfirm: z.boolean().optional(),
   isActive: z.boolean().optional(),
   displayOrder: z.number().int().min(0).optional(),
@@ -133,6 +143,8 @@ export function validateIncomeFrequencyFields(
       return { valid: false, error: "Para mensal/quinzenal, dia deve ser 1 a 31" };
     }
   }
+
+  // Annual requires monthOfYear to be set (validated separately at route level)
 
   return { valid: true };
 }

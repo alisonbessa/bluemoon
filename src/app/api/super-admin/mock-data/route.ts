@@ -382,6 +382,7 @@ function generateMonthTransactions(
     categoryId?: string | null;
     incomeSourceId?: string | null;
     memberId?: string | null;
+    paidByMemberId: string;
     type: "income" | "expense" | "transfer";
     status: "pending" | "cleared" | "reconciled";
     amount: number;
@@ -405,6 +406,7 @@ function generateMonthTransactions(
     accountId: accounts["Nubank"],
     incomeSourceId: incomeSources["Salário Alison"],
     memberId: ownerId,
+    paidByMemberId: ownerId,
     type: "income",
     status: isCurrentMonth && 5 > today ? "pending" : "cleared",
     amount: 850000,
@@ -417,6 +419,7 @@ function generateMonthTransactions(
     accountId: accounts["Inter"],
     incomeSourceId: incomeSources["Salário Parceiro(a)"],
     memberId: partnerId,
+    paidByMemberId: partnerId,
     type: "income",
     status: isCurrentMonth && 10 > today ? "pending" : "cleared",
     amount: 650000,
@@ -430,6 +433,7 @@ function generateMonthTransactions(
       accountId: accounts["Nubank"],
       incomeSourceId: incomeSources["Freelance"],
       memberId: ownerId,
+      paidByMemberId: ownerId,
       type: "income",
       status: isCurrentMonth && 15 > today ? "pending" : "cleared",
       amount: 150000 + Math.floor(Math.random() * 100000),
@@ -470,6 +474,7 @@ function generateMonthTransactions(
       accountId: accounts[template.account],
       categoryId: categories[template.category],
       memberId: template.member,
+      paidByMemberId: template.member,
       type: "expense",
       status: "cleared",
       amount: -template.amount,
@@ -501,6 +506,7 @@ function generateMonthTransactions(
       accountId: accounts[account],
       categoryId: categories[category],
       memberId: member,
+      paidByMemberId: member,
       type: "expense",
       status: "cleared",
       amount: -amount,

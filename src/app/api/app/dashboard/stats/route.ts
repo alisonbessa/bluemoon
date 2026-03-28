@@ -5,7 +5,7 @@ import { eq, and, inArray, gte, lte, sql } from "drizzle-orm";
 import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import {
   forbiddenError,
-  cachedResponse,
+  successResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
 import { getBillingCycleDates } from "@/shared/lib/billing-cycle";
@@ -39,7 +39,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
   // Build transaction view mode condition
   const txViewCondition = userMemberId
-    ? getViewModeCondition({ viewMode, userMemberId, ownerField: transactions.memberId, partnerPrivacy })
+    ? getViewModeCondition({ viewMode, userMemberId, ownerField: transactions.memberId, partnerPrivacy, paidByField: transactions.paidByMemberId })
     : undefined;
 
   // Build account view mode condition
@@ -238,8 +238,5 @@ export const GET = withAuthRequired(async (req, context) => {
     });
   }
 
-  return cachedResponse(
-    { dailyChartData, monthlyComparison: monthlyData, creditCards },
-    { maxAge: 30, staleWhileRevalidate: 120 }
-  );
+  return successResponse({ dailyChartData, monthlyComparison: monthlyData, creditCards });
 });

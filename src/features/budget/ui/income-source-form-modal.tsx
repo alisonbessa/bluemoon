@@ -5,6 +5,13 @@ import { Label } from '@/shared/ui/label';
 import { Switch } from '@/shared/ui/switch';
 import { CurrencyInput } from '@/shared/ui/currency-input';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/select';
+import {
   FormModalWrapper,
   FrequencySelector,
   DayOfMonthInput,
@@ -14,7 +21,12 @@ import {
 } from '@/shared/molecules';
 import type { IncomeType } from '@/shared/molecules';
 
-type IncomeFrequency = 'monthly' | 'biweekly' | 'weekly';
+type IncomeFrequency = 'monthly' | 'biweekly' | 'weekly' | 'annual' | 'once';
+
+const MONTH_LABELS = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
 
 interface Account {
   id: string;
@@ -36,6 +48,10 @@ interface IncomeSourceFormData {
   contributionAmount?: number | null;
   frequency: IncomeFrequency;
   dayOfMonth?: number;
+  monthOfYear?: number;
+  yearOfPayment?: number;
+  startYear?: number;
+  startMonth?: number;
   memberId?: string;
   accountId?: string;
   isAutoConfirm?: boolean;
@@ -47,6 +63,7 @@ interface IncomeSourceFormModalProps {
   onSubmit: () => Promise<void>;
   isSubmitting: boolean;
   isEditing: boolean;
+  isForkMode?: boolean;
 
   // Form data
   formData: IncomeSourceFormData;
@@ -72,6 +89,7 @@ export function IncomeSourceFormModal({
   onSubmit,
   isSubmitting,
   isEditing,
+  isForkMode = false,
   formData,
   onFieldChange,
   errors,
@@ -79,19 +97,22 @@ export function IncomeSourceFormModal({
   filteredAccounts,
   currentUserMemberId,
 }: IncomeSourceFormModalProps) {
+  const isEditMode = isEditing || isForkMode;
   return (
     <FormModalWrapper
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
-      title={isEditing ? 'Editar Fonte de Renda' : 'Nova Fonte de Renda'}
+      title={isEditMode ? 'Editar Fonte de Renda' : 'Nova Fonte de Renda'}
       description={
-        isEditing
+        isForkMode
+          ? 'Altere os dados a partir deste mes'
+          : isEditing
           ? 'Altere os dados da fonte de renda'
           : 'Adicione uma nova fonte de renda ao seu planejamento'
       }
       isSubmitting={isSubmitting}
       onSubmit={onSubmit}
-      submitLabel={isEditing ? 'Salvar' : 'Adicionar'}
+      submitLabel={isEditMode ? 'Salvar' : 'Adicionar'}
       size="default"
     >
       <div className="grid gap-4">
@@ -127,7 +148,43 @@ export function IncomeSourceFormModal({
           />
         </div>
 
-        {/* Valor e Dia do Pagamento */}
+        {/* Data de inicio - shown when creating */}
+        {!isEditing && (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label>A partir de</Label>
+              <Select
+                value={formData.startMonth?.toString() ?? ''}
+                onValueChange={(val) => onFieldChange('startMonth', parseInt(val))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Mes" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTH_LABELS.map((label, i) => (
+                    <SelectItem key={i + 1} value={(i + 1).toString()}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>&nbsp;</Label>
+              <Input
+                type="number"
+                min={2000}
+                max={2100}
+                value={formData.startYear?.toString() ?? ''}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  onFieldChange('startYear', isNaN(val) ? undefined : val);
+                }}
+                placeholder={new Date().getFullYear().toString()}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Valor e Dia/Mês do Pagamento */}
         <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-2">
             <Label>Valor *</Label>
@@ -138,13 +195,54 @@ export function IncomeSourceFormModal({
             />
           </div>
 
-          <DayOfMonthInput
-            value={formData.dayOfMonth}
-            onChange={(val) => onFieldChange('dayOfMonth', val)}
-            label="Dia do Pagamento"
-            id="incomeSourceDayOfMonth"
-          />
+          {formData.frequency === 'annual' || formData.frequency === 'once' ? (
+            <div className="grid gap-2">
+              <Label>Mês do Pagamento</Label>
+              <Select
+                value={formData.monthOfYear?.toString() ?? ''}
+                onValueChange={(val) => onFieldChange('monthOfYear', parseInt(val))}
+              >
+                <SelectTrigger className={errors.monthOfYear ? 'border-destructive' : ''}>
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTH_LABELS.map((label, i) => (
+                    <SelectItem key={i + 1} value={(i + 1).toString()}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <DayOfMonthInput
+              value={formData.dayOfMonth}
+              onChange={(val) => onFieldChange('dayOfMonth', val)}
+              label="Dia do Pagamento"
+              id="incomeSourceDayOfMonth"
+            />
+          )}
         </div>
+
+        {/* Ano do Pagamento - only for once (pontual) */}
+        {formData.frequency === 'once' && (
+          <div className="grid gap-2">
+            <Label htmlFor="yearOfPayment">Ano do Pagamento</Label>
+            <Input
+              id="yearOfPayment"
+              type="number"
+              min={2000}
+              max={2100}
+              placeholder={new Date().getFullYear().toString()}
+              value={formData.yearOfPayment?.toString() ?? ''}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                onFieldChange('yearOfPayment', isNaN(val) ? undefined : val);
+              }}
+              className={errors.yearOfPayment ? 'border-destructive' : ''}
+            />
+          </div>
+        )}
 
         {/* Contribuição ao orçamento - only for Duo (multiple members) */}
         {members.length > 1 && (

@@ -6,3 +6,5 @@ export { TransactionDeleteDialog } from "./transaction-delete-dialog";
 export { TransactionWidget } from "./transaction-widget";
 export { TransactionFiltersSheet } from "./transaction-filters-sheet";
 export { TransactionFilters } from "./transaction-filters";
+export { TransactionsClient } from "./transactions-client";
+export type { TransactionsClientProps } from "./transactions-client";

@@ -3,7 +3,7 @@ import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionReq
 import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
 import { financialAccounts, budgetMembers, transactions } from "@/db/schema";
-import { eq, and, inArray, or, isNull, gte, lte, sql } from "drizzle-orm";
+import { eq, and, inArray, isNull, gte, lte } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
 import {
   getUserBudgetIds,
@@ -13,7 +13,6 @@ import {
 import {
   validationError,
   forbiddenError,
-  cachedResponse,
   successResponse,
 } from "@/shared/lib/api/responses";
 import { createAccountSchema } from "@/shared/lib/validations/account.schema";
@@ -136,6 +135,14 @@ export const GET = withAuthRequired(async (req, context) => {
         )
       );
 
+    // Group transactions by accountId for O(n+m) instead of O(n*m)
+    const txByAccount = new Map<string, typeof ccBills>();
+    for (const row of ccBills) {
+      const list = txByAccount.get(row.accountId) ?? [];
+      list.push(row);
+      txByAccount.set(row.accountId, list);
+    }
+
     // Aggregate per account filtered by its specific billing cycle
     for (const account of creditCardAccounts) {
       const range = billingRanges.get(account.id)!;
@@ -143,12 +150,10 @@ export const GET = withAuthRequired(async (req, context) => {
       const endTime = range.end.getTime();
 
       let total = 0;
-      for (const row of ccBills) {
-        if (row.accountId === account.id) {
-          const txTime = new Date(row.date).getTime();
-          if (txTime >= startTime && txTime <= endTime) {
-            total += Number(row.amount) || 0;
-          }
+      for (const row of txByAccount.get(account.id) ?? []) {
+        const txTime = new Date(row.date).getTime();
+        if (txTime >= startTime && txTime <= endTime) {
+          total += Number(row.amount) || 0;
         }
       }
       billsMap.set(account.id, total);
@@ -162,7 +167,7 @@ export const GET = withAuthRequired(async (req, context) => {
       : null,
   }));
 
-  return cachedResponse({ accounts: accountsWithBill });
+  return successResponse({ accounts: accountsWithBill });
 });
 
 // POST - Create a new account
@@ -190,7 +195,7 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
 
   // Get display order
   const existingAccounts = await db
-    .select()
+    .select({ id: financialAccounts.id })
     .from(financialAccounts)
     .where(eq(financialAccounts.budgetId, budgetId));
 

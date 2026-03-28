@@ -46,6 +46,7 @@ export const recurringBills = pgTable("recurring_bills", {
 }, (table) => [
   index("idx_recurring_bills_budget_id").on(table.budgetId),
   index("idx_recurring_bills_category_id").on(table.categoryId),
+  index("idx_recurring_bills_budget_active").on(table.budgetId, table.isActive),
 ]);
 
 export const recurringBillsRelations = relations(recurringBills, ({ one }) => ({

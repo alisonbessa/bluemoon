@@ -1,6 +1,6 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { goals } from "@/db/schema";
+import { goals, goalMemberSettings } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
@@ -96,12 +96,19 @@ export const PATCH = withAuthRequired(async (req, context) => {
     return notFoundError("Goal");
   }
 
-  const { targetDate, name, ...restData } = validation.data;
+  const { targetDate, name, accountId, fromAccountId, memberSettings, ...restData } = validation.data;
 
   const updateData: Partial<typeof goals.$inferInsert> = {
     ...restData,
     updatedAt: new Date(),
   };
+
+  if (accountId !== undefined) {
+    updateData.accountId = accountId ?? null;
+  }
+  if (fromAccountId !== undefined) {
+    updateData.fromAccountId = fromAccountId ?? null;
+  }
 
   if (name) {
     updateData.name = capitalizeWords(name);
@@ -124,10 +131,35 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(eq(goals.id, id))
     .returning();
 
+  // Upsert per-member settings if provided
+  if (memberSettings && memberSettings.length > 0) {
+    await db.insert(goalMemberSettings).values(
+      memberSettings.map((s) => ({
+        goalId: id,
+        memberId: s.memberId,
+        fromAccountId: s.fromAccountId ?? null,
+        monthlyAmount: s.monthlyAmount ?? null,
+      }))
+    ).onConflictDoUpdate({
+      target: [goalMemberSettings.goalId, goalMemberSettings.memberId],
+      set: {
+        fromAccountId: goalMemberSettings.fromAccountId,
+        monthlyAmount: goalMemberSettings.monthlyAmount,
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  const updatedMemberSettings = await db
+    .select()
+    .from(goalMemberSettings)
+    .where(eq(goalMemberSettings.goalId, id));
+
   return successResponse({
     goal: {
       ...updatedGoal,
       ...calculateGoalMetrics(updatedGoal),
+      memberSettings: updatedMemberSettings,
     },
   });
 });

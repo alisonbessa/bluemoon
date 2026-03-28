@@ -15,7 +15,8 @@ export const createTransactionSchema = z.object({
   accountId: z.string().uuid("Invalid account ID"),
   categoryId: z.string().uuid().optional(), // For expense transactions
   incomeSourceId: z.string().uuid().optional(), // For income transactions
-  memberId: z.string().uuid().optional(),
+  memberId: z.string().uuid().optional(), // Ignored for expenses (derived from category)
+  paidByMemberId: z.string().uuid().optional(), // Who paid - defaults to current user if not provided
   toAccountId: z.string().uuid().optional(), // For transfers
   recurringBillId: z.string().uuid().optional(), // Link to recurring bill
   type: financialTransactionTypeEnum,
@@ -41,6 +42,7 @@ export const updateTransactionSchema = z.object({
   categoryId: z.string().uuid().optional().nullable(),
   incomeSourceId: z.string().uuid().optional().nullable(),
   toAccountId: z.string().uuid().optional().nullable(),
+  paidByMemberId: z.string().uuid().optional(), // Who paid - can be changed
   type: financialTransactionTypeEnum.optional(),
   status: financialTransactionStatusEnum.optional(),
   amount: z.number().int().min(1).max(MAX_CENTS).optional(),

@@ -1,6 +1,20 @@
 import { mutate } from 'swr';
 import { toast } from 'sonner';
 
+/**
+ * Invalidate all SWR caches whose keys start with the given prefix.
+ * Use after mutations that affect multiple viewMode variants of the same endpoint.
+ *
+ * @example invalidatePrefix('/api/app/accounts') // clears all viewMode variants
+ */
+export function invalidatePrefix(prefix: string) {
+  return mutate(
+    (key) => typeof key === 'string' && key.startsWith(prefix),
+    undefined,
+    { revalidate: true }
+  );
+}
+
 interface OptimisticOptions<T> {
   /** SWR cache key */
   key: string;
@@ -16,21 +30,33 @@ interface OptimisticOptions<T> {
   onSuccess?: () => void;
   /** Callback on error (optional) */
   onError?: (error: Error) => void;
+  /**
+   * Invalidate all SWR caches with keys starting with this prefix after success.
+   * Useful for cross-viewMode invalidation (e.g., creating an account should
+   * refresh all /api/app/accounts?viewMode=* caches).
+   */
+  invalidateKeyPrefix?: string;
 }
 
 /**
- * Perform an optimistic mutation with automatic rollback on error
+ * Perform an optimistic mutation using SWR v2 native API.
+ *
+ * Flow:
+ * 1. Optimistically update the cache (instant UI feedback)
+ * 2. Execute the server mutation
+ * 3. Revalidate to sync with server (auto-rollback on error)
+ * 4. Optionally invalidate related caches (cross-key)
  *
  * @example
  * await optimisticMutate({
- *   key: '/api/app/accounts',
+ *   key: '/api/app/accounts?viewMode=mine',
  *   optimisticUpdate: (current) => ({
- *     ...current,
- *     accounts: [...current.accounts, newAccount]
+ *     accounts: [...(current?.accounts ?? []), newAccount]
  *   }),
  *   action: async () => {
  *     await fetch('/api/app/accounts', { method: 'POST', body: JSON.stringify(data) });
  *   },
+ *   invalidateKeyPrefix: '/api/app/accounts',
  *   successMessage: 'Conta criada!',
  * });
  */
@@ -42,6 +68,7 @@ export async function optimisticMutate<T>({
   errorMessage,
   onSuccess,
   onError,
+  invalidateKeyPrefix,
 }: OptimisticOptions<T>): Promise<boolean> {
   // Store current data for rollback
   let previousData: T | undefined;
@@ -60,10 +87,15 @@ export async function optimisticMutate<T>({
     // 2. Perform the actual mutation
     await action();
 
-    // 3. Revalidate to ensure consistency with server
+    // 3. Revalidate current key to sync with server
     await mutate(key);
 
-    // 4. Show success message
+    // 4. Invalidate related caches (e.g., other viewMode variants)
+    if (invalidateKeyPrefix) {
+      await invalidatePrefix(invalidateKeyPrefix);
+    }
+
+    // 5. Show success message
     if (successMessage) {
       toast.success(successMessage);
     }
@@ -71,10 +103,9 @@ export async function optimisticMutate<T>({
     onSuccess?.();
     return true;
   } catch (error) {
-    // 5. Rollback on error
+    // Rollback on error
     await mutate<T>(key, previousData, { revalidate: false });
 
-    // 6. Show error message
     const message = errorMessage ||
       (error instanceof Error ? error.message : 'Ocorreu um erro');
     toast.error(message);
@@ -82,86 +113,4 @@ export async function optimisticMutate<T>({
     onError?.(error instanceof Error ? error : new Error(message));
     return false;
   }
-}
-
-/**
- * Helper to create an optimistic add operation
- */
-export function createOptimisticAdd<T, R>(
-  key: string,
-  getItems: (response: R) => T[],
-  setItems: (response: R, items: T[]) => R
-) {
-  return async (
-    newItem: T,
-    action: () => Promise<void>,
-    successMessage?: string
-  ) => {
-    return optimisticMutate<R>({
-      key,
-      optimisticUpdate: (current) => {
-        if (!current) return current as R;
-        const items = getItems(current);
-        return setItems(current, [...items, newItem]);
-      },
-      action,
-      successMessage,
-    });
-  };
-}
-
-/**
- * Helper to create an optimistic update operation
- */
-export function createOptimisticUpdate<T extends { id: string }, R>(
-  key: string,
-  getItems: (response: R) => T[],
-  setItems: (response: R, items: T[]) => R
-) {
-  return async (
-    id: string,
-    updates: Partial<T>,
-    action: () => Promise<void>,
-    successMessage?: string
-  ) => {
-    return optimisticMutate<R>({
-      key,
-      optimisticUpdate: (current) => {
-        if (!current) return current as R;
-        const items = getItems(current);
-        const updatedItems = items.map((item) =>
-          item.id === id ? { ...item, ...updates } : item
-        );
-        return setItems(current, updatedItems);
-      },
-      action,
-      successMessage,
-    });
-  };
-}
-
-/**
- * Helper to create an optimistic delete operation
- */
-export function createOptimisticDelete<T extends { id: string }, R>(
-  key: string,
-  getItems: (response: R) => T[],
-  setItems: (response: R, items: T[]) => R
-) {
-  return async (
-    id: string,
-    action: () => Promise<void>,
-    successMessage?: string
-  ) => {
-    return optimisticMutate<R>({
-      key,
-      optimisticUpdate: (current) => {
-        if (!current) return current as R;
-        const items = getItems(current);
-        return setItems(current, items.filter((item) => item.id !== id));
-      },
-      action,
-      successMessage,
-    });
-  };
 }

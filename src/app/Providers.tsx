@@ -21,11 +21,11 @@ function Providers({ children }: { children: React.ReactNode }) {
           <SWRConfig
             value={{
               fetcher,
-              dedupingInterval: 60000, // 1 minuto - evita chamadas duplicadas
-              revalidateOnFocus: false, // desabilitado para evitar refetches desnecessários ao trocar de aba
-              revalidateIfStale: false, // não revalidar em background ao navegar
-              revalidateOnMount: true, // revalidar apenas no primeiro mount
-              keepPreviousData: true, // mantém dados anteriores durante revalidação (evita flash de loading)
+              dedupingInterval: 5000, // 5s - evita chamadas duplicadas sem mascarar mutacoes
+              revalidateOnFocus: false, // desabilitado para evitar refetches desnecessarios ao trocar de aba
+              revalidateIfStale: true, // revalidar dados stale em background
+              revalidateOnMount: true, // revalidar no primeiro mount
+              keepPreviousData: true, // mantem dados anteriores durante revalidacao (evita flash de loading)
               errorRetryCount: 3,
               shouldRetryOnError: true,
             }}

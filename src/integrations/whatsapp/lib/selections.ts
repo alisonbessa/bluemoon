@@ -1,4 +1,3 @@
-import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import {
   whatsappUsers,
@@ -7,7 +6,7 @@ import {
   groups,
   transactions,
 } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import type { ConversationContext } from "@/integrations/messaging/lib/types";
 import { WhatsAppAdapter } from "./whatsapp-adapter";
 import {
@@ -21,12 +20,12 @@ import {
   calculateInstallmentDates,
 } from "@/shared/lib/billing-cycle";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
+import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { getAccountIcon, getAccountTypeName, formatAccountDisplay } from "@/integrations/messaging/lib/ai-handlers/account-utils";
 import { matchCategory } from "@/integrations/messaging/lib/gemini";
 import { formatCategoryName, suggestGroupForCategory } from "@/integrations/messaging/lib/ai-handlers/category-utils";
 
-const logger = createLogger("whatsapp:selections");
 const adapter = new WhatsAppAdapter();
 
 export async function handleCategorySelection(
@@ -416,6 +415,29 @@ export async function handleGroupSelection(
     context.pendingNewCategory.customName ||
     context.pendingNewCategory.suggestedName;
 
+  // Check for duplicate category name
+  const existingCategory = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(
+      and(
+        eq(categories.budgetId, budgetInfo.budget.id),
+        isNull(categories.memberId),
+        eq(categories.name, categoryName),
+        eq(categories.isArchived, false)
+      )
+    )
+    .limit(1);
+
+  if (existingCategory.length > 0) {
+    await adapter.sendMessage(
+      phoneNumber,
+      `Ja existe uma categoria com o nome "*${categoryName}*".\nTente novamente com outro nome.`
+    );
+    await adapter.updateState(phoneNumber, "IDLE", {});
+    return;
+  }
+
   // Create the new category
   const [newCategory] = await db
     .insert(categories)
@@ -474,6 +496,13 @@ export async function handleGroupSelection(
       );
     }
 
+    // Derive scope from the newly created category
+    const scopeMemberId = getScopeFromCategory(
+      newCategory.id,
+      [...budgetInfo.categories, { id: newCategory.id, memberId: newCategory.memberId }],
+      budgetInfo.member.id,
+    );
+
     // Create parent transaction (first installment)
     const [parentTransaction] = await db
       .insert(transactions)
@@ -481,7 +510,8 @@ export async function handleGroupSelection(
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: newCategory.id,
-        memberId: budgetInfo.member.id,
+        memberId: scopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense",
         status: "cleared",
         amount: installmentAmount,
@@ -501,7 +531,8 @@ export async function handleGroupSelection(
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: newCategory.id,
-        memberId: budgetInfo.member.id,
+        memberId: scopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense" as const,
         status: "cleared" as const,
         amount: installmentAmount,
@@ -555,6 +586,13 @@ export async function handleGroupSelection(
         `Envie *desfazer* para remover.`
     );
   } else {
+    // Derive scope from the newly created category
+    const nonInstallScopeMemberId = getScopeFromCategory(
+      newCategory.id,
+      [...budgetInfo.categories, { id: newCategory.id, memberId: newCategory.memberId }],
+      budgetInfo.member.id,
+    );
+
     // Non-installment transaction
     const [newTransaction] = await db
       .insert(transactions)
@@ -562,7 +600,8 @@ export async function handleGroupSelection(
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: newCategory.id,
-        memberId: budgetInfo.member.id,
+        memberId: nonInstallScopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense",
         status: "cleared",
         amount: context.pendingExpense.amount,

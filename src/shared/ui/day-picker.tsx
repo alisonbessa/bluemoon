@@ -16,9 +16,11 @@ interface DayPickerProps {
   value?: number;
   onChange: (day: number) => void;
   placeholder?: string;
+  disabled?: boolean;
+  hasError?: boolean;
 }
 
-export function DayPicker({ value, onChange, placeholder = "Dia" }: DayPickerProps) {
+export function DayPicker({ value, onChange, placeholder = "Dia", disabled = false, hasError = false }: DayPickerProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -26,9 +28,11 @@ export function DayPicker({ value, onChange, placeholder = "Dia" }: DayPickerPro
       <PopoverTrigger asChild>
         <Button
           variant="outline"
+          disabled={disabled}
           className={cn(
             "w-full justify-start font-normal h-9",
-            !value && "text-muted-foreground"
+            !value && "text-muted-foreground",
+            hasError && "border-destructive"
           )}
         >
           <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />

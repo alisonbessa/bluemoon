@@ -39,6 +39,8 @@ export const categories = pgTable("categories", {
 }, (table) => [
   index("idx_categories_budget_id").on(table.budgetId),
   index("idx_categories_group_id").on(table.groupId),
+  index("idx_categories_member_id").on(table.memberId),
+  index("idx_categories_budget_member").on(table.budgetId, table.memberId),
 ]);
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({

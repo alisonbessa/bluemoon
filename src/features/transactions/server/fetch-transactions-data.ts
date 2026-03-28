@@ -1,0 +1,122 @@
+import { db } from "@/db";
+import {
+  transactions,
+  financialAccounts,
+  categories,
+  incomeSources,
+} from "@/db/schema";
+import { eq, and, desc, gte, lte } from "drizzle-orm";
+import {
+  getUserBudgetIds,
+  getUserMemberIdInBudget,
+  getPartnerPrivacyLevel,
+} from "@/shared/lib/api/permissions";
+import { getViewModeCondition, type ViewMode } from "@/shared/lib/api/view-mode-filter";
+import type { Transaction } from "../types";
+
+/**
+ * Result shape returned by fetchTransactionsData.
+ * Matches the shape consumed by useTransactionData's SWR hook.
+ */
+export interface TransactionsDataResult {
+  transactions: Transaction[];
+}
+
+/**
+ * Fetch transactions directly from the database for server-side rendering.
+ * Mirrors the GET logic in /api/app/transactions but runs server-side.
+ */
+export async function fetchTransactionsData(opts: {
+  userId: string;
+  budgetId: string;
+  year: number;
+  month: number;
+  viewMode: ViewMode;
+}): Promise<TransactionsDataResult | null> {
+  const { userId, budgetId, year, month, viewMode } = opts;
+
+  // Verify access
+  const budgetIds = await getUserBudgetIds(userId);
+  if (!budgetIds.includes(budgetId)) {
+    return null;
+  }
+
+  const userMemberId = await getUserMemberIdInBudget(userId, budgetId);
+
+  // Date range for the month
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0, 23, 59, 59);
+
+  // Build conditions
+  const conditions = [
+    eq(transactions.budgetId, budgetId),
+    gte(transactions.date, startDate),
+    lte(transactions.date, endDate),
+  ];
+
+  // View mode filtering
+  if (userMemberId) {
+    const partnerPrivacy =
+      (viewMode === "all" || viewMode === "mine")
+        ? await getPartnerPrivacyLevel(userId, budgetId)
+        : undefined;
+    const viewCondition = getViewModeCondition({
+      viewMode,
+      userMemberId,
+      ownerField: transactions.memberId,
+      partnerPrivacy,
+      isTransactionFilter: true,
+      paidByField: transactions.paidByMemberId,
+    });
+    if (viewCondition) {
+      conditions.push(viewCondition);
+    }
+  }
+
+  const userTransactions = await db
+    .select({
+      transaction: transactions,
+      account: {
+        id: financialAccounts.id,
+        name: financialAccounts.name,
+        icon: financialAccounts.icon,
+        type: financialAccounts.type,
+        color: financialAccounts.color,
+      },
+      category: {
+        id: categories.id,
+        name: categories.name,
+        icon: categories.icon,
+        color: categories.color,
+        groupId: categories.groupId,
+      },
+      incomeSource: {
+        id: incomeSources.id,
+        name: incomeSources.name,
+        type: incomeSources.type,
+      },
+    })
+    .from(transactions)
+    .leftJoin(financialAccounts, eq(transactions.accountId, financialAccounts.id))
+    .leftJoin(categories, eq(transactions.categoryId, categories.id))
+    .leftJoin(incomeSources, eq(transactions.incomeSourceId, incomeSources.id))
+    .where(and(...conditions))
+    .orderBy(desc(transactions.date), desc(transactions.createdAt))
+    .limit(500);
+
+  return {
+    transactions: userTransactions.map((t) => ({
+      ...t.transaction,
+      date: t.transaction.date instanceof Date
+        ? t.transaction.date.toISOString()
+        : String(t.transaction.date),
+      account: t.account,
+      category: t.category,
+      incomeSource: t.incomeSource,
+    // Cast is safe: we spread the full transaction row (which includes memberId,
+    // paidByMemberId, etc.) and override `date` to ISO string. Drizzle's inferred
+    // types differ from our domain Transaction (e.g. nullable joins, Date vs string)
+    // but the runtime shape matches.
+    })) as Transaction[],
+  };
+}

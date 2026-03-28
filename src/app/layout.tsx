@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { appConfig } from "@/shared/lib/config";
 import Providers from "./Providers";
@@ -6,8 +7,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { CookieConsent } from "@/shared/components/cookie-consent";
 
-// Using system fonts as fallback when Google Fonts is unavailable
-// This ensures build succeeds in all environments
+const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com.br"),
@@ -41,7 +41,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#8b5cf6" />
         <link rel="preconnect" href="https://api.dicebear.com" />
       </head>
-      <body className="font-sans antialiased bg-background" suppressHydrationWarning>
+      <body className={`${inter.className} antialiased bg-background`} suppressHydrationWarning>
         <a href="#main-content" className="skip-to-content">
           Pular para o conteúdo
         </a>

@@ -1,4 +1,3 @@
-import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import {
   whatsappUsers,
@@ -23,10 +22,10 @@ import {
   calculateInstallmentDates,
 } from "@/shared/lib/billing-cycle";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
+import { getScopeFromCategory, getScopeFromIncomeSource } from "@/shared/lib/transactions/scope";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { formatAccountDisplay, formatAccountWithIcon } from "@/integrations/messaging/lib/ai-handlers/account-utils";
 
-const logger = createLogger("whatsapp:confirmations");
 const adapter = new WhatsAppAdapter();
 
 export async function handleExpenseConfirmation(
@@ -153,6 +152,13 @@ export async function handleExpenseConfirmation(
       );
     }
 
+    // Derive scope from the category
+    const scopeMemberId = getScopeFromCategory(
+      context.pendingExpense.categoryId,
+      budgetInfo.categories,
+      budgetInfo.member.id,
+    );
+
     // Create parent transaction (first installment)
     const [parentTransaction] = await db
       .insert(transactions)
@@ -160,7 +166,8 @@ export async function handleExpenseConfirmation(
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: context.pendingExpense.categoryId,
-        memberId: budgetInfo.member.id,
+        memberId: scopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense",
         status: "cleared",
         amount: installmentAmount,
@@ -180,7 +187,8 @@ export async function handleExpenseConfirmation(
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: context.pendingExpense!.categoryId,
-        memberId: budgetInfo.member.id,
+        memberId: scopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense" as const,
         status: "cleared" as const,
         amount: installmentAmount,
@@ -227,6 +235,13 @@ export async function handleExpenseConfirmation(
         `Envie *desfazer* para remover.`
     );
   } else {
+    // Derive scope from the category
+    const nonInstallScopeMemberId = getScopeFromCategory(
+      context.pendingExpense.categoryId,
+      budgetInfo.categories,
+      budgetInfo.member.id,
+    );
+
     // Non-installment transaction
     const [newTransaction] = await db
       .insert(transactions)
@@ -234,7 +249,8 @@ export async function handleExpenseConfirmation(
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: context.pendingExpense.categoryId,
-        memberId: budgetInfo.member.id,
+        memberId: nonInstallScopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "expense",
         status: "cleared",
         amount: context.pendingExpense.amount,
@@ -354,13 +370,20 @@ export async function handleIncomeConfirmation(
     const incomeAccountId =
       context.pendingIncome.accountId || budgetInfo.defaultAccount.id;
 
+    const incomeScopeMemberId = getScopeFromIncomeSource(
+      context.pendingIncome.incomeSourceId,
+      budgetInfo.incomeSources || [],
+      budgetInfo.member.id,
+    );
+
     const [newTransaction] = await db
       .insert(transactions)
       .values({
         budgetId: budgetInfo.budget.id,
         accountId: incomeAccountId,
         incomeSourceId: context.pendingIncome.incomeSourceId,
-        memberId: budgetInfo.member.id,
+        memberId: incomeScopeMemberId,
+        paidByMemberId: budgetInfo.member.id,
         type: "income",
         status: "cleared",
         amount: context.pendingIncome.amount,
@@ -440,34 +463,39 @@ export async function handleTransferConfirmation(
     return;
   }
 
-  // Create transfer transaction
-  const [newTransaction] = await db
-    .insert(transactions)
-    .values({
-      budgetId: budgetInfo.budget.id,
-      accountId: context.pendingTransfer.fromAccountId,
-      toAccountId: context.pendingTransfer.toAccountId,
-      memberId: budgetInfo.member.id,
-      type: "transfer",
-      status: "cleared",
-      amount: context.pendingTransfer.amount,
-      description:
-        context.pendingTransfer.description || "Transferência via WhatsApp",
-      date: getTodayNoonUTC(),
-      source: "whatsapp",
-    })
-    .returning();
+  // Create transfer transaction and update balances atomically
+  const [newTransaction] = await db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(transactions)
+      .values({
+        budgetId: budgetInfo.budget.id,
+        accountId: context.pendingTransfer!.fromAccountId!,
+        toAccountId: context.pendingTransfer!.toAccountId!,
+        memberId: budgetInfo.member.id,
+        paidByMemberId: budgetInfo.member.id,
+        type: "transfer",
+        status: "cleared",
+        amount: context.pendingTransfer!.amount,
+        description:
+          context.pendingTransfer!.description || "Transferência via WhatsApp",
+        date: getTodayNoonUTC(),
+        source: "whatsapp",
+      })
+      .returning();
 
-  // Update account balances: subtract from source, add to destination
-  await db
-    .update(financialAccounts)
-    .set({ balance: sql`${financialAccounts.balance} - ${context.pendingTransfer.amount}` })
-    .where(eq(financialAccounts.id, context.pendingTransfer.fromAccountId));
+    // Update account balances: subtract from source, add to destination
+    await tx
+      .update(financialAccounts)
+      .set({ balance: sql`${financialAccounts.balance} - ${context.pendingTransfer!.amount}` })
+      .where(eq(financialAccounts.id, context.pendingTransfer!.fromAccountId!));
 
-  await db
-    .update(financialAccounts)
-    .set({ balance: sql`${financialAccounts.balance} + ${context.pendingTransfer.amount}` })
-    .where(eq(financialAccounts.id, context.pendingTransfer.toAccountId));
+    await tx
+      .update(financialAccounts)
+      .set({ balance: sql`${financialAccounts.balance} + ${context.pendingTransfer!.amount}` })
+      .where(eq(financialAccounts.id, context.pendingTransfer!.toAccountId!));
+
+    return [created];
+  });
 
   if (context.lastAILogId) await markLogAsConfirmed(context.lastAILogId);
 
