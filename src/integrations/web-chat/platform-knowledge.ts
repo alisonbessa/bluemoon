@@ -26,11 +26,13 @@ O menu lateral (sidebar) tem as seguintes opções:
 ## 1. DASHBOARD (/app)
 
 A tela inicial mostra um resumo financeiro do mês:
-- Saldo geral (receitas - despesas)
-- Total de receitas e despesas do mês
-- Gráficos de gastos por categoria
-- Transações recentes
-- Progresso das metas
+- Cards de resumo: Saldo mensal, Receitas recebidas, Despesas totais
+- Gráficos: Tendência de gastos diários, comparativo mensal, gastos por categoria
+- Widget de transações agendadas: mostra contas e receitas pendentes com botão para confirmar rapidamente
+- Progresso das metas ativas
+- Acompanhamento de cartões de crédito: saldo e fatura atual
+- Checklist de primeiros passos (para novos usuários)
+- Para planos Duo: saldo de despesas compartilhadas (quem deve para quem)
 
 Para ver dados de meses anteriores, use o seletor de período no topo da página.
 
@@ -53,9 +55,13 @@ Permite planejar quanto gastar em cada categoria por mês.
 
 ### Despesas (Categorias):
 - As categorias são organizadas em grupos (ex: Moradia, Alimentação, Transporte)
-- Cada categoria tem um valor planejado por mês
+- Cada categoria tem um valor planejado por mês e mostra barra de progresso de utilização
 - É possível criar novas categorias e novos grupos
 - Para copiar alocações de um mês anterior, use o botão "Copiar alocações"
+- Dois tipos de comportamento:
+  - Recorrente: o orçamento zera todo mês
+  - Acumulativa (Set Aside): o saldo não utilizado é transferido para o próximo mês
+- Contas recorrentes (luz, aluguel, etc.) podem ser configuradas dentro de cada categoria
 
 ### Como criar uma nova categoria:
 1. Na página de Planejamento, clique em "+ Categoria" dentro do grupo desejado
@@ -100,10 +106,20 @@ Lista todas as transações (gastos, receitas e transferências).
 - Por status (efetivada, pendente)
 - Busca por texto na descrição
 
+### Transações agendadas:
+- Receitas e despesas recorrentes geram transações pendentes automaticamente
+- No widget de "Transações Agendadas", clique em "Confirmar" para efetivar
+- Use "Iniciar Mês" para gerar todas as transações recorrentes do mês
+
 ### Ações em transações:
 - Editar: clique na transação para abrir o formulário de edição
 - Excluir: clique no ícone de lixeira
 - As transações pendentes podem ser marcadas como efetivadas
+- Para transações recorrentes, é possível aplicar alterações a toda a série
+
+### Atalho rápido:
+- Use Ctrl+N (ou Cmd+N no Mac) para abrir o formulário de nova transação de qualquer página
+- O botão "+" na sidebar também abre o formulário rápido
 
 ### Via chat ou WhatsApp/Telegram:
 Você pode registrar gastos e receitas por mensagem. Exemplos:
@@ -159,25 +175,55 @@ Gerencia contas bancárias, cartões de crédito, carteiras, etc.
 4. Clique em Salvar
 
 ### Informações exibidas:
+- Cards de resumo: Patrimônio líquido, Saldo em contas, Fatura de cartões
 - Saldo atual de cada conta
-- Para cartões de crédito: limite, saldo utilizado, disponível, dia de fechamento
+- Para cartões de crédito: limite, saldo utilizado, disponível, dia de fechamento e vencimento
 - Total consolidado de todas as contas
+- Filtro para incluir/excluir investimentos no cálculo do patrimônio
+- Para planos Duo: filtro por "Minhas contas" ou "Compartilhadas"
 
 ---
 
-## 6. RELATÓRIOS / INSIGHTS (/app/insights)
+## 6. CATEGORIAS (/app/categories)
+
+Página dedicada para gerenciar categorias e grupos de categorias.
+
+### Funcionalidades:
+- Resumo: quantidade de grupos e categorias
+- Assistente de categorias: cria categorias automaticamente baseado em templates
+- Organização por grupos expansíveis (ex: Moradia, Alimentação, Transporte, Lazer)
+- Cada categoria mostra: ícone, nome e tipo de comportamento (Acumulativa ou Recorrente)
+- Ações: criar, editar, excluir categoria; criar novo grupo
+
+---
+
+## 7. FONTES DE RENDA (/app/income)
+
+Página dedicada para gerenciar fontes de receita.
+
+### Funcionalidades:
+- Resumo: total da renda mensal e quantidade de fontes
+- Fontes organizadas por tipo: Salário, Benefícios, Freelance, Aluguel, Investimento, Outro
+- Cada fonte mostra: nome, frequência, dia do mês, membro responsável (Duo), valor
+- Ações: criar, editar, excluir fonte de renda
+
+---
+
+## 8. RELATÓRIOS / INSIGHTS (/app/insights)
 
 Análises e gráficos detalhados das finanças.
 
 ### Relatórios disponíveis:
-- Gastos por categoria (pizza/barras)
-- Evolução mensal de receitas vs despesas
-- Comparativo entre meses
-- Tendências de gastos
+- Cards de resumo: Orçado vs Real para receitas e despesas
+- Indicador de saúde do orçamento
+- Projeção de gastos (se a tendência continuar)
+- Top categorias de gastos e categorias estouradas
+- Comparativo com o mês anterior (variação de receita, despesas e saldo)
+- Gráficos: tendência diária, distribuição mensal, breakdown por categoria
 
 ---
 
-## 7. CONFIGURAÇÕES (/app/settings)
+## 9. CONFIGURAÇÕES (/app/settings)
 
 ### Perfil:
 - Alterar nome e foto de perfil
@@ -205,12 +251,17 @@ Análises e gráficos detalhados das finanças.
 - Visualizar plano atual (Solo ou Duo)
 - Gerenciar assinatura
 
+### Privacidade de Dados:
+- Opção para exportar seus dados
+- Opção para excluir sua conta permanentemente
+
 ### Suporte:
 - Links para ajuda e contato
+- Refazer tutorial de configuração
 
 ---
 
-## 8. PLANOS
+## 10. PLANOS
 
 ### Solo:
 - Para uso individual
@@ -227,7 +278,7 @@ Análises e gráficos detalhados das finanças.
 
 ---
 
-## 9. MODO DE VISUALIZAÇÃO (Plano Duo)
+## 11. MODO DE VISUALIZAÇÃO (Plano Duo)
 
 No plano Duo, um seletor na sidebar permite alternar entre:
 - Pessoal: vê apenas suas transações e categorias
@@ -236,7 +287,7 @@ No plano Duo, um seletor na sidebar permite alternar entre:
 
 ---
 
-## 10. SETUP INICIAL (/app/setup)
+## 12. SETUP INICIAL (/app/setup)
 
 Ao criar a conta, o assistente de configuração guia o usuário:
 1. Escolher o plano (Solo ou Duo)
@@ -247,7 +298,20 @@ Ao criar a conta, o assistente de configuração guia o usuário:
 
 ---
 
-## 11. WHATSAPP / TELEGRAM
+## 13. CONTAS RECORRENTES
+
+Dentro da página de Planejamento, é possível configurar contas recorrentes em cada categoria.
+
+### Como funciona:
+- Contas recorrentes (luz, aluguel, internet, etc.) são vinculadas a uma categoria
+- Cada conta tem: nome, valor, frequência (semanal, mensal, anual), dia de vencimento, conta vinculada
+- O sistema gera transações pendentes automaticamente com base nas contas recorrentes
+- Marcadores indicam se é débito automático ou valor variável
+- No início de cada mês, use "Iniciar Mês" na página de Transações para gerar todas as pendências
+
+---
+
+## 14. WHATSAPP / TELEGRAM
 
 ### Comandos disponíveis:
 - /ajuda ou /help - Ver comandos disponíveis
@@ -273,13 +337,15 @@ Ao criar a conta, o assistente de configuração guia o usuário:
 
 ---
 
-## 12. ATALHOS E DICAS
+## 15. ATALHOS E DICAS
 
-- O botão "+" flutuante permite adicionar transações rapidamente de qualquer página
+- Ctrl+N (ou Cmd+N no Mac): abre o formulário de nova transação de qualquer página
+- O botão "+" na sidebar permite adicionar transações rapidamente
 - Use o chat do assistente (canto inferior direito) para tirar dúvidas, registrar gastos ou consultar saldos
 - Para reportar bugs ou sugerir melhorias, use o assistente no canto inferior direito
 - Transações podem ser editadas clicando nelas na lista
 - O período pode ser alterado no topo das páginas para ver dados de outros meses
+- No plano Duo, use o seletor de visualização na sidebar para alternar entre dados pessoais e compartilhados
 
 ---
 
