@@ -23,6 +23,8 @@ import { formatCurrency } from "@/shared/lib/formatters";
 import { getTodayNoonUTC } from "@/integrations/messaging/lib/utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { getVisibleCategories } from "@/integrations/messaging/lib/ai-handlers/category-utils";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { PLATFORM_KNOWLEDGE } from "@/integrations/web-chat/platform-knowledge";
 import type {
   MessagingAdapter,
   ChatId,
@@ -117,6 +119,58 @@ function htmlToPlainText(html: string): string {
     .replace(/<[^>]+>/g, "");
 }
 
+/**
+ * Answer a help/FAQ question using Gemini + platform knowledge base.
+ * Returns null if unable to answer (should suggest sending to human).
+ */
+async function answerHelpQuestion(question: string): Promise<string | null> {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      logger.error("GEMINI_API_KEY not configured for help questions");
+      return null;
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 512,
+      },
+    });
+
+    const prompt = `Voce e o assistente do HiveBudget, uma plataforma de gestao financeira. Responda a pergunta do usuario com base EXCLUSIVAMENTE na documentacao abaixo. Seja conciso e direto.
+
+DOCUMENTACAO DA PLATAFORMA:
+${PLATFORM_KNOWLEDGE}
+
+REGRAS:
+- Responda APENAS com base na documentacao acima
+- Se a resposta NAO estiver na documentacao, responda exatamente: "NAO_ENCONTRADO"
+- Seja amigavel e use linguagem simples
+- Nao invente funcionalidades que nao existem
+- Mantenha a resposta curta (maximo 3-4 paragrafos)
+- Nao use markdown, apenas texto simples com quebras de linha
+
+PERGUNTA DO USUARIO: "${question}"
+
+RESPOSTA:`;
+
+    const result = await model.generateContent(prompt);
+    const answer = result.response.text().trim();
+
+    if (answer === "NAO_ENCONTRADO" || answer.includes("NAO_ENCONTRADO")) {
+      return null;
+    }
+
+    return answer;
+  } catch (error) {
+    logger.error("Error answering help question:", error);
+    return null;
+  }
+}
+
 // ============================================
 // Main handler
 // ============================================
@@ -205,9 +259,18 @@ async function handleMessage(userId: string, message: string) {
     }
 
     default: {
+      // Try answering as a help/FAQ question using the knowledge base
+      const helpAnswer = await answerHelpQuestion(message);
+      if (helpAnswer) {
+        return successResponse({
+          messages: [{ content: helpAnswer }],
+        });
+      }
+
+      // Knowledge base couldn't answer - suggest sending to human
       return successResponse({
         messages: [{
-          content: "Desculpe, nao consegui entender sua mensagem. Posso ajudar com registro de gastos, receitas e consultas financeiras.\n\nSe precisa de outro tipo de ajuda, que tal enviar essa mensagem para um humano?",
+          content: "Nao encontrei uma resposta para sua pergunta. Posso ajudar com registro de gastos, receitas e consultas financeiras.\n\nSe precisa de outro tipo de ajuda, que tal enviar essa mensagem para um humano?",
           suggestHuman: true,
         }],
       });

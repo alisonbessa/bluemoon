@@ -146,7 +146,7 @@ export function FloatingChatbot() {
           setMode("chat");
           addMessage({
             role: "assistant",
-            content: "Estou pronto para ajudar! Voce pode:\n\n- Registrar gastos: \"gastei 50 no mercado\"\n- Registrar receitas: \"recebi 5000 de salario\"\n- Consultar saldo: \"quanto gastei esse mes?\"\n- Consultar categoria: \"quanto sobrou em alimentacao?\"\n\nO que deseja fazer?",
+            content: "Estou pronto para ajudar! Voce pode:\n\n- Perguntar sobre a plataforma: \"como registro um gasto?\"\n- Registrar gastos: \"gastei 50 no mercado\"\n- Registrar receitas: \"recebi 5000 de salario\"\n- Consultar saldo: \"quanto gastei esse mes?\"\n- Consultar categoria: \"quanto sobrou em alimentacao?\"\n\nO que deseja fazer?",
           });
           break;
 
