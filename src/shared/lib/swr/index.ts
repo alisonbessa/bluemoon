@@ -13,7 +13,5 @@ export {
 
 export {
   optimisticMutate,
-  createOptimisticAdd,
-  createOptimisticUpdate,
-  createOptimisticDelete,
+  invalidatePrefix,
 } from './optimistic';

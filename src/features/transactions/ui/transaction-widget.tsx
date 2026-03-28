@@ -55,6 +55,8 @@ interface ConfirmedTransaction {
   categoryId?: string | null;
   incomeSourceId?: string | null;
   recurringBillId?: string | null;
+  memberId?: string | null;
+  paidByMemberId?: string;
   accountId: string;
   status: string;
   isInstallment?: boolean;
@@ -65,6 +67,11 @@ interface ConfirmedTransaction {
   incomeSource?: { id: string; name: string; type: string } | null;
 }
 
+interface MemberInfo {
+  id: string;
+  name: string;
+}
+
 interface TransactionWidgetProps {
   budgetId: string;
   refreshKey?: number;
@@ -73,6 +80,9 @@ interface TransactionWidgetProps {
   typeFilter?: string;
   categoryFilter?: string;
   accountFilter?: string;
+  // Member info for "paid for partner" badge
+  currentMemberId?: string;
+  members?: MemberInfo[];
   // Period props (monthly only)
   periodValue: PeriodValue;
   onPeriodChange: (value: PeriodValue) => void;
@@ -93,6 +103,8 @@ export function TransactionWidget({
   typeFilter = "all",
   categoryFilter = "all",
   accountFilter = "all",
+  currentMemberId,
+  members = [],
   periodValue,
   onPeriodChange,
   onConfirm,
@@ -394,7 +406,7 @@ export function TransactionWidget({
                         <ArrowLeftRight className="h-4 w-4 text-blue-500" />
                       ) : transaction.type === "income" && transaction.incomeSource ? (
                         <span className="text-base">
-                          {transaction.incomeSource.type === "salary" ? "💼" : transaction.incomeSource.type === "benefit" ? "🎁" : transaction.incomeSource.type === "freelance" ? "💻" : transaction.incomeSource.type === "rental" ? "🏠" : transaction.incomeSource.type === "investment" ? "📈" : "💰"}
+                          {transaction.incomeSource.type === "salary" ? "💼" : transaction.incomeSource.type === "benefit" ? "🍽️" : transaction.incomeSource.type === "freelance" ? "💻" : transaction.incomeSource.type === "rental" ? "🏠" : transaction.incomeSource.type === "investment" ? "📈" : "💰"}
                         </span>
                       ) : (
                         <span className="text-base">{transaction.category?.icon || (transaction.type === "income" ? "💰" : "📋")}</span>
@@ -416,11 +428,30 @@ export function TransactionWidget({
                         <span>{format(parseLocalDate(transaction.date), "dd/MMM", { locale: ptBR })}</span>
                         {transaction.type === "income" && transaction.incomeSource ? (
                           <span className="flex items-center gap-1">
-                            {transaction.incomeSource.type === "salary" ? "💼" : transaction.incomeSource.type === "benefit" ? "🎁" : transaction.incomeSource.type === "freelance" ? "💻" : transaction.incomeSource.type === "rental" ? "🏠" : transaction.incomeSource.type === "investment" ? "📈" : "📦"} {transaction.incomeSource.name}
+                            {transaction.incomeSource.type === "salary" ? "💼" : transaction.incomeSource.type === "benefit" ? "🍽️" : transaction.incomeSource.type === "freelance" ? "💻" : transaction.incomeSource.type === "rental" ? "🏠" : transaction.incomeSource.type === "investment" ? "📈" : "📦"} {transaction.incomeSource.name}
                           </span>
                         ) : transaction.category && (
                           <span>{transaction.category.name}</span>
                         )}
+                        {(() => {
+                          if (
+                            currentMemberId &&
+                            members.length > 1 &&
+                            transaction.paidByMemberId === currentMemberId &&
+                            transaction.memberId != null &&
+                            transaction.memberId !== currentMemberId
+                          ) {
+                            const partnerName = members.find((m) => m.id === transaction.memberId)?.name;
+                            if (partnerName) {
+                              return (
+                                <span className="text-[10px] text-muted-foreground/70 bg-muted px-1.5 py-0.5 rounded">
+                                  Pago para {partnerName}
+                                </span>
+                              );
+                            }
+                          }
+                          return null;
+                        })()}
                       </div>
                     </div>
 

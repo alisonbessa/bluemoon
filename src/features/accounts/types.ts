@@ -72,5 +72,5 @@ export const ACCOUNT_TYPE_CONFIG: Record<AccountType, { label: string; icon: str
   credit_card: { label: 'Cartão de Crédito', icon: '💳' },
   cash: { label: 'Dinheiro', icon: '💵' },
   investment: { label: 'Investimento', icon: '📈' },
-  benefit: { label: 'Benefício', icon: '🎁' },
+  benefit: { label: 'Benefício', icon: '🍽️' },
 };

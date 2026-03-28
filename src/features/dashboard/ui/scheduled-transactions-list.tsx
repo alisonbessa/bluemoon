@@ -50,6 +50,7 @@ interface ScheduledTransactionsListProps {
   year: number;
   month: number;
   refreshKey?: number;
+  onTransactionConfirmed?: () => void;
 }
 
 export function ScheduledTransactionsList({
@@ -57,6 +58,7 @@ export function ScheduledTransactionsList({
   year,
   month,
   refreshKey,
+  onTransactionConfirmed,
 }: ScheduledTransactionsListProps) {
   const [scheduled, setScheduled] = useState<ScheduledTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -133,8 +135,8 @@ export function ScheduledTransactionsList({
 
       if (response.ok) {
         toast.success("Transação confirmada!");
-        // Refresh the list
         fetchScheduled();
+        onTransactionConfirmed?.();
       } else {
         const errorData = await response.json();
         toast.error(errorData.error || "Erro ao confirmar transação");

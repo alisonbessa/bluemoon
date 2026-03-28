@@ -10,7 +10,7 @@ import {
 import { Label } from '@/shared/ui/label';
 import { cn } from '@/shared/lib/utils';
 
-type IncomeFrequency = 'monthly' | 'biweekly' | 'weekly';
+type IncomeFrequency = 'monthly' | 'biweekly' | 'weekly' | 'annual' | 'once';
 
 interface FrequencySelectorProps {
   value: IncomeFrequency;
@@ -29,6 +29,8 @@ const FREQUENCY_LABELS: Record<IncomeFrequency, string> = {
   monthly: 'Mensal',
   biweekly: 'Quinzenal',
   weekly: 'Semanal',
+  annual: 'Anual',
+  once: 'Pontual',
 };
 
 /**

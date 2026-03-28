@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Loader2, User } from "lucide-react";
 
 import { useCurrentUser } from "@/shared/hooks/use-current-user";
+import { mutate } from "swr";
 import {
   profileUpdateSchema,
   ProfileUpdateValues,
@@ -33,7 +34,7 @@ import { BlobUploader } from "@/shared/ui/blob-uploader";
 import { DataPrivacyCard } from "@/app/(in-app)/app/settings/_components/data-privacy-card";
 
 export default function ProfilePage() {
-  const { user, isLoading, mutate } = useCurrentUser();
+  const { user, isLoading } = useCurrentUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string>("");
 
@@ -82,7 +83,7 @@ export default function ProfilePage() {
       }
 
       // Update the user data in SWR cache
-      await mutate();
+      await mutate("/api/app/me");
 
       toast.success("Perfil atualizado com sucesso!");
     } catch (error) {

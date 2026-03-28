@@ -118,23 +118,3 @@ export function safePagination(
   };
 }
 
-/**
- * Create a success response with cache headers
- */
-export function cachedResponse<T>(
-  data: T,
-  options: {
-    maxAge?: number;
-    staleWhileRevalidate?: number;
-    isPrivate?: boolean;
-  } = {}
-) {
-  const { maxAge = 30, staleWhileRevalidate = 300, isPrivate = true } = options;
-  const cacheControl = `${isPrivate ? "private" : "public"}, max-age=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`;
-
-  return NextResponse.json(data, {
-    headers: {
-      "Cache-Control": cacheControl,
-    },
-  });
-}

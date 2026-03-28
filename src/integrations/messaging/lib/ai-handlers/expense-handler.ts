@@ -22,6 +22,7 @@ import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { getVisibleCategories, formatCategoryName, suggestGroupForCategory } from "./category-utils";
+import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
 import {
   matchAccount,
   filterAccountsByHint,
@@ -103,6 +104,9 @@ export async function handleExpenseIntent(
   const categoryId = categoryMatch?.category.id;
   const categoryName = categoryMatch?.category.name;
   const categoryIcon = categoryMatch?.category.icon;
+
+  // Derive scope from category (NULL = shared, set = personal to category owner)
+  const scopeMemberId = getScopeFromCategory(categoryId, categories, memberId);
 
   // CASE 1: No amount provided (null, undefined, or 0) - try to find a scheduled transaction
   // AI sometimes returns 0 instead of null when no amount is mentioned
@@ -206,7 +210,8 @@ export async function handleExpenseIntent(
           budgetId,
           accountId,
           categoryId,
-          memberId,
+          memberId: scopeMemberId,
+          paidByMemberId: memberId,
           type: "expense",
           status: "cleared",
           amount: installmentAmount,
@@ -224,7 +229,8 @@ export async function handleExpenseIntent(
         budgetId,
         accountId,
         categoryId,
-        memberId,
+        memberId: scopeMemberId,
+        paidByMemberId: memberId,
         type: "expense" as const,
         status: "cleared" as const,
         amount: installmentAmount,
@@ -267,7 +273,8 @@ export async function handleExpenseIntent(
         budgetId,
         accountId,
         categoryId,
-        memberId,
+        memberId: scopeMemberId,
+        paidByMemberId: memberId,
         type: "expense",
         status: "cleared",
         amount: data.amount,

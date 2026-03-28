@@ -5,9 +5,6 @@ import { useState, useCallback } from 'react';
 /** View mode for mobile - which column to show */
 export type MobileViewMode = 'planned' | 'actual' | 'available';
 
-/** Budget view mode - shared (couple) vs personal (individual reserve) */
-export type BudgetViewMode = 'shared' | 'personal';
-
 interface UseBudgetUIStateReturn {
   // Section expansion
   isIncomeExpanded: boolean;
@@ -28,10 +25,6 @@ interface UseBudgetUIStateReturn {
   // Mobile view mode
   mobileViewMode: MobileViewMode;
   setMobileViewMode: (mode: MobileViewMode) => void;
-
-  // Budget view mode (shared vs personal)
-  budgetViewMode: BudgetViewMode;
-  setBudgetViewMode: (mode: BudgetViewMode) => void;
 }
 
 interface UseBudgetUIStateOptions {
@@ -72,9 +65,6 @@ export function useBudgetUIState(options: UseBudgetUIStateOptions = {}): UseBudg
 
   // Mobile view mode
   const [mobileViewMode, setMobileViewMode] = useState<MobileViewMode>(defaultMobileViewMode);
-
-  // Budget view mode (shared vs personal)
-  const [budgetViewMode, setBudgetViewMode] = useState<BudgetViewMode>('shared');
 
   // Accordion toggle functions - close others when opening one
   const toggleIncomeSection = useCallback(() => {
@@ -142,9 +132,5 @@ export function useBudgetUIState(options: UseBudgetUIStateOptions = {}): UseBudg
     // Mobile view mode
     mobileViewMode,
     setMobileViewMode,
-
-    // Budget view mode
-    budgetViewMode,
-    setBudgetViewMode,
   };
 }

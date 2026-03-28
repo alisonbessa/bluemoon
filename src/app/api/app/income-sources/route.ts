@@ -10,7 +10,6 @@ import {
   validationError,
   forbiddenError,
   successResponse,
-  cachedResponse,
 } from "@/shared/lib/api/responses";
 import { createIncomeSourceSchema } from "@/shared/lib/validations/income.schema";
 import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
@@ -72,8 +71,9 @@ export const GET = withAuthRequired(async (req, context) => {
     account: s.account ? { id: s.account.id, name: s.account.name, icon: s.account.icon } : null,
   }));
 
-  // Calculate total monthly income
+  // Calculate total monthly income (annual sources not included — they only apply in their specific month)
   const totalMonthlyIncome = formattedSources.reduce((acc, source) => {
+    if (source.frequency === "annual") return acc;
     let monthlyAmount = source.amount;
     if (source.frequency === "biweekly") {
       monthlyAmount = source.amount * 2;
@@ -83,10 +83,10 @@ export const GET = withAuthRequired(async (req, context) => {
     return acc + monthlyAmount;
   }, 0);
 
-  return cachedResponse({
+  return successResponse({
     incomeSources: formattedSources,
     totalMonthlyIncome,
-  }, { maxAge: 60, staleWhileRevalidate: 300 });
+  });
 });
 
 // POST - Create a new income source

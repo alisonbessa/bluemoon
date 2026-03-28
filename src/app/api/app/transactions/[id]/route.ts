@@ -1,26 +1,16 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
-import { transactions, financialAccounts } from "@/db/schema";
+import { transactions, financialAccounts, categories, budgetMembers } from "@/db/schema";
 import { eq, and, inArray, or, sql } from "drizzle-orm";
-import { z } from "zod";
-import { financialTransactionStatusEnum } from "@/db/schema/transactions";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import { updateTransactionSchema } from "@/shared/lib/validations/transaction.schema";
 import {
   validationError,
   notFoundError,
   successResponse,
+  errorResponse,
 } from "@/shared/lib/api/responses";
-
-const updateTransactionSchema = z.object({
-  categoryId: z.string().uuid().optional().nullable(),
-  memberId: z.string().uuid().optional().nullable(),
-  amount: z.number().int().optional(),
-  description: z.string().optional(),
-  notes: z.string().optional(),
-  date: z.string().datetime().or(z.date()).optional(),
-  status: financialTransactionStatusEnum.optional(),
-});
 
 // GET - Get a specific transaction
 export const GET = withAuthRequired(async (req, context) => {
@@ -88,6 +78,41 @@ export const PATCH = withAuthRequired(async (req, context) => {
     return validationError(validation.error);
   }
 
+  // When categoryId changes, derive the new scope (memberId) from the category
+  let derivedScopeMemberId: string | null | undefined;
+  if (validation.data.categoryId !== undefined) {
+    if (validation.data.categoryId === null) {
+      // Category removed: scope falls back to paidByMemberId (personal to whoever paid)
+      derivedScopeMemberId = existingTransaction.paidByMemberId;
+    } else {
+      // Category changed: inherit scope from new category
+      const [cat] = await db
+        .select({ id: categories.id, memberId: categories.memberId })
+        .from(categories)
+        .where(eq(categories.id, validation.data.categoryId));
+      if (!cat) {
+        return errorResponse("Category not found", 400);
+      }
+      derivedScopeMemberId = cat.memberId;
+    }
+  }
+
+  // Validate paidByMemberId if provided
+  if (validation.data.paidByMemberId) {
+    const [member] = await db
+      .select({ id: budgetMembers.id })
+      .from(budgetMembers)
+      .where(
+        and(
+          eq(budgetMembers.id, validation.data.paidByMemberId),
+          eq(budgetMembers.budgetId, existingTransaction.budgetId)
+        )
+      );
+    if (!member) {
+      return errorResponse("Paid-by member does not belong to this budget", 400);
+    }
+  }
+
   // Series update: apply changes to all installments in the series
   if (applyToSeries && existingTransaction.isInstallment) {
     const parentId = existingTransaction.parentTransactionId || existingTransaction.id;
@@ -95,6 +120,8 @@ export const PATCH = withAuthRequired(async (req, context) => {
     // Build cascade update data (only fields that make sense for series)
     const seriesUpdateData: Record<string, unknown> = { updatedAt: new Date() };
     if (validation.data.categoryId !== undefined) seriesUpdateData.categoryId = validation.data.categoryId;
+    if (derivedScopeMemberId !== undefined) seriesUpdateData.memberId = derivedScopeMemberId;
+    if (validation.data.paidByMemberId !== undefined) seriesUpdateData.paidByMemberId = validation.data.paidByMemberId;
     if (validation.data.description !== undefined) seriesUpdateData.description = validation.data.description;
     if (validation.data.notes !== undefined) seriesUpdateData.notes = validation.data.notes;
 
@@ -157,10 +184,21 @@ export const PATCH = withAuthRequired(async (req, context) => {
     return successResponse({ transaction: updatedTransaction });
   }
 
+  const { paidByMemberId: _paidBy, ...validatedFields } = validation.data;
   const updateData: Record<string, unknown> = {
-    ...validation.data,
+    ...validatedFields,
     updatedAt: new Date(),
   };
+
+  // Apply derived scope when categoryId changes
+  if (derivedScopeMemberId !== undefined) {
+    updateData.memberId = derivedScopeMemberId;
+  }
+
+  // Apply paidByMemberId if provided
+  if (validation.data.paidByMemberId) {
+    updateData.paidByMemberId = validation.data.paidByMemberId;
+  }
 
   // Handle date conversion
   if (validation.data.date) {

@@ -3,25 +3,35 @@
 import useSWR from 'swr';
 import { useViewMode } from '@/shared/providers/view-mode-provider';
 import type { Account } from '../types';
-import { optimisticMutate } from '@/shared/lib/swr/optimistic';
+import { optimisticMutate, invalidatePrefix } from '@/shared/lib/swr/optimistic';
 
-interface AccountsResponse {
+export interface AccountsResponse {
   accounts: Account[];
 }
 
 const BASE_KEY = '/api/app/accounts';
+
+interface UseAccountsOptions {
+  /** Server-fetched data to use as SWR fallback (avoids loading state on initial render) */
+  fallbackData?: AccountsResponse;
+}
 
 /**
  * Hook for fetching and caching accounts data
  * Uses SWR for automatic caching and deduplication
  * Includes optimistic mutation methods
  * SWR key includes viewMode so data re-fetches on view change
+ *
+ * When fallbackData is provided (from Server Component), renders instantly
+ * without a loading state for the initial view mode.
  */
-export function useAccounts() {
+export function useAccounts(options?: UseAccountsOptions) {
   const { viewMode, isDuoPlan } = useViewMode();
   const swrKey = isDuoPlan ? `${BASE_KEY}?viewMode=${viewMode}` : BASE_KEY;
 
-  const { data, error, isLoading, mutate } = useSWR<AccountsResponse>(swrKey);
+  const { data, error, isLoading, mutate } = useSWR<AccountsResponse>(swrKey, {
+    fallbackData: options?.fallbackData,
+  });
 
   const accounts = data?.accounts ?? [];
 
@@ -55,6 +65,7 @@ export function useAccounts() {
           throw new Error(error.message || 'Erro ao criar conta');
         }
       },
+      invalidateKeyPrefix: BASE_KEY,
       successMessage: 'Conta criada com sucesso!',
     });
   };
@@ -84,6 +95,7 @@ export function useAccounts() {
           throw new Error(error.message || 'Erro ao atualizar conta');
         }
       },
+      invalidateKeyPrefix: BASE_KEY,
       successMessage: 'Conta atualizada com sucesso!',
     });
   };
@@ -106,15 +118,20 @@ export function useAccounts() {
           throw new Error(error.message || 'Erro ao excluir conta');
         }
       },
+      invalidateKeyPrefix: BASE_KEY,
       successMessage: 'Conta excluída com sucesso!',
     });
   };
+
+  /** Revalidate all account caches (all viewMode variants) */
+  const refresh = () => invalidatePrefix(BASE_KEY);
 
   return {
     accounts,
     isLoading,
     error,
     mutate,
+    refresh,
     viewMode,
     isDuoPlan,
     // Optimistic mutations

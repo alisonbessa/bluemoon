@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import useSWR, { mutate } from "swr";
+import useSWR from "swr";
+import { mutate } from "swr";
 import {
   Card,
   CardContent,
@@ -169,9 +170,11 @@ export function SharedExpensesBalance({
         description: `Transferência de ${formatCurrency(settlement.amount)} de ${settlement.fromName} para ${settlement.toName}`,
       });
 
-      // Revalidate shared balance and accounts data
-      mutate(`/api/app/dashboard/shared-balance?budgetId=${budgetId}&year=${year}&month=${month}`);
-      mutate(`/api/app/accounts?budgetId=${budgetId}`);
+      // Revalidate shared balance, accounts, and dashboard summary
+      await mutate(`/api/app/dashboard/shared-balance?budgetId=${budgetId}&year=${year}&month=${month}`);
+      await mutate(`/api/app/accounts?budgetId=${budgetId}`);
+      // Invalidate dashboard caches so summary cards reflect the new transfer
+      await mutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/app/dashboard?'));
 
       setShowSettleDialog(false);
     } catch (err) {

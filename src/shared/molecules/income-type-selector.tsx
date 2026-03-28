@@ -18,7 +18,7 @@ interface IncomeTypeConfig {
 
 const INCOME_TYPE_CONFIG: Record<IncomeType, IncomeTypeConfig> = {
   salary: { icon: '💼', label: 'Salário' },
-  benefit: { icon: '🏛️', label: 'Benefício' },
+  benefit: { icon: '🍽️', label: 'Benefício' },
   freelance: { icon: '💻', label: 'Freelance' },
   rental: { icon: '🏠', label: 'Aluguel' },
   investment: { icon: '📈', label: 'Investimento' },

@@ -2,6 +2,7 @@
 
 import useSWR from 'swr';
 import type { CategoryGroup } from '../types';
+import { invalidatePrefix } from '@/shared/lib/swr/optimistic';
 
 interface CategoriesResponse {
   groups: CategoryGroup[];
@@ -16,11 +17,14 @@ export function useCategories() {
     '/api/app/categories'
   );
 
+  const refresh = () => invalidatePrefix('/api/app/categories');
+
   return {
     groups: data?.groups ?? [],
     isLoading,
     error,
     mutate,
+    refresh,
   };
 }
 

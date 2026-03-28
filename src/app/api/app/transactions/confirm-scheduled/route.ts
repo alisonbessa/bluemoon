@@ -1,8 +1,8 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { transactions } from "@/db/schema";
+import { transactions, categories, incomeSources } from "@/db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
-import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import { getUserBudgetIds, getUserMemberIdInBudget } from "@/shared/lib/api/permissions";
 import {
   validationError,
   forbiddenError,
@@ -10,6 +10,7 @@ import {
   errorResponse,
 } from "@/shared/lib/api/responses";
 import { z } from "zod";
+import { getScopeFromCategory, getScopeFromIncomeSource } from "@/shared/lib/transactions/scope";
 
 const confirmScheduledSchema = z.object({
   budgetId: z.string().uuid(),
@@ -57,6 +58,30 @@ export const POST = withAuthRequired(async (req, context) => {
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
     return forbiddenError("Budget not found or access denied");
+  }
+
+  // Get user's member ID for paidByMemberId
+  const currentMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
+  if (!currentMemberId) {
+    return forbiddenError("Member not found in budget");
+  }
+
+  // Derive scope (memberId) from category or income source
+  let scopeMemberId: string | null = currentMemberId;
+  if (type === "expense" && categoryId) {
+    const [cat] = await db
+      .select({ id: categories.id, memberId: categories.memberId })
+      .from(categories)
+      .where(eq(categories.id, categoryId))
+      .limit(1);
+    scopeMemberId = getScopeFromCategory(categoryId, cat ? [cat] : [], currentMemberId);
+  } else if (type === "income" && incomeSourceId) {
+    const [source] = await db
+      .select({ id: incomeSources.id, memberId: incomeSources.memberId })
+      .from(incomeSources)
+      .where(eq(incomeSources.id, incomeSourceId))
+      .limit(1);
+    scopeMemberId = getScopeFromIncomeSource(incomeSourceId, source ? [source] : [], currentMemberId);
   }
 
   const transactionDate = new Date(date);
@@ -114,6 +139,8 @@ export const POST = withAuthRequired(async (req, context) => {
         amount, // Update amount in case it changed
         description: description || existingPending.description,
         accountId,
+        memberId: scopeMemberId,
+        paidByMemberId: currentMemberId,
         updatedAt: new Date(),
       })
       .where(eq(transactions.id, existingPending.id))
@@ -140,6 +167,8 @@ export const POST = withAuthRequired(async (req, context) => {
         date: transactionDate,
         status: "cleared",
         source: "manual",
+        memberId: scopeMemberId,
+        paidByMemberId: currentMemberId,
       })
       .returning();
 

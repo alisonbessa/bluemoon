@@ -3,13 +3,14 @@ import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionReq
 import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
 import { categories, groups } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, isNull } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
   validationError,
+  errorResponse,
+  ErrorCodes,
   forbiddenError,
-  cachedResponse,
   successResponse,
 } from "@/shared/lib/api/responses";
 import { suggestEmojiForCategory } from "@/shared/lib/category/suggest-emoji";
@@ -59,7 +60,7 @@ export const GET = withAuthRequired(async (req, context) => {
       .map((c) => c.category),
   }));
 
-  return cachedResponse({
+  return successResponse({
     groups: categoriesByGroup,
     flatCategories: userCategories.map((c) => ({
       ...c.category,
@@ -95,6 +96,28 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
   let finalIcon = categoryData.icon;
   if (!finalIcon && suggestIcon) {
     finalIcon = suggestEmojiForCategory(categoryData.name);
+  }
+
+  // Check for duplicate category name in the same scope
+  const existingCategory = await db
+    .select({ id: categories.id })
+    .from(categories)
+    .where(
+      and(
+        eq(categories.budgetId, budgetId),
+        categoryData.memberId
+          ? eq(categories.memberId, categoryData.memberId)
+          : isNull(categories.memberId),
+        eq(categories.name, capitalizeWords(categoryData.name)),
+        eq(categories.isArchived, false)
+      )
+    )
+    .limit(1);
+
+  if (existingCategory.length > 0) {
+    return errorResponse("Ja existe uma categoria com esse nome", 400, {
+      code: ErrorCodes.VALIDATION_ERROR,
+    });
   }
 
   // Get display order

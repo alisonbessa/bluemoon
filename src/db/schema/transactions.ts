@@ -29,7 +29,7 @@ export const transactions = pgTable("transactions", {
     .references(() => financialAccounts.id, { onDelete: "cascade" }),
   categoryId: text("category_id").references(() => categories.id, { onDelete: "set null" }), // For expense transactions (null for transfers and income)
   incomeSourceId: text("income_source_id").references(() => incomeSources.id, { onDelete: "set null" }), // For income transactions
-  memberId: text("member_id").references(() => budgetMembers.id, { onDelete: "set null" }), // Scope: NULL = shared, set = personal to that member
+  memberId: text("member_id").references(() => budgetMembers.id, { onDelete: "set null" }), // Scope: inherited from category. NULL = shared, set = personal to that member
   paidByMemberId: text("paid_by_member_id").references(() => budgetMembers.id, { onDelete: "cascade" }), // Who actually paid
 
   // For transfers
@@ -77,6 +77,7 @@ export const transactions = pgTable("transactions", {
   index("idx_transactions_budget_status").on(table.budgetId, table.status),
   // Composite index for billing cycle queries (fix 3.5)
   index("idx_transactions_account_type_status_date").on(table.accountId, table.type, table.status, table.date),
+  index("idx_transactions_paid_by").on(table.paidByMemberId),
 ]);
 
 export const transactionsRelations = relations(transactions, ({ one, many }) => ({
@@ -104,6 +105,12 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
   member: one(budgetMembers, {
     fields: [transactions.memberId],
     references: [budgetMembers.id],
+    relationName: "scopeMember",
+  }),
+  paidByMember: one(budgetMembers, {
+    fields: [transactions.paidByMemberId],
+    references: [budgetMembers.id],
+    relationName: "paidByMember",
   }),
   childInstallments: many(transactions, { relationName: "parentTransaction" }),
   parentTransaction: one(transactions, {

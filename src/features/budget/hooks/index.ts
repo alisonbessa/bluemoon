@@ -1,8 +1,8 @@
 export { useBudgets, usePrimaryBudget } from './use-budgets';
 export { useBudgetPageData } from './use-budget-page-data';
 export { useBudgetPeriod } from './use-budget-period';
-export { useBudgetUIState, type MobileViewMode, type BudgetViewMode } from './use-budget-ui-state';
-export { useBudgetViewFilter } from './use-budget-view-filter';
+export { useBudgetUIState, type MobileViewMode } from './use-budget-ui-state';
+export { useBudgetSections, type BudgetSection } from './use-budget-view-filter';
 export { useAllocationForm } from './use-allocation-form';
 export { useCategoryForm } from './use-category-form';
 export { useIncomeAllocationForm } from './use-income-allocation-form';

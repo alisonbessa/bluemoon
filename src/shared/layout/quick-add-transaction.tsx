@@ -42,6 +42,11 @@ export function QuickAddTransaction() {
   const { members } = useMembers();
   const currentMemberId = members.find((m) => m.userId === user?.id)?.id;
 
+  // Members with userId (owner + partner) for "Quem pagou?" selector
+  const payerMembers = members
+    .filter((m) => m.userId)
+    .map((m) => ({ id: m.id, name: m.name }));
+
   // Fetch data on demand (SWR caches and deduplicates)
   const { data: categoriesData } = useSWR<CategoriesResponse>(
     "/api/app/categories"
@@ -74,6 +79,7 @@ export function QuickAddTransaction() {
     accounts,
     budgets,
     memberId: currentMemberId,
+    defaultPaidByMemberId: currentMemberId,
     onSuccess: () => {
       // Close mobile sidebar after creating transaction
       if (isMobile) {
@@ -143,6 +149,8 @@ export function QuickAddTransaction() {
         onSubmit={handleSubmit}
         applyToSeries={applyToSeries}
         onApplyToSeriesChange={setApplyToSeries}
+        isDuoPlan={isDuoPlan}
+        members={payerMembers}
       />
     </>
   );

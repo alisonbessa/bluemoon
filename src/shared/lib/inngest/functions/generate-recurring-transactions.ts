@@ -1,7 +1,8 @@
 import { inngest } from "../client";
 import { db } from "@/db";
-import { recurringBills, transactions, financialAccounts } from "@/db/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { recurringBills, transactions, financialAccounts, categories } from "@/db/schema";
+import { eq, and, gte, lte, inArray } from "drizzle-orm";
+import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
 
 /**
  * Generates transactions for active recurring bills
@@ -37,6 +38,15 @@ export const generateRecurringTransactions = inngest.createFunction(
     if (activeBills.length === 0) {
       return { created: 0, skipped: 0 };
     }
+
+    // Fetch categories for scope (memberId) derivation
+    const categoryIds = [...new Set(activeBills.map((b) => b.categoryId))];
+    const billCategories = await step.run("fetch-categories", async () => {
+      return db
+        .select({ id: categories.id, memberId: categories.memberId })
+        .from(categories)
+        .where(inArray(categories.id, categoryIds));
+    });
 
     let created = 0;
     let skipped = 0;
@@ -82,20 +92,23 @@ export const generateRecurringTransactions = inngest.createFunction(
           return null;
         }
 
-        // Verify account exists
+        // Verify account exists and get owner for paidByMemberId
         const [account] = await db
-          .select()
+          .select({ id: financialAccounts.id, ownerId: financialAccounts.ownerId })
           .from(financialAccounts)
           .where(eq(financialAccounts.id, accountId))
           .limit(1);
 
-        if (!account) {
+        if (!account || !account.ownerId) {
           return null;
         }
 
         // Calculate transaction date (use dueDay or today if not set)
         const dueDay = bill.dueDay || now.getDate();
         const transactionDate = new Date(year, month - 1, Math.min(dueDay, endOfMonth.getDate()));
+
+        // Derive scope from category
+        const memberId = getScopeFromCategory(bill.categoryId, billCategories, account.ownerId);
 
         // Create pending expense transaction
         await db.insert(transactions).values({
@@ -109,6 +122,8 @@ export const generateRecurringTransactions = inngest.createFunction(
           description: bill.name,
           date: transactionDate,
           source: "recurring",
+          memberId,
+          paidByMemberId: account.ownerId,
         });
 
         created++;

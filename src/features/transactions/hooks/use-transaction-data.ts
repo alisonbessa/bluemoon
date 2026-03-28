@@ -1,11 +1,25 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import useSWR from "swr";
 import { getWeek } from "date-fns";
 import { toast } from "sonner";
 import { type PeriodValue } from "@/shared/ui/period-navigator";
 import { useViewMode } from "@/shared/providers/view-mode-provider";
 import type { Transaction, Category, Account, IncomeSource, Budget } from "../types";
+
+export interface TransactionsResponse {
+  transactions: Transaction[];
+}
+
+interface UseTransactionDataOptions {
+  /** Server-fetched data to use as SWR fallback (avoids loading state on initial render) */
+  fallbackData?: TransactionsResponse | null;
+  /** Initial year (from server component) */
+  initialYear?: number;
+  /** Initial month (from server component) */
+  initialMonth?: number;
+}
 
 interface UseTransactionDataReturn {
   // Data
@@ -21,31 +35,25 @@ interface UseTransactionDataReturn {
   currentYear: number;
   currentMonth: number;
   // Actions
-  fetchData: () => Promise<void>;
+  fetchData: () => void;
   // Widget refresh
   widgetRefreshKey: number;
   triggerWidgetRefresh: () => void;
 }
 
-export function useTransactionData(): UseTransactionDataReturn {
+export function useTransactionData(
+  options?: UseTransactionDataOptions,
+): UseTransactionDataReturn {
   const today = new Date();
   const { viewMode, isDuoPlan } = useViewMode();
-  const vm = isDuoPlan ? `&viewMode=${viewMode}` : '';
+  const vm = isDuoPlan ? `&viewMode=${viewMode}` : "";
 
   // Period state
   const [periodValue, setPeriodValue] = useState<PeriodValue>({
-    year: today.getFullYear(),
-    month: today.getMonth() + 1,
+    year: options?.initialYear ?? today.getFullYear(),
+    month: options?.initialMonth ?? today.getMonth() + 1,
     week: getWeek(today, { weekStartsOn: 1, firstWeekContainsDate: 4 }),
   });
-
-  // Data states
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Widget refresh key
   const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
@@ -58,66 +66,69 @@ export function useTransactionData(): UseTransactionDataReturn {
     setWidgetRefreshKey((k) => k + 1);
   }, []);
 
-  const fetchData = useCallback(async () => {
-    // Calculate monthly date range
-    const startDate = new Date(periodValue.year, periodValue.month - 1, 1);
-    const endDate = new Date(periodValue.year, periodValue.month, 0, 23, 59, 59);
+  // Build SWR key for transactions
+  const startDate = new Date(periodValue.year, periodValue.month - 1, 1);
+  const endDate = new Date(periodValue.year, periodValue.month, 0, 23, 59, 59);
+  const transactionsKey = `/api/app/transactions?limit=500&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}${vm}`;
 
-    try {
-      const [transactionsRes, categoriesRes, accountsRes, budgetsRes, incomeSourcesRes] =
-        await Promise.all([
-          fetch(
-            `/api/app/transactions?limit=500&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}${vm}`
-          ),
-          fetch("/api/app/categories"),
-          fetch(`/api/app/accounts${isDuoPlan ? `?viewMode=${viewMode}` : ''}`),
-          fetch("/api/app/budgets"),
-          fetch(`/api/app/income-sources${isDuoPlan ? `?viewMode=${viewMode}` : ''}`),
-        ]);
+  // Determine if we should use fallback (only for the initial period)
+  const isInitialPeriod =
+    options?.initialYear === periodValue.year &&
+    options?.initialMonth === periodValue.month;
 
-      if (transactionsRes.ok) {
-        const data = await transactionsRes.json();
-        setTransactions(data.transactions || []);
-      }
+  const {
+    data: transactionsData,
+    isLoading: transactionsLoading,
+    mutate: mutateTransactions,
+  } = useSWR<TransactionsResponse>(transactionsKey, {
+    fallbackData:
+      isInitialPeriod && options?.fallbackData
+        ? options.fallbackData
+        : undefined,
+    onError: () => {
+      toast.error("Erro ao carregar transações");
+    },
+  });
 
-      if (categoriesRes.ok) {
-        const data = await categoriesRes.json();
-        setCategories(data.flatCategories || []);
-      }
+  // Supporting data: categories, accounts, budgets, income sources
+  // These don't change per-month, so simple SWR calls without fallback
+  const { data: categoriesData, isLoading: categoriesLoading } = useSWR<{
+    flatCategories: Category[];
+  }>("/api/app/categories");
 
-      if (accountsRes.ok) {
-        const data = await accountsRes.json();
-        setAccounts(data.accounts || []);
-      }
+  const accountsVm = isDuoPlan ? `?viewMode=${viewMode}` : "";
+  const { data: accountsData, isLoading: accountsLoading } = useSWR<{
+    accounts: Account[];
+  }>(`/api/app/accounts${accountsVm}`);
 
-      if (budgetsRes.ok) {
-        const data = await budgetsRes.json();
-        setBudgets(data.budgets || []);
-      }
+  const { data: budgetsData, isLoading: budgetsLoading } = useSWR<{
+    budgets: Budget[];
+  }>("/api/app/budgets");
 
-      if (incomeSourcesRes.ok) {
-        const data = await incomeSourcesRes.json();
-        setIncomeSources(data.incomeSources || []);
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("Erro ao carregar dados");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [periodValue, viewMode, isDuoPlan, vm]);
+  const incomeSourcesVm = isDuoPlan ? `?viewMode=${viewMode}` : "";
+  const { data: incomeSourcesData, isLoading: incomeSourcesLoading } =
+    useSWR<{ incomeSources: IncomeSource[] }>(
+      `/api/app/income-sources${incomeSourcesVm}`,
+    );
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const fetchData = useCallback(() => {
+    mutateTransactions();
+  }, [mutateTransactions]);
+
+  const isLoading =
+    transactionsLoading ||
+    categoriesLoading ||
+    accountsLoading ||
+    budgetsLoading ||
+    incomeSourcesLoading;
 
   return {
     // Data
-    transactions,
-    categories,
-    accounts,
-    incomeSources,
-    budgets,
+    transactions: transactionsData?.transactions ?? [],
+    categories: categoriesData?.flatCategories ?? [],
+    accounts: accountsData?.accounts ?? [],
+    incomeSources: incomeSourcesData?.incomeSources ?? [],
+    budgets: budgetsData?.budgets ?? [],
     isLoading,
     // Period
     periodValue,

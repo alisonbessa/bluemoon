@@ -3,7 +3,7 @@
 import useSWR from 'swr';
 import { useViewMode } from '@/shared/providers/view-mode-provider';
 import type { Goal } from '@/features/goals';
-import { optimisticMutate } from '@/shared/lib/swr/optimistic';
+import { optimisticMutate, invalidatePrefix } from '@/shared/lib/swr/optimistic';
 
 interface GoalsResponse {
   goals: Goal[];
@@ -45,6 +45,7 @@ export function useGoals() {
           throw new Error(error.message || 'Erro ao arquivar meta');
         }
       },
+      invalidateKeyPrefix: BASE_KEY,
       successMessage: 'Meta arquivada!',
     });
   };
@@ -93,15 +94,20 @@ export function useGoals() {
           throw new Error(error.message || 'Erro ao contribuir');
         }
       },
+      invalidateKeyPrefix: BASE_KEY,
       successMessage: willComplete ? 'Meta atingida!' : 'Contribuição registrada!',
     });
   };
+
+  /** Revalidate all goal caches (all viewMode variants) */
+  const refresh = () => invalidatePrefix(BASE_KEY);
 
   return {
     goals,
     isLoading,
     error,
     mutate,
+    refresh,
     // Optimistic mutations
     archiveGoal,
     contributeToGoal,
@@ -128,12 +134,13 @@ export function useActiveGoals() {
  * Get completed goals
  */
 export function useCompletedGoals() {
-  const { goals, isLoading, error, mutate } = useGoals();
+  const { goals, isLoading, error, mutate, refresh } = useGoals();
 
   return {
     goals: goals.filter((g) => g.isCompleted),
     isLoading,
     error,
     mutate,
+    refresh,
   };
 }

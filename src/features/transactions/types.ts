@@ -36,6 +36,8 @@ export interface Transaction {
   goalId?: string | null;
   accountId: string;
   toAccountId?: string | null;
+  memberId?: string | null;
+  paidByMemberId: string;
   status: string;
   isInstallment?: boolean;
   installmentNumber?: number | null;
@@ -69,6 +71,7 @@ export interface TransactionFormData {
   date: string;
   isInstallment: boolean;
   totalInstallments: number;
+  paidByMemberId?: string;
 }
 
 export const initialFormData: TransactionFormData = {

@@ -13,6 +13,7 @@ import type {
 } from "../types";
 import { matchIncomeSource, CONFIDENCE_THRESHOLDS } from "../gemini";
 import { markLogAsConfirmed } from "../ai-logger";
+import { getScopeFromIncomeSource } from "@/shared/lib/transactions/scope";
 import {
   findMatchingScheduledIncome,
   findScheduledIncomeByHint,
@@ -128,6 +129,9 @@ export async function handleIncomeIntent(
 
     const capitalizedDescription = capitalizeFirst(data.description);
 
+    // Derive scope from income source (who receives the income)
+    const incomeScopeMemberId = getScopeFromIncomeSource(incomeSourceId, incomeSources, memberId);
+
     // Create new income transaction
     const [newTransaction] = await db
       .insert(transactions)
@@ -135,7 +139,8 @@ export async function handleIncomeIntent(
         budgetId,
         accountId,
         incomeSourceId,
-        memberId,
+        memberId: incomeScopeMemberId,
+        paidByMemberId: memberId,
         type: "income",
         status: "cleared",
         amount: data.amount,

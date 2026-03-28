@@ -16,6 +16,11 @@ import { Switch } from '@/shared/ui/switch';
 import { formatCurrencyFromDigits, parseCurrency } from '@/shared/lib/formatters';
 import type { Category, Account, IncomeSource, Transaction, TransactionFormData, TransactionType } from '../types';
 
+interface MemberOption {
+  id: string;
+  name: string;
+}
+
 interface TransactionFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -30,6 +35,8 @@ interface TransactionFormModalProps {
   onSubmit: () => void;
   applyToSeries?: boolean;
   onApplyToSeriesChange?: (value: boolean) => void;
+  isDuoPlan?: boolean;
+  members?: MemberOption[];
 }
 
 export function TransactionFormModal({
@@ -46,6 +53,8 @@ export function TransactionFormModal({
   onSubmit,
   applyToSeries,
   onApplyToSeriesChange,
+  isDuoPlan,
+  members,
 }: TransactionFormModalProps) {
   const typeOptions = [
     { value: 'expense', label: 'Despesa', color: 'text-red-500' },
@@ -259,6 +268,32 @@ export function TransactionFormModal({
               }
             />
           </div>
+
+          {/* Paid by selector (Duo plans only) */}
+          {isDuoPlan && members && members.length >= 2 && (
+            <div className="grid gap-2">
+              <Label>Quem pagou?</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {members.map((member) => (
+                  <Button
+                    key={member.id}
+                    type="button"
+                    variant={formData.paidByMemberId === member.id ? 'default' : 'outline'}
+                    size="sm"
+                    className="w-full"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        paidByMemberId: member.id,
+                      })
+                    }
+                  >
+                    {member.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Series editing option (when editing an installment) */}
           {showSeriesOption && onApplyToSeriesChange && (

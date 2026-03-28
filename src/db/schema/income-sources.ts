@@ -1,4 +1,4 @@
-import { timestamp, pgTable, text, integer, bigint, boolean } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, text, integer, bigint, boolean, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { budgetMembers } from "./budget-members";
@@ -19,6 +19,8 @@ export const incomeFrequencyEnum = z.enum([
   "monthly", // Mensal
   "biweekly", // Quinzenal
   "weekly", // Semanal
+  "annual", // Anual (todo ano no mesmo mês)
+  "once", // Pontual (apenas em um mês/ano específico)
 ]);
 export type IncomeFrequency = z.infer<typeof incomeFrequencyEnum>;
 
@@ -40,6 +42,14 @@ export const incomeSources = pgTable("income_sources", {
   // Recorrência
   frequency: text("frequency").$type<IncomeFrequency>().notNull().default("monthly"),
   dayOfMonth: integer("day_of_month"), // Dia do pagamento (1-31)
+  monthOfYear: integer("month_of_year"), // Para frequência anual/pontual: mês do ano (1-12)
+  yearOfPayment: integer("year_of_payment"), // Para frequência pontual: ano específico
+
+  // Date range for this income source
+  startYear: integer("start_year"), // Inclusive start: source appears from this month/year
+  startMonth: integer("start_month"), // 1-12
+  endYear: integer("end_year"), // Exclusive end: source disappears from this month/year onwards
+  endMonth: integer("end_month"), // 1-12
 
   // Confirmação automática
   isAutoConfirm: boolean("is_auto_confirm").default(false), // Confirmar automaticamente no dia
@@ -49,7 +59,11 @@ export const incomeSources = pgTable("income_sources", {
 
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
-});
+}, (table) => [
+  index("idx_income_sources_budget_id").on(table.budgetId),
+  index("idx_income_sources_budget_active").on(table.budgetId, table.isActive),
+  index("idx_income_sources_member_id").on(table.memberId),
+]);
 
 export const incomeSourcesRelations = relations(incomeSources, ({ one }) => ({
   budget: one(budgets, {
