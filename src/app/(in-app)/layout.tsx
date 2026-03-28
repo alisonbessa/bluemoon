@@ -10,7 +10,7 @@ import {
   useTutorial,
 } from "@/shared/tutorial";
 import { ViewModeProvider } from "@/shared/providers/view-mode-provider";
-import { FloatingFeedbackButton } from "@/shared/components/floating-feedback-button";
+import { FloatingChatbot } from "@/shared/components/floating-chatbot";
 import React, { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useCurrentUser, useCurrentPlan } from "@/shared/hooks/use-current-user";
@@ -276,8 +276,8 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
           </main>
         </div>
 
-        {/* Floating Feedback Button */}
-        <FloatingFeedbackButton />
+        {/* Floating Chatbot */}
+        <FloatingChatbot />
 
         {/* Celebration Modal when tutorial completes */}
         <CelebrationModal
