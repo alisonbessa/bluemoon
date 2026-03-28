@@ -29,7 +29,8 @@ export const transactions = pgTable("transactions", {
     .references(() => financialAccounts.id, { onDelete: "cascade" }),
   categoryId: text("category_id").references(() => categories.id, { onDelete: "set null" }), // For expense transactions (null for transfers and income)
   incomeSourceId: text("income_source_id").references(() => incomeSources.id, { onDelete: "set null" }), // For income transactions
-  memberId: text("member_id").references(() => budgetMembers.id, { onDelete: "set null" }), // Who made the transaction
+  memberId: text("member_id").references(() => budgetMembers.id, { onDelete: "set null" }), // Scope: NULL = shared, set = personal to that member
+  paidByMemberId: text("paid_by_member_id").references(() => budgetMembers.id, { onDelete: "cascade" }), // Who actually paid
 
   // For transfers
   toAccountId: text("to_account_id").references(() => financialAccounts.id, { onDelete: "cascade" }),

@@ -669,6 +669,7 @@ async function confirmExpense(data: Record<string, unknown>, memberId: string, b
             isInstallment: true,
             installmentNumber: 1,
             totalInstallments,
+            paidByMemberId: memberId,
             source: "web_chat",
           })
           .returning();
@@ -687,6 +688,7 @@ async function confirmExpense(data: Record<string, unknown>, memberId: string, b
           installmentNumber: i + 2,
           totalInstallments,
           parentTransactionId: parent.id,
+          paidByMemberId: memberId,
           source: "web_chat" as const,
         }));
 
@@ -732,6 +734,7 @@ async function confirmExpense(data: Record<string, unknown>, memberId: string, b
           amount,
           description,
           date: transactionDate,
+          paidByMemberId: memberId,
           source: "web_chat",
         })
         .returning();
@@ -787,6 +790,7 @@ async function confirmIncome(data: Record<string, unknown>, memberId: string, bu
           amount,
           description: (data.description as string) || null,
           date: transactionDate,
+          paidByMemberId: memberId,
           source: "web_chat",
         })
         .returning();
