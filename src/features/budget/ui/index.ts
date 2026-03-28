@@ -23,5 +23,6 @@ export { CategoryDeleteDialog } from './category-delete-dialog';
 export { IncomeAllocationModal } from './income-allocation-modal';
 export { IncomeSourceFormModal } from './income-source-form-modal';
 export { IncomeSourceDeleteDialog } from './income-source-delete-dialog';
+export { IncomeEditScopeDialog } from './income-edit-scope-dialog';
 export { CopyAllocationsModal } from './copy-allocations-modal';
 export { CopyHintModal } from './copy-hint-modal';

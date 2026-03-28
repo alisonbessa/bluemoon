@@ -36,6 +36,7 @@ import {
   IncomeAllocationModal,
   IncomeSourceFormModal,
   IncomeSourceDeleteDialog,
+  IncomeEditScopeDialog,
   CopyAllocationsModal,
   CopyHintModal,
 } from '@/features/budget/ui';
@@ -133,6 +134,12 @@ export function BudgetPageClient({
   // Local UI state
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
   const [showCopyHintModal, setShowCopyHintModal] = useState(false);
+
+  // Income edit scope dialog state
+  const [scopeDialog, setScopeDialog] = useState<{
+    source: IncomeSource;
+    item: IncomeSourceData;
+  } | null>(null);
 
   // Show copy hint modal when no allocations exist for current month
   useEffect(() => {
@@ -309,7 +316,7 @@ export function BudgetPageClient({
               categoryForm={categoryForm}
               incomeAllocationForm={incomeAllocationForm}
               incomeSourceForm={incomeSourceForm}
-              onEditIncomeSource={(source: IncomeSource) => incomeSourceForm.openEdit(source)}
+              onEditIncomeSource={(source: IncomeSource, item: IncomeSourceData) => setScopeDialog({ source, item })}
               onIgnoreIncome={handleIgnoreIncome}
               onRestoreIncome={handleRestoreIncome}
               refreshData={refreshData}
@@ -453,6 +460,38 @@ export function BudgetPageClient({
         isDeleting={incomeSourceForm.isDeleting}
       />
 
+      {/* Income Edit Scope Dialog */}
+      <IncomeEditScopeDialog
+        source={scopeDialog?.source ?? null}
+        onClose={() => setScopeDialog(null)}
+        onEditAll={() => {
+          if (scopeDialog) {
+            incomeSourceForm.openEdit(scopeDialog.source);
+            setScopeDialog(null);
+          }
+        }}
+        onEditThisAndFuture={async () => {
+          if (!scopeDialog || !budgetId) return;
+          const { source, item: _item } = scopeDialog;
+          setScopeDialog(null);
+          // End current source at current month (exclusive)
+          await fetch(`/api/app/income-sources/${source.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endYear: currentYear, endMonth: currentMonth }),
+          });
+          // Open create form pre-filled with source data + new start date
+          incomeSourceForm.openCreateFrom(source, currentYear, currentMonth);
+          refreshData();
+        }}
+        onEditThisMonth={() => {
+          if (scopeDialog) {
+            incomeAllocationForm.open(scopeDialog.item);
+            setScopeDialog(null);
+          }
+        }}
+      />
+
       {/* Copy Allocations Modal */}
       <CopyAllocationsModal
         open={budgetActions.isCopyModalOpen}
@@ -501,7 +540,7 @@ interface BudgetSectionBlockProps {
   categoryForm: ReturnType<typeof useCategoryForm>;
   incomeAllocationForm: ReturnType<typeof useIncomeAllocationForm>;
   incomeSourceForm: ReturnType<typeof useIncomeSourceForm>;
-  onEditIncomeSource: (source: IncomeSource) => void;
+  onEditIncomeSource: (source: IncomeSource, item: IncomeSourceData) => void;
   onIgnoreIncome: (item: IncomeSourceData) => void;
   onRestoreIncome: (item: IncomeSourceData) => void;
   refreshData: () => void;
@@ -552,7 +591,7 @@ function BudgetSectionBlock({
           expandedMembers={uiState.expandedIncomeMembers}
           onToggleMember={uiState.toggleIncomeMember}
           onEditIncome={(item: IncomeSourceData) => incomeAllocationForm.open(item)}
-          onEditIncomeSource={(source: IncomeSource) => incomeSourceForm.openEdit(source)}
+          onEditIncomeSource={(source: IncomeSource, item: IncomeSourceData) => onEditIncomeSource(source, item)}
           onIgnoreIncome={onIgnoreIncome}
           onRestoreIncome={onRestoreIncome}
           onDeleteIncomeSource={(source: IncomeSource) => incomeSourceForm.setDeletingSource(source)}

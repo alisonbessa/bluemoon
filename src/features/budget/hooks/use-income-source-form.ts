@@ -29,6 +29,7 @@ interface UseIncomeSourceFormReturn {
   editingSource: IncomeSource | null;
   openCreate: (preselectedMemberId?: string) => void;
   openEdit: (source: IncomeSource) => void;
+  openCreateFrom: (source: IncomeSource, startYear: number, startMonth: number) => void;
   closeForm: () => void;
 
   // Delete mode
@@ -63,6 +64,8 @@ const initialFormData: IncomeSourceFormData = {
   dayOfMonth: undefined,
   monthOfYear: undefined,
   yearOfPayment: undefined,
+  startYear: new Date().getFullYear(),
+  startMonth: new Date().getMonth() + 1,
   memberId: undefined,
   accountId: undefined,
   isAutoConfirm: false,
@@ -119,11 +122,35 @@ export function useIncomeSourceForm({
       dayOfMonth: source.dayOfMonth || undefined,
       monthOfYear: source.monthOfYear || undefined,
       yearOfPayment: source.yearOfPayment || undefined,
+      startYear: source.startYear || undefined,
+      startMonth: source.startMonth || undefined,
       memberId: source.member?.id || source.memberId || undefined,
       accountId: source.account?.id,
       isAutoConfirm: source.isAutoConfirm || false,
     });
     setEditingSource(source);
+    setErrors({});
+    setIsFormOpen(true);
+  }, []);
+
+  // Open create form pre-filled from an existing source (for "edit this and future" flow)
+  const openCreateFrom = useCallback((source: IncomeSource, startYear: number, startMonth: number) => {
+    setFormData({
+      name: source.name,
+      type: source.type,
+      amount: source.amount,
+      contributionAmount: source.contributionAmount ?? null,
+      frequency: source.frequency,
+      dayOfMonth: source.dayOfMonth || undefined,
+      monthOfYear: source.monthOfYear || undefined,
+      yearOfPayment: source.yearOfPayment || undefined,
+      startYear,
+      startMonth,
+      memberId: source.member?.id || source.memberId || undefined,
+      accountId: source.account?.id,
+      isAutoConfirm: source.isAutoConfirm || false,
+    });
+    setEditingSource(null); // create mode
     setErrors({});
     setIsFormOpen(true);
   }, []);
@@ -254,6 +281,7 @@ export function useIncomeSourceForm({
     editingSource,
     openCreate,
     openEdit,
+    openCreateFrom,
     closeForm,
 
     // Delete mode

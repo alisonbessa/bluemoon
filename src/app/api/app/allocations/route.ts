@@ -474,6 +474,18 @@ export const GET = withAuthRequired(async (req, context) => {
     if (incomeSource.frequency === "once" && (incomeSource.monthOfYear !== month || incomeSource.yearOfPayment !== year)) {
       continue;
     }
+    // Skip if before start date (inclusive)
+    if (incomeSource.startYear && incomeSource.startMonth) {
+      if (year < incomeSource.startYear || (year === incomeSource.startYear && month < incomeSource.startMonth)) {
+        continue;
+      }
+    }
+    // Skip if at or after end date (exclusive)
+    if (incomeSource.endYear && incomeSource.endMonth) {
+      if (year > incomeSource.endYear || (year === incomeSource.endYear && month >= incomeSource.endMonth)) {
+        continue;
+      }
+    }
 
     // Calculate monthly amount based on frequency
     // Weekly = 4x per month, Biweekly = 2x per month, Monthly/Annual = 1x per month

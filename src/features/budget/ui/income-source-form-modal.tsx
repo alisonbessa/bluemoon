@@ -50,6 +50,8 @@ interface IncomeSourceFormData {
   dayOfMonth?: number;
   monthOfYear?: number;
   yearOfPayment?: number;
+  startYear?: number;
+  startMonth?: number;
   memberId?: string;
   accountId?: string;
   isAutoConfirm?: boolean;
@@ -140,6 +142,42 @@ export function IncomeSourceFormModal({
             hasError={errors.frequency}
           />
         </div>
+
+        {/* Data de inicio - shown when creating */}
+        {!isEditing && (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label>A partir de</Label>
+              <Select
+                value={formData.startMonth?.toString() ?? ''}
+                onValueChange={(val) => onFieldChange('startMonth', parseInt(val))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Mes" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTH_LABELS.map((label, i) => (
+                    <SelectItem key={i + 1} value={(i + 1).toString()}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>&nbsp;</Label>
+              <Input
+                type="number"
+                min={2000}
+                max={2100}
+                value={formData.startYear?.toString() ?? ''}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  onFieldChange('startYear', isNaN(val) ? undefined : val);
+                }}
+                placeholder={new Date().getFullYear().toString()}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Valor e Dia/Mês do Pagamento */}
         <div className="grid grid-cols-2 gap-4">

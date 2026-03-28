@@ -30,6 +30,10 @@ export interface IncomeSource {
   dayOfMonth?: number | null;
   monthOfYear?: number | null;
   yearOfPayment?: number | null;
+  startYear?: number | null;
+  startMonth?: number | null;
+  endYear?: number | null;
+  endMonth?: number | null;
   memberId: string | null;
   member?: { id: string; name: string; color?: string | null } | null;
   account?: { id: string; name: string; icon?: string | null } | null;
@@ -65,6 +69,8 @@ export interface IncomeSourceFormData {
   dayOfMonth?: number;
   monthOfYear?: number;
   yearOfPayment?: number;
+  startYear?: number;
+  startMonth?: number;
   memberId?: string;
   accountId?: string;
   isAutoConfirm?: boolean;
@@ -85,6 +91,11 @@ export interface IncomeFormData {
   memberId?: string;
   accountId?: string;
 }
+
+export const MONTH_LABELS = [
+  'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
 
 export const INCOME_TYPE_CONFIG: Record<IncomeType, { label: string; icon: string }> = {
   salary: { label: 'Salario', icon: '💼' },

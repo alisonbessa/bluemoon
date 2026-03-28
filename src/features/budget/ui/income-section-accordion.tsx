@@ -28,7 +28,7 @@ interface IncomeSectionAccordionProps {
   expandedMembers: string[];
   onToggleMember: (memberId: string) => void;
   onEditIncome: (item: IncomeSourceData) => void;
-  onEditIncomeSource: (source: IncomeSource) => void;
+  onEditIncomeSource: (source: IncomeSource, item: IncomeSourceData) => void;
   onIgnoreIncome: (item: IncomeSourceData) => void;
   onRestoreIncome: (item: IncomeSourceData) => void;
   onDeleteIncomeSource: (source: IncomeSource) => void;
@@ -175,7 +175,7 @@ export function IncomeSectionAccordion({
                 item={item}
                 indent={false}
                 onEditIncome={() => onEditIncome(item)}
-                onEditSource={() => onEditIncomeSource(item.incomeSource)}
+                onEditSource={() => onEditIncomeSource(item.incomeSource, item)}
                 onIgnore={() => onIgnoreIncome(item)}
                 onRestore={() => onRestoreIncome(item)}
                 onDeleteSource={() => onDeleteIncomeSource(item.incomeSource)}
@@ -195,7 +195,7 @@ export function IncomeSectionAccordion({
                   onToggleMember(memberGroup.member?.id || 'no-member')
                 }
                 onEditIncome={onEditIncome}
-                onEditSource={onEditIncomeSource}
+                onEditSource={(source, item) => onEditIncomeSource(source, item)}
                 onIgnore={onIgnoreIncome}
                 onRestore={onRestoreIncome}
                 onDeleteSource={onDeleteIncomeSource}
@@ -215,7 +215,7 @@ interface IncomeMemberSectionProps {
   isExpanded: boolean;
   onToggle: () => void;
   onEditIncome: (item: IncomeSourceData) => void;
-  onEditSource: (source: IncomeSource) => void;
+  onEditSource: (source: IncomeSource, item: IncomeSourceData) => void;
   onIgnore: (item: IncomeSourceData) => void;
   onRestore: (item: IncomeSourceData) => void;
   onDeleteSource: (source: IncomeSource) => void;
@@ -338,7 +338,7 @@ function IncomeMemberSection({
             item={item}
             indent={true}
             onEditIncome={() => onEditIncome(item)}
-            onEditSource={() => onEditSource(item.incomeSource)}
+            onEditSource={() => onEditSource(item.incomeSource, item)}
             onIgnore={() => onIgnore(item)}
             onRestore={() => onRestore(item)}
             onDeleteSource={() => onDeleteSource(item.incomeSource)}

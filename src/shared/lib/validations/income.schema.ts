@@ -37,6 +37,8 @@ export const createIncomeSourceSchema = z
     dayOfMonth: z.number().int().min(0).max(31).optional().nullable(),
     monthOfYear: z.number().int().min(1).max(12).optional().nullable(),
     yearOfPayment: z.number().int().min(2000).max(2100).optional().nullable(),
+    startYear: z.number().int().min(2000).max(2100).optional().nullable(),
+    startMonth: z.number().int().min(1).max(12).optional().nullable(),
     isAutoConfirm: z.boolean().optional().default(false),
   })
   .refine(
@@ -104,6 +106,10 @@ export const updateIncomeSourceSchema = z.object({
   dayOfMonth: z.number().int().min(0).max(31).optional().nullable(),
   monthOfYear: z.number().int().min(1).max(12).optional().nullable(),
   yearOfPayment: z.number().int().min(2000).max(2100).optional().nullable(),
+  startYear: z.number().int().min(2000).max(2100).optional().nullable(),
+  startMonth: z.number().int().min(1).max(12).optional().nullable(),
+  endYear: z.number().int().min(2000).max(2100).optional().nullable(),
+  endMonth: z.number().int().min(1).max(12).optional().nullable(),
   isAutoConfirm: z.boolean().optional(),
   isActive: z.boolean().optional(),
   displayOrder: z.number().int().min(0).optional(),

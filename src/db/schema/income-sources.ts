@@ -45,6 +45,12 @@ export const incomeSources = pgTable("income_sources", {
   monthOfYear: integer("month_of_year"), // Para frequência anual/pontual: mês do ano (1-12)
   yearOfPayment: integer("year_of_payment"), // Para frequência pontual: ano específico
 
+  // Date range for this income source
+  startYear: integer("start_year"), // Inclusive start: source appears from this month/year
+  startMonth: integer("start_month"), // 1-12
+  endYear: integer("end_year"), // Exclusive end: source disappears from this month/year onwards
+  endMonth: integer("end_month"), // 1-12
+
   // Confirmação automática
   isAutoConfirm: boolean("is_auto_confirm").default(false), // Confirmar automaticamente no dia
 
