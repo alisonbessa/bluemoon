@@ -30,6 +30,7 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   actions?: ChatAction[];
+  actionsHint?: string;
   suggestHuman?: boolean;
 }
 
@@ -76,12 +77,12 @@ export function FloatingChatbot() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Focus input when opening or changing mode
+  // Focus input when opening
   useEffect(() => {
-    if (isOpen && mode !== "initial") {
+    if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [isOpen, mode]);
+  }, [isOpen]);
 
   // Close on click outside
   useEffect(() => {
@@ -108,12 +109,13 @@ export function FloatingChatbot() {
       {
         id: "welcome",
         role: "assistant",
-        content: "Ola! Como posso ajudar?",
+        content: "Olá! Como posso ajudar?",
         actions: [
           { label: "Reportar bug", value: "start_bug", icon: <Bug className="h-3.5 w-3.5" /> },
           { label: "Sugerir melhoria", value: "start_suggestion", icon: <Lightbulb className="h-3.5 w-3.5" /> },
           { label: "Tirar dúvida", value: "start_chat", icon: <MessageSquare className="h-3.5 w-3.5" /> },
         ],
+        actionsHint: "ou escreva o que deseja",
       },
     ]);
     setMode("initial");
@@ -360,6 +362,8 @@ export function FloatingChatbot() {
     if (mode === "bug" || mode === "suggestion") {
       handleSubmitFeedback();
     } else {
+      // "initial" and "chat" both go to chat — typing directly skips the menu
+      if (mode === "initial") setMode("chat");
       handleSubmitChat();
     }
   };
@@ -460,14 +464,14 @@ export function FloatingChatbot() {
 
                   {/* Action buttons */}
                   {msg.actions && msg.actions.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
+                    <div className="flex flex-col gap-1.5 mt-2">
                       {msg.actions.map((action) => (
                         <button
                           key={action.value}
                           onClick={() => handleAction(action.value)}
                           disabled={isLoading}
                           className={cn(
-                            "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                            "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors text-left",
                             action.variant === "outline"
                               ? "border border-border bg-background text-foreground hover:bg-muted"
                               : "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -478,6 +482,9 @@ export function FloatingChatbot() {
                           {action.label}
                         </button>
                       ))}
+                      {msg.actionsHint && (
+                        <p className="text-xs text-muted-foreground/70 mt-0.5 text-center">{msg.actionsHint}</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -496,47 +503,45 @@ export function FloatingChatbot() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input area (hidden in initial mode) */}
-          {mode !== "initial" && (
-            <div className="border-t px-3 py-2 shrink-0">
-              <div className="flex items-end gap-2">
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={
-                    mode === "bug"
-                      ? "Descreva o bug..."
-                      : mode === "suggestion"
-                        ? "Descreva sua sugestão..."
-                        : "Digite sua mensagem..."
-                  }
-                  className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  rows={1}
-                  maxLength={2000}
-                  style={{ maxHeight: "80px" }}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = "auto";
-                    target.style.height = Math.min(target.scrollHeight, 80) + "px";
-                  }}
-                />
-                <Button
-                  size="icon"
-                  className="h-9 w-9 shrink-0"
-                  onClick={handleSubmit}
-                  disabled={isLoading || !input.trim()}
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
+          {/* Input area (always visible) */}
+          <div className="border-t px-3 py-2 shrink-0">
+            <div className="flex items-end gap-2">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  mode === "bug"
+                    ? "Descreva o bug..."
+                    : mode === "suggestion"
+                      ? "Descreva sua sugestão..."
+                      : "Digite sua mensagem..."
+                }
+                className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                rows={1}
+                maxLength={2000}
+                style={{ maxHeight: "80px" }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = "auto";
+                  target.style.height = Math.min(target.scrollHeight, 80) + "px";
+                }}
+              />
+              <Button
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={handleSubmit}
+                disabled={isLoading || !input.trim()}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
             </div>
-          )}
+          </div>
         </div>
       )}
 
