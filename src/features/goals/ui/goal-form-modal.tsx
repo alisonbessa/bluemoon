@@ -18,6 +18,12 @@ const GOAL_COLORS = [
   "#3b82f6", "#6366f1"
 ];
 
+interface GoalMemberSettingLocal {
+  memberId: string;
+  fromAccountId: string;
+  monthlyAmount: number;
+}
+
 interface Goal {
   id: string;
   name: string;
@@ -26,7 +32,9 @@ interface Goal {
   targetAmount: number;
   targetDate: string;
   accountId?: string | null;
+  fromAccountId?: string | null;
   memberId?: string | null;
+  memberSettings?: Array<{ memberId: string; fromAccountId?: string | null; monthlyAmount?: number | null }>;
 }
 
 interface Member {
@@ -73,6 +81,9 @@ export function GoalFormModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
 
+  // Per-member settings for shared Duo goals
+  const [memberSettings, setMemberSettings] = useState<GoalMemberSettingLocal[]>([]);
+
   // Random color for new goals - memoized to not change on re-renders
   const randomColor = useMemo(() => getRandomColor(), [open, editingGoal]);
 
@@ -84,6 +95,7 @@ export function GoalFormModal({
     initialAmount: 0, // only for creation
     targetDate: editingGoal?.targetDate?.split("T")[0] || "",
     accountId: editingGoal?.accountId || "",
+    fromAccountId: editingGoal?.fromAccountId || "",
     memberId: editingGoal?.memberId ?? defaultMemberId as string | undefined,
   });
 
@@ -115,8 +127,16 @@ export function GoalFormModal({
         initialAmount: 0,
         targetDate: editingGoal.targetDate?.split("T")[0] || "",
         accountId: editingGoal.accountId || "",
+        fromAccountId: editingGoal.fromAccountId || "",
         memberId: editingGoal.memberId ?? undefined,
       });
+      setMemberSettings(
+        (editingGoal.memberSettings ?? []).map((s) => ({
+          memberId: s.memberId,
+          fromAccountId: s.fromAccountId ?? "",
+          monthlyAmount: s.monthlyAmount ?? 0,
+        }))
+      );
     } else {
       setFormData({
         name: "",
@@ -126,8 +146,10 @@ export function GoalFormModal({
         initialAmount: 0,
         targetDate: "",
         accountId: "",
+        fromAccountId: "",
         memberId: defaultMemberId,
       });
+      setMemberSettings([]);
     }
   }, [editingGoal, open, randomColor, defaultMemberId]);
 
@@ -140,7 +162,24 @@ export function GoalFormModal({
       initialAmount: 0,
       targetDate: "",
       accountId: "",
+      fromAccountId: "",
       memberId: defaultMemberId,
+    });
+    setMemberSettings([]);
+  };
+
+  // Whether this is a shared Duo goal (shows per-member contribution settings)
+  // Meta conjunta em orçamento Duo: sempre que há mais de 1 membro e a meta não é pessoal
+  // Vale tanto no modo com seletor de tipo quanto no modo unificado (onde todas as metas são conjuntas)
+  const isSharedDuoGoal = members.length > 1 && !formData.memberId;
+
+  const updateMemberSetting = (memberId: string, field: 'fromAccountId' | 'monthlyAmount', value: string | number) => {
+    setMemberSettings((prev) => {
+      const existing = prev.find((s) => s.memberId === memberId);
+      if (existing) {
+        return prev.map((s) => s.memberId === memberId ? { ...s, [field]: value } : s);
+      }
+      return [...prev, { memberId, fromAccountId: '', monthlyAmount: 0, [field]: value }];
     });
   };
 
@@ -172,8 +211,16 @@ export function GoalFormModal({
         initialAmount: formData.initialAmount,
         targetDate: formData.targetDate,
         accountId: formData.accountId,
+        fromAccountId: isSharedDuoGoal ? null : (formData.fromAccountId || null),
         memberId: formData.memberId || null,
         budgetId,
+        memberSettings: isSharedDuoGoal
+          ? memberSettings.filter((s) => s.fromAccountId).map((s) => ({
+              memberId: s.memberId,
+              fromAccountId: s.fromAccountId || null,
+              monthlyAmount: s.monthlyAmount > 0 ? s.monthlyAmount : null,
+            }))
+          : undefined,
       };
 
       let response;
@@ -282,8 +329,8 @@ export function GoalFormModal({
           onIconChange={(icon) => setFormData({ ...formData, icon })}
         />
 
-        {/* Row 2: Target Amount + Initial Amount */}
-        <div className={`grid gap-4 ${!editingGoal ? 'grid-cols-2' : ''}`}>
+        {/* Linha 1: Valor alvo + Data alvo */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-2">
             <Label htmlFor="goal-targetAmount">Valor alvo</Label>
             <CurrencyInput
@@ -295,25 +342,8 @@ export function GoalFormModal({
               placeholder="0,00"
             />
           </div>
-          {!editingGoal && (
-            <div className="grid gap-2">
-              <Label htmlFor="goal-initialAmount">Valor inicial</Label>
-              <CurrencyInput
-                id="goal-initialAmount"
-                value={formData.initialAmount}
-                onChange={(valueInCents) =>
-                  setFormData({ ...formData, initialAmount: valueInCents })
-                }
-                placeholder="0,00"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Row 3: Target Date + Destination Account */}
-        <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="goal-targetDate">Data limite</Label>
+            <Label htmlFor="goal-targetDate">Data alvo</Label>
             <Input
               id="goal-targetDate"
               type="date"
@@ -322,15 +352,92 @@ export function GoalFormModal({
               min={new Date().toISOString().split("T")[0]}
             />
           </div>
-          <AccountSelector
-            value={formData.accountId}
-            onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
-            accounts={accounts}
-            label="Conta destino"
-            allowNone={false}
-            placeholder="Selecione uma conta"
-          />
         </div>
+
+        {/* Linha 2: Conta origem + Conta destino */}
+        {isSharedDuoGoal ? (
+          // Meta conjunta Duo: conta destino + contribuição por membro
+          <div className="grid gap-3">
+            <AccountSelector
+              value={formData.accountId}
+              onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
+              accounts={accounts}
+              label="Conta destino"
+              allowNone={false}
+              placeholder="Onde guardar"
+            />
+            <div className="rounded-lg border p-3 grid gap-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contribuicao mensal por membro</p>
+              {members.map((member) => {
+                const setting = memberSettings.find((s) => s.memberId === member.id);
+                return (
+                  <div key={member.id} className="grid gap-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: member.color || '#6366f1' }}
+                      />
+                      <span className="text-sm font-medium">{member.name.split(' ')[0]}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <AccountSelector
+                        value={setting?.fromAccountId ?? ''}
+                        onChange={(value) => updateMemberSetting(member.id, 'fromAccountId', value || '')}
+                        accounts={accounts}
+                        label="Conta origem"
+                        allowNone={true}
+                        placeholder="Conta do membro"
+                      />
+                      <div className="grid gap-2">
+                        <Label className="text-xs">Valor mensal</Label>
+                        <CurrencyInput
+                          value={setting?.monthlyAmount ?? 0}
+                          onChange={(v) => updateMemberSetting(member.id, 'monthlyAmount', v)}
+                          placeholder="0,00"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          // Meta pessoal: conta origem + conta destino simples
+          <div className="grid grid-cols-2 gap-4">
+            <AccountSelector
+              value={formData.fromAccountId}
+              onChange={(value) => setFormData({ ...formData, fromAccountId: value || '' })}
+              accounts={accounts}
+              label="Conta origem"
+              allowNone={true}
+              placeholder="De onde sai o dinheiro"
+            />
+            <AccountSelector
+              value={formData.accountId}
+              onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
+              accounts={accounts}
+              label="Conta destino"
+              allowNone={false}
+              placeholder="Onde guardar"
+            />
+          </div>
+        )}
+
+        {/* Valor inicial - apenas na criacao */}
+        {!editingGoal && (
+          <div className="grid gap-2">
+            <Label htmlFor="goal-initialAmount">Valor ja guardado</Label>
+            <CurrencyInput
+              id="goal-initialAmount"
+              value={formData.initialAmount}
+              onChange={(valueInCents) =>
+                setFormData({ ...formData, initialAmount: valueInCents })
+              }
+              placeholder="0,00"
+            />
+          </div>
+        )}
       </div>
     </FormModalWrapper>
   );

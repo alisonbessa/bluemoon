@@ -117,6 +117,7 @@ export const POST = withAuthRequired(async (req, context) => {
       .insert(goalContributions)
       .values({
         goalId,
+        memberId: currentMemberId,
         fromAccountId,
         transactionId: newTransaction.id,
         year,

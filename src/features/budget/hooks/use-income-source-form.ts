@@ -26,6 +26,7 @@ interface UseIncomeSourceFormReturn {
   // Create mode
   isFormOpen: boolean;
   isEditing: boolean;
+  isForkMode: boolean;
   editingSource: IncomeSource | null;
   openCreate: (preselectedMemberId?: string) => void;
   openEdit: (source: IncomeSource) => void;
@@ -83,6 +84,7 @@ export function useIncomeSourceForm({
   // Form open state
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSource, setEditingSource] = useState<IncomeSource | null>(null);
+  const [isForkMode, setIsForkMode] = useState(false);
   const [formData, setFormData] = useState<IncomeSourceFormData>(initialFormData);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -105,6 +107,7 @@ export function useIncomeSourceForm({
         memberId: preselectedMemberId || members[0]?.id,
       });
       setEditingSource(null);
+      setIsForkMode(false);
       setErrors({});
       setIsFormOpen(true);
     },
@@ -125,10 +128,11 @@ export function useIncomeSourceForm({
       startYear: source.startYear || undefined,
       startMonth: source.startMonth || undefined,
       memberId: source.member?.id || source.memberId || undefined,
-      accountId: source.account?.id,
+      accountId: source.account?.id ?? source.accountId ?? undefined,
       isAutoConfirm: source.isAutoConfirm || false,
     });
     setEditingSource(source);
+    setIsForkMode(false);
     setErrors({});
     setIsFormOpen(true);
   }, []);
@@ -147,10 +151,11 @@ export function useIncomeSourceForm({
       startYear,
       startMonth,
       memberId: source.member?.id || source.memberId || undefined,
-      accountId: source.account?.id,
+      accountId: source.account?.id ?? source.accountId ?? undefined,
       isAutoConfirm: source.isAutoConfirm || false,
     });
     setEditingSource(null); // create mode
+    setIsForkMode(true);
     setErrors({});
     setIsFormOpen(true);
   }, []);
@@ -159,6 +164,7 @@ export function useIncomeSourceForm({
   const closeForm = useCallback(() => {
     setIsFormOpen(false);
     setEditingSource(null);
+    setIsForkMode(false);
     setErrors({});
   }, []);
 
@@ -278,6 +284,7 @@ export function useIncomeSourceForm({
     // Form state
     isFormOpen,
     isEditing: !!editingSource,
+    isForkMode,
     editingSource,
     openCreate,
     openEdit,

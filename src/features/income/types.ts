@@ -35,6 +35,7 @@ export interface IncomeSource {
   endYear?: number | null;
   endMonth?: number | null;
   memberId: string | null;
+  accountId?: string | null;
   member?: { id: string; name: string; color?: string | null } | null;
   account?: { id: string; name: string; icon?: string | null } | null;
   isAutoConfirm?: boolean;

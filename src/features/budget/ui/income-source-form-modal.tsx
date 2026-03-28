@@ -63,6 +63,7 @@ interface IncomeSourceFormModalProps {
   onSubmit: () => Promise<void>;
   isSubmitting: boolean;
   isEditing: boolean;
+  isForkMode?: boolean;
 
   // Form data
   formData: IncomeSourceFormData;
@@ -88,6 +89,7 @@ export function IncomeSourceFormModal({
   onSubmit,
   isSubmitting,
   isEditing,
+  isForkMode = false,
   formData,
   onFieldChange,
   errors,
@@ -95,19 +97,22 @@ export function IncomeSourceFormModal({
   filteredAccounts,
   currentUserMemberId,
 }: IncomeSourceFormModalProps) {
+  const isEditMode = isEditing || isForkMode;
   return (
     <FormModalWrapper
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
-      title={isEditing ? 'Editar Fonte de Renda' : 'Nova Fonte de Renda'}
+      title={isEditMode ? 'Editar Fonte de Renda' : 'Nova Fonte de Renda'}
       description={
-        isEditing
+        isForkMode
+          ? 'Altere os dados a partir deste mes'
+          : isEditing
           ? 'Altere os dados da fonte de renda'
           : 'Adicione uma nova fonte de renda ao seu planejamento'
       }
       isSubmitting={isSubmitting}
       onSubmit={onSubmit}
-      submitLabel={isEditing ? 'Salvar' : 'Adicionar'}
+      submitLabel={isEditMode ? 'Salvar' : 'Adicionar'}
       size="default"
     >
       <div className="grid gap-4">

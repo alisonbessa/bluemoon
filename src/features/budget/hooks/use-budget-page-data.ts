@@ -89,9 +89,9 @@ export function useBudgetPageData(
     fallbackData: options?.fallbackAllocationsData ?? undefined,
   });
 
-  // Fetch goals (only when we have a budget, filtered by viewMode)
+  // Fetch goals (only when we have a budget, filtered by viewMode + current month for confirmation status)
   const goalsKey = primaryBudgetId
-    ? `/api/app/goals?budgetId=${primaryBudgetId}${vm}`
+    ? `/api/app/goals?budgetId=${primaryBudgetId}&year=${year}&month=${month}${vm}`
     : null;
 
   const {

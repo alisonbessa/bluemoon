@@ -134,6 +134,7 @@ export function BudgetPageClient({
   // Local UI state
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false);
   const [showCopyHintModal, setShowCopyHintModal] = useState(false);
+  const [confirmingGoalId, setConfirmingGoalId] = useState<string | null>(null);
 
   // Income edit scope dialog state
   const [scopeDialog, setScopeDialog] = useState<{
@@ -232,6 +233,37 @@ export function BudgetPageClient({
     refreshData();
   }, [budgetId, currentYear, currentMonth, refreshData]);
 
+  const handleConfirmGoal = useCallback(async (goal: { id: string; fromAccountId?: string | null; monthlyTarget: number }) => {
+    if (!goal.fromAccountId || goal.monthlyTarget <= 0) return;
+    setConfirmingGoalId(goal.id);
+    try {
+      const response = await fetch(`/api/app/goals/${goal.id}/contribute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: goal.monthlyTarget,
+          year: currentYear,
+          month: currentMonth,
+          fromAccountId: goal.fromAccountId,
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        const { toast } = await import('sonner');
+        toast.error(err.message || 'Erro ao confirmar meta');
+        return;
+      }
+      const { toast } = await import('sonner');
+      toast.success('Contribuicao confirmada!');
+      refreshData();
+    } catch {
+      const { toast } = await import('sonner');
+      toast.error('Erro ao confirmar meta');
+    } finally {
+      setConfirmingGoalId(null);
+    }
+  }, [currentYear, currentMonth, refreshData]);
+
   const budgetActions = useBudgetActions({
     budgetId,
     year: currentYear,
@@ -321,6 +353,8 @@ export function BudgetPageClient({
               onRestoreIncome={handleRestoreIncome}
               refreshData={refreshData}
               onAddGoal={() => setIsGoalFormOpen(true)}
+              onConfirmGoal={handleConfirmGoal}
+              confirmingGoalId={confirmingGoalId}
               hasContributionModel={hasContributionModel}
               showSectionHeaders={hasContributionModel}
             />
@@ -444,6 +478,7 @@ export function BudgetPageClient({
         onSubmit={incomeSourceForm.submit}
         isSubmitting={incomeSourceForm.isSubmitting}
         isEditing={incomeSourceForm.isEditing}
+        isForkMode={incomeSourceForm.isForkMode}
         formData={incomeSourceForm.formData}
         errors={incomeSourceForm.errors}
         members={members}
@@ -545,6 +580,8 @@ interface BudgetSectionBlockProps {
   onRestoreIncome: (item: IncomeSourceData) => void;
   refreshData: () => void;
   onAddGoal: () => void;
+  onConfirmGoal: (goal: { id: string; fromAccountId?: string | null; monthlyTarget: number }) => Promise<void>;
+  confirmingGoalId: string | null;
   hasContributionModel: boolean;
   showSectionHeaders: boolean;
 }
@@ -563,6 +600,8 @@ function BudgetSectionBlock({
   onRestoreIncome,
   refreshData,
   onAddGoal,
+  onConfirmGoal,
+  confirmingGoalId,
   hasContributionModel,
   showSectionHeaders,
 }: BudgetSectionBlockProps) {
@@ -628,6 +667,8 @@ function BudgetSectionBlock({
           isExpanded={uiState.isGoalsExpanded}
           onToggle={uiState.toggleGoalsSection}
           onAddGoal={onAddGoal}
+          onConfirmGoal={onConfirmGoal}
+          confirmingGoalId={confirmingGoalId}
         />
       )}
 

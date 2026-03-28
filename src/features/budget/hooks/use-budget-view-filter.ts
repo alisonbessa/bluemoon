@@ -17,6 +17,9 @@ interface GoalLocal {
   monthsRemaining: number;
   isCompleted: boolean;
   memberId?: string | null;
+  fromAccountId?: string | null;
+  mySettings?: { fromAccountId?: string | null; monthlyAmount?: number | null } | null;
+  confirmedThisMonth?: boolean;
   isOtherMemberGoal?: boolean;
 }
 

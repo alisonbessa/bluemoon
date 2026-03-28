@@ -13,11 +13,23 @@ export interface GoalFormData {
   initialAmount?: number;
 }
 
+export interface GoalMemberSetting {
+  id: string;
+  goalId: string;
+  memberId: string;
+  fromAccountId?: string | null;
+  monthlyAmount?: number | null;
+}
+
 export interface Goal {
   id: string;
   budgetId: string;
   memberId?: string | null;
   accountId?: string;
+  fromAccountId?: string | null;
+  memberSettings?: GoalMemberSetting[];
+  mySettings?: GoalMemberSetting | null;
+  confirmedThisMonth?: boolean;
   name: string;
   icon: string;
   color: string;
