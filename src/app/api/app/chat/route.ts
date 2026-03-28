@@ -161,14 +161,14 @@ async function getOrCreateKnowledgeCache(apiKey: string): Promise<string | null>
         },
       ],
       systemInstruction: HELP_SYSTEM_INSTRUCTION,
-      ttlSeconds: 3600, // 1 hour
+      ttlSeconds: 86400, // 24 hours
     });
 
     cachedContentName = cache.name!;
-    // Parse expiry from cache response, or default to 55 minutes from now
+    // Parse expiry from cache response, or default to 23 hours from now
     cacheExpiresAt = cache.expireTime
       ? new Date(cache.expireTime).getTime()
-      : Date.now() + 55 * 60 * 1000;
+      : Date.now() + 23 * 60 * 60 * 1000;
 
     logger.info(`Gemini knowledge cache created: ${cachedContentName}, expires: ${new Date(cacheExpiresAt).toISOString()}`);
     return cachedContentName;
@@ -182,8 +182,8 @@ async function getOrCreateKnowledgeCache(apiKey: string): Promise<string | null>
 // Server-side response cache for help answers
 // ============================================
 
-const RESPONSE_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
-const MAX_RESPONSE_CACHE_SIZE = 100;
+const RESPONSE_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+const MAX_RESPONSE_CACHE_SIZE = 200;
 
 const responseCache = new Map<string, { answer: string | null; expiresAt: number }>();
 
