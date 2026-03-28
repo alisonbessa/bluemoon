@@ -24,6 +24,7 @@ import { getTodayNoonUTC } from "@/integrations/messaging/lib/utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { getVisibleCategories } from "@/integrations/messaging/lib/ai-handlers/category-utils";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleAICacheManager } from "@google/generative-ai/server";
 import { PLATFORM_KNOWLEDGE } from "@/integrations/web-chat/platform-knowledge";
 import type {
   MessagingAdapter,
@@ -119,11 +120,120 @@ function htmlToPlainText(html: string): string {
     .replace(/<[^>]+>/g, "");
 }
 
+// ============================================
+// Gemini Context Cache for knowledge base
+// ============================================
+
+const HELP_MODEL = "models/gemini-2.5-flash";
+const HELP_SYSTEM_INSTRUCTION = `Voce e o assistente do HiveBudget, uma plataforma de gestao financeira. Responda a pergunta do usuario com base EXCLUSIVAMENTE na documentacao fornecida. Seja conciso e direto.
+
+REGRAS:
+- Responda APENAS com base na documentacao fornecida
+- Se a resposta NAO estiver na documentacao, responda exatamente: "NAO_ENCONTRADO"
+- Seja amigavel e use linguagem simples
+- Nao invente funcionalidades que nao existem
+- Mantenha a resposta curta (maximo 3-4 paragrafos)
+- Nao use markdown, apenas texto simples com quebras de linha`;
+
+/** Cached Gemini context for the knowledge base (module-level singleton) */
+let cachedContentName: string | null = null;
+let cacheExpiresAt: number = 0;
+
+/**
+ * Get or create a Gemini cached content with the platform knowledge base.
+ * The cache persists across requests (module-level) and auto-recreates on expiry.
+ */
+async function getOrCreateKnowledgeCache(apiKey: string): Promise<string | null> {
+  // Return existing cache if still valid (with 5 min safety margin)
+  if (cachedContentName && Date.now() < cacheExpiresAt - 5 * 60 * 1000) {
+    return cachedContentName;
+  }
+
+  try {
+    const cacheManager = new GoogleAICacheManager(apiKey);
+
+    const cache = await cacheManager.create({
+      model: HELP_MODEL,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: `DOCUMENTACAO DA PLATAFORMA:\n${PLATFORM_KNOWLEDGE}` }],
+        },
+      ],
+      systemInstruction: HELP_SYSTEM_INSTRUCTION,
+      ttlSeconds: 3600, // 1 hour
+    });
+
+    cachedContentName = cache.name!;
+    // Parse expiry from cache response, or default to 55 minutes from now
+    cacheExpiresAt = cache.expireTime
+      ? new Date(cache.expireTime).getTime()
+      : Date.now() + 55 * 60 * 1000;
+
+    logger.info(`Gemini knowledge cache created: ${cachedContentName}, expires: ${new Date(cacheExpiresAt).toISOString()}`);
+    return cachedContentName;
+  } catch (error) {
+    logger.error("Failed to create Gemini knowledge cache:", error);
+    return null;
+  }
+}
+
+// ============================================
+// Server-side response cache for help answers
+// ============================================
+
+const RESPONSE_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+const MAX_RESPONSE_CACHE_SIZE = 100;
+
+const responseCache = new Map<string, { answer: string | null; expiresAt: number }>();
+
+function normalizeQuestion(q: string): string {
+  return q.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s]/g, "").trim();
+}
+
+function getCachedResponse(question: string): string | null | undefined {
+  const key = normalizeQuestion(question);
+  const entry = responseCache.get(key);
+  if (!entry) return undefined; // not in cache
+  if (Date.now() > entry.expiresAt) {
+    responseCache.delete(key);
+    return undefined; // expired
+  }
+  return entry.answer; // may be null (meaning "not found" was cached)
+}
+
+function setCachedResponse(question: string, answer: string | null): void {
+  // Evict oldest entries if cache is full
+  if (responseCache.size >= MAX_RESPONSE_CACHE_SIZE) {
+    const firstKey = responseCache.keys().next().value;
+    if (firstKey) responseCache.delete(firstKey);
+  }
+  responseCache.set(normalizeQuestion(question), {
+    answer,
+    expiresAt: Date.now() + RESPONSE_CACHE_TTL,
+  });
+}
+
+// ============================================
+// Answer help questions (with dual caching)
+// ============================================
+
 /**
  * Answer a help/FAQ question using Gemini + platform knowledge base.
+ * Uses two layers of caching:
+ * 1. Server-side response cache (avoids API calls for repeated questions)
+ * 2. Gemini context cache (90% discount on knowledge base tokens)
+ * Falls back to sending full knowledge base if caching is unavailable.
  * Returns null if unable to answer (should suggest sending to human).
  */
 async function answerHelpQuestion(question: string): Promise<string | null> {
+  // Layer 1: Check server-side response cache
+  const cached = getCachedResponse(question);
+  if (cached !== undefined) {
+    logger.info(`Help question cache hit: "${question.substring(0, 50)}..."`);
+    return cached;
+  }
+
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -132,41 +242,46 @@ async function answerHelpQuestion(question: string): Promise<string | null> {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: 512,
-      },
-    });
+    let answer: string;
 
-    const prompt = `Voce e o assistente do HiveBudget, uma plataforma de gestao financeira. Responda a pergunta do usuario com base EXCLUSIVAMENTE na documentacao abaixo. Seja conciso e direto.
+    // Layer 2: Try using Gemini context cache
+    const cacheName = await getOrCreateKnowledgeCache(apiKey);
 
-DOCUMENTACAO DA PLATAFORMA:
-${PLATFORM_KNOWLEDGE}
-
-REGRAS:
-- Responda APENAS com base na documentacao acima
-- Se a resposta NAO estiver na documentacao, responda exatamente: "NAO_ENCONTRADO"
-- Seja amigavel e use linguagem simples
-- Nao invente funcionalidades que nao existem
-- Mantenha a resposta curta (maximo 3-4 paragrafos)
-- Nao use markdown, apenas texto simples com quebras de linha
-
-PERGUNTA DO USUARIO: "${question}"
-
-RESPOSTA:`;
-
-    const result = await model.generateContent(prompt);
-    const answer = result.response.text().trim();
-
-    if (answer === "NAO_ENCONTRADO" || answer.includes("NAO_ENCONTRADO")) {
-      return null;
+    if (cacheName) {
+      // Use cached model (knowledge base is pre-loaded, only the question is sent)
+      const cacheManager = new GoogleAICacheManager(apiKey);
+      const cachedContent = await cacheManager.get(cacheName);
+      const model = genAI.getGenerativeModelFromCachedContent(cachedContent, {
+        generationConfig: { temperature: 0.3, maxOutputTokens: 512 },
+      });
+      const result = await model.generateContent(question);
+      answer = result.response.text().trim();
+    } else {
+      // Fallback: send full knowledge base in prompt (no caching discount)
+      logger.warn("Gemini cache unavailable, falling back to full prompt");
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        generationConfig: { temperature: 0.3, maxOutputTokens: 512 },
+      });
+      const prompt = `${HELP_SYSTEM_INSTRUCTION}\n\nDOCUMENTACAO DA PLATAFORMA:\n${PLATFORM_KNOWLEDGE}\n\nPERGUNTA DO USUARIO: "${question}"\n\nRESPOSTA:`;
+      const result = await model.generateContent(prompt);
+      answer = result.response.text().trim();
     }
 
-    return answer;
+    const isNotFound = answer === "NAO_ENCONTRADO" || answer.includes("NAO_ENCONTRADO");
+    const finalAnswer = isNotFound ? null : answer;
+
+    // Store in response cache (including "not found" to avoid re-querying)
+    setCachedResponse(question, finalAnswer);
+
+    return finalAnswer;
   } catch (error) {
     logger.error("Error answering help question:", error);
+    // If cache expired mid-request, clear it and retry once
+    if (cachedContentName && String(error).includes("not found")) {
+      cachedContentName = null;
+      cacheExpiresAt = 0;
+    }
     return null;
   }
 }
