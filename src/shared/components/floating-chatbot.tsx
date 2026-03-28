@@ -112,7 +112,7 @@ export function FloatingChatbot() {
         actions: [
           { label: "Reportar bug", value: "start_bug", icon: <Bug className="h-3.5 w-3.5" /> },
           { label: "Sugerir melhoria", value: "start_suggestion", icon: <Lightbulb className="h-3.5 w-3.5" /> },
-          { label: "Tirar duvida", value: "start_chat", icon: <MessageSquare className="h-3.5 w-3.5" /> },
+          { label: "Tirar dúvida", value: "start_chat", icon: <MessageSquare className="h-3.5 w-3.5" /> },
         ],
       },
     ]);
@@ -124,6 +124,74 @@ export function FloatingChatbot() {
   const addMessage = useCallback((msg: Omit<ChatMessage, "id">) => {
     setMessages((prev) => [...prev, { ...msg, id: crypto.randomUUID() }]);
   }, []);
+
+  // ============================================
+  // Confirm pending action
+  // ============================================
+
+  const handleConfirm = useCallback(async () => {
+    if (!pendingAction) return;
+
+    setIsLoading(true);
+    addMessage({ role: "user", content: "Confirmar" });
+
+    try {
+      const res = await fetch("/api/app/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "confirm", pendingAction }),
+      });
+
+      if (!res.ok) throw new Error("Failed");
+
+      const data = await res.json();
+      setPendingAction(null);
+
+      for (const botMsg of data.messages || []) {
+        addMessage({
+          role: "assistant",
+          content: botMsg.content,
+          actions: [{ label: "Recomeçar", value: "restart", icon: <RotateCcw className="h-3.5 w-3.5" /> }],
+        });
+      }
+    } catch {
+      addMessage({ role: "assistant", content: "Erro ao confirmar operação. Tente novamente." });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pendingAction, addMessage]);
+
+  // ============================================
+  // Send to human (creates feedback of type "other")
+  // ============================================
+
+  const handleSendToHuman = useCallback(async () => {
+    // Find the last user message
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    if (!lastUserMsg) return;
+
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/app/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "other", message: lastUserMsg.content, page: pathname }),
+      });
+
+      if (!res.ok) throw new Error("Failed");
+
+      addMessage({
+        role: "assistant",
+        content: "Mensagem enviada para nossa equipe! Vamos analisar e retornar em breve.",
+        actions: [{ label: "Recomeçar", value: "restart", icon: <RotateCcw className="h-3.5 w-3.5" /> }],
+      });
+    } catch {
+      addMessage({ role: "assistant", content: "Erro ao enviar mensagem. Tente novamente." });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [messages, addMessage, pathname]);
 
   // ============================================
   // Action handlers
@@ -139,14 +207,14 @@ export function FloatingChatbot() {
 
         case "start_suggestion":
           setMode("suggestion");
-          addMessage({ role: "assistant", content: "Compartilhe sua sugestao de melhoria! Conte o que gostaria de ver na plataforma." });
+          addMessage({ role: "assistant", content: "Compartilhe sua sugestão de melhoria! Conte o que gostaria de ver na plataforma." });
           break;
 
         case "start_chat":
           setMode("chat");
           addMessage({
             role: "assistant",
-            content: "Estou pronto para ajudar! Voce pode:\n\n- Perguntar sobre a plataforma: \"como registro um gasto?\"\n- Registrar gastos: \"gastei 50 no mercado\"\n- Registrar receitas: \"recebi 5000 de salario\"\n- Consultar saldo: \"quanto gastei esse mes?\"\n- Consultar categoria: \"quanto sobrou em alimentacao?\"\n\nO que deseja fazer?",
+            content: "Estou pronto para ajudar! Você pode:\n\n- Perguntar sobre a plataforma: \"como registro um gasto?\"\n- Registrar gastos: \"gastei 50 no mercado\"\n- Registrar receitas: \"recebi 5000 de salário\"\n- Consultar saldo: \"quanto gastei esse mês?\"\n- Consultar categoria: \"quanto sobrou em alimentação?\"\n\nO que deseja fazer?",
           });
           break;
 
@@ -156,7 +224,7 @@ export function FloatingChatbot() {
 
         case "cancel":
           setPendingAction(null);
-          addMessage({ role: "assistant", content: "Operacao cancelada. Em que mais posso ajudar?" });
+          addMessage({ role: "assistant", content: "Operação cancelada. Em que mais posso ajudar?" });
           break;
 
         case "restart":
@@ -168,7 +236,7 @@ export function FloatingChatbot() {
           break;
       }
     },
-    [addMessage, resetChat]
+    [addMessage, resetChat, handleConfirm, handleSendToHuman]
   );
 
   // ============================================
@@ -193,11 +261,11 @@ export function FloatingChatbot() {
 
       if (!res.ok) throw new Error("Failed");
 
-      const label = mode === "bug" ? "Bug reportado" : "Sugestao registrada";
+      const label = mode === "bug" ? "Bug reportado" : "Sugestão registrada";
       addMessage({
         role: "assistant",
         content: `${label} com sucesso! Obrigado pelo feedback.`,
-        actions: [{ label: "Recomecar", value: "restart", icon: <RotateCcw className="h-3.5 w-3.5" /> }],
+        actions: [{ label: "Recomeçar", value: "restart", icon: <RotateCcw className="h-3.5 w-3.5" /> }],
       });
       setMode("initial");
     } catch {
@@ -236,7 +304,7 @@ export function FloatingChatbot() {
 
         if (botMsg.suggestHuman) {
           actions.push({ label: "Enviar para humano", value: "send_to_human", icon: <UserIcon className="h-3.5 w-3.5" /> });
-          actions.push({ label: "Recomecar", value: "restart", icon: <RotateCcw className="h-3.5 w-3.5" /> });
+          actions.push({ label: "Recomeçar", value: "restart", icon: <RotateCcw className="h-3.5 w-3.5" /> });
         }
 
         addMessage({
@@ -270,81 +338,13 @@ export function FloatingChatbot() {
           const updated = [...prev];
           const last = updated[updated.length - 1];
           if (last && last.role === "assistant") {
-            last.actions = [{ label: "Recomecar", value: "restart", icon: <RotateCcw className="h-3.5 w-3.5" /> }];
+            last.actions = [{ label: "Recomeçar", value: "restart", icon: <RotateCcw className="h-3.5 w-3.5" /> }];
           }
           return updated;
         });
       }
     } catch {
       addMessage({ role: "assistant", content: "Erro ao processar mensagem. Tente novamente." });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // ============================================
-  // Confirm pending action
-  // ============================================
-
-  const handleConfirm = async () => {
-    if (!pendingAction) return;
-
-    setIsLoading(true);
-    addMessage({ role: "user", content: "Confirmar" });
-
-    try {
-      const res = await fetch("/api/app/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "confirm", pendingAction }),
-      });
-
-      if (!res.ok) throw new Error("Failed");
-
-      const data = await res.json();
-      setPendingAction(null);
-
-      for (const botMsg of data.messages || []) {
-        addMessage({
-          role: "assistant",
-          content: botMsg.content,
-          actions: [{ label: "Recomecar", value: "restart", icon: <RotateCcw className="h-3.5 w-3.5" /> }],
-        });
-      }
-    } catch {
-      addMessage({ role: "assistant", content: "Erro ao confirmar operacao. Tente novamente." });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // ============================================
-  // Send to human (creates feedback of type "other")
-  // ============================================
-
-  const handleSendToHuman = async () => {
-    // Find the last user message
-    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
-    if (!lastUserMsg) return;
-
-    setIsLoading(true);
-
-    try {
-      const res = await fetch("/api/app/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "other", message: lastUserMsg.content, page: pathname }),
-      });
-
-      if (!res.ok) throw new Error("Failed");
-
-      addMessage({
-        role: "assistant",
-        content: "Mensagem enviada para nossa equipe! Vamos analisar e retornar em breve.",
-        actions: [{ label: "Recomecar", value: "restart", icon: <RotateCcw className="h-3.5 w-3.5" /> }],
-      });
-    } catch {
-      addMessage({ role: "assistant", content: "Erro ao enviar mensagem. Tente novamente." });
     } finally {
       setIsLoading(false);
     }
@@ -509,7 +509,7 @@ export function FloatingChatbot() {
                     mode === "bug"
                       ? "Descreva o bug..."
                       : mode === "suggestion"
-                        ? "Descreva sua sugestao..."
+                        ? "Descreva sua sugestão..."
                         : "Digite sua mensagem..."
                   }
                   className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"

@@ -1,7 +1,12 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
-import { transactions } from "@/db/schema/transactions";
+import { transactions, financialAccounts, categories } from "@/db/schema";
+import { eq, and, sql } from "drizzle-orm";
+import {
+  getFirstInstallmentDate,
+  calculateInstallmentDates,
+} from "@/shared/lib/billing-cycle";
 import { z } from "zod";
 import {
   successResponse,
@@ -30,8 +35,6 @@ import type {
   MessagingAdapter,
   ChatId,
   MessageId,
-  ConversationStep,
-  ConversationContext,
   Choice,
   SendMessageOptions,
   ExtractedQueryData,
@@ -364,10 +367,10 @@ async function handleMessage(userId: string, message: string) {
         messages: [{
           content: "Olá! Posso ajudar com:\n\n" +
             "- Registrar gastos: \"gastei 50 no mercado\"\n" +
-            "- Registrar receitas: \"recebi 5000 de salario\"\n" +
-            "- Consultar saldo: \"quanto gastei esse mes?\"\n" +
-            "- Consultar categoria: \"quanto sobrou em alimentacao?\"\n" +
-            "- Consultar metas: \"como esta minha meta?\"\n\n" +
+            "- Registrar receitas: \"recebi 5000 de salário\"\n" +
+            "- Consultar saldo: \"quanto gastei esse mês?\"\n" +
+            "- Consultar categoria: \"quanto sobrou em alimentação?\"\n" +
+            "- Consultar metas: \"como está minha meta?\"\n\n" +
             "O que deseja fazer?",
         }],
       });
@@ -385,7 +388,7 @@ async function handleMessage(userId: string, message: string) {
       // Knowledge base couldn't answer - suggest sending to human
       return successResponse({
         messages: [{
-          content: "Nao encontrei uma resposta para sua pergunta. Posso ajudar com registro de gastos, receitas e consultas financeiras.\n\nSe precisa de outro tipo de ajuda, que tal enviar essa mensagem para um humano?",
+          content: "Não encontrei uma resposta para sua pergunta. Posso ajudar com registro de gastos, receitas e consultas financeiras.\n\nSe precisa de outro tipo de ajuda, que tal enviar essa mensagem para um humano?",
           suggestHuman: true,
         }],
       });
@@ -440,7 +443,7 @@ async function handleExpensePreview(data: ExtractedExpenseData, userContext: {
 
   if (!accountId) {
     return successResponse({
-      messages: [{ content: "Voce precisa configurar uma conta padrao no app primeiro." }],
+      messages: [{ content: "Você precisa configurar uma conta padrão no app primeiro." }],
     });
   }
 
@@ -521,7 +524,7 @@ async function handleIncomePreview(data: ExtractedIncomeData, userContext: {
 
   if (!accountId) {
     return successResponse({
-      messages: [{ content: "Voce precisa configurar uma conta padrao no app primeiro." }],
+      messages: [{ content: "Você precisa configurar uma conta padrão no app primeiro." }],
     });
   }
 
@@ -566,48 +569,180 @@ async function handleConfirm(
   const budgetInfo = await getUserBudgetInfo(userId);
   if (!budgetInfo || budgetInfo.budget.id !== data.budgetId) {
     return successResponse({
-      messages: [{ content: "Erro de autorizacao. Tente novamente." }],
+      messages: [{ content: "Erro de autorização. Tente novamente." }],
     });
   }
 
+  const verifiedBudgetId = budgetInfo.budget.id;
+
+  // Validate accountId belongs to this budget
+  const accountId = data.accountId as string;
+  if (accountId) {
+    const [account] = await db
+      .select({ id: financialAccounts.id })
+      .from(financialAccounts)
+      .where(and(eq(financialAccounts.id, accountId), eq(financialAccounts.budgetId, verifiedBudgetId)));
+    if (!account) {
+      return successResponse({ messages: [{ content: "Conta inválida." }] });
+    }
+  }
+
+  // Validate categoryId belongs to this budget (if provided)
+  const categoryId = data.categoryId as string | undefined;
+  if (categoryId) {
+    const [category] = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(and(eq(categories.id, categoryId), eq(categories.budgetId, verifiedBudgetId)));
+    if (!category) {
+      return successResponse({ messages: [{ content: "Categoria inválida." }] });
+    }
+  }
+
   if (type === "expense") {
-    return confirmExpense(data, budgetInfo.member.id);
+    return confirmExpense(data, budgetInfo.member.id, verifiedBudgetId);
   }
 
   if (type === "income") {
-    return confirmIncome(data, budgetInfo.member.id);
+    return confirmIncome(data, budgetInfo.member.id, verifiedBudgetId);
   }
 
   return successResponse({
-    messages: [{ content: "Acao invalida." }],
+    messages: [{ content: "Ação inválida." }],
   });
 }
 
-async function confirmExpense(data: Record<string, unknown>, memberId: string) {
+async function confirmExpense(data: Record<string, unknown>, memberId: string, budgetId: string) {
   try {
     const amount = Number(data.amount);
     if (!amount || amount <= 0) {
-      return successResponse({ messages: [{ content: "Valor invalido." }] });
+      return successResponse({ messages: [{ content: "Valor inválido." }] });
     }
 
-    const [newTransaction] = await db
-      .insert(transactions)
-      .values({
-        budgetId: data.budgetId as string,
-        accountId: data.accountId as string,
-        categoryId: (data.categoryId as string) || null,
-        memberId,
-        type: "expense",
-        status: "cleared",
-        amount,
-        description: (data.description as string) || null,
-        date: data.date ? new Date(data.date as string) : getTodayNoonUTC(),
-        isInstallment: (data.isInstallment as boolean) || false,
-        totalInstallments: (data.totalInstallments as number) || null,
-        installmentNumber: (data.isInstallment as boolean) ? 1 : null,
-        source: "web_chat",
-      })
-      .returning();
+    const accountId = data.accountId as string;
+    const categoryId = (data.categoryId as string) || null;
+    const isInstallment = (data.isInstallment as boolean) || false;
+    const totalInstallments = (data.totalInstallments as number) || null;
+    const transactionDate = data.date ? new Date(data.date as string) : getTodayNoonUTC();
+    const description = (data.description as string) || null;
+
+    // Query account type/closingDay for installment date calculation
+    const [sourceAccount] = await db
+      .select({ type: financialAccounts.type, closingDay: financialAccounts.closingDay })
+      .from(financialAccounts)
+      .where(and(eq(financialAccounts.id, accountId), eq(financialAccounts.budgetId, budgetId)));
+
+    if (!sourceAccount) {
+      return successResponse({ messages: [{ content: "Conta não encontrada." }] });
+    }
+
+    if (isInstallment && totalInstallments && totalInstallments > 1) {
+      const installmentAmount = Math.round(amount / totalInstallments);
+      const isCreditCard = sourceAccount.type === "credit_card";
+      const closingDay = sourceAccount.closingDay;
+
+      let installmentDates: Date[];
+      if (isCreditCard && closingDay) {
+        const firstDate = getFirstInstallmentDate(transactionDate, closingDay);
+        installmentDates = calculateInstallmentDates(firstDate, totalInstallments);
+      } else {
+        installmentDates = Array.from({ length: totalInstallments }, (_, i) => {
+          const d = new Date(transactionDate);
+          d.setMonth(d.getMonth() + i);
+          return d;
+        });
+      }
+
+      const [parentTransaction] = await db.transaction(async (tx) => {
+        const [parent] = await tx
+          .insert(transactions)
+          .values({
+            budgetId,
+            accountId,
+            categoryId,
+            memberId,
+            type: "expense",
+            status: "cleared",
+            amount: installmentAmount,
+            description,
+            date: installmentDates[0],
+            isInstallment: true,
+            installmentNumber: 1,
+            totalInstallments,
+            source: "web_chat",
+          })
+          .returning();
+
+        const children = Array.from({ length: totalInstallments - 1 }, (_, i) => ({
+          budgetId,
+          accountId,
+          categoryId,
+          memberId,
+          type: "expense" as const,
+          status: "pending" as const,
+          amount: installmentAmount,
+          description,
+          date: installmentDates[i + 1],
+          isInstallment: true,
+          installmentNumber: i + 2,
+          totalInstallments,
+          parentTransactionId: parent.id,
+          source: "web_chat" as const,
+        }));
+
+        if (children.length > 0) {
+          await tx.insert(transactions).values(children);
+        }
+
+        // Credit cards: deduct full amount from limit; others: deduct only first installment
+        const balanceAmount = isCreditCard ? amount : installmentAmount;
+        await tx
+          .update(financialAccounts)
+          .set({ balance: sql`${financialAccounts.balance} - ${balanceAmount}`, updatedAt: new Date() })
+          .where(eq(financialAccounts.id, accountId));
+
+        return [parent];
+      });
+
+      logger.info(`Installment expense created via chat: ${parentTransaction.id} (${totalInstallments}x) by member ${memberId}`);
+
+      return successResponse({
+        messages: [{
+          content: `Gasto parcelado registrado!\n\n` +
+            `Valor: ${formatCurrency(installmentAmount)}/mês (${totalInstallments}x)\n` +
+            (data.description ? `Descrição: ${data.description}\n` : "") +
+            (data.categoryName ? `Categoria: ${data.categoryName}\n` : "") +
+            (data.accountName ? `Conta: ${data.accountName}` : ""),
+        }],
+        completed: true,
+      });
+    }
+
+    // Single transaction — wrap in db.transaction for atomic balance update
+    const newTransaction = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(transactions)
+        .values({
+          budgetId,
+          accountId,
+          categoryId,
+          memberId,
+          type: "expense",
+          status: "cleared",
+          amount,
+          description,
+          date: transactionDate,
+          source: "web_chat",
+        })
+        .returning();
+
+      await tx
+        .update(financialAccounts)
+        .set({ balance: sql`${financialAccounts.balance} - ${amount}`, updatedAt: new Date() })
+        .where(eq(financialAccounts.id, accountId));
+
+      return created;
+    });
 
     logger.info(`Expense created via chat: ${newTransaction.id} by member ${memberId}`);
 
@@ -615,7 +750,7 @@ async function confirmExpense(data: Record<string, unknown>, memberId: string) {
       messages: [{
         content: `Gasto registrado com sucesso!\n\n` +
           `Valor: ${formatCurrency(amount)}\n` +
-          (data.description ? `Descricao: ${data.description}\n` : "") +
+          (data.description ? `Descrição: ${data.description}\n` : "") +
           (data.categoryName ? `Categoria: ${data.categoryName}\n` : "") +
           (data.accountName ? `Conta: ${data.accountName}` : ""),
       }],
@@ -629,28 +764,40 @@ async function confirmExpense(data: Record<string, unknown>, memberId: string) {
   }
 }
 
-async function confirmIncome(data: Record<string, unknown>, memberId: string) {
+async function confirmIncome(data: Record<string, unknown>, memberId: string, budgetId: string) {
   try {
     const amount = Number(data.amount);
     if (!amount || amount <= 0) {
-      return successResponse({ messages: [{ content: "Valor invalido." }] });
+      return successResponse({ messages: [{ content: "Valor inválido." }] });
     }
 
-    const [newTransaction] = await db
-      .insert(transactions)
-      .values({
-        budgetId: data.budgetId as string,
-        accountId: data.accountId as string,
-        incomeSourceId: (data.incomeSourceId as string) || null,
-        memberId,
-        type: "income",
-        status: "cleared",
-        amount,
-        description: (data.description as string) || null,
-        date: data.date ? new Date(data.date as string) : getTodayNoonUTC(),
-        source: "web_chat",
-      })
-      .returning();
+    const accountId = data.accountId as string;
+    const transactionDate = data.date ? new Date(data.date as string) : getTodayNoonUTC();
+
+    const newTransaction = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(transactions)
+        .values({
+          budgetId,
+          accountId,
+          incomeSourceId: (data.incomeSourceId as string) || null,
+          memberId,
+          type: "income",
+          status: "cleared",
+          amount,
+          description: (data.description as string) || null,
+          date: transactionDate,
+          source: "web_chat",
+        })
+        .returning();
+
+      await tx
+        .update(financialAccounts)
+        .set({ balance: sql`${financialAccounts.balance} + ${amount}`, updatedAt: new Date() })
+        .where(eq(financialAccounts.id, accountId));
+
+      return created;
+    });
 
     logger.info(`Income created via chat: ${newTransaction.id} by member ${memberId}`);
 
