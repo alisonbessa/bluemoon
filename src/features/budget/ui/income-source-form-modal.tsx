@@ -5,6 +5,13 @@ import { Label } from '@/shared/ui/label';
 import { Switch } from '@/shared/ui/switch';
 import { CurrencyInput } from '@/shared/ui/currency-input';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/select';
+import {
   FormModalWrapper,
   FrequencySelector,
   DayOfMonthInput,
@@ -14,7 +21,12 @@ import {
 } from '@/shared/molecules';
 import type { IncomeType } from '@/shared/molecules';
 
-type IncomeFrequency = 'monthly' | 'biweekly' | 'weekly';
+type IncomeFrequency = 'monthly' | 'biweekly' | 'weekly' | 'annual' | 'once';
+
+const MONTH_LABELS = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
 
 interface Account {
   id: string;
@@ -36,6 +48,8 @@ interface IncomeSourceFormData {
   contributionAmount?: number | null;
   frequency: IncomeFrequency;
   dayOfMonth?: number;
+  monthOfYear?: number;
+  yearOfPayment?: number;
   memberId?: string;
   accountId?: string;
   isAutoConfirm?: boolean;
@@ -127,7 +141,7 @@ export function IncomeSourceFormModal({
           />
         </div>
 
-        {/* Valor e Dia do Pagamento */}
+        {/* Valor e Dia/Mês do Pagamento */}
         <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-2">
             <Label>Valor *</Label>
@@ -138,13 +152,54 @@ export function IncomeSourceFormModal({
             />
           </div>
 
-          <DayOfMonthInput
-            value={formData.dayOfMonth}
-            onChange={(val) => onFieldChange('dayOfMonth', val)}
-            label="Dia do Pagamento"
-            id="incomeSourceDayOfMonth"
-          />
+          {formData.frequency === 'annual' || formData.frequency === 'once' ? (
+            <div className="grid gap-2">
+              <Label>Mês do Pagamento</Label>
+              <Select
+                value={formData.monthOfYear?.toString() ?? ''}
+                onValueChange={(val) => onFieldChange('monthOfYear', parseInt(val))}
+              >
+                <SelectTrigger className={errors.monthOfYear ? 'border-destructive' : ''}>
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTH_LABELS.map((label, i) => (
+                    <SelectItem key={i + 1} value={(i + 1).toString()}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <DayOfMonthInput
+              value={formData.dayOfMonth}
+              onChange={(val) => onFieldChange('dayOfMonth', val)}
+              label="Dia do Pagamento"
+              id="incomeSourceDayOfMonth"
+            />
+          )}
         </div>
+
+        {/* Ano do Pagamento - only for once (pontual) */}
+        {formData.frequency === 'once' && (
+          <div className="grid gap-2">
+            <Label htmlFor="yearOfPayment">Ano do Pagamento</Label>
+            <Input
+              id="yearOfPayment"
+              type="number"
+              min={2000}
+              max={2100}
+              placeholder={new Date().getFullYear().toString()}
+              value={formData.yearOfPayment?.toString() ?? ''}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                onFieldChange('yearOfPayment', isNaN(val) ? undefined : val);
+              }}
+              className={errors.yearOfPayment ? 'border-destructive' : ''}
+            />
+          </div>
+        )}
 
         {/* Contribuição ao orçamento - only for Duo (multiple members) */}
         {members.length > 1 && (

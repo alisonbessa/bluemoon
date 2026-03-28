@@ -19,6 +19,8 @@ export const incomeFrequencyEnum = z.enum([
   "monthly", // Mensal
   "biweekly", // Quinzenal
   "weekly", // Semanal
+  "annual", // Anual (todo ano no mesmo mês)
+  "once", // Pontual (apenas em um mês/ano específico)
 ]);
 export type IncomeFrequency = z.infer<typeof incomeFrequencyEnum>;
 
@@ -40,6 +42,8 @@ export const incomeSources = pgTable("income_sources", {
   // Recorrência
   frequency: text("frequency").$type<IncomeFrequency>().notNull().default("monthly"),
   dayOfMonth: integer("day_of_month"), // Dia do pagamento (1-31)
+  monthOfYear: integer("month_of_year"), // Para frequência anual/pontual: mês do ano (1-12)
+  yearOfPayment: integer("year_of_payment"), // Para frequência pontual: ano específico
 
   // Confirmação automática
   isAutoConfirm: boolean("is_auto_confirm").default(false), // Confirmar automaticamente no dia

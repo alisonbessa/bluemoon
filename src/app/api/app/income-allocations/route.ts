@@ -65,10 +65,16 @@ export const POST = withAuthRequired(async (req, context) => {
       )
     );
 
+  // Calculate the effective monthly default (same logic as allocations route)
+  const frequencyMultiplier =
+    incomeSource.frequency === "weekly" ? 4 :
+    incomeSource.frequency === "biweekly" ? 2 : 1;
+  const defaultMonthlyAmount = (incomeSource.amount || 0) * frequencyMultiplier;
+
   let result;
   if (existingAllocation) {
-    // If planned equals the default amount, delete the override
-    if (planned === incomeSource.amount) {
+    // If planned equals the default monthly amount, delete the override (restore to default)
+    if (planned === defaultMonthlyAmount) {
       await db
         .delete(monthlyIncomeAllocations)
         .where(eq(monthlyIncomeAllocations.id, existingAllocation.id));
@@ -84,8 +90,8 @@ export const POST = withAuthRequired(async (req, context) => {
       .where(eq(monthlyIncomeAllocations.id, existingAllocation.id))
       .returning();
   } else {
-    // Don't create if it matches the default
-    if (planned === incomeSource.amount) {
+    // Don't create if it matches the default monthly amount
+    if (planned === defaultMonthlyAmount) {
       return successResponse({ noChange: true, incomeSourceId });
     }
 

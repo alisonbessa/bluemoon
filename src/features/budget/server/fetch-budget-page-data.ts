@@ -394,7 +394,7 @@ export async function fetchBudgetAllocationsData(opts: {
     const allocated =
       categoryBills.length > 0
         ? billsTotal
-        : allocation?.allocated || category.plannedAmount || 0;
+        : (allocation?.allocated ?? 0);
     const carriedOver = allocation?.carriedOver || 0;
     const spent = spendingMap.get(category.id) || 0;
     const available = allocated + carriedOver - spent;
@@ -541,6 +541,15 @@ export async function fetchBudgetAllocationsData(opts: {
         sources: [],
         totals: { planned: 0, contributionPlanned: 0, received: 0 },
       });
+    }
+
+    // Annual sources only appear in their target month
+    if (incomeSource.frequency === "annual" && incomeSource.monthOfYear !== month) {
+      continue;
+    }
+    // Once (pontual) sources only appear in their specific month+year
+    if (incomeSource.frequency === "once" && (incomeSource.monthOfYear !== month || incomeSource.yearOfPayment !== year)) {
+      continue;
     }
 
     const frequencyMultiplier =

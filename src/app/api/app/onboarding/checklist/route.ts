@@ -8,8 +8,9 @@ import {
   telegramUsers,
   goals,
   incomeSources,
+  monthlyAllocations,
 } from "@/db/schema";
-import { eq, and, count, isNotNull } from "drizzle-orm";
+import { eq, and, count, isNotNull, gt } from "drizzle-orm";
 import { successResponse } from "@/shared/lib/api/responses";
 import { checkUserAccess } from "@/shared/lib/users/checkPartnerAccess";
 
@@ -37,6 +38,7 @@ export const GET = withAuthRequired(async (_request, context) => {
     members,
     goalCount,
     hasContribution,
+    allocationCount,
   ] = await Promise.all([
     // Has at least 1 financial account?
     budgetId
@@ -103,10 +105,24 @@ export const GET = withAuthRequired(async (_request, context) => {
           )
           .then((r) => (r[0]?.count ?? 0) > 0)
       : Promise.resolve(false),
+
+    // Has at least 1 monthly allocation set? (user visited budget page and edited an allocation)
+    budgetId
+      ? db
+          .select({ count: count() })
+          .from(monthlyAllocations)
+          .where(
+            and(
+              eq(monthlyAllocations.budgetId, budgetId),
+              gt(monthlyAllocations.allocated, 0)
+            )
+          )
+          .then((r) => r[0]?.count ?? 0)
+      : Promise.resolve(0),
   ]);
 
   return successResponse({
-    hasBudget: !!budgetId,
+    hasBudget: allocationCount > 0,
     hasAccount: accountCount > 0,
     hasTransaction: transactionCount > 0,
     hasGoal: goalCount > 0,

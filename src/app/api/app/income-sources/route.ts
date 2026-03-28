@@ -71,8 +71,9 @@ export const GET = withAuthRequired(async (req, context) => {
     account: s.account ? { id: s.account.id, name: s.account.name, icon: s.account.icon } : null,
   }));
 
-  // Calculate total monthly income
+  // Calculate total monthly income (annual sources not included — they only apply in their specific month)
   const totalMonthlyIncome = formattedSources.reduce((acc, source) => {
+    if (source.frequency === "annual") return acc;
     let monthlyAmount = source.amount;
     if (source.frequency === "biweekly") {
       monthlyAmount = source.amount * 2;

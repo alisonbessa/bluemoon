@@ -254,7 +254,7 @@ async function fetchAllocations(opts: {
 
     const allocation = allocationsMap.get(category.id);
     const billsTotal = billsMap.get(category.id);
-    const allocated = billsTotal ?? (allocation?.allocated || category.plannedAmount || 0);
+    const allocated = billsTotal ?? (allocation?.allocated ?? 0);
     const carriedOver = allocation?.carriedOver || 0;
     const spent = spendingMap.get(category.id) || 0;
 

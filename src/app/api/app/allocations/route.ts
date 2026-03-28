@@ -326,7 +326,7 @@ export const GET = withAuthRequired(async (req, context) => {
     const billsTotal = categoryBills.reduce((sum, bill) => sum + bill.amount, 0);
     const allocated = categoryBills.length > 0
       ? billsTotal
-      : (allocation?.allocated || category.plannedAmount || 0);
+      : (allocation?.allocated ?? 0); // ?? preserves explicit 0; no fallback to plannedAmount
     const carriedOver = allocation?.carriedOver || 0;
     const spent = spendingMap.get(category.id) || 0;
     const available = allocated + carriedOver - spent;
@@ -466,8 +466,17 @@ export const GET = withAuthRequired(async (req, context) => {
       });
     }
 
+    // Annual sources only appear in their target month
+    if (incomeSource.frequency === "annual" && incomeSource.monthOfYear !== month) {
+      continue;
+    }
+    // Once (pontual) sources only appear in their specific month+year
+    if (incomeSource.frequency === "once" && (incomeSource.monthOfYear !== month || incomeSource.yearOfPayment !== year)) {
+      continue;
+    }
+
     // Calculate monthly amount based on frequency
-    // Weekly = 4x per month, Biweekly = 2x per month, Monthly = 1x per month
+    // Weekly = 4x per month, Biweekly = 2x per month, Monthly/Annual = 1x per month
     const frequencyMultiplier =
       incomeSource.frequency === "weekly" ? 4 :
       incomeSource.frequency === "biweekly" ? 2 : 1;

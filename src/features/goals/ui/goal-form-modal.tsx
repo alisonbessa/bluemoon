@@ -38,6 +38,7 @@ interface Member {
 interface Account {
   id: string;
   name: string;
+  type: string;
   icon: string | null;
 }
 
@@ -91,7 +92,14 @@ export function GoalFormModal({
     if (open) {
       fetch("/api/app/accounts")
         .then((res) => res.json())
-        .then((data) => setAccounts(data.accounts || []))
+        .then((data) =>
+          setAccounts(
+            (data.accounts || []).filter(
+              (a: Account) =>
+              a.type !== "credit_card" && a.type !== "benefit"
+            )
+          )
+        )
         .catch(console.error);
     }
   }, [open]);

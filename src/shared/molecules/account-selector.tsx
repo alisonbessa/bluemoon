@@ -89,7 +89,7 @@ export function AccountSelector({
           {accounts.map((account) => (
             <SelectItem key={account.id} value={account.id}>
               <span className="flex items-center gap-2">
-                <span>{account.icon || '🏦'}</span>
+                <span>{account.icon || (account.type === 'credit_card' ? '💳' : '🏦')}</span>
                 <span>{account.name}</span>
               </span>
             </SelectItem>

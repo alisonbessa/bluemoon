@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { Loader2, PiggyBank, User } from 'lucide-react';
@@ -191,6 +191,40 @@ export function BudgetPageClient({
     onSuccess: refreshData,
   });
 
+  // Ignore income source for this month (set planned: 0)
+  const handleIgnoreIncome = useCallback(async (item: IncomeSourceData) => {
+    if (!budgetId) return;
+    await fetch('/api/app/income-allocations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        budgetId,
+        incomeSourceId: item.incomeSource.id,
+        year: currentYear,
+        month: currentMonth,
+        planned: 0,
+      }),
+    });
+    refreshData();
+  }, [budgetId, currentYear, currentMonth, refreshData]);
+
+  // Restore income source to its default for this month (removes override)
+  const handleRestoreIncome = useCallback(async (item: IncomeSourceData) => {
+    if (!budgetId) return;
+    await fetch('/api/app/income-allocations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        budgetId,
+        incomeSourceId: item.incomeSource.id,
+        year: currentYear,
+        month: currentMonth,
+        planned: item.defaultAmount,
+      }),
+    });
+    refreshData();
+  }, [budgetId, currentYear, currentMonth, refreshData]);
+
   const budgetActions = useBudgetActions({
     budgetId,
     year: currentYear,
@@ -275,6 +309,9 @@ export function BudgetPageClient({
               categoryForm={categoryForm}
               incomeAllocationForm={incomeAllocationForm}
               incomeSourceForm={incomeSourceForm}
+              onEditIncomeSource={(source: IncomeSource) => incomeSourceForm.openEdit(source)}
+              onIgnoreIncome={handleIgnoreIncome}
+              onRestoreIncome={handleRestoreIncome}
               refreshData={refreshData}
               onAddGoal={() => setIsGoalFormOpen(true)}
               hasContributionModel={hasContributionModel}
@@ -464,6 +501,9 @@ interface BudgetSectionBlockProps {
   categoryForm: ReturnType<typeof useCategoryForm>;
   incomeAllocationForm: ReturnType<typeof useIncomeAllocationForm>;
   incomeSourceForm: ReturnType<typeof useIncomeSourceForm>;
+  onEditIncomeSource: (source: IncomeSource) => void;
+  onIgnoreIncome: (item: IncomeSourceData) => void;
+  onRestoreIncome: (item: IncomeSourceData) => void;
   refreshData: () => void;
   onAddGoal: () => void;
   hasContributionModel: boolean;
@@ -479,6 +519,9 @@ function BudgetSectionBlock({
   categoryForm,
   incomeAllocationForm,
   incomeSourceForm,
+  onEditIncomeSource,
+  onIgnoreIncome,
+  onRestoreIncome,
   refreshData,
   onAddGoal,
   hasContributionModel,
@@ -510,6 +553,8 @@ function BudgetSectionBlock({
           onToggleMember={uiState.toggleIncomeMember}
           onEditIncome={(item: IncomeSourceData) => incomeAllocationForm.open(item)}
           onEditIncomeSource={(source: IncomeSource) => incomeSourceForm.openEdit(source)}
+          onIgnoreIncome={onIgnoreIncome}
+          onRestoreIncome={onRestoreIncome}
           onDeleteIncomeSource={(source: IncomeSource) => incomeSourceForm.setDeletingSource(source)}
           onAddIncomeSource={(memberId?: string) => incomeSourceForm.openCreate(memberId)}
           mobileViewMode={uiState.mobileViewMode}
