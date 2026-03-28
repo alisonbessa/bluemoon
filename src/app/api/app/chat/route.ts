@@ -128,25 +128,44 @@ function htmlToPlainText(html: string): string {
 // ============================================
 
 const HELP_MODEL = "models/gemini-2.5-flash";
-const HELP_SYSTEM_INSTRUCTION = `Voce e o assistente do HiveBudget, uma plataforma de gestao financeira. Responda a pergunta do usuario com base EXCLUSIVAMENTE na documentacao fornecida. Seja conciso e direto.
+const HELP_SYSTEM_INSTRUCTION = `Voce e o assistente do HiveBudget, uma plataforma de gestao financeira. Responda ao usuario com base EXCLUSIVAMENTE na documentacao fornecida. Seja conciso e direto.
 
 REGRAS:
 - Responda APENAS com base na documentacao fornecida
 - Se a resposta NAO estiver na documentacao, responda exatamente: "NAO_ENCONTRADO"
-- Seja amigavel e use linguagem simples
+- Seja amigavel e use linguagem simples em portugues
 - Nao invente funcionalidades que nao existem
 - Mantenha a resposta curta (maximo 3-4 paragrafos)
-- Nao use markdown, apenas texto simples com quebras de linha`;
+- Nao use markdown, apenas texto simples com quebras de linha
+
+COMO TRATAR PEDIDOS DE ACAO:
+- Se o usuario pedir para FAZER algo que o chat nao consegue (ex: "crie uma meta", "adicione uma categoria"), explique que essa acao precisa ser feita pelo app e descreva os passos para chegar la
+- Se o usuario pedir para FAZER algo que o chat CONSEGUE (registrar gasto/receita), instrua-o a digitar o valor e descricao
+- Nunca diga apenas "nao posso fazer isso" sem oferecer uma alternativa ou instrucao`;
+
+/** Simple hash of the knowledge base content to detect changes */
+const KNOWLEDGE_HASH = PLATFORM_KNOWLEDGE.length.toString(36) +
+  PLATFORM_KNOWLEDGE.slice(0, 64).replace(/\s/g, "").slice(0, 8);
 
 /** Cached Gemini context for the knowledge base (module-level singleton) */
 let cachedContentName: string | null = null;
 let cacheExpiresAt: number = 0;
+let cachedKnowledgeHash: string | null = null;
 
 /**
  * Get or create a Gemini cached content with the platform knowledge base.
- * The cache persists across requests (module-level) and auto-recreates on expiry.
+ * The cache persists across requests (module-level) and auto-recreates on expiry
+ * or when the knowledge base content changes.
  */
 async function getOrCreateKnowledgeCache(apiKey: string): Promise<string | null> {
+  // Invalidate both caches if knowledge base content changed
+  if (cachedKnowledgeHash !== KNOWLEDGE_HASH) {
+    cachedContentName = null;
+    cacheExpiresAt = 0;
+    responseCache.clear();
+    logger.info(`Knowledge base changed (hash: ${KNOWLEDGE_HASH}), caches invalidated`);
+  }
+
   // Return existing cache if still valid (with 5 min safety margin)
   if (cachedContentName && Date.now() < cacheExpiresAt - 5 * 60 * 1000) {
     return cachedContentName;
@@ -168,6 +187,7 @@ async function getOrCreateKnowledgeCache(apiKey: string): Promise<string | null>
     });
 
     cachedContentName = cache.name!;
+    cachedKnowledgeHash = KNOWLEDGE_HASH;
     // Parse expiry from cache response, or default to 23 hours from now
     cacheExpiresAt = cache.expireTime
       ? new Date(cache.expireTime).getTime()
@@ -385,10 +405,14 @@ async function handleMessage(userId: string, message: string) {
         });
       }
 
-      // Knowledge base couldn't answer - suggest sending to human
+      // Knowledge base couldn't answer - give helpful fallback
       return successResponse({
         messages: [{
-          content: "Não encontrei uma resposta para sua pergunta. Posso ajudar com registro de gastos, receitas e consultas financeiras.\n\nSe precisa de outro tipo de ajuda, que tal enviar essa mensagem para um humano?",
+          content: "Não consigo fazer isso diretamente pelo chat, mas posso te ajudar de outras formas:\n\n" +
+            "- Registrar gastos: \"gastei 50 no mercado\"\n" +
+            "- Registrar receitas: \"recebi 5000 de salário\"\n" +
+            "- Consultar saldo ou categorias\n\n" +
+            "Para criar metas, categorias ou contas, use o menu lateral do app. Quer que eu explique como?",
           suggestHuman: true,
         }],
       });

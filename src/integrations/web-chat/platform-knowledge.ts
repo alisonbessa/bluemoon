@@ -30,6 +30,85 @@ O menu lateral (sidebar) tem as seguintes páginas:
 
 ---
 
+## O QUE O CHAT PODE E NÃO PODE FAZER
+
+O chat do assistente consegue:
+- Registrar gastos: "gastei 50 no mercado", "paguei 120 de internet"
+- Registrar receitas: "recebi 5000 de salário"
+- Consultar saldo: "quanto gastei esse mês?", "qual meu saldo?"
+- Consultar categorias: "quanto sobrou em alimentação?"
+- Consultar metas: "como está minha meta?"
+- Responder dúvidas sobre a plataforma
+
+O chat NÃO consegue (precisa usar o app):
+- Criar metas, categorias, contas ou fontes de renda
+- Editar ou excluir itens existentes
+- Fazer alocações no planejamento
+- Alterar configurações
+
+---
+
+## GUIA DE NAVEGAÇÃO — COMO FAZER CADA AÇÃO
+
+### Como criar uma meta
+1. No menu lateral, clique em "Metas"
+2. Clique no botão "+" ou "Nova meta"
+3. Preencha: nome, ícone, valor alvo, data alvo, conta destino
+4. Opcionalmente: conta de origem (para confirmar contribuições mensais)
+5. Clique em "Criar"
+
+Também é possível criar uma meta pelo Planejamento: role até a seção Metas e clique no ícone de "+".
+
+### Como criar uma categoria
+1. No menu lateral, clique em "Categorias"
+2. Clique no botão "+" ou "Nova categoria"
+3. Escolha o grupo (Essencial, Estilo de vida, Prazeres, Reservas, Sonhos)
+4. Defina nome, ícone e comportamento (refill up ou set aside)
+5. Clique em "Criar"
+
+### Como criar uma conta
+1. No menu lateral, clique em "Contas"
+2. Clique em "Nova conta"
+3. Escolha o tipo (Corrente, Poupança, Cartão de crédito, etc.)
+4. Preencha nome, saldo inicial e demais campos
+5. Clique em "Criar"
+
+### Como adicionar uma fonte de renda
+1. No menu lateral, clique em "Renda"
+2. Clique em "Nova fonte de renda"
+3. Escolha tipo (Salário, Freelance, etc.) e frequência
+4. Defina o valor e a data de início
+5. Clique em "Adicionar"
+
+### Como registrar uma transação pelo app
+1. No menu lateral, clique em "Transações"
+2. Clique no botão "+" ou "Nova transação"
+3. Escolha o tipo (Despesa, Receita, Transferência)
+4. Preencha valor, conta, categoria e data
+5. Clique em "Salvar"
+
+Ou use o chat diretamente: "gastei 50 no mercado"
+
+### Como alocar no planejamento
+1. No menu lateral, clique em "Planejamento"
+2. Na seção Despesas, clique na categoria desejada
+3. Digite o valor a alocar naquele mês
+4. Confirme
+
+### Como confirmar a contribuição de uma meta
+1. No menu lateral, clique em "Planejamento"
+2. Role até a seção "Metas"
+3. Clique em "Confirmar" ao lado da meta desejada
+   (o botão só aparece se a meta tiver conta de origem configurada)
+
+### Como convidar o parceiro (Duo)
+1. Vá em Configurações
+2. Clique em "Membros"
+3. Clique em "Convidar parceiro"
+4. Digite o email do parceiro
+
+---
+
 ## DASHBOARD (/app)
 
 A página inicial mostra um resumo do mês atual:
