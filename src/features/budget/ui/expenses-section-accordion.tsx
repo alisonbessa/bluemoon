@@ -1,15 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Plus, MoreVertical } from 'lucide-react';
+import { ChevronDown, Plus, MoreVertical, DollarSign } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { cn } from '@/shared/lib/utils';
 import { AccordionContent } from '@/shared/ui/accordion-content';
+import { FormModalWrapper } from '@/shared/molecules';
+import { CurrencyInput } from '@/shared/ui/currency-input';
+import { Label } from '@/shared/ui/label';
+import { toast } from 'sonner';
 import { CategoryWithBills } from './category-with-bills';
 import {
   formatCurrency,
@@ -36,6 +41,9 @@ interface ExpensesSectionAccordionProps {
   mobileViewMode?: MobileViewMode;
   /** Optional section title override (e.g. "Planejamento Compartilhado") */
   sectionTitle?: string;
+  year: number;
+  month: number;
+  onGroupAllocationChange?: () => void;
 }
 
 // Helper to get the value based on view mode for expenses
@@ -75,8 +83,45 @@ export function ExpensesSectionAccordion({
   onBillsChange,
   mobileViewMode = 'available',
   sectionTitle,
+  year,
+  month,
+  onGroupAllocationChange,
 }: ExpensesSectionAccordionProps) {
   const [expandedCategoryId, setExpandedCategoryId] = useState<string | null>(null);
+  const [editingGroup, setEditingGroup] = useState<{ id: string; name: string; currentAlloc: number | null } | null>(null);
+  const [groupAllocValue, setGroupAllocValue] = useState(0);
+  const [isSavingGroupAlloc, setIsSavingGroupAlloc] = useState(false);
+
+  const handleEditGroupAllocation = (group: GroupData['group'], currentAlloc: number | null) => {
+    setEditingGroup({ id: group.id, name: group.name, currentAlloc });
+    setGroupAllocValue(currentAlloc ?? 0);
+  };
+
+  const handleSaveGroupAllocation = async () => {
+    if (!editingGroup) return;
+    setIsSavingGroupAlloc(true);
+    try {
+      const res = await fetch('/api/app/allocations', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          budgetId,
+          groupId: editingGroup.id,
+          year,
+          month,
+          allocated: groupAllocValue,
+        }),
+      });
+      if (!res.ok) throw new Error('Erro ao salvar');
+      toast.success(`Teto de ${editingGroup.name} atualizado!`);
+      setEditingGroup(null);
+      onGroupAllocationChange?.();
+    } catch {
+      toast.error('Erro ao salvar teto do grupo');
+    } finally {
+      setIsSavingGroupAlloc(false);
+    }
+  };
 
   const handleToggleCategory = (categoryId: string) => {
     setExpandedCategoryId((prev) => (prev === categoryId ? null : categoryId));
@@ -149,7 +194,8 @@ export function ExpensesSectionAccordion({
           <div className="sm:hidden" />
         </div>
 
-        {groupsData.map(({ group, categories, totals: groupTotals }) => {
+        {groupsData.map((groupData) => {
+          const { group, categories, totals: groupTotals, groupAllocated } = groupData;
           const isGroupExpanded = expandedGroups.includes(group.id);
 
           return (
@@ -157,14 +203,25 @@ export function ExpensesSectionAccordion({
               {/* Group Row */}
               <div
                 className="group grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center bg-muted/40 border-b cursor-pointer hover:bg-muted/60 text-sm"
-                onClick={() => onToggleGroup(group.id)}
+                onClick={() => {
+                  // Clicking the row always ensures the group is expanded
+                  if (!isGroupExpanded) onToggleGroup(group.id);
+                }}
               >
-                <ChevronDown
-                  className={cn(
-                    'h-3.5 w-3.5 shrink-0 transition-transform duration-200',
-                    !isGroupExpanded && '-rotate-90'
-                  )}
-                />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleGroup(group.id);
+                  }}
+                  className="p-1 -m-1 rounded hover:bg-muted"
+                >
+                  <ChevronDown
+                    className={cn(
+                      'h-3.5 w-3.5 shrink-0 transition-transform duration-200',
+                      !isGroupExpanded && '-rotate-90'
+                    )}
+                  />
+                </button>
                 <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
                   <span className="shrink-0">{group.icon}</span>
                   <span className="font-bold truncate">{group.name}</span>
@@ -217,7 +274,14 @@ export function ExpensesSectionAccordion({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        onClick={() => onAddCategory(group.id, group.code)}
+                        onSelect={() => setTimeout(() => handleEditGroupAllocation(group, groupAllocated ?? null), 0)}
+                      >
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Definir teto do grupo
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onSelect={() => setTimeout(() => onAddCategory(group.id, group.code), 0)}
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         Adicionar categoria
@@ -301,6 +365,33 @@ export function ExpensesSectionAccordion({
           );
         })}
       </AccordionContent>
+
+      {/* Group allocation (ceiling) edit modal */}
+      <FormModalWrapper
+        open={!!editingGroup}
+        onOpenChange={(open) => !open && setEditingGroup(null)}
+        title={`Teto de ${editingGroup?.name ?? ''}`}
+        description="Defina o limite mensal para este grupo de despesas"
+        isSubmitting={isSavingGroupAlloc}
+        onSubmit={handleSaveGroupAllocation}
+        submitLabel="Salvar"
+      >
+        <div className="grid gap-4">
+          <div className="grid gap-2">
+            <Label>Valor do teto</Label>
+            <CurrencyInput
+              value={groupAllocValue}
+              onChange={setGroupAllocValue}
+              autoFocus
+            />
+          </div>
+          {editingGroup?.currentAlloc != null && editingGroup.currentAlloc > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Teto atual: {formatCurrency(editingGroup.currentAlloc)}
+            </p>
+          )}
+        </div>
+      </FormModalWrapper>
     </>
   );
 }

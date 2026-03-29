@@ -1,7 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
-import { monthlyAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus, recurringBills, financialAccounts, budgets } from "@/db/schema";
+import { monthlyAllocations, monthlyGroupAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus, recurringBills, financialAccounts, budgets } from "@/db/schema";
 import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
 import { ensurePendingTransactionsForMonth, autoActivateMonth } from "@/shared/lib/budget/pending-transactions";
 import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
@@ -683,4 +683,53 @@ export const POST = withAuthRequired(async (req, context) => {
   }
 
   return successResponse({ allocation: result }, existingAllocation ? 200 : 201);
+});
+
+// PUT - Upsert a group allocation (ceiling)
+export const PUT = withAuthRequired(async (req, context) => {
+  const { session } = context;
+
+  const subscriptionError = await requireActiveSubscription(session.user.id);
+  if (subscriptionError) return subscriptionError;
+
+  const body = await req.json();
+  const { budgetId, groupId, year, month, allocated } = body;
+
+  if (!budgetId || !groupId || !year || !month || allocated == null) {
+    return errorResponse("Missing required fields", 400);
+  }
+
+  const budgetIds = await getUserBudgetIds(session.user.id);
+  if (!budgetIds.includes(budgetId)) {
+    return forbiddenError("Budget not found or access denied");
+  }
+
+  // Upsert group allocation
+  const [existing] = await db
+    .select()
+    .from(monthlyGroupAllocations)
+    .where(
+      and(
+        eq(monthlyGroupAllocations.budgetId, budgetId),
+        eq(monthlyGroupAllocations.groupId, groupId),
+        eq(monthlyGroupAllocations.year, year),
+        eq(monthlyGroupAllocations.month, month)
+      )
+    );
+
+  let result;
+  if (existing) {
+    [result] = await db
+      .update(monthlyGroupAllocations)
+      .set({ allocated, updatedAt: new Date() })
+      .where(eq(monthlyGroupAllocations.id, existing.id))
+      .returning();
+  } else {
+    [result] = await db
+      .insert(monthlyGroupAllocations)
+      .values({ budgetId, groupId, year, month, allocated })
+      .returning();
+  }
+
+  return successResponse({ groupAllocation: result }, existing ? 200 : 201);
 });

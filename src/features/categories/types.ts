@@ -71,6 +71,7 @@ export interface GroupData {
     spent: number;
     available: number;
   };
+  groupAllocated?: number | null; // Ceiling set by user
 }
 
 export type FilterType = 'all' | 'underfunded' | 'overfunded' | 'money_available';
