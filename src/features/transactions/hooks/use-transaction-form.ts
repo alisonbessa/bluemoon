@@ -74,9 +74,12 @@ export function useTransactionForm(
       incomeSourceId: transaction.incomeSourceId || "",
       toAccountId: transaction.toAccountId || "",
       date: format(parseLocalDate(transaction.date), "yyyy-MM-dd"),
-      isInstallment: false, // Editing doesn't allow changing installment
+      isInstallment: false,
       totalInstallments: 2,
       paidByMemberId: transaction.paidByMemberId || defaultPaidByMemberId,
+      isRecurring: false, // Editing doesn't allow changing to recurring
+      recurringFrequency: "monthly",
+      recurringIsAutoDebit: false,
     });
     setEditingTransaction(transaction);
     setIsOpen(true);
@@ -100,7 +103,48 @@ export function useTransactionForm(
 
     setIsSubmitting(true);
     try {
-      // Check if this is an installment purchase
+      const amountInCents = parseCurrency(formData.amount);
+
+      // Recurring bill flow: create a recurring bill instead of a transaction
+      if (formData.isRecurring && formData.type === "expense" && !editingTransaction) {
+        if (!formData.categoryId) {
+          toast.error("Selecione uma categoria para despesas fixas");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const recurringPayload = {
+          budgetId: budgets[0].id,
+          categoryId: formData.categoryId,
+          accountId: formData.accountId,
+          name: formData.description || "Despesa fixa",
+          amount: amountInCents,
+          frequency: formData.recurringFrequency,
+          dueDay: formData.recurringDueDay ?? null,
+          dueMonth: formData.recurringFrequency === "yearly" ? formData.recurringDueMonth ?? null : null,
+          isAutoDebit: formData.recurringIsAutoDebit,
+          isVariable: false,
+        };
+
+        const response = await fetch("/api/app/recurring-bills", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(recurringPayload),
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => null);
+          throw new Error(error?.error || "Erro ao criar despesa fixa");
+        }
+
+        toast.success("Despesa fixa criada! Aparecerá no planejamento dos próximos meses.");
+        setIsOpen(false);
+        setEditingTransaction(null);
+        onSuccess();
+        return;
+      }
+
+      // Regular transaction flow
       const selectedAccount = accounts.find((a) => a.id === formData.accountId);
       const isCreditCard = selectedAccount?.type === "credit_card";
       const canBeInstallment =
@@ -109,7 +153,7 @@ export function useTransactionForm(
       const payload = {
         budgetId: budgets[0].id,
         type: formData.type,
-        amount: parseCurrency(formData.amount),
+        amount: amountInCents,
         description: formData.description || undefined,
         accountId: formData.accountId,
         categoryId:

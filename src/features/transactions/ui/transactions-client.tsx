@@ -342,6 +342,9 @@ export function TransactionsClient({
         date: format(parseLocalDate(scheduled.dueDate), "yyyy-MM-dd"),
         isInstallment: false,
         totalInstallments: 2,
+        isRecurring: false,
+        recurringFrequency: "monthly",
+        recurringIsAutoDebit: false,
       });
       setIsFormOpen(true);
     },
