@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { useSWRConfig } from "swr";
 import { formatCurrencyCompact, parseCurrency, parseLocalDate } from "@/shared/lib/formatters";
 import type { Transaction, Account, Budget, TransactionFormData } from "../types";
 import { initialFormData } from "../types";
@@ -36,6 +37,7 @@ export function useTransactionForm(
   options: UseTransactionFormOptions
 ): UseTransactionFormReturn {
   const { accounts, budgets, onSuccess, memberId, defaultPaidByMemberId } = options;
+  const { mutate } = useSWRConfig();
 
   const [isOpen, setIsOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -176,6 +178,14 @@ export function useTransactionForm(
         } else {
           toast.success("Despesa recorrente criada! Aparecerá como pendente no planejamento.");
         }
+
+        // Invalidate budget/planning caches so the new bill appears immediately
+        mutate((key: unknown) => typeof key === "string" && (
+          key.startsWith("/api/app/budget") ||
+          key.startsWith("/api/app/allocations") ||
+          key.startsWith("/api/app/dashboard") ||
+          key.startsWith("/api/app/recurring-bills")
+        ));
 
         setIsOpen(false);
         setEditingTransaction(null);
