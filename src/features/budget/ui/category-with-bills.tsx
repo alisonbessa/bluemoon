@@ -132,16 +132,16 @@ export function CategoryWithBills({
   // If category has bills, it becomes expandable
   const isExpandable = hasBills;
 
-  const handleCategoryClick = () => {
-    if (isExpandable) {
-      if (onToggleExpand) {
-        onToggleExpand();
-      } else {
-        setLocalExpanded(!localExpanded);
-      }
+  const handleToggleExpand = () => {
+    if (onToggleExpand) {
+      onToggleExpand();
     } else {
-      onEditAllocation(item.category, item.allocated);
+      setLocalExpanded(!localExpanded);
     }
+  };
+
+  const handleCategoryClick = () => {
+    onEditAllocation(item.category, item.allocated);
   };
 
   return (
@@ -157,12 +157,20 @@ export function CategoryWithBills({
         <div className="flex items-center justify-center">
           {/* Expand/Collapse chevron for categories with bills */}
           {isExpandable ? (
-            <ChevronDown
-              className={cn(
-                'h-3 w-3 text-muted-foreground transition-transform duration-200 shrink-0',
-                !isExpanded && '-rotate-90'
-              )}
-            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleExpand();
+              }}
+              className="p-1 -m-1 rounded hover:bg-muted"
+            >
+              <ChevronDown
+                className={cn(
+                  'h-3 w-3 text-muted-foreground transition-transform duration-200 shrink-0',
+                  !isExpanded && '-rotate-90'
+                )}
+              />
+            </button>
           ) : (
             <div className="w-3 shrink-0" />
           )}
