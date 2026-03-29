@@ -126,18 +126,57 @@ export function useTransactionForm(
           isVariable: false,
         };
 
-        const response = await fetch("/api/app/recurring-bills", {
+        const billResponse = await fetch("/api/app/recurring-bills", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(recurringPayload),
         });
 
-        if (!response.ok) {
-          const error = await response.json().catch(() => null);
+        if (!billResponse.ok) {
+          const error = await billResponse.json().catch(() => null);
           throw new Error(error?.error || "Erro ao criar despesa recorrente");
         }
 
-        toast.success("Despesa recorrente criada! Aparecerá no planejamento dos próximos meses.");
+        const billData = await billResponse.json().catch(() => null);
+        const recurringBillId = billData?.recurringBill?.id;
+
+        // If the date is today or in the past, also create a cleared transaction for the current month
+        const transactionDate = new Date(formData.date);
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        const isCurrentOrPast = transactionDate <= today;
+
+        if (isCurrentOrPast) {
+          const txPayload = {
+            budgetId: budgets[0].id,
+            type: "expense",
+            amount: amountInCents,
+            description: formData.description || "Despesa recorrente",
+            accountId: formData.accountId,
+            categoryId: formData.categoryId,
+            date: new Date(formData.date).toISOString(),
+            status: "cleared",
+            memberId: memberId || undefined,
+            paidByMemberId: formData.paidByMemberId || defaultPaidByMemberId || memberId || undefined,
+            recurringBillId: recurringBillId || undefined,
+          };
+
+          const txResponse = await fetch("/api/app/transactions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(txPayload),
+          });
+
+          if (!txResponse.ok) {
+            // Bill was created but transaction failed - still notify success for the bill
+            toast.success("Despesa recorrente criada, mas houve erro ao registrar o pagamento deste mês.");
+          } else {
+            toast.success("Despesa recorrente criada e pagamento deste mês registrado!");
+          }
+        } else {
+          toast.success("Despesa recorrente criada! Aparecerá como pendente no planejamento.");
+        }
+
         setIsOpen(false);
         setEditingTransaction(null);
         onSuccess();
