@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Plus, MoreVertical, DollarSign } from 'lucide-react';
+import { ChevronDown, Plus, MoreVertical, DollarSign, Pencil } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -225,20 +225,41 @@ export function ExpensesSectionAccordion({
                 <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
                   <span className="shrink-0">{group.icon}</span>
                   <span className="font-bold truncate">{group.name}</span>
-                  {/* Desktop: hover to show add button */}
-                  <button
-                    className="hidden sm:block ml-1 p-0.5 rounded hover:bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAddCategory(group.id, group.code);
-                    }}
-                    title="Adicionar categoria"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
+                  {/* Desktop: hover to show action buttons */}
+                  <div className="hidden sm:flex items-center gap-0.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <button
+                      className="p-0.5 rounded hover:bg-muted/80"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditGroupAllocation(group, groupAllocated ?? null);
+                      }}
+                      title="Definir teto do grupo"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                    <button
+                      className="p-0.5 rounded hover:bg-muted/80"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddCategory(group.id, group.code);
+                      }}
+                      title="Adicionar categoria"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <div className="hidden sm:block text-xs tabular-nums font-bold">
-                  {formatCurrency(groupTotals.allocated)}
+                <div
+                  className="hidden sm:block text-xs tabular-nums font-bold cursor-pointer hover:underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditGroupAllocation(group, groupAllocated ?? null);
+                  }}
+                  title="Editar teto do grupo"
+                >
+                  {groupAllocated != null && groupAllocated > 0
+                    ? formatCurrency(groupAllocated)
+                    : formatCurrency(groupTotals.allocated)}
                 </div>
                 <div className="hidden sm:block text-xs tabular-nums font-bold">
                   {formatCurrency(groupTotals.spent)}
