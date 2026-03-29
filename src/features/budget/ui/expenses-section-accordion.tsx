@@ -197,6 +197,10 @@ export function ExpensesSectionAccordion({
         {groupsData.map((groupData) => {
           const { group, categories, totals: groupTotals, groupAllocated } = groupData;
           const isGroupExpanded = expandedGroups.includes(group.id);
+          // Check if categories sum exceeds the group ceiling
+          const categoriesSum = categories.reduce((sum, c) => sum + c.allocated + (c.carriedOver || 0), 0);
+          const hasCeiling = groupAllocated != null && groupAllocated > 0;
+          const isOverCeiling = hasCeiling && categoriesSum > groupAllocated;
 
           return (
             <div key={group.id}>
@@ -225,6 +229,11 @@ export function ExpensesSectionAccordion({
                 <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
                   <span className="shrink-0">{group.icon}</span>
                   <span className="font-bold truncate">{group.name}</span>
+                  {isOverCeiling && (
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded-full shrink-0" title={`Categorias somam ${formatCurrency(categoriesSum)}, teto é ${formatCurrency(groupAllocated!)}`}>
+                      Excede teto
+                    </span>
+                  )}
                   {/* Desktop: hover to show action buttons */}
                   <div className="hidden sm:flex items-center gap-0.5 ml-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                     <button
