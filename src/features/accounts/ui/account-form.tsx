@@ -222,16 +222,16 @@ export function AccountForm({
             id="name"
             placeholder={
               isCreditCard
-                ? "Ex: Cartão Nubank, C6 Crédito"
+                ? "Ex: Nubank Crédito"
                 : formData.type === "benefit"
-                  ? "Ex: Flash, VR Alelo"
+                  ? "Ex: Flash"
                   : formData.type === "savings"
-                    ? "Ex: Poupança Itaú, Reserva"
+                    ? "Ex: Poupança Itaú"
                     : formData.type === "cash"
-                      ? "Ex: Carteira, Dinheiro Casa"
+                      ? "Ex: Carteira"
                       : formData.type === "investment"
-                        ? "Ex: XP Investimentos, Nubank RDB"
-                        : "Ex: Conta Itaú, BB Corrente"
+                        ? "Ex: XP Investimentos"
+                        : "Ex: Nubank"
             }
             value={formData.name}
             onChange={(e) => {

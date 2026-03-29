@@ -15,7 +15,7 @@ export const PRIVACY_OPTIONS: PrivacyOption[] = [
   {
     value: "unified",
     label: "Unificado",
-    description: "Tudo junto como plano solo — só os detalhes das compras individuais ficam ocultos",
+    description: "Vocês compartilham o orçamento como uma conta conjunta. Cada um vê os totais do outro, mas as transações pessoais ficam ocultas.",
   },
   {
     value: "private",

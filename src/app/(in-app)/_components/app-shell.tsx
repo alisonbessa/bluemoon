@@ -85,6 +85,11 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     }
   }, [currentPlan, setCondition]);
 
+  // Reset scroll position on route change
+  useEffect(() => {
+    document.getElementById("main-content")?.scrollTo(0, 0);
+  }, [pathname]);
+
   // Redirect new users who haven't completed onboarding to the setup wizard
   useEffect(() => {
     if (isLoading || !user) return;
@@ -222,7 +227,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         {subscriptionStatus === "expired" && <SubscriptionExpiredBanner />}
         <div className="flex flex-1 overflow-hidden">
           <AppSidebar />
-          <main className={`flex-1 overflow-auto ${isReadOnly ? "pointer-events-auto" : ""}`}>
+          <main id="main-content" className={`flex-1 overflow-auto ${isReadOnly ? "pointer-events-auto" : ""}`}>
             <div className="max-w-7xl mx-auto w-full">{children}</div>
           </main>
         </div>

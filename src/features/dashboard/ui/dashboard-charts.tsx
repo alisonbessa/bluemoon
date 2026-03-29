@@ -307,7 +307,7 @@ export function DashboardCharts({
       {/* Monthly Comparison Chart */}
       <Card>
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <CardTitle className="text-base">Comparativo Mensal</CardTitle>
               <CardDescription>
@@ -317,7 +317,7 @@ export function DashboardCharts({
             <div className="flex items-center gap-2">
               {categories.length > 0 && (
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-full sm:w-[140px]">
                     <SelectValue placeholder="Categoria" />
                   </SelectTrigger>
                   <SelectContent>
@@ -331,7 +331,7 @@ export function DashboardCharts({
                 </Select>
               )}
               <Select value={periodFilter} onValueChange={(value: PeriodFilter) => setPeriodFilter(value)}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

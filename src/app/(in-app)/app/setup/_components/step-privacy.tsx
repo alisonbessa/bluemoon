@@ -32,7 +32,7 @@ const PRIVACY_OPTIONS: {
     value: "unified",
     label: "Unificado",
     description:
-      "Orçamento junto, como se fosse um só. Os detalhes das compras individuais ficam privados.",
+      "Vocês compartilham o orçamento como uma conta conjunta. Cada um vê os totais do outro, mas as transações pessoais ficam ocultas.",
     icon: Users,
   },
   {
