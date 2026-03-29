@@ -254,8 +254,9 @@ async function fetchAllocations(opts: {
     if (privacyMode === "private" && isOtherMember) continue;
 
     const allocation = allocationsMap.get(category.id);
-    const billsTotal = billsMap.get(category.id);
-    const allocated = billsTotal ?? (allocation?.allocated ?? 0);
+    const billsTotal = billsMap.get(category.id) || 0;
+    const manualAlloc = allocation?.allocated ?? 0;
+    const allocated = manualAlloc > 0 ? manualAlloc : billsTotal;
     const carriedOver = allocation?.carriedOver || 0;
     const spent = spendingMap.get(category.id) || 0;
 

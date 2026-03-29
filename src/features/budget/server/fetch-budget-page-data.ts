@@ -391,10 +391,10 @@ export async function fetchBudgetAllocationsData(opts: {
     const categoryBills = billsMap.get(category.id) || [];
 
     const billsTotal = categoryBills.reduce((sum, bill) => sum + bill.amount, 0);
-    const allocated =
-      categoryBills.length > 0
-        ? billsTotal
-        : (allocation?.allocated ?? 0);
+    const manualAlloc = allocation?.allocated ?? 0;
+    // Manual allocation is the budget limit; bills total is the fallback
+    // when no manual allocation has been set
+    const allocated = manualAlloc > 0 ? manualAlloc : billsTotal;
     const carriedOver = allocation?.carriedOver || 0;
     const spent = spendingMap.get(category.id) || 0;
     const available = allocated + carriedOver - spent;
