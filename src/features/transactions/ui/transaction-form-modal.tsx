@@ -5,7 +5,9 @@ import { FormModalWrapper, AccountSelector } from '@/shared/molecules';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
@@ -15,6 +17,7 @@ import { Label } from '@/shared/ui/label';
 import { Switch } from '@/shared/ui/switch';
 import { formatCurrencyFromDigits, parseCurrency } from '@/shared/lib/formatters';
 import { DayOfMonthInput, MonthGridSelector, MONTH_NAMES_FULL } from '@/shared/molecules';
+import { useMemo } from 'react';
 import type { Category, Account, IncomeSource, Transaction, TransactionFormData, TransactionType, RecurringFrequency } from '../types';
 
 interface MemberOption {
@@ -71,6 +74,27 @@ export function TransactionFormModal({
 
   // Series editing: show when editing an installment transaction
   const showSeriesOption = isEditing && editingTransaction?.isInstallment;
+
+  // Group categories by their group for the selector
+  const groupedCategories = useMemo(() => {
+    const grouped = new Map<string, { name: string; displayOrder: number; categories: Category[] }>();
+    for (const cat of categories) {
+      const groupName = cat.group?.name ?? 'Outros';
+      const groupOrder = cat.group?.displayOrder ?? 999;
+      const existing = grouped.get(groupName);
+      if (existing) {
+        existing.categories.push(cat);
+      } else {
+        grouped.set(groupName, { name: groupName, displayOrder: groupOrder, categories: [cat] });
+      }
+    }
+    return Array.from(grouped.values())
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .map((g) => ({
+        ...g,
+        categories: [...g.categories].sort((a, b) => a.name.localeCompare(b.name)),
+      }));
+  }, [categories]);
 
   return (
     <FormModalWrapper
@@ -182,10 +206,15 @@ export function TransactionFormModal({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Sem categoria</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.icon || '📌'} {category.name}
-                      </SelectItem>
+                    {groupedCategories.map((group) => (
+                      <SelectGroup key={group.name}>
+                        <SelectLabel className="text-xs font-semibold text-muted-foreground">{group.name}</SelectLabel>
+                        {group.categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.icon || '📌'} {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     ))}
                   </SelectContent>
                 </Select>
@@ -373,7 +402,7 @@ export function TransactionFormModal({
               <div className="flex items-center justify-between">
                 <div className="grid gap-0.5">
                   <Label htmlFor="recurring" className="cursor-pointer">
-                    Despesa fixa
+                    Despesa recorrente
                   </Label>
                   <span className="text-xs text-muted-foreground">
                     Repete automaticamente no planejamento
@@ -396,7 +425,7 @@ export function TransactionFormModal({
                 <div className="grid gap-3">
                   {/* Category is required for recurring */}
                   {!formData.categoryId && (
-                    <p className="text-xs text-amber-600">Selecione uma categoria acima para criar uma despesa fixa.</p>
+                    <p className="text-xs text-amber-600">Selecione uma categoria acima para criar uma despesa recorrente.</p>
                   )}
 
                   {/* Frequency */}

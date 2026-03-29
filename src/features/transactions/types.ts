@@ -2,10 +2,18 @@
 // Tipos de Domínio - Transactions Module
 // =============================================================================
 
+export interface CategoryGroup {
+  id: string;
+  name: string;
+  code: string;
+  displayOrder: number;
+}
+
 export interface Category {
   id: string;
   name: string;
   icon?: string | null;
+  group?: CategoryGroup;
 }
 
 export interface Account {

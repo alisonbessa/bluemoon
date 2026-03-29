@@ -108,7 +108,7 @@ export function useTransactionForm(
       // Recurring bill flow: create a recurring bill instead of a transaction
       if (formData.isRecurring && formData.type === "expense" && !editingTransaction) {
         if (!formData.categoryId) {
-          toast.error("Selecione uma categoria para despesas fixas");
+          toast.error("Selecione uma categoria para despesas recorrentes");
           setIsSubmitting(false);
           return;
         }
@@ -134,10 +134,10 @@ export function useTransactionForm(
 
         if (!response.ok) {
           const error = await response.json().catch(() => null);
-          throw new Error(error?.error || "Erro ao criar despesa fixa");
+          throw new Error(error?.error || "Erro ao criar despesa recorrente");
         }
 
-        toast.success("Despesa fixa criada! Aparecerá no planejamento dos próximos meses.");
+        toast.success("Despesa recorrente criada! Aparecerá no planejamento dos próximos meses.");
         setIsOpen(false);
         setEditingTransaction(null);
         onSuccess();
