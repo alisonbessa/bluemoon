@@ -10,7 +10,7 @@ import {
   useTutorial,
 } from "@/shared/tutorial";
 import { ViewModeProvider } from "@/shared/providers/view-mode-provider";
-import { FloatingFeedbackButton } from "@/shared/components/floating-feedback-button";
+import { FloatingChatbot } from "@/shared/components/floating-chatbot";
 import React, { Suspense, useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useCurrentUser, useCurrentPlan } from "@/shared/hooks/use-current-user";
@@ -226,7 +226,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
             <div className="max-w-7xl mx-auto w-full">{children}</div>
           </main>
         </div>
-        <FloatingFeedbackButton />
+        <FloatingChatbot />
         <CelebrationModal
           isOpen={showCelebration}
           onClose={handleCelebrationClose}
