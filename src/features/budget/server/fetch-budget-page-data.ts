@@ -455,6 +455,11 @@ export async function fetchBudgetAllocationsData(opts: {
   const groupedResult = Array.from(groupedData.values())
     .sort((a, b) => a.group.displayOrder - b.group.displayOrder)
     .map((g) => {
+      // Apply group ceiling: if user set a ceiling, use it as allocated
+      if (g.groupAllocated != null && g.groupAllocated > 0) {
+        g.totals.allocated = g.groupAllocated;
+        g.totals.available = g.groupAllocated - g.totals.spent;
+      }
       overallTotals.allocated += g.totals.allocated;
       overallTotals.spent += g.totals.spent;
       overallTotals.available += g.totals.available;
