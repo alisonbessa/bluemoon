@@ -123,13 +123,15 @@ export function TransactionsClient({
   );
 
   const { confirmedIncome, confirmedExpenses } = useMemo(() => {
+    const isGoalContribution = (t: Transaction) =>
+      t.type === "transfer" && t.description?.startsWith("Contribuição para meta");
     return {
       confirmedIncome: confirmedTransactions
         .filter((t) => t.type === "income")
         .reduce((sum, t) => sum + t.amount, 0),
       confirmedExpenses: confirmedTransactions
-        .filter((t) => t.type === "expense")
-        .reduce((sum, t) => sum + t.amount, 0),
+        .filter((t) => t.type === "expense" || isGoalContribution(t))
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0),
     };
   }, [confirmedTransactions]);
 
