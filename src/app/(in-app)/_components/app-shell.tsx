@@ -99,19 +99,24 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     const hasExemptRole = user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role);
     if (!hasActiveSubscription && !hasExemptRole && !hasPartnerAccess) return;
 
+    // Invited partners should see the partner welcome flow first, not the main setup
+    if (hasPartnerAccess && !pathname?.startsWith("/app/partner-welcome")) {
+      const partnerWelcomeDone = localStorage.getItem("hivebudget_partner_welcome_done") === "true";
+      if (!partnerWelcomeDone) {
+        router.replace("/app/partner-welcome");
+        return;
+      }
+    }
+
     if (user.onboardingCompletedAt) {
       localStorage.setItem(BUDGET_INITIALIZED_KEY, "true");
-      if (hasPartnerAccess && !pathname?.startsWith("/app/partner-welcome")) {
-        const partnerWelcomeDone = localStorage.getItem("hivebudget_partner_welcome_done") === "true";
-        if (!partnerWelcomeDone) {
-          router.replace("/app/partner-welcome");
-          return;
-        }
-      }
       return;
     }
 
-    router.replace("/app/setup");
+    // Only non-partner users go to main setup
+    if (!hasPartnerAccess) {
+      router.replace("/app/setup");
+    }
   }, [user, isLoading, hasPartnerAccess, pathname, router]);
 
   // Detect when tutorial reaches the celebration step

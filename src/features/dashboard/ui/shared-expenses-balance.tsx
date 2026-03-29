@@ -97,10 +97,10 @@ export function SharedExpensesBalance({
       : null
   );
 
-  // Fetch accounts for the settlement dialog
+  // Fetch ALL accounts for the settlement dialog (both members' accounts)
   const { data: accountsData } = useSWR<AccountsResponse>(
     shouldFetch && data?.settlement
-      ? `/api/app/accounts?budgetId=${budgetId}`
+      ? `/api/app/accounts?budgetId=${budgetId}&viewMode=all`
       : null
   );
 
