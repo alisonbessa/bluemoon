@@ -12,7 +12,7 @@ import type { MobileViewMode } from '../hooks';
 const VIEW_MODE_LABELS: Record<MobileViewMode, string> = {
   planned: 'Planejado',
   actual: 'Realizado',
-  available: 'Pendente',
+  available: 'Disponível',
 };
 
 interface BudgetFiltersProps {

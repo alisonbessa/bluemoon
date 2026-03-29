@@ -52,7 +52,7 @@ interface UseBudgetUIStateOptions {
  * ```
  */
 export function useBudgetUIState(options: UseBudgetUIStateOptions = {}): UseBudgetUIStateReturn {
-  const { defaultExpandedSection = 'income', defaultMobileViewMode = 'available' } = options;
+  const { defaultExpandedSection = 'income', defaultMobileViewMode = 'planned' } = options;
 
   // Section expansion state
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(defaultExpandedSection === 'income');
