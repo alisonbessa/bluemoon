@@ -39,7 +39,7 @@ export function SummaryCard({
       </div>
       <div
         className={cn(
-          "mt-1 text-2xl font-bold text-center",
+          "mt-1 text-lg sm:text-2xl font-bold text-center",
           valueColorClasses[valueColor]
         )}
       >

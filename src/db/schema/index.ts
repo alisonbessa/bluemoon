@@ -18,6 +18,7 @@ export * from "./transactions";
 export * from "./invites";
 export * from "./income-sources";
 export * from "./monthly-allocations";
+export * from "./monthly-group-allocations";
 export * from "./monthly-income-allocations";
 export * from "./monthly-budget-status";
 export * from "./telegram-users";

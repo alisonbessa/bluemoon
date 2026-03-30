@@ -5,7 +5,9 @@ import { FormModalWrapper, AccountSelector } from '@/shared/molecules';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
@@ -14,7 +16,9 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Switch } from '@/shared/ui/switch';
 import { formatCurrencyFromDigits, parseCurrency } from '@/shared/lib/formatters';
-import type { Category, Account, IncomeSource, Transaction, TransactionFormData, TransactionType } from '../types';
+import { DayOfMonthInput, MonthGridSelector, MONTH_NAMES_FULL } from '@/shared/molecules';
+import { useMemo } from 'react';
+import type { Category, Account, IncomeSource, Transaction, TransactionFormData, TransactionType, RecurringFrequency } from '../types';
 
 interface MemberOption {
   id: string;
@@ -65,10 +69,32 @@ export function TransactionFormModal({
   // Check if selected account is a credit card (for installment option)
   const selectedAccount = accounts.find(a => a.id === formData.accountId);
   const isCreditCard = selectedAccount?.type === 'credit_card';
-  const showInstallmentOption = formData.type === 'expense' && isCreditCard && !isEditing;
+  const showInstallmentOption = formData.type === 'expense' && isCreditCard && !isEditing && !formData.isRecurring;
+  const showRecurringOption = formData.type === 'expense' && !isEditing && !formData.isInstallment;
 
   // Series editing: show when editing an installment transaction
   const showSeriesOption = isEditing && editingTransaction?.isInstallment;
+
+  // Group categories by their group for the selector
+  const groupedCategories = useMemo(() => {
+    const grouped = new Map<string, { name: string; displayOrder: number; categories: Category[] }>();
+    for (const cat of categories) {
+      const groupName = cat.group?.name ?? 'Outros';
+      const groupOrder = cat.group?.displayOrder ?? 999;
+      const existing = grouped.get(groupName);
+      if (existing) {
+        existing.categories.push(cat);
+      } else {
+        grouped.set(groupName, { name: groupName, displayOrder: groupOrder, categories: [cat] });
+      }
+    }
+    return Array.from(grouped.values())
+      .sort((a, b) => a.displayOrder - b.displayOrder)
+      .map((g) => ({
+        ...g,
+        categories: [...g.categories].sort((a, b) => a.name.localeCompare(b.name)),
+      }));
+  }, [categories]);
 
   return (
     <FormModalWrapper
@@ -180,10 +206,15 @@ export function TransactionFormModal({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Sem categoria</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.icon || '📌'} {category.name}
-                      </SelectItem>
+                    {groupedCategories.map((group) => (
+                      <SelectGroup key={group.name}>
+                        <SelectLabel className="text-xs font-semibold text-muted-foreground">{group.name}</SelectLabel>
+                        {group.categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.icon || '📌'} {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     ))}
                   </SelectContent>
                 </Select>
@@ -314,7 +345,7 @@ export function TransactionFormModal({
             </div>
           )}
 
-          {/* Installment option (only for credit card expenses, not when editing) */}
+          {/* Installment option (only for credit card expenses, not when editing or recurring) */}
           {showInstallmentOption && (
             <div className="grid gap-3 rounded-lg border p-3 bg-muted/30">
               <div className="flex items-center justify-between">
@@ -360,6 +391,138 @@ export function TransactionFormModal({
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Recurring option (expenses only, not editing or installment) */}
+          {showRecurringOption && (
+            <div className="grid gap-3 rounded-lg border p-3 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="grid gap-0.5">
+                  <Label htmlFor="recurring" className="cursor-pointer">
+                    Despesa recorrente
+                  </Label>
+                  <span className="text-xs text-muted-foreground">
+                    Repete automaticamente no planejamento
+                  </span>
+                </div>
+                <Switch
+                  id="recurring"
+                  checked={formData.isRecurring}
+                  onCheckedChange={(checked) =>
+                    setFormData({
+                      ...formData,
+                      isRecurring: checked,
+                      recurringFrequency: 'monthly',
+                      recurringDueDay: checked ? new Date(formData.date).getDate() : undefined,
+                    })
+                  }
+                />
+              </div>
+              {formData.isRecurring && (
+                <div className="grid gap-3">
+                  {/* Category is required for recurring */}
+                  {!formData.categoryId && (
+                    <p className="text-xs text-amber-600">Selecione uma categoria acima para criar uma despesa recorrente.</p>
+                  )}
+
+                  {/* Frequency */}
+                  <div className="grid gap-2">
+                    <Label>Frequência</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { value: 'monthly', label: 'Mensal' },
+                        { value: 'weekly', label: 'Semanal' },
+                        { value: 'yearly', label: 'Anual' },
+                      ] as const).map((opt) => (
+                        <Button
+                          key={opt.value}
+                          type="button"
+                          variant={formData.recurringFrequency === opt.value ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              recurringFrequency: opt.value,
+                              recurringDueDay: opt.value === 'weekly' ? 1 : formData.recurringDueDay,
+                              recurringDueMonth: undefined,
+                            })
+                          }
+                        >
+                          {opt.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Due day for monthly/yearly */}
+                  {(formData.recurringFrequency === 'monthly' || formData.recurringFrequency === 'yearly') && (
+                    <DayOfMonthInput
+                      value={formData.recurringDueDay ?? null}
+                      onChange={(day) => setFormData({ ...formData, recurringDueDay: day ?? undefined })}
+                      label="Dia do vencimento"
+                    />
+                  )}
+
+                  {/* Day of week for weekly */}
+                  {formData.recurringFrequency === 'weekly' && (
+                    <div className="grid gap-2">
+                      <Label>Dia da semana</Label>
+                      <Select
+                        value={String(formData.recurringDueDay ?? 1)}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, recurringDueDay: parseInt(value) })
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map((day, i) => (
+                            <SelectItem key={i} value={String(i)}>{day}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Due month for yearly */}
+                  {formData.recurringFrequency === 'yearly' && (
+                    <div className="grid gap-2">
+                      <Label>Mês do vencimento</Label>
+                      <Select
+                        value={String(formData.recurringDueMonth ?? '')}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, recurringDueMonth: parseInt(value) })
+                        }
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione o mês" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MONTH_NAMES_FULL.map((name, i) => (
+                            <SelectItem key={i + 1} value={String(i + 1)}>{name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Auto debit */}
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="autoDebit" className="cursor-pointer text-xs">
+                      Confirmar automaticamente no vencimento
+                    </Label>
+                    <Switch
+                      id="autoDebit"
+                      checked={formData.recurringIsAutoDebit}
+                      onCheckedChange={(checked) =>
+                        setFormData({ ...formData, recurringIsAutoDebit: checked })
+                      }
+                    />
+                  </div>
                 </div>
               )}
             </div>

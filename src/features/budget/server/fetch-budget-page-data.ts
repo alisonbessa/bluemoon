@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import {
   monthlyAllocations,
+  monthlyGroupAllocations,
   budgetMembers,
   categories,
   groups,
@@ -43,6 +44,7 @@ export interface BudgetAllocationsResult {
       recurringBills: RecurringBillSummary[];
     }>;
     totals: { allocated: number; spent: number; available: number };
+    groupAllocated: number | null;
   }>;
   totals: { allocated: number; spent: number; available: number };
   income: {
@@ -151,7 +153,7 @@ export async function fetchBudgetAllocationsData(opts: {
   const endDate = new Date(year, month, 0, 23, 59, 59);
 
   // PERFORMANCE: Run independent queries in parallel
-  const [budgetCategories, allocations, spending, bills] = await Promise.all([
+  const [budgetCategories, allocations, spending, bills, groupAllocations] = await Promise.all([
     // Get categories with their groups (filtered by viewMode)
     db
       .select({
@@ -221,6 +223,18 @@ export async function fetchBudgetAllocationsData(opts: {
         )
       )
       .orderBy(recurringBills.displayOrder),
+
+    // Get group allocations (ceilings) for this month
+    db
+      .select()
+      .from(monthlyGroupAllocations)
+      .where(
+        and(
+          eq(monthlyGroupAllocations.budgetId, budgetId),
+          eq(monthlyGroupAllocations.year, year),
+          eq(monthlyGroupAllocations.month, month)
+        )
+      ),
   ]);
 
   const spendingMap = new Map(
@@ -336,6 +350,11 @@ export async function fetchBudgetAllocationsData(opts: {
     await Promise.all(batchPromises);
   }
 
+  // Group allocation ceilings by groupId
+  const groupAllocationsMap = new Map(
+    groupAllocations.map((ga) => [ga.groupId, ga.allocated])
+  );
+
   // Group bills by categoryId
   const billsMap = new Map<string, RecurringBillSummary[]>();
 
@@ -375,15 +394,18 @@ export async function fetchBudgetAllocationsData(opts: {
         recurringBills: RecurringBillSummary[];
       }>;
       totals: { allocated: number; spent: number; available: number };
+      groupAllocated: number | null; // Ceiling set by user, null = not set
     }
   >();
 
   for (const { category, group } of budgetCategories) {
     if (!groupedData.has(group.id)) {
+      const ceiling = groupAllocationsMap.get(group.id);
       groupedData.set(group.id, {
         group,
         categories: [],
         totals: { allocated: 0, spent: 0, available: 0 },
+        groupAllocated: ceiling != null ? ceiling : null,
       });
     }
 
@@ -391,10 +413,10 @@ export async function fetchBudgetAllocationsData(opts: {
     const categoryBills = billsMap.get(category.id) || [];
 
     const billsTotal = categoryBills.reduce((sum, bill) => sum + bill.amount, 0);
-    const allocated =
-      categoryBills.length > 0
-        ? billsTotal
-        : (allocation?.allocated ?? 0);
+    const manualAlloc = allocation?.allocated ?? 0;
+    // Manual allocation is the budget limit; bills total is the fallback
+    // when no manual allocation has been set
+    const allocated = manualAlloc > 0 ? manualAlloc : billsTotal;
     const carriedOver = allocation?.carriedOver || 0;
     const spent = spendingMap.get(category.id) || 0;
     const available = allocated + carriedOver - spent;
@@ -433,6 +455,11 @@ export async function fetchBudgetAllocationsData(opts: {
   const groupedResult = Array.from(groupedData.values())
     .sort((a, b) => a.group.displayOrder - b.group.displayOrder)
     .map((g) => {
+      // Apply group ceiling: if user set a ceiling, use it as allocated
+      if (g.groupAllocated != null && g.groupAllocated > 0) {
+        g.totals.allocated = g.groupAllocated;
+        g.totals.available = g.groupAllocated - g.totals.spent;
+      }
       overallTotals.allocated += g.totals.allocated;
       overallTotals.spent += g.totals.spent;
       overallTotals.available += g.totals.available;

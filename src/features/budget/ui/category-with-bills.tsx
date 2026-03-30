@@ -132,16 +132,16 @@ export function CategoryWithBills({
   // If category has bills, it becomes expandable
   const isExpandable = hasBills;
 
-  const handleCategoryClick = () => {
-    if (isExpandable) {
-      if (onToggleExpand) {
-        onToggleExpand();
-      } else {
-        setLocalExpanded(!localExpanded);
-      }
+  const handleToggleExpand = () => {
+    if (onToggleExpand) {
+      onToggleExpand();
     } else {
-      onEditAllocation(item.category, item.allocated);
+      setLocalExpanded(!localExpanded);
     }
+  };
+
+  const handleCategoryClick = () => {
+    onEditAllocation(item.category, item.allocated);
   };
 
   return (
@@ -157,12 +157,20 @@ export function CategoryWithBills({
         <div className="flex items-center justify-center">
           {/* Expand/Collapse chevron for categories with bills */}
           {isExpandable ? (
-            <ChevronDown
-              className={cn(
-                'h-3 w-3 text-muted-foreground transition-transform duration-200 shrink-0',
-                !isExpanded && '-rotate-90'
-              )}
-            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleExpand();
+              }}
+              className="p-1 -m-1 rounded hover:bg-muted"
+            >
+              <ChevronDown
+                className={cn(
+                  'h-3 w-3 text-muted-foreground transition-transform duration-200 shrink-0',
+                  !isExpanded && '-rotate-90'
+                )}
+              />
+            </button>
           ) : (
             <div className="w-3 shrink-0" />
           )}
@@ -186,7 +194,7 @@ export function CategoryWithBills({
                 handleAddBill(e);
               }}
               className="p-1 rounded hover:bg-muted"
-              title="Adicionar conta recorrente"
+              title="Adicionar despesa fixa"
             >
               <Plus className="h-3 w-3 text-muted-foreground" />
             </button>
@@ -250,7 +258,7 @@ export function CategoryWithBills({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="p-1 rounded hover:bg-muted"
+                className="p-2 -m-1 rounded hover:bg-muted"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreVertical className="h-4 w-4 text-muted-foreground" />
@@ -258,22 +266,22 @@ export function CategoryWithBills({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() => onEditAllocation(item.category, item.allocated)}
+                onSelect={() => setTimeout(() => onEditAllocation(item.category, item.allocated), 0)}
               >
                 <DollarSign className="h-4 w-4 mr-2" />
                 Editar alocação
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleAddBill()}>
+              <DropdownMenuItem onSelect={() => setTimeout(() => handleAddBill(), 0)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Adicionar conta
+                Adicionar despesa fixa
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onEditCategory(item.category)}>
+              <DropdownMenuItem onSelect={() => setTimeout(() => onEditCategory(item.category), 0)}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Editar categoria
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => onDeleteCategory(item.category)}
+                onSelect={() => setTimeout(() => onDeleteCategory(item.category), 0)}
                 className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -303,7 +311,7 @@ export function CategoryWithBills({
                 className="flex items-center gap-2 py-1.5 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md w-full transition-colors"
               >
                 <Plus className="h-3 w-3" />
-                Adicionar conta
+                Adicionar despesa fixa
               </button>
             </div>
           </div>

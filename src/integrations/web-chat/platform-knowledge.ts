@@ -89,6 +89,20 @@ Também é possível criar uma meta pelo Planejamento: role até a seção Metas
 
 Ou use o chat diretamente: "gastei 50 no mercado"
 
+### Como criar uma despesa fixa (recorrente) pela página de Transações
+1. No menu lateral, clique em "Transações"
+2. Clique em "Nova transação"
+3. Escolha tipo "Despesa"
+4. Preencha valor, conta e categoria
+5. Na descrição, coloque o nome da despesa (ex: "Aluguel")
+6. Ative o toggle "Despesa fixa"
+7. Escolha a frequência (Mensal, Semanal ou Anual) e o dia de vencimento
+8. Clique em "Criar"
+
+A despesa fixa aparecerá automaticamente no Planejamento dos meses seguintes como transação pendente.
+
+Também é possível criar despesas fixas pelo Planejamento: no menu de 3 pontos da categoria, clique em "Adicionar despesa fixa".
+
 ### Como alocar no planejamento
 1. No menu lateral, clique em "Planejamento"
 2. Na seção Despesas, clique na categoria desejada

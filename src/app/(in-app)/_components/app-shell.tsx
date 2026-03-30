@@ -85,6 +85,11 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     }
   }, [currentPlan, setCondition]);
 
+  // Reset scroll position on route change
+  useEffect(() => {
+    document.getElementById("main-content")?.scrollTo(0, 0);
+  }, [pathname]);
+
   // Redirect new users who haven't completed onboarding to the setup wizard
   useEffect(() => {
     if (isLoading || !user) return;
@@ -94,19 +99,24 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     const hasExemptRole = user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role);
     if (!hasActiveSubscription && !hasExemptRole && !hasPartnerAccess) return;
 
+    // Invited partners should see the partner welcome flow first, not the main setup
+    if (hasPartnerAccess && !pathname?.startsWith("/app/partner-welcome")) {
+      const partnerWelcomeDone = localStorage.getItem("hivebudget_partner_welcome_done") === "true";
+      if (!partnerWelcomeDone) {
+        router.replace("/app/partner-welcome");
+        return;
+      }
+    }
+
     if (user.onboardingCompletedAt) {
       localStorage.setItem(BUDGET_INITIALIZED_KEY, "true");
-      if (hasPartnerAccess && !pathname?.startsWith("/app/partner-welcome")) {
-        const partnerWelcomeDone = localStorage.getItem("hivebudget_partner_welcome_done") === "true";
-        if (!partnerWelcomeDone) {
-          router.replace("/app/partner-welcome");
-          return;
-        }
-      }
       return;
     }
 
-    router.replace("/app/setup");
+    // Only non-partner users go to main setup
+    if (!hasPartnerAccess) {
+      router.replace("/app/setup");
+    }
   }, [user, isLoading, hasPartnerAccess, pathname, router]);
 
   // Detect when tutorial reaches the celebration step
@@ -222,7 +232,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
         {subscriptionStatus === "expired" && <SubscriptionExpiredBanner />}
         <div className="flex flex-1 overflow-hidden">
           <AppSidebar />
-          <main className={`flex-1 overflow-auto ${isReadOnly ? "pointer-events-auto" : ""}`}>
+          <main id="main-content" className={`flex-1 overflow-auto ${isReadOnly ? "pointer-events-auto" : ""}`}>
             <div className="max-w-7xl mx-auto w-full">{children}</div>
           </main>
         </div>

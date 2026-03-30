@@ -357,6 +357,8 @@ export function BudgetPageClient({
               confirmingGoalId={confirmingGoalId}
               hasContributionModel={hasContributionModel}
               showSectionHeaders={hasContributionModel}
+              year={currentYear}
+              month={currentMonth}
             />
           ))
         ) : viewMode === 'mine' ? (
@@ -584,6 +586,8 @@ interface BudgetSectionBlockProps {
   confirmingGoalId: string | null;
   hasContributionModel: boolean;
   showSectionHeaders: boolean;
+  year: number;
+  month: number;
 }
 
 function BudgetSectionBlock({
@@ -604,6 +608,8 @@ function BudgetSectionBlock({
   confirmingGoalId,
   hasContributionModel,
   showSectionHeaders,
+  year,
+  month,
 }: BudgetSectionBlockProps) {
   // Skip rendering completely empty sections (no groups and no goals)
   if (section.groupsData.length === 0 && section.goals.length === 0 && !section.incomeData) {
@@ -656,6 +662,9 @@ function BudgetSectionBlock({
           onAddCategory={(groupId, groupCode) => categoryForm.openCreate(groupId, groupCode)}
           onBillsChange={refreshData}
           mobileViewMode={uiState.mobileViewMode}
+          year={year}
+          month={month}
+          onGroupAllocationChange={refreshData}
         />
       )}
 

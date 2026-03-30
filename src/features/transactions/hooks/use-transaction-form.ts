@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { useSWRConfig } from "swr";
 import { formatCurrencyCompact, parseCurrency, parseLocalDate } from "@/shared/lib/formatters";
 import type { Transaction, Account, Budget, TransactionFormData } from "../types";
 import { initialFormData } from "../types";
@@ -36,6 +37,7 @@ export function useTransactionForm(
   options: UseTransactionFormOptions
 ): UseTransactionFormReturn {
   const { accounts, budgets, onSuccess, memberId, defaultPaidByMemberId } = options;
+  const { mutate } = useSWRConfig();
 
   const [isOpen, setIsOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -74,9 +76,12 @@ export function useTransactionForm(
       incomeSourceId: transaction.incomeSourceId || "",
       toAccountId: transaction.toAccountId || "",
       date: format(parseLocalDate(transaction.date), "yyyy-MM-dd"),
-      isInstallment: false, // Editing doesn't allow changing installment
+      isInstallment: false,
       totalInstallments: 2,
       paidByMemberId: transaction.paidByMemberId || defaultPaidByMemberId,
+      isRecurring: false, // Editing doesn't allow changing to recurring
+      recurringFrequency: "monthly",
+      recurringIsAutoDebit: false,
     });
     setEditingTransaction(transaction);
     setIsOpen(true);
@@ -100,7 +105,95 @@ export function useTransactionForm(
 
     setIsSubmitting(true);
     try {
-      // Check if this is an installment purchase
+      const amountInCents = parseCurrency(formData.amount);
+
+      // Recurring bill flow: create a recurring bill instead of a transaction
+      if (formData.isRecurring && formData.type === "expense" && !editingTransaction) {
+        if (!formData.categoryId) {
+          toast.error("Selecione uma categoria para despesas recorrentes");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const recurringPayload = {
+          budgetId: budgets[0].id,
+          categoryId: formData.categoryId,
+          accountId: formData.accountId,
+          name: formData.description || "Despesa fixa",
+          amount: amountInCents,
+          frequency: formData.recurringFrequency,
+          dueDay: formData.recurringDueDay ?? null,
+          dueMonth: formData.recurringFrequency === "yearly" ? formData.recurringDueMonth ?? null : null,
+          isAutoDebit: formData.recurringIsAutoDebit,
+          isVariable: false,
+        };
+
+        const billResponse = await fetch("/api/app/recurring-bills", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(recurringPayload),
+        });
+
+        if (!billResponse.ok) {
+          const error = await billResponse.json().catch(() => null);
+          throw new Error(error?.error || "Erro ao criar despesa recorrente");
+        }
+
+        const billData = await billResponse.json().catch(() => null);
+        const recurringBillId = billData?.recurringBill?.id;
+
+        // If the date is today or in the past, also create a cleared transaction for the current month
+        const transactionDate = new Date(formData.date);
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        const isCurrentOrPast = transactionDate <= today;
+
+        if (isCurrentOrPast) {
+          const txPayload = {
+            budgetId: budgets[0].id,
+            type: "expense",
+            amount: amountInCents,
+            description: formData.description || "Despesa recorrente",
+            accountId: formData.accountId,
+            categoryId: formData.categoryId,
+            date: new Date(formData.date).toISOString(),
+            status: "cleared",
+            memberId: memberId || undefined,
+            paidByMemberId: formData.paidByMemberId || defaultPaidByMemberId || memberId || undefined,
+            recurringBillId: recurringBillId || undefined,
+          };
+
+          const txResponse = await fetch("/api/app/transactions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(txPayload),
+          });
+
+          if (!txResponse.ok) {
+            // Bill was created but transaction failed - still notify success for the bill
+            toast.success("Despesa recorrente criada, mas houve erro ao registrar o pagamento deste mês.");
+          } else {
+            toast.success("Despesa recorrente criada e pagamento deste mês registrado!");
+          }
+        } else {
+          toast.success("Despesa recorrente criada! Aparecerá como pendente no planejamento.");
+        }
+
+        // Invalidate budget/planning caches so the new bill appears immediately
+        mutate((key: unknown) => typeof key === "string" && (
+          key.startsWith("/api/app/budget") ||
+          key.startsWith("/api/app/allocations") ||
+          key.startsWith("/api/app/dashboard") ||
+          key.startsWith("/api/app/recurring-bills")
+        ));
+
+        setIsOpen(false);
+        setEditingTransaction(null);
+        onSuccess();
+        return;
+      }
+
+      // Regular transaction flow
       const selectedAccount = accounts.find((a) => a.id === formData.accountId);
       const isCreditCard = selectedAccount?.type === "credit_card";
       const canBeInstallment =
@@ -109,7 +202,7 @@ export function useTransactionForm(
       const payload = {
         budgetId: budgets[0].id,
         type: formData.type,
-        amount: parseCurrency(formData.amount),
+        amount: amountInCents,
         description: formData.description || undefined,
         accountId: formData.accountId,
         categoryId:

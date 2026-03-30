@@ -5,6 +5,7 @@ import {
   categories,
   groups,
   goals,
+  goalContributions,
   budgetMembers,
   budgets,
   monthlyAllocations,
@@ -253,8 +254,9 @@ async function fetchAllocations(opts: {
     if (privacyMode === "private" && isOtherMember) continue;
 
     const allocation = allocationsMap.get(category.id);
-    const billsTotal = billsMap.get(category.id);
-    const allocated = billsTotal ?? (allocation?.allocated ?? 0);
+    const billsTotal = billsMap.get(category.id) || 0;
+    const manualAlloc = allocation?.allocated ?? 0;
+    const allocated = manualAlloc > 0 ? manualAlloc : billsTotal;
     const carriedOver = allocation?.carriedOver || 0;
     const spent = spendingMap.get(category.id) || 0;
 
@@ -289,6 +291,35 @@ async function fetchAllocations(opts: {
     totalReceived += incomeReceivedMap.get(incomeSource.id) || 0;
   }
 
+  // Include active goals as committed expenses
+  const activeGoals = await db
+    .select({ goal: goals })
+    .from(goals)
+    .where(and(
+      eq(goals.budgetId, budgetId),
+      eq(goals.isArchived, false),
+    ));
+
+  let totalGoalAllocated = 0;
+  for (const { goal } of activeGoals) {
+    const isOtherMember = goal.memberId !== null && goal.memberId !== userMemberId;
+    if (privacyMode === "private" && isOtherMember) continue;
+    const { monthlyTarget } = calculateGoalMetrics(goal);
+    totalGoalAllocated += monthlyTarget;
+  }
+
+  // Sum confirmed goal contributions for the current month as "spent"
+  const monthContributions = await db
+    .select({ total: sql<number>`COALESCE(SUM(${goalContributions.amount}), 0)` })
+    .from(goalContributions)
+    .innerJoin(goals, eq(goalContributions.goalId, goals.id))
+    .where(and(
+      eq(goals.budgetId, budgetId),
+      eq(goalContributions.year, year),
+      eq(goalContributions.month, month),
+    ));
+  const totalGoalSpent = Number(monthContributions[0]?.total ?? 0);
+
   return {
     income: {
       totals: {
@@ -298,8 +329,12 @@ async function fetchAllocations(opts: {
       },
     },
     totals: {
-      allocated: totalAllocated,
-      spent: totalSpent,
+      allocated: totalAllocated + totalGoalAllocated,
+      spent: totalSpent + totalGoalSpent,
+    },
+    goalTotals: {
+      allocated: totalGoalAllocated,
+      spent: totalGoalSpent,
     },
     hasContributionModel: totalContributionPlanned !== totalPlanned,
   };

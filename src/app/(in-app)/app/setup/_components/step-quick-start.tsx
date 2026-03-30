@@ -74,7 +74,7 @@ export function StepQuickStart({
             <div>
               <p className="font-medium text-sm">Registre seu primeiro gasto</p>
               <p className="text-xs text-muted-foreground">
-                Use o botão &quot;+ Nova Transação&quot; no menu ou Ctrl+N.
+                Use o botão &quot;+ Nova Transação&quot; no menu.
                 Leva menos de 10 segundos.
               </p>
             </div>

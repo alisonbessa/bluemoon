@@ -63,13 +63,18 @@ function filterGroupsByMember(
     .map((g) => {
       const filtered = g.categories.filter(filterFn);
       if (filtered.length === 0) return null;
+      const catAllocated = filtered.reduce((sum, c) => sum + c.allocated + c.carriedOver, 0);
+      const catSpent = filtered.reduce((sum, c) => sum + c.spent, 0);
+      // Apply group ceiling if set
+      const hasCeiling = g.groupAllocated != null && g.groupAllocated > 0;
+      const allocated = hasCeiling ? g.groupAllocated! : catAllocated;
       return {
         ...g,
         categories: filtered,
         totals: {
-          allocated: filtered.reduce((sum, c) => sum + c.allocated + c.carriedOver, 0),
-          spent: filtered.reduce((sum, c) => sum + c.spent, 0),
-          available: filtered.reduce((sum, c) => sum + c.available, 0),
+          allocated,
+          spent: catSpent,
+          available: allocated - catSpent,
         },
       };
     })

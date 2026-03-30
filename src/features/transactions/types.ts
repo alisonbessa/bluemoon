@@ -2,10 +2,18 @@
 // Tipos de Domínio - Transactions Module
 // =============================================================================
 
+export interface CategoryGroup {
+  id: string;
+  name: string;
+  code: string;
+  displayOrder: number;
+}
+
 export interface Category {
   id: string;
   name: string;
   icon?: string | null;
+  group?: CategoryGroup;
 }
 
 export interface Account {
@@ -60,6 +68,8 @@ export interface Budget {
 
 export type TransactionType = "income" | "expense" | "transfer";
 
+export type RecurringFrequency = "weekly" | "monthly" | "yearly";
+
 export interface TransactionFormData {
   type: TransactionType;
   amount: string;
@@ -72,6 +82,12 @@ export interface TransactionFormData {
   isInstallment: boolean;
   totalInstallments: number;
   paidByMemberId?: string;
+  // Recurring bill fields
+  isRecurring: boolean;
+  recurringFrequency: RecurringFrequency;
+  recurringDueDay?: number;
+  recurringDueMonth?: number;
+  recurringIsAutoDebit: boolean;
 }
 
 export const initialFormData: TransactionFormData = {
@@ -85,6 +101,9 @@ export const initialFormData: TransactionFormData = {
   date: new Date().toISOString().split("T")[0],
   isInstallment: false,
   totalInstallments: 2,
+  isRecurring: false,
+  recurringFrequency: "monthly",
+  recurringIsAutoDebit: false,
 };
 
 // =============================================================================
