@@ -1,7 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { incomeSources, transactions } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { incomeSources, transactions, financialAccounts } from "@/db/schema";
+import { eq, and, inArray, gte, lte, sql } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
@@ -104,11 +104,18 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(eq(incomeSources.id, sourceId))
     .returning();
 
-  // If amount changed, update any pending income transactions for this source
+  // If amount changed, update income transactions for this source
   if (validation.data.amount != null && validation.data.amount !== existingSource.amount) {
+    const oldAmount = existingSource.amount ?? 0;
+    const newAmount = validation.data.amount;
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    // Update all pending transactions (any month)
     await db
       .update(transactions)
-      .set({ amount: validation.data.amount, updatedAt: new Date() })
+      .set({ amount: newAmount, updatedAt: new Date() })
       .where(
         and(
           eq(transactions.incomeSourceId, sourceId),
@@ -116,6 +123,46 @@ export const PATCH = withAuthRequired(async (req, context) => {
           eq(transactions.type, "income")
         )
       );
+
+    // Also update confirmed transactions in the CURRENT month that still have the
+    // old amount (auto-confirmed before user changed the value). Also reverse the
+    // balance difference on the account.
+    const staleConfirmed = await db
+      .select({ id: transactions.id, accountId: transactions.accountId })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.incomeSourceId, sourceId),
+          inArray(transactions.status, ["cleared", "reconciled"]),
+          eq(transactions.type, "income"),
+          eq(transactions.amount, oldAmount),
+          gte(transactions.date, monthStart),
+          lte(transactions.date, monthEnd)
+        )
+      );
+
+    if (staleConfirmed.length > 0) {
+      const diff = newAmount - oldAmount;
+
+      // Update transaction amounts
+      await db
+        .update(transactions)
+        .set({ amount: newAmount, updatedAt: new Date() })
+        .where(inArray(transactions.id, staleConfirmed.map((t) => t.id)));
+
+      // Adjust account balances for the difference
+      const accountIds = [...new Set(staleConfirmed.map((t) => t.accountId))];
+      for (const accId of accountIds) {
+        const countForAccount = staleConfirmed.filter((t) => t.accountId === accId).length;
+        await db
+          .update(financialAccounts)
+          .set({
+            balance: sql`${financialAccounts.balance} + ${diff * countForAccount}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(financialAccounts.id, accId));
+      }
+    }
   }
 
   return successResponse({ incomeSource: updatedSource });
