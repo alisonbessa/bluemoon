@@ -535,6 +535,13 @@ export async function handleExpenseIntent(
     return;
   }
 
+  // Single account: auto-select it (no need to ask)
+  if (!matchedAccount && accounts.length === 1) {
+    accountId = accounts[0].id;
+    accountName = accounts[0].name;
+    accountType = accounts[0].type;
+  }
+
   // Account already selected (or only one account), ask for category
   const catSelectMsgId = await adapter.sendChoiceList(
     chatId,

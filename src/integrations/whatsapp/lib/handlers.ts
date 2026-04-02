@@ -1,4 +1,16 @@
 import { createLogger } from "@/shared/lib/logger";
+
+// Per-phone message queue to prevent race conditions when user sends messages rapidly
+const messageQueues = new Map<string, Promise<void>>();
+
+function enqueueMessage(phoneNumber: string, handler: () => Promise<void>): Promise<void> {
+  const current = messageQueues.get(phoneNumber) ?? Promise.resolve();
+  const next = current.then(handler).catch((error) => {
+    createLogger("whatsapp:queue").error("Queued message handler error:", { phoneNumber, error });
+  });
+  messageQueues.set(phoneNumber, next);
+  return next;
+}
 import { db } from "@/db";
 import { whatsappUsers } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -73,17 +85,26 @@ async function handleAIMessage(
 
   const userContext = buildUserContext(userId, budgetInfo);
 
-  try {
-    const aiResponse = await parseUserMessage(text, userContext);
-
-    await routeIntent(adapter, phoneNumber, aiResponse, userContext, text, []);
-  } catch (error) {
-    logger.error("AI processing error:", error);
-    await adapter.sendMessage(
-      phoneNumber,
-      "Desculpe, tive um problema ao processar sua mensagem. Tente novamente."
-    );
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const aiResponse = await parseUserMessage(text, userContext);
+      await routeIntent(adapter, phoneNumber, aiResponse, userContext, text, []);
+      return;
+    } catch (error) {
+      lastError = error;
+      logger.warn(`AI processing error (attempt ${attempt}/3):`, { error: String(error) });
+      if (attempt < 3) {
+        await new Promise((r) => setTimeout(r, Math.pow(2, attempt - 1) * 1000));
+      }
+    }
   }
+
+  logger.error("AI processing failed after 3 attempts:", lastError);
+  await adapter.sendMessage(
+    phoneNumber,
+    "Desculpe, tive um problema ao processar sua mensagem. Tente novamente em alguns segundos."
+  );
 }
 
 // ============================================
@@ -140,10 +161,20 @@ async function handleInteractiveResponse(
     if (elapsed > TIMEOUT_MS) {
       if (context.lastAILogId) await markLogAsCancelled(context.lastAILogId);
       await adapter.updateState(phoneNumber, "IDLE", {});
-      await adapter.sendMessage(
-        phoneNumber,
-        "Esta operação expirou (mais de 15 minutos). Envie a mensagem novamente."
-      );
+      let timeoutMsg = "⏰ Sua confirmação expirou (15 min).\n\n";
+      if (context.pendingExpense) {
+        const pe = context.pendingExpense as Record<string, unknown>;
+        timeoutMsg += `Registro pendente: ${pe.categoryName || pe.description || "Despesa"}`;
+        if (pe.amount) timeoutMsg += ` - R$ ${((pe.amount as number) / 100).toFixed(2).replace(".", ",")}`;
+        timeoutMsg += "\n\n";
+      } else if (context.pendingIncome) {
+        const pi = context.pendingIncome as Record<string, unknown>;
+        timeoutMsg += `Registro pendente: ${pi.incomeSourceName || pi.description || "Receita"}`;
+        if (pi.amount) timeoutMsg += ` - R$ ${((pi.amount as number) / 100).toFixed(2).replace(".", ",")}`;
+        timeoutMsg += "\n\n";
+      }
+      timeoutMsg += "Envie a mensagem novamente para registrar.";
+      await adapter.sendMessage(phoneNumber, timeoutMsg);
       return;
     }
   }
@@ -367,12 +398,12 @@ export async function handleWebhook(
           switch (message.type) {
             case "text":
               if (message.text?.body) {
+                const textBody = message.text.body.trim();
                 // React with hourglass to indicate processing
                 await adapter.reactToMessage(phoneNumber, message.id, "\u23F3");
-                await handleTextMessage(
-                  phoneNumber,
-                  message.text.body.trim(),
-                  displayName
+                // Queue to prevent race conditions when user sends messages rapidly
+                await enqueueMessage(phoneNumber, () =>
+                  handleTextMessage(phoneNumber, textBody, displayName)
                 );
                 // Remove processing reaction when done
                 await adapter.removeMessageReaction(phoneNumber, message.id);

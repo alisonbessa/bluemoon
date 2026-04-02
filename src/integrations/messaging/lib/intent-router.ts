@@ -80,7 +80,7 @@ export async function routeIntent(
 
     case "UNKNOWN":
     default:
-      await handleUnknownIntent(adapter, chatId, logId);
+      await handleUnknownIntent(adapter, chatId, logId, originalMessage);
       break;
   }
 
@@ -117,18 +117,23 @@ async function handleGreetingIntent(adapter: MessagingAdapter, chatId: ChatId, d
 /**
  * Handle unknown or unclear intents
  */
-async function handleUnknownIntent(adapter: MessagingAdapter, chatId: ChatId, logId: string | null): Promise<void> {
-  const botMessage =
-    `Não entendi bem. Posso ajudar com:\n\n` +
-    `<b>Registrar gastos:</b>\n` +
-    `"gastei 50 no mercado"\n` +
-    `"paguei 200 de luz"\n\n` +
-    `<b>Registrar receitas:</b>\n` +
-    `"recebi 5000 de salário"\n\n` +
-    `<b>Consultas:</b>\n` +
-    `"quanto gastei esse mês?"\n` +
-    `"quanto sobrou em alimentação?"\n` +
-    `"como está minha meta de viagem?"`;
+async function handleUnknownIntent(adapter: MessagingAdapter, chatId: ChatId, logId: string | null, originalMessage?: string): Promise<void> {
+  let botMessage: string;
+
+  if (originalMessage && originalMessage.length <= 150) {
+    botMessage =
+      `Não entendi: "<i>${originalMessage}</i>"\n\n` +
+      `Tente enviar assim:\n\n` +
+      `<b>Gasto:</b> "50 mercado" ou "gastei 50 no mercado"\n` +
+      `<b>Receita:</b> "recebi 5000 de salário"\n` +
+      `<b>Consulta:</b> "quanto gastei esse mês?"`;
+  } else {
+    botMessage =
+      `Não entendi a mensagem. Tente enviar assim:\n\n` +
+      `<b>Gasto:</b> "50 mercado" ou "gastei 50 no mercado"\n` +
+      `<b>Receita:</b> "recebi 5000 de salário"\n` +
+      `<b>Consulta:</b> "quanto gastei esse mês?"`;
+  }
 
   await adapter.sendMessage(chatId, botMessage);
 
