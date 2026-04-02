@@ -4,6 +4,16 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/alert-dialog";
 import { EyeIcon, EyeOffIcon, ShieldIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { PrivacyMode } from "@/db/schema/budgets";
@@ -43,15 +53,17 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
     fetchBudget();
   }, [budgetId]);
 
-  const handleRequestChange = async (mode: PrivacyMode) => {
-    if (mode === currentMode) return;
+  const [confirmingMode, setConfirmingMode] = useState<PrivacyMode | null>(null);
+
+  const handleConfirmChange = async () => {
+    if (!confirmingMode) return;
 
     setIsSaving(true);
     try {
       const response = await fetch("/api/app/budget/privacy", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ budgetId, privacyMode: mode }),
+        body: JSON.stringify({ budgetId, privacyMode: confirmingMode }),
       });
 
       if (!response.ok) {
@@ -61,17 +73,39 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
       const data = await response.json();
 
       if (data.applied) {
-        setCurrentMode(mode);
+        setCurrentMode(confirmingMode);
         setPendingMode(null);
-        toast.success("Privacidade atualizada!");
+        toast.success("Privacidade atualizada!", {
+          action: {
+            label: "Desfazer",
+            onClick: () => handleUndoChange(currentMode),
+          },
+        });
       } else {
-        setPendingMode(mode);
-        toast.success("Solicitacao enviada ao parceiro por email!");
+        setPendingMode(confirmingMode);
+        toast.success("Solicitação enviada ao parceiro por email!");
       }
     } catch {
       toast.error("Erro ao solicitar mudança de privacidade");
     } finally {
       setIsSaving(false);
+      setConfirmingMode(null);
+    }
+  };
+
+  const handleUndoChange = async (previousMode: PrivacyMode) => {
+    try {
+      const response = await fetch("/api/app/budget/privacy", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ budgetId, privacyMode: previousMode }),
+      });
+      if (response.ok) {
+        setCurrentMode(previousMode);
+        toast.success("Privacidade restaurada!");
+      }
+    } catch {
+      toast.error("Erro ao desfazer mudança");
     }
   };
 
@@ -92,6 +126,7 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
@@ -125,7 +160,7 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
               className={`w-full justify-start h-auto py-3 px-4 whitespace-normal ${
                 isActive ? "text-primary-foreground" : "hover:bg-muted/50"
               }`}
-              onClick={() => handleRequestChange(option.value)}
+              onClick={() => setConfirmingMode(option.value)}
               disabled={isActive || isSaving}
             >
               <div className="flex items-start gap-3 w-full min-w-0">
@@ -157,5 +192,40 @@ export function PrivacySettings({ budgetId }: PrivacySettingsProps) {
         )}
       </CardContent>
     </Card>
+
+    {/* Privacy Change Confirmation Dialog */}
+    <AlertDialog open={!!confirmingMode} onOpenChange={(open) => !open && setConfirmingMode(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Alterar privacidade do orçamento?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {confirmingMode && (
+              <>
+                Mudar de <strong>{PRIVACY_MAP[currentMode]?.label}</strong> para{" "}
+                <strong>{PRIVACY_MAP[confirmingMode]?.label}</strong>.
+                {"\n\n"}
+                {PRIVACY_MAP[confirmingMode]?.description}
+                {"\n\n"}
+                Seu parceiro(a) será notificado e precisará confirmar a mudança.
+              </>
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isSaving}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirmChange} disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Enviando...
+              </>
+            ) : (
+              "Confirmar mudança"
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

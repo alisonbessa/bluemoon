@@ -37,9 +37,31 @@ export function DataPrivacyCard({ user }: DataPrivacyCardProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingLgpd, setIsExportingLgpd] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [deletionReason, setDeletionReason] = useState("");
   const [deleteAllData, setDeleteAllData] = useState(false);
+
+  const handleResetData = async () => {
+    setIsResetting(true);
+    try {
+      const response = await fetch("/api/app/account/reset", {
+        method: "POST",
+      });
+      if (response.ok) {
+        toast.success("Dados financeiros apagados! Redirecionando...");
+        window.location.href = "/app/setup";
+      } else {
+        toast.error("Erro ao resetar dados");
+      }
+    } catch {
+      toast.error("Erro ao resetar dados");
+    } finally {
+      setIsResetting(false);
+      setShowResetConfirm(false);
+    }
+  };
 
   const handleExportData = async () => {
     setIsExporting(true);
@@ -168,12 +190,20 @@ export function DataPrivacyCard({ user }: DataPrivacyCardProps) {
               </>
             ) : (
               <>
-                <FileDown className="h-4 w-4" />
-                Exportar todos os dados pessoais (LGPD)
+                <FileDown className="h-4 w-4 shrink-0" />
+                <span className="truncate">Dados pessoais (LGPD)</span>
               </>
             )}
           </Button>
           <Separator />
+          <Button
+            variant="outline"
+            className="w-full justify-start text-amber-600 hover:text-amber-600"
+            onClick={() => setShowResetConfirm(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+            Apagar dados e recomeçar
+          </Button>
           <Button
             variant="outline"
             className="w-full justify-start text-destructive hover:text-destructive"
@@ -188,6 +218,37 @@ export function DataPrivacyCard({ user }: DataPrivacyCardProps) {
           </p>
         </CardContent>
       </Card>
+
+      {/* Reset Data Confirmation Dialog */}
+      <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar todos os dados financeiros?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso vai apagar todas as suas transações, contas, categorias, metas e configurações
+              de orçamento. Sua conta e perfil serão mantidos. Você será redirecionado para o
+              setup inicial para começar do zero.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isResetting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetData}
+              disabled={isResetting}
+              className="bg-amber-600 text-white hover:bg-amber-700"
+            >
+              {isResetting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Apagando...
+                </>
+              ) : (
+                "Apagar e recomeçar"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Account Confirmation Dialog */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={(open: boolean) => {
