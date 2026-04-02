@@ -525,7 +525,176 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       },
     ],
   },
+
+  // =====================================================
+  // PAGE-SPECIFIC MINI FLOWS
+  // Auto-triggered when user arrives via checklist (?setup=true)
+  // =====================================================
+  "page-accounts": {
+    id: "page-accounts",
+    name: "Contas",
+    steps: [
+      {
+        id: "accounts-intro",
+        route: "/app/accounts",
+        title: "Suas Contas",
+        content:
+          "Aqui você cadastra onde seu dinheiro está: contas bancárias, cartões de crédito e benefícios (VR/VA).",
+        placement: "center",
+      },
+      {
+        id: "accounts-add",
+        route: "/app/accounts",
+        title: "Adicionar Conta",
+        content:
+          "Clique aqui para adicionar sua primeira conta. Pode ser conta corrente, poupança, cartão de crédito ou benefício.",
+        targetSelector: '[data-tutorial="add-account-button"]',
+        placement: "bottom",
+      },
+    ],
+  },
+  "page-transactions": {
+    id: "page-transactions",
+    name: "Transações",
+    steps: [
+      {
+        id: "transactions-intro",
+        route: "/app/transactions",
+        title: "Suas Transações",
+        content:
+          "Aqui você registra tudo que entra e sai. Cada gasto é descontado da categoria correspondente no orçamento.",
+        placement: "center",
+      },
+      {
+        id: "transactions-add",
+        route: "/app/transactions",
+        title: "Registrar Transação",
+        content:
+          "Clique aqui para registrar uma nova transação. Pode ser uma despesa, receita ou transferência.",
+        targetSelector: '[data-tutorial="add-transaction-button"]',
+        placement: "bottom",
+      },
+      {
+        id: "transactions-tip",
+        route: "/app/transactions",
+        title: "Dica: Categorize Tudo",
+        content:
+          "Sempre escolha a categoria correta. Assim você sabe exatamente para onde vai seu dinheiro e se está dentro do planejado.",
+        placement: "center",
+      },
+    ],
+  },
+  "page-budget": {
+    id: "page-budget",
+    name: "Planejamento",
+    steps: [
+      {
+        id: "budget-intro",
+        route: "/app/budget",
+        title: "Seu Orçamento",
+        content:
+          "Este é o coração do HiveBudget! Aqui você distribui cada real da sua renda entre as categorias.",
+        placement: "center",
+      },
+      {
+        id: "budget-available",
+        route: "/app/budget",
+        title: "Dinheiro Disponível",
+        content:
+          "Este valor mostra quanto dinheiro ainda precisa ser distribuído. O objetivo é deixar zerado!",
+        targetSelector: '[data-tutorial="budget-available"]',
+        placement: "bottom",
+      },
+      {
+        id: "budget-category",
+        route: "/app/budget",
+        title: "Alocando nas Categorias",
+        content:
+          "Clique em uma categoria para definir quanto quer reservar. Comece pelas despesas fixas como moradia e contas.",
+        targetSelector: '[data-tutorial="category-row"]',
+        placement: "right",
+      },
+      {
+        id: "budget-goals",
+        route: "/app/budget",
+        title: "Suas Metas Aqui",
+        content:
+          "As metas que você criou aparecem como categorias no grupo \"Metas\". Reserve um valor mensal para alcançá-las!",
+        targetSelector: '[data-tutorial="goals-group"]',
+        placement: "right",
+      },
+    ],
+  },
+  "page-goals": {
+    id: "page-goals",
+    name: "Metas",
+    steps: [
+      {
+        id: "goals-intro",
+        route: "/app/goals",
+        title: "Metas Financeiras",
+        content:
+          "Defina objetivos como reserva de emergência, viagem ou carro novo. O sistema calcula quanto guardar por mês para alcançar cada meta.",
+        placement: "center",
+      },
+      {
+        id: "goals-add",
+        route: "/app/goals",
+        title: "Criar uma Meta",
+        content:
+          "Clique aqui para criar sua primeira meta. Defina o valor total e a data alvo.",
+        targetSelector: '[data-tutorial="add-goal-button"]',
+        placement: "bottom",
+      },
+      {
+        id: "goals-tip",
+        route: "/app/goals",
+        title: "Dica: Metas no Orçamento",
+        content:
+          "Suas metas aparecerão no orçamento como categorias. Assim você reserva dinheiro todo mês para alcançá-las!",
+        placement: "center",
+      },
+    ],
+  },
+  "page-settings": {
+    id: "page-settings",
+    name: "Configurações",
+    steps: [
+      {
+        id: "settings-messaging",
+        route: "/app/settings",
+        title: "Conecte WhatsApp ou Telegram",
+        content:
+          "Registre gastos enviando uma mensagem — é o jeito mais rápido de manter o controle em dia.",
+        targetSelector: '[data-tutorial="messaging-card"]',
+        placement: "bottom",
+      },
+      {
+        id: "settings-partner",
+        route: "/app/settings",
+        title: "Convide seu parceiro(a)",
+        content:
+          "Crie um link de convite e envie para seu parceiro(a). Cada um terá sua própria visão, tudo sincronizado.",
+        targetSelector: '[data-tutorial="members-card"]',
+        placement: "bottom",
+        condition: "hasDuoPlan",
+      },
+    ],
+  },
 };
+
+/** Map route paths to their page-specific mini flow IDs */
+const ROUTE_TO_PAGE_FLOW: Record<string, string> = {
+  "/app/accounts": "page-accounts",
+  "/app/transactions": "page-transactions",
+  "/app/budget": "page-budget",
+  "/app/goals": "page-goals",
+  "/app/settings": "page-settings",
+};
+
+export function getPageFlowId(route: string): string | undefined {
+  return ROUTE_TO_PAGE_FLOW[route];
+}
 
 export function getTutorialFlow(flowId: string): TutorialFlow | undefined {
   return TUTORIAL_FLOWS[flowId];

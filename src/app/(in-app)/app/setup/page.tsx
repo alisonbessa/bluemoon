@@ -8,7 +8,6 @@ import { appConfig } from "@/shared/lib/config";
 import { useCurrentPlan } from "@/shared/hooks/use-current-user";
 import type { PrivacyMode } from "@/db/schema/budgets";
 import { StepPrivacy } from "./_components/step-privacy";
-import { StepQuickStart } from "./_components/step-quick-start";
 import { mutate } from "swr";
 
 export default function SetupPage() {
@@ -19,7 +18,6 @@ export default function SetupPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [privacyMode, setPrivacyMode] = useState<PrivacyMode>("visible");
-  const [setupComplete, setSetupComplete] = useState(false);
 
   const handleSubmit = async (selectedPrivacy?: PrivacyMode) => {
     setIsSubmitting(true);
@@ -46,12 +44,7 @@ export default function SetupPage() {
       ]);
 
       toast.success("Orçamento criado!");
-
-      if (isDuo) {
-        setSetupComplete(true);
-      } else {
-        router.push("/app");
-      }
+      router.push("/app");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Erro ao configurar"
@@ -62,7 +55,7 @@ export default function SetupPage() {
   };
 
   // Solo: submit immediately, go to dashboard
-  if (!isDuo && !setupComplete) {
+  if (!isDuo) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-lg text-center space-y-6">
@@ -89,38 +82,11 @@ export default function SetupPage() {
     );
   }
 
-  // Duo: Quick Start after setup
-  if (setupComplete) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
-        <div className="w-full max-w-lg">
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <Image
-              src="/assets/logo.png"
-              alt={appConfig.projectName}
-              width={32}
-              height={32}
-              className="rounded-lg"
-            />
-            <span className="text-xl font-bold">{appConfig.projectName}</span>
-          </div>
-          <StepQuickStart
-            totalIncomeCents={0}
-            categoriesCount={0}
-            isDuo={isDuo}
-            privacyLabel={privacyMode === "visible" ? "Tudo visível" : privacyMode === "unified" ? "Unificado" : "Privado"}
-            onGoToDashboard={() => router.push("/app")}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // Duo: Privacy selection
+  // Duo: Privacy selection - then go straight to dashboard
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-[100dvh] flex flex-col items-center px-4 py-6 sm:justify-center sm:py-8">
       <div className="w-full max-w-lg">
-        <div className="flex items-center justify-center gap-2 mb-8">
+        <div className="flex items-center justify-center gap-2 mb-6 sm:mb-8">
           <Image
             src="/assets/logo.png"
             alt={appConfig.projectName}
@@ -135,6 +101,7 @@ export default function SetupPage() {
           selectedMode={privacyMode}
           onSelectMode={setPrivacyMode}
           onNext={() => handleSubmit(privacyMode)}
+          isSubmitting={isSubmitting}
         />
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import useSWR from "swr";
 import { cn } from "@/shared/lib/utils";
 import {
   LayoutDashboardIcon,
@@ -16,6 +17,7 @@ import {
   UserIcon,
   UsersIcon,
   LayersIcon,
+  LockIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -59,18 +61,21 @@ const navItems = [
     label: "Planejamento",
     icon: ListIcon,
     tutorialId: "nav-planning",
+    requiresAccount: true,
   },
   {
     href: "/app/transactions",
     label: "Transações",
     icon: ReceiptIcon,
     tutorialId: "nav-transactions",
+    requiresAccount: true,
   },
   {
     href: "/app/goals",
     label: "Metas",
     icon: TargetIcon,
     tutorialId: "nav-goals",
+    requiresAccount: true,
   },
   {
     href: "/app/accounts",
@@ -83,6 +88,7 @@ const navItems = [
     label: "Relatórios",
     icon: BarChart3Icon,
     tutorialId: "nav-insights",
+    requiresAccount: true,
   },
   {
     href: "/app/settings",
@@ -224,6 +230,8 @@ function SidebarUserMenu() {
 export function AppSidebar() {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
+  const { data: checklist } = useSWR<{ hasAccount: boolean }>("/api/app/onboarding/checklist");
+  const hasAccount = checklist?.hasAccount ?? true; // default to true while loading
 
   const handleNavClick = () => {
     if (isMobile) {
@@ -256,6 +264,29 @@ export function AppSidebar() {
                   item.href === "/app"
                     ? pathname === "/app"
                     : pathname.startsWith(item.href);
+                const isLocked = item.requiresAccount && !hasAccount;
+
+                if (isLocked) {
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <SidebarMenuButton
+                            isActive={false}
+                            className="opacity-40 cursor-not-allowed"
+                          >
+                            <item.icon className="size-4" />
+                            <span>{item.label}</span>
+                            <LockIcon className="size-3 ml-auto text-muted-foreground" />
+                          </SidebarMenuButton>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          <p>Adicione uma conta primeiro</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </SidebarMenuItem>
+                  );
+                }
 
                 return (
                   <SidebarMenuItem key={item.href}>

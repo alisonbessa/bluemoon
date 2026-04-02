@@ -15,6 +15,7 @@ import {
   getNextStep,
   getStepsByRoute,
   getStepIndex,
+  getPageFlowId,
   type TutorialStep,
   type TutorialFlow,
 } from "./tutorial-steps";
@@ -40,6 +41,8 @@ interface TutorialContextValue {
   isLastPageStep: boolean;
   isWaitingForAction: boolean; // Whether we're waiting for user to complete an action
   startTutorial: (flowId: string) => void;
+  /** Start a page-specific mini spotlight tour (used with ?setup=true) */
+  startPageTutorial: (route: string) => void;
   nextStep: () => void;
   goToNextPage: () => void; // Navigate to next tutorial page
   dismissPageTutorial: () => void; // Close tutorial for current page (user will interact)
@@ -235,6 +238,40 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     [router]
   );
 
+  const startPageTutorial = useCallback(
+    (route: string) => {
+      // Don't interrupt a running full flow
+      if (currentFlow && currentFlow.id === "initial-setup") return;
+
+      const flowId = getPageFlowId(route);
+      if (!flowId) return;
+
+      const flow = getTutorialFlow(flowId);
+      if (!flow || flow.steps.length === 0) return;
+
+      // Find first step with met conditions
+      const firstStep = flow.steps.find((s) => {
+        if (!s.condition) return true;
+        return conditionsRef.current[s.condition] === true;
+      });
+      if (!firstStep) return;
+
+      setCurrentFlow(flow);
+      setCurrentStep(firstStep);
+      setDismissedForPage(null);
+      setIsWaitingForAction(false);
+      setIsVisible(true);
+
+      saveTutorialProgress({
+        flowId,
+        currentStepId: firstStep.id,
+        dismissedForPage: null,
+        waitingForAction: false,
+      });
+    },
+    [currentFlow]
+  );
+
   const nextStep = useCallback(() => {
     if (!currentFlow || !currentStep) return;
 
@@ -359,26 +396,34 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const isPageFlow = currentFlow?.id.startsWith("page-") ?? false;
+
   const skipTutorial = useCallback(() => {
-    localStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
+    if (!isPageFlow) {
+      localStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
+    }
     saveTutorialProgress(null);
     setCurrentFlow(null);
     setCurrentStep(null);
     setIsVisible(false);
     setDismissedForPage(null);
     setIsWaitingForAction(false);
-  }, []);
+  }, [isPageFlow]);
 
   const completeTutorial = useCallback(() => {
-    localStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
+    if (!isPageFlow) {
+      localStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
+    }
     saveTutorialProgress(null);
     setCurrentFlow(null);
     setCurrentStep(null);
     setIsVisible(false);
     setDismissedForPage(null);
     setIsWaitingForAction(false);
-    router.push("/app");
-  }, [router]);
+    if (!isPageFlow) {
+      router.push("/app");
+    }
+  }, [router, isPageFlow]);
 
   // Calculate indices (filtering by conditions)
   const validSteps = currentFlow
@@ -411,6 +456,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     isLastPageStep,
     isWaitingForAction,
     startTutorial,
+    startPageTutorial,
     nextStep,
     goToNextPage,
     dismissPageTutorial,
