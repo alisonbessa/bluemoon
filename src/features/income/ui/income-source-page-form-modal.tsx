@@ -4,6 +4,18 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { CurrencyInput } from '@/shared/ui/currency-input';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/select';
+
+const MONTH_LABELS = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+import {
   FormModalWrapper,
   FrequencySelector,
   IncomeTypeSelector,
@@ -123,13 +135,59 @@ export function IncomeSourcePageFormModal({
             />
           </div>
 
-          <DayOfMonthInput
-            value={formData.dayOfMonth}
-            onChange={(value) => onUpdateField('dayOfMonth', value)}
-            label="Dia do Pagamento"
-            placeholder="1-31"
-          />
+          {formData.frequency === 'annual' || formData.frequency === 'once' ? (
+            <div className="grid gap-2">
+              <Label>Mês</Label>
+              <Select
+                value={formData.monthOfYear?.toString() ?? ''}
+                onValueChange={(val) => onUpdateField('monthOfYear', parseInt(val))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTH_LABELS.map((label, i) => (
+                    <SelectItem key={i + 1} value={(i + 1).toString()}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <DayOfMonthInput
+              value={formData.dayOfMonth}
+              onChange={(value) => onUpdateField('dayOfMonth', value)}
+              label="Dia do Pagamento"
+              placeholder="1-31"
+            />
+          )}
         </div>
+
+        {formData.frequency === 'once' && (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label>Ano</Label>
+              <Select
+                value={formData.yearOfPayment?.toString() ?? ''}
+                onValueChange={(val) => onUpdateField('yearOfPayment', parseInt(val))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map((y) => (
+                    <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DayOfMonthInput
+              value={formData.dayOfMonth}
+              onChange={(value) => onUpdateField('dayOfMonth', value)}
+              label="Dia do Pagamento"
+              placeholder="1-31"
+            />
+          </div>
+        )}
 
         {/* Contribuição ao orçamento - only for Duo (multiple members) */}
         {members.length > 1 && (

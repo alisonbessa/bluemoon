@@ -351,11 +351,54 @@ export async function ensurePendingTransactionsForMonth(
           paidByMemberId: incomePaidBy,
         });
       }
+    } else if (frequency === "annual") {
+      // Annual income: only in the specified month
+      if (incomeSource.monthOfYear !== month) continue;
+      if (existingIncomeIds.has(incomeSource.id)) continue;
+
+      const dueDay = Math.min(incomeSource.dayOfMonth ?? 1, lastDayOfMonth);
+      const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0));
+
+      incomeTransactions.push({
+        budgetId,
+        accountId,
+        incomeSourceId: incomeSource.id,
+        type: "income" as const,
+        status: "pending" as const,
+        amount: incomeSource.amount,
+        description: incomeSource.name,
+        date: dueDate,
+        source: "scheduled",
+        memberId: incomeMemberId,
+        paidByMemberId: incomePaidBy,
+      });
+    } else if (frequency === "once") {
+      // One-time income: only in the specific month/year
+      if (incomeSource.monthOfYear !== month) continue;
+      if (incomeSource.yearOfPayment && incomeSource.yearOfPayment !== year) continue;
+      if (existingIncomeIds.has(incomeSource.id)) continue;
+
+      const dueDay = Math.min(incomeSource.dayOfMonth ?? 1, lastDayOfMonth);
+      const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0));
+
+      incomeTransactions.push({
+        budgetId,
+        accountId,
+        incomeSourceId: incomeSource.id,
+        type: "income" as const,
+        status: "pending" as const,
+        amount: incomeSource.amount,
+        description: incomeSource.name,
+        date: dueDate,
+        source: "scheduled",
+        memberId: incomeMemberId,
+        paidByMemberId: incomePaidBy,
+      });
     } else {
       // Monthly income (default)
       if (existingIncomeIds.has(incomeSource.id)) continue;
 
-      const dueDay = Math.min(incomeSource.dayOfMonth!, lastDayOfMonth);
+      const dueDay = Math.min(incomeSource.dayOfMonth ?? 1, lastDayOfMonth);
       const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0));
 
       incomeTransactions.push({
