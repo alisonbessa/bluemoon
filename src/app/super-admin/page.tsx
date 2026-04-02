@@ -6,12 +6,15 @@ import useSWR from "swr";
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Cell,
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -70,6 +73,19 @@ interface OverviewData {
     solo: number;
   };
   usersByRole: Record<string, number>;
+}
+
+interface EngagementData {
+  dailyChart: { date: string; transactions: number; telegramMessages: number }[];
+  transactionsBySource: Record<string, number>;
+  transactionsByType: Record<string, number>;
+  telegramResolutions: Record<string, number>;
+  onboardingFunnel: {
+    signups: number;
+    completedOnboarding: number;
+    createdTransactions: number;
+    usedTelegram: number;
+  };
 }
 
 // --- Period options ---
@@ -277,6 +293,203 @@ function RoleDistribution({
   );
 }
 
+function OnboardingFunnel({
+  funnel,
+}: {
+  funnel: EngagementData["onboardingFunnel"];
+}) {
+  const steps = [
+    { label: "Cadastro", value: funnel.signups, color: "#8884d8" },
+    {
+      label: "Onboarding",
+      value: funnel.completedOnboarding,
+      color: "#82ca9d",
+    },
+    {
+      label: "1a Transacao",
+      value: funnel.createdTransactions,
+      color: "#ffc658",
+    },
+    { label: "Usou Telegram", value: funnel.usedTelegram, color: "#ff7c43" },
+  ];
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Funil de Onboarding</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {steps.map((step, i) => {
+            const pct =
+              funnel.signups > 0
+                ? Math.round((step.value / funnel.signups) * 100)
+                : 0;
+            return (
+              <div key={step.label}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>{step.label}</span>
+                  <span className="font-medium tabular-nums">
+                    {step.value}{" "}
+                    <span className="text-muted-foreground">({pct}%)</span>
+                  </span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${pct}%`,
+                      backgroundColor: step.color,
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground mt-3">
+          Usuarios que se cadastraram no periodo selecionado
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TransactionBreakdown({
+  bySource,
+  byType,
+}: {
+  bySource: Record<string, number>;
+  byType: Record<string, number>;
+}) {
+  const sourceLabels: Record<string, string> = {
+    web: "Web",
+    telegram: "Telegram",
+  };
+  const typeLabels: Record<string, string> = {
+    expense: "Despesa",
+    income: "Receita",
+    transfer: "Transferencia",
+  };
+  const typeColors: Record<string, string> = {
+    expense: "#ef4444",
+    income: "#22c55e",
+    transfer: "#3b82f6",
+  };
+
+  const sourceTotal = Object.values(bySource).reduce((a, b) => a + b, 0);
+  const typeData = Object.entries(byType).map(([key, value]) => ({
+    name: typeLabels[key] || key,
+    value,
+    color: typeColors[key] || "#6b7280",
+  }));
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Transacoes por Tipo</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[180px] mb-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={typeData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" allowDecimals={false} />
+              <YAxis type="category" dataKey="name" width={90} />
+              <Tooltip />
+              <Bar dataKey="value" name="Quantidade" radius={[0, 4, 4, 0]}>
+                {typeData.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="border-t pt-3">
+          <p className="text-xs font-medium text-muted-foreground mb-2">
+            Por Origem
+          </p>
+          <div className="flex gap-4">
+            {Object.entries(bySource).map(([source, count]) => {
+              const pct =
+                sourceTotal > 0 ? Math.round((count / sourceTotal) * 100) : 0;
+              return (
+                <div key={source} className="text-sm">
+                  <span className="text-muted-foreground">
+                    {sourceLabels[source] || source}:
+                  </span>{" "}
+                  <span className="font-medium tabular-nums">
+                    {count} ({pct}%)
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TelegramResolutions({
+  resolutions,
+}: {
+  resolutions: Record<string, number>;
+}) {
+  const labels: Record<string, { label: string; color: string }> = {
+    confirmed: { label: "Confirmado", color: "bg-emerald-500" },
+    corrected: { label: "Corrigido", color: "bg-amber-500" },
+    cancelled: { label: "Cancelado", color: "bg-red-500" },
+    fallback: { label: "Fallback", color: "bg-orange-500" },
+    pending: { label: "Pendente", color: "bg-blue-500" },
+    unknown_ignored: { label: "Desconhecido", color: "bg-gray-500" },
+  };
+
+  const total = Object.values(resolutions).reduce((a, b) => a + b, 0);
+  const confirmed = resolutions.confirmed || 0;
+  const accuracy = total > 0 ? Math.round((confirmed / total) * 100) : 0;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">
+          Telegram IA
+          <span className="ml-2 text-sm font-normal text-muted-foreground">
+            ({total} mensagens, {accuracy}% acuracia)
+          </span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {Object.entries(resolutions)
+            .sort((a, b) => b[1] - a[1])
+            .map(([key, count]) => {
+              const meta = labels[key] || {
+                label: key,
+                color: "bg-gray-500",
+              };
+              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+              return (
+                <div key={key} className="flex items-center gap-2">
+                  <div
+                    className={`w-2 h-2 rounded-full ${meta.color}`}
+                  />
+                  <span className="text-sm flex-1">{meta.label}</span>
+                  <span className="text-sm font-medium tabular-nums">
+                    {count}
+                  </span>
+                  <span className="text-xs text-muted-foreground w-10 text-right tabular-nums">
+                    {pct}%
+                  </span>
+                </div>
+              );
+            })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // --- Main ---
 
 export default function SuperAdminDashboard() {
@@ -285,6 +498,10 @@ export default function SuperAdminDashboard() {
   const { data: overview, isLoading: overviewLoading } = useSWR<{
     data: OverviewData;
   }>(`/api/super-admin/stats/overview?days=${days}`);
+
+  const { data: engagement } = useSWR<{ data: EngagementData }>(
+    `/api/super-admin/stats/engagement?days=${days}`
+  );
 
   const { data: dailyStats } = useSWR<{ data: DailyStats[] }>(
     "/api/super-admin/stats/daily"
@@ -395,6 +612,70 @@ export default function SuperAdminDashboard() {
           <RoleDistribution roles={roles} totalUsers={kpis?.totalUsers || 0} />
         </div>
       ) : null}
+
+      {/* Engagement Section */}
+      {engagement?.data && (
+        <>
+          <h2 className="text-lg font-semibold mt-2">Engajamento</h2>
+
+          {/* Daily engagement chart */}
+          <Card>
+            <CardHeader className="pb-2 sm:pb-6">
+              <CardTitle className="text-base sm:text-lg">
+                Atividade Diaria
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="h-[250px] sm:h-[300px] px-2 sm:px-6">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={engagement.data.dailyChart}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(date: string) =>
+                      format(parseISO(date), "dd MMM", { locale: ptBR })
+                    }
+                  />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip
+                    labelFormatter={(date: string) =>
+                      format(parseISO(date), "dd 'de' MMMM 'de' yyyy", {
+                        locale: ptBR,
+                      })
+                    }
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="transactions"
+                    stroke="#8884d8"
+                    name="Transacoes"
+                    strokeWidth={2}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="telegramMessages"
+                    stroke="#ff7c43"
+                    name="Mensagens Telegram"
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Engagement details row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <OnboardingFunnel funnel={engagement.data.onboardingFunnel} />
+            <TransactionBreakdown
+              bySource={engagement.data.transactionsBySource}
+              byType={engagement.data.transactionsByType}
+            />
+            <TelegramResolutions
+              resolutions={engagement.data.telegramResolutions}
+            />
+          </div>
+        </>
+      )}
 
       {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
