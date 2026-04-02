@@ -88,6 +88,31 @@ interface EngagementData {
   };
 }
 
+interface CohortEntry {
+  cohort: string;
+  cohortSize: number;
+  retention: Record<string, number>;
+}
+
+interface CohortData {
+  cohorts: CohortEntry[];
+  conversion: {
+    totalUsers: number;
+    onboarded: number;
+    withPlan: number;
+    betaUsers: number;
+    lifetimeUsers: number;
+    stripeSubscribers: number;
+    accessLinksUsed: number;
+    accessLinksAvailable: number;
+    couponsUsed: number;
+    couponsAvailable: number;
+    deletedUsers: number;
+    pendingDeletion: number;
+  };
+  inactiveUsers30d: number;
+}
+
 // --- Period options ---
 
 const PERIOD_OPTIONS = [
@@ -490,6 +515,224 @@ function TelegramResolutions({
   );
 }
 
+function CohortTable({ cohorts }: { cohorts: CohortEntry[] }) {
+  if (cohorts.length === 0) return null;
+
+  // Collect all unique months across all cohorts
+  const allMonths = new Set<string>();
+  for (const c of cohorts) {
+    for (const m of Object.keys(c.retention)) {
+      allMonths.add(m);
+    }
+  }
+  const sortedMonths = Array.from(allMonths).sort();
+
+  // For each cohort, compute retention % relative to cohort_month offset
+  const getRetentionColor = (pct: number) => {
+    if (pct >= 80) return "bg-emerald-500/30 text-emerald-700 dark:text-emerald-300";
+    if (pct >= 60) return "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400";
+    if (pct >= 40) return "bg-amber-500/20 text-amber-700 dark:text-amber-300";
+    if (pct >= 20) return "bg-orange-500/20 text-orange-700 dark:text-orange-300";
+    if (pct > 0) return "bg-red-500/15 text-red-700 dark:text-red-300";
+    return "text-muted-foreground";
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">
+          Retencao por Cohort (mensal)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left py-2 pr-4 font-medium text-muted-foreground">
+                Cohort
+              </th>
+              <th className="text-center py-2 px-2 font-medium text-muted-foreground">
+                Usuarios
+              </th>
+              {sortedMonths.map((m) => (
+                <th
+                  key={m}
+                  className="text-center py-2 px-2 font-medium text-muted-foreground"
+                >
+                  {m.slice(5)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {cohorts.map((c) => (
+              <tr key={c.cohort} className="border-b last:border-0">
+                <td className="py-2 pr-4 font-medium">{c.cohort}</td>
+                <td className="text-center py-2 px-2 tabular-nums">
+                  {c.cohortSize}
+                </td>
+                {sortedMonths.map((m) => {
+                  const active = c.retention[m];
+                  if (active === undefined || m < c.cohort) {
+                    return (
+                      <td key={m} className="text-center py-2 px-2">
+                        <span className="text-muted-foreground/30">&mdash;</span>
+                      </td>
+                    );
+                  }
+                  const pct =
+                    c.cohortSize > 0
+                      ? Math.round((active / c.cohortSize) * 100)
+                      : 0;
+                  return (
+                    <td key={m} className="text-center py-1.5 px-1">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded text-xs font-medium tabular-nums ${getRetentionColor(pct)}`}
+                      >
+                        {pct}%
+                      </span>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="text-xs text-muted-foreground mt-3">
+          % de usuarios do cohort que criaram pelo menos 1 transacao no mes
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ConversionMetrics({
+  conversion,
+  inactiveUsers30d,
+}: {
+  conversion: CohortData["conversion"];
+  inactiveUsers30d: number;
+}) {
+  const pct = (n: number) =>
+    conversion.totalUsers > 0
+      ? Math.round((n / conversion.totalUsers) * 100)
+      : 0;
+
+  const metrics = [
+    {
+      label: "Fizeram Onboarding",
+      value: conversion.onboarded,
+      pctValue: pct(conversion.onboarded),
+    },
+    {
+      label: "Tem Plano Atribuido",
+      value: conversion.withPlan,
+      pctValue: pct(conversion.withPlan),
+    },
+    {
+      label: "Assinantes Stripe",
+      value: conversion.stripeSubscribers,
+      pctValue: pct(conversion.stripeSubscribers),
+    },
+    {
+      label: "Usuarios Beta",
+      value: conversion.betaUsers,
+      pctValue: pct(conversion.betaUsers),
+    },
+    {
+      label: "Usuarios Lifetime",
+      value: conversion.lifetimeUsers,
+      pctValue: pct(conversion.lifetimeUsers),
+    },
+  ];
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Conversao e Saude</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {metrics.map((m) => (
+            <div key={m.label}>
+              <div className="flex justify-between text-sm mb-1">
+                <span>{m.label}</span>
+                <span className="font-medium tabular-nums">
+                  {m.value}{" "}
+                  <span className="text-muted-foreground">({m.pctValue}%)</span>
+                </span>
+              </div>
+              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${m.pctValue}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t mt-4 pt-3 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Inativos (30+ dias)</span>
+            <span className="font-medium text-amber-600 dark:text-amber-400 tabular-nums">
+              {inactiveUsers30d}
+            </span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Contas Excluidas</span>
+            <span className="font-medium tabular-nums">
+              {conversion.deletedUsers}
+            </span>
+          </div>
+          {conversion.pendingDeletion > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">
+                Exclusao Pendente
+              </span>
+              <span className="font-medium text-red-600 dark:text-red-400 tabular-nums">
+                {conversion.pendingDeletion}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="border-t mt-4 pt-3">
+          <p className="text-xs font-medium text-muted-foreground mb-2">
+            Links e Cupons
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span className="text-muted-foreground">Links usados:</span>{" "}
+              <span className="font-medium tabular-nums">
+                {conversion.accessLinksUsed}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Links disponiveis:</span>{" "}
+              <span className="font-medium tabular-nums">
+                {conversion.accessLinksAvailable}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Cupons usados:</span>{" "}
+              <span className="font-medium tabular-nums">
+                {conversion.couponsUsed}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Cupons disponiveis:</span>{" "}
+              <span className="font-medium tabular-nums">
+                {conversion.couponsAvailable}
+              </span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // --- Main ---
 
 export default function SuperAdminDashboard() {
@@ -501,6 +744,10 @@ export default function SuperAdminDashboard() {
 
   const { data: engagement } = useSWR<{ data: EngagementData }>(
     `/api/super-admin/stats/engagement?days=${days}`
+  );
+
+  const { data: cohortData } = useSWR<{ data: CohortData }>(
+    "/api/super-admin/stats/cohort?months=6"
   );
 
   const { data: dailyStats } = useSWR<{ data: DailyStats[] }>(
@@ -757,6 +1004,22 @@ export default function SuperAdminDashboard() {
           ))}
         </div>
       </div>
+
+      {/* Cohort & Conversion Section */}
+      {cohortData?.data && (
+        <>
+          <h2 className="text-lg font-semibold mt-2">Retencao e Conversao</h2>
+
+          <CohortTable cohorts={cohortData.data.cohorts} />
+
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <ConversionMetrics
+              conversion={cohortData.data.conversion}
+              inactiveUsers30d={cohortData.data.inactiveUsers30d}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }
