@@ -57,6 +57,14 @@ export async function ensurePendingTransactionsForMonth(
   year: number,
   month: number
 ): Promise<EnsureResult> {
+  // Don't generate pending transactions for past months
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  if (year < currentYear || (year === currentYear && month < currentMonth)) {
+    return { created: 0, expenses: 0, income: 0, noAccount: false };
+  }
+
   // Calculate date range for this month
   const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
   const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
