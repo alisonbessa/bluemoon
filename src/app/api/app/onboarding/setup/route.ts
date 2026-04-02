@@ -7,8 +7,6 @@ import {
   budgetMembers,
   groups,
   categories,
-  incomeSources,
-  financialAccounts,
 } from "@/db/schema";
 import { defaultGroups } from "@/db/schema/groups";
 import { eq } from "drizzle-orm";
@@ -20,7 +18,7 @@ import {
   successResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
-import { getTemplateByCodename } from "@/shared/lib/budget-templates";
+import { getDefaultTemplateForPlan } from "@/shared/lib/budget-templates";
 
 const logger = createLogger("api:onboarding:setup");
 
@@ -30,52 +28,7 @@ const MEMBER_COLORS = [
 ];
 
 const setupSchema = z.object({
-  templateCodename: z.string().min(1),
-  income: z.object({
-    sources: z
-      .array(
-        z.object({
-          name: z.string().min(1),
-          amount: z.number().min(0), // in cents
-          type: z.enum([
-            "salary",
-            "benefit",
-            "freelance",
-            "rental",
-            "investment",
-            "other",
-          ]),
-          isPartner: z.boolean().optional(),
-        })
-      ),
-  }).optional(),
-  accounts: z
-    .array(
-      z.object({
-        name: z.string().min(1),
-        type: z.enum([
-          "checking",
-          "savings",
-          "credit_card",
-          "cash",
-          "investment",
-          "benefit",
-        ]),
-        closingDay: z.number().min(1).max(31).optional(),
-        dueDay: z.number().min(1).max(31).optional(),
-      })
-    )
-    .min(1),
-  partnerEmail: z.string().email().optional(),
   privacyMode: z.enum(["visible", "unified", "private"]).optional(),
-  categoryOverrides: z
-    .array(
-      z.object({
-        name: z.string(),
-        plannedAmount: z.number().min(0),
-      })
-    )
-    .optional(),
 });
 
 /**
@@ -142,23 +95,9 @@ export const POST = withAuthRequired(async (request, context) => {
     const budgetId = existingMembership[0].budgetId;
     const ownerMemberId = existingMembership[0].memberId;
 
-    // Get template
-    const template = getTemplateByCodename(data.templateCodename);
-    if (!template) {
-      return errorResponse("Template nao encontrado", 404);
-    }
-
-    // Calculate total income
-    const incomeSourcesToCreate = data.income?.sources ?? [];
-    const totalIncomeCents = incomeSourcesToCreate.reduce(
-      (sum, s) => sum + s.amount,
-      0
-    );
-
-    // Build category overrides map
-    const overridesMap = new Map(
-      (data.categoryOverrides ?? []).map((o) => [o.name, o.plannedAmount])
-    );
+    // Use default template based on plan type
+    const planCodename = existingMembership.length > 0 ? "solo" : "solo";
+    const template = getDefaultTemplateForPlan(planCodename);
 
     const result = await db.transaction(async (tx) => {
       // Update user
@@ -174,7 +113,7 @@ export const POST = withAuthRequired(async (request, context) => {
       await tx
         .update(budgets)
         .set({
-          name: `Orcamento de ${displayName}`,
+          name: `Orçamento de ${displayName}`,
           ...(data.privacyMode ? { privacyMode: data.privacyMode } : {}),
         })
         .where(eq(budgets.id, budgetId));
@@ -200,66 +139,40 @@ export const POST = withAuthRequired(async (request, context) => {
       }
       const allGroups = await tx.select().from(groups);
 
-      // Create categories from template
-      for (const cat of template.categories) {
-        const group = allGroups.find((g) => g.code === cat.groupCode);
-        if (!group) continue;
+      // Check if categories already exist (avoid duplicates on re-setup)
+      const existingCategories = await tx
+        .select({ id: categories.id })
+        .from(categories)
+        .where(eq(categories.budgetId, budgetId))
+        .limit(1);
 
-        const defaultAmount = Math.round(totalIncomeCents * cat.percentage);
-        const plannedAmount = overridesMap.get(cat.name) ?? defaultAmount;
+      if (existingCategories.length === 0) {
+        // Create categories from default template (all with plannedAmount = 0)
+        for (const cat of template.categories) {
+          const group = allGroups.find((g) => g.code === cat.groupCode);
+          if (!group) continue;
 
-        if (cat.isPersonal) {
-          await tx.insert(categories).values({
-            budgetId,
-            groupId: group.id,
-            memberId: ownerMemberId,
-            name: `${cat.name} - ${firstName}`,
-            icon: cat.icon,
-            behavior: cat.behavior,
-            plannedAmount,
-          });
-        } else {
-          await tx.insert(categories).values({
-            budgetId,
-            groupId: group.id,
-            name: cat.name,
-            icon: cat.icon,
-            behavior: cat.behavior,
-            plannedAmount,
-          });
+          if (cat.isPersonal) {
+            await tx.insert(categories).values({
+              budgetId,
+              groupId: group.id,
+              memberId: ownerMemberId,
+              name: `${cat.name} - ${firstName}`,
+              icon: cat.icon,
+              behavior: cat.behavior,
+              plannedAmount: 0,
+            });
+          } else {
+            await tx.insert(categories).values({
+              budgetId,
+              groupId: group.id,
+              name: cat.name,
+              icon: cat.icon,
+              behavior: cat.behavior,
+              plannedAmount: 0,
+            });
+          }
         }
-      }
-
-      // Create income sources
-      // Partner income sources get memberId = null (shared) until the partner
-      // joins and gets their own memberId assigned
-      for (let i = 0; i < incomeSourcesToCreate.length; i++) {
-        const source = incomeSourcesToCreate[i];
-        await tx.insert(incomeSources).values({
-          budgetId,
-          memberId: source.isPartner ? null : ownerMemberId,
-          name: source.name,
-          type: source.type,
-          amount: source.amount,
-          frequency: "monthly",
-          dayOfMonth: 5,
-          displayOrder: i,
-        });
-      }
-
-      // Create financial accounts
-      for (let i = 0; i < data.accounts.length; i++) {
-        const account = data.accounts[i];
-        await tx.insert(financialAccounts).values({
-          budgetId,
-          ownerId: ownerMemberId,
-          name: account.name,
-          type: account.type,
-          balance: 0,
-          closingDay: account.closingDay,
-          dueDay: account.dueDay,
-          displayOrder: i,
-        });
       }
 
       return { budgetId };
@@ -267,7 +180,6 @@ export const POST = withAuthRequired(async (request, context) => {
 
     logger.info(`Setup completed for user ${session.user.email}`, {
       budgetId: result.budgetId,
-      template: data.templateCodename,
     });
 
     return successResponse({
