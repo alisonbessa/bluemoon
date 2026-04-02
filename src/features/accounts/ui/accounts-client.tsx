@@ -165,7 +165,8 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
   const hasInvestments = accounts.some((a) => a.type === "investment");
 
   // Check if we have mixed ownership to show filter (for Duo plans or multi-member budgets)
-  const hasMixedOwnership = isDuoPlan &&
+  // Hide in "visible" privacy mode (viewMode=all) because all accounts are shared
+  const hasMixedOwnership = isDuoPlan && viewMode !== "all" &&
     accounts.some(a => a.ownerId === currentUserMemberId) &&
     accounts.some(a => !a.ownerId || a.ownerId !== currentUserMemberId);
 

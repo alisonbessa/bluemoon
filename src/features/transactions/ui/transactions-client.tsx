@@ -248,6 +248,23 @@ export function TransactionsClient({
     triggerWidgetRefresh();
   }, [budgets, periodValue, triggerWidgetRefresh]);
 
+  const handleDeletePending = useCallback(
+    async (scheduled: { id: string; name: string }) => {
+      try {
+        const res = await fetch(`/api/app/transactions/${scheduled.id}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) throw new Error();
+        toast.success(`"${scheduled.name}" excluída`);
+        triggerWidgetRefresh();
+        fetchData();
+      } catch {
+        toast.error("Erro ao excluir transação pendente");
+      }
+    },
+    [triggerWidgetRefresh, fetchData]
+  );
+
   const handleConfirmScheduled = useCallback(
     async (scheduled: {
       type: "income" | "expense";
@@ -447,6 +464,7 @@ export function TransactionsClient({
           onConfirm={handleConfirmScheduled}
           onEditConfirmed={(transaction) => openEdit(transaction as Transaction)}
           onDeleteConfirmed={(transaction) => setDeletingTransaction(transaction as Transaction)}
+          onDeletePending={handleDeletePending}
         />
       )}
 

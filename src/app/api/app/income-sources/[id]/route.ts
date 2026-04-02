@@ -1,6 +1,6 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { incomeSources } from "@/db/schema";
+import { incomeSources, transactions } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
@@ -103,6 +103,20 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .set(updateData)
     .where(eq(incomeSources.id, sourceId))
     .returning();
+
+  // If amount changed, update any pending income transactions for this source
+  if (validation.data.amount != null && validation.data.amount !== existingSource.amount) {
+    await db
+      .update(transactions)
+      .set({ amount: validation.data.amount, updatedAt: new Date() })
+      .where(
+        and(
+          eq(transactions.incomeSourceId, sourceId),
+          eq(transactions.status, "pending"),
+          eq(transactions.type, "income")
+        )
+      );
+  }
 
   return successResponse({ incomeSource: updatedSource });
 });
