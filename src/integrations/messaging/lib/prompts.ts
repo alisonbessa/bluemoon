@@ -155,6 +155,12 @@ REGRAS DE FORMATO CONCISO (MUITO IMPORTANTE):
 - "Feira 35,00" = despesa de R$ 35, descrição "feira"
 - NÃO retorne UNKNOWN para mensagens que claramente tem valor + descrição!
 
+REGRAS PARA APENAS NÚMERO:
+- Se a mensagem é APENAS um número (ex: "50", "200", "1021,00"), trate como REGISTER_EXPENSE
+- Retorne amount com o valor e categoryHint vazio, confidence 0.85
+- Exemplos: "50" → expense R$ 50, "1021,00" → expense R$ 1021
+- Não confunda com contexto de receita (se o número vier após "recebi" é receita)
+
 REGRAS DE SAUDAÇÃO:
 - Se o usuário enviar uma saudação (oi, olá, bom dia, boa tarde, boa noite, e aí) retorne intent GREETING
 - Se o usuário agradecer (obrigado, valeu, thanks, brigado) retorne intent GREETING
