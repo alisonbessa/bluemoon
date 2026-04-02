@@ -1,7 +1,7 @@
 "use client";
 
 import { TrendingUp, TrendingDown, Receipt } from "lucide-react";
-import { formatCurrencyCompact } from "@/shared/lib/formatters";
+import { formatCurrency } from "@/shared/lib/formatters";
 import { SummaryCardGrid } from "@/shared/organisms";
 
 interface TransactionSummaryProps {
@@ -19,21 +19,21 @@ export function TransactionSummary({ income, expenses }: TransactionSummaryProps
           id: "income",
           icon: <TrendingUp className="h-full w-full text-green-500" />,
           label: "Receitas",
-          value: formatCurrencyCompact(income),
+          value: formatCurrency(income),
           valueColor: "positive",
         },
         {
           id: "expenses",
           icon: <TrendingDown className="h-full w-full text-red-500" />,
           label: "Despesas",
-          value: formatCurrencyCompact(expenses),
+          value: formatCurrency(expenses),
           valueColor: "negative",
         },
         {
           id: "balance",
           icon: <Receipt className="h-full w-full" />,
           label: "Saldo",
-          value: formatCurrencyCompact(balance),
+          value: formatCurrency(balance),
           valueColor: balance >= 0 ? "positive" : "negative",
         },
       ]}
