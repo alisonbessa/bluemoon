@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useSetupMode } from "@/shared/hooks/use-setup-mode";
+import { SetupTip } from "@/shared/components/setup-tip";
 import { Button } from "@/shared/ui/button";
 import { Progress } from "@/shared/ui/progress";
 import {
@@ -45,6 +47,7 @@ function formatFullDate(dateString: string): string {
 }
 
 export function GoalsClient() {
+  const { isSetupMode, dismissSetup } = useSetupMode();
   // SWR hooks for cached data fetching
   const { goals, isLoading: goalsLoading, refresh: refreshGoals, archiveGoal, contributeToGoal } = useGoals();
   const { budgets, isLoading: budgetsLoading } = useBudgets();
@@ -164,6 +167,14 @@ export function GoalsClient() {
 
   return (
     <PageContent>
+      {isSetupMode && (
+        <SetupTip
+          title="Crie sua primeira meta"
+          description="Defina um objetivo (viagem, reserva, casa nova) com valor e prazo. O app calcula quanto guardar por mês e acompanha seu progresso."
+          onDismiss={dismissSetup}
+        />
+      )}
+
       {/* Header */}
       <PageHeader
         title="Metas"

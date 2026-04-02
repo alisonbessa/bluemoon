@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useSetupMode } from "@/shared/hooks/use-setup-mode";
+import { SetupTip } from "@/shared/components/setup-tip";
 import { Loader2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -37,6 +39,7 @@ export function TransactionsClient({
 }: TransactionsClientProps) {
   // ============== TUTORIAL ==============
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
+  const { isSetupMode, dismissSetup } = useSetupMode();
 
   // ============== CURRENT USER MEMBER ==============
   const { user } = useUser();
@@ -385,6 +388,14 @@ export function TransactionsClient({
   // ============== RENDER ==============
   return (
     <PageContent>
+      {isSetupMode && (
+        <SetupTip
+          title="Registre seu primeiro gasto"
+          description="Clique em '+ Nova Transação' para registrar uma despesa, receita ou transferência. Você também pode registrar gastos pelo WhatsApp ou Telegram."
+          onDismiss={dismissSetup}
+        />
+      )}
+
       {/* Header */}
       <PageHeader
         title="Transações"
