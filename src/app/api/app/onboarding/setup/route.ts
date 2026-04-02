@@ -47,9 +47,8 @@ const setupSchema = z.object({
           ]),
           isPartner: z.boolean().optional(),
         })
-      )
-      .min(1),
-  }),
+      ),
+  }).optional(),
   accounts: z
     .array(
       z.object({
@@ -150,7 +149,8 @@ export const POST = withAuthRequired(async (request, context) => {
     }
 
     // Calculate total income
-    const totalIncomeCents = data.income.sources.reduce(
+    const incomeSourcesToCreate = data.income?.sources ?? [];
+    const totalIncomeCents = incomeSourcesToCreate.reduce(
       (sum, s) => sum + s.amount,
       0
     );
@@ -233,8 +233,8 @@ export const POST = withAuthRequired(async (request, context) => {
       // Create income sources
       // Partner income sources get memberId = null (shared) until the partner
       // joins and gets their own memberId assigned
-      for (let i = 0; i < data.income.sources.length; i++) {
-        const source = data.income.sources[i];
+      for (let i = 0; i < incomeSourcesToCreate.length; i++) {
+        const source = incomeSourcesToCreate[i];
         await tx.insert(incomeSources).values({
           budgetId,
           memberId: source.isPartner ? null : ownerMemberId,
