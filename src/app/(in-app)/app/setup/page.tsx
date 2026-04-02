@@ -6,19 +6,11 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { appConfig } from "@/shared/lib/config";
 import { useCurrentPlan } from "@/shared/hooks/use-current-user";
-import {
-  getDefaultTemplateForPlan,
-  calculatePlannedAmounts,
-} from "@/shared/lib/budget-templates";
-import type { TemplateCategory } from "@/shared/lib/budget-templates";
 import type { PrivacyMode } from "@/db/schema/budgets";
 import { StepPrivacy } from "./_components/step-privacy";
 import { StepFinances } from "./_components/step-finances";
-import { StepBudget } from "./_components/step-budget";
 import { StepQuickStart } from "./_components/step-quick-start";
 import { mutate } from "swr";
-
-type CategoryWithAmount = TemplateCategory & { plannedAmount: number };
 
 const PRIVACY_LABELS: Record<PrivacyMode, string> = {
   visible: "Tudo visível",
@@ -31,7 +23,6 @@ export default function SetupPage() {
   const { currentPlan } = useCurrentPlan();
   const planCodename = currentPlan?.codename ?? "solo";
   const isDuo = planCodename === "duo";
-  const template = getDefaultTemplateForPlan(planCodename);
 
   // Wizard state
   const [step, setStep] = useState(1);
@@ -41,9 +32,7 @@ export default function SetupPage() {
   // Privacy state (Duo only)
   const [privacyMode, setPrivacyMode] = useState<PrivacyMode>("visible");
 
-  // Finances state (simplified) — values in cents
-  const [myIncome, setMyIncome] = useState(0);
-  const [partnerIncome, setPartnerIncome] = useState(0);
+  // Accounts state
   const [mainAccountName, setMainAccountName] = useState("");
   const [hasCreditCard, setHasCreditCard] = useState(false);
   const [creditCardName, setCreditCardName] = useState("");
@@ -52,54 +41,18 @@ export default function SetupPage() {
   const [hasJointAccount, setHasJointAccount] = useState(false);
   const [jointAccountName, setJointAccountName] = useState("");
 
-  // Budget state
-  const [budgetCategories, setBudgetCategories] = useState<
-    CategoryWithAmount[]
-  >([]);
-
-  const totalIncomeCents = myIncome + (isDuo ? partnerIncome : 0);
-
   // Step definitions depend on plan type
-  // Solo: Finanças → Orçamento → Quick Start
-  // Duo:  Privacidade → Finanças → Orçamento → Quick Start
+  // Solo: Contas → Quick Start
+  // Duo:  Privacidade → Contas → Quick Start
   const stepDefs = isDuo
-    ? [
-        { label: "Privacidade" },
-        { label: "Finanças" },
-        { label: "Orçamento" },
-      ]
-    : [
-        { label: "Finanças" },
-        { label: "Orçamento" },
-      ];
+    ? [{ label: "Privacidade" }, { label: "Contas" }]
+    : [{ label: "Contas" }];
 
   const financesStep = isDuo ? 2 : 1;
-  const budgetStep = isDuo ? 3 : 2;
-  const quickStartStep = isDuo ? 4 : 3;
+  const quickStartStep = isDuo ? 3 : 2;
 
-  const goToBudget = () => {
-    const categoriesWithAmounts = calculatePlannedAmounts(
-      template,
-      totalIncomeCents
-    );
-    setBudgetCategories(categoriesWithAmounts);
-    setStep(budgetStep);
-  };
-
-  // Build API payload from simplified state
+  // Build API payload
   const buildPayload = () => {
-    const sources: { name: string; amount: number; type: "salary"; isPartner?: boolean }[] = [
-      { name: "Salário", amount: myIncome, type: "salary" },
-    ];
-    if (isDuo && partnerIncome > 0) {
-      sources.push({
-        name: "Salário (parceiro)",
-        amount: partnerIncome,
-        type: "salary",
-        isPartner: true,
-      });
-    }
-
     const accounts: { name: string; type: string; closingDay?: number; dueDay?: number }[] = [
       { name: mainAccountName.trim(), type: "checking" },
     ];
@@ -119,14 +72,11 @@ export default function SetupPage() {
     }
 
     return {
-      templateCodename: template.codename,
-      income: { sources },
+      templateCodename: isDuo ? "duo-default" : "solo-default",
+      income: { sources: [] },
       accounts,
       privacyMode: isDuo ? privacyMode : undefined,
-      categoryOverrides: budgetCategories.map((c) => ({
-        name: c.name,
-        plannedAmount: c.plannedAmount,
-      })),
+      categoryOverrides: [],
     };
   };
 
@@ -157,7 +107,8 @@ export default function SetupPage() {
       ]);
 
       toast.success("Orçamento criado com sucesso!");
-      router.push("/app");
+      setSetupComplete(true);
+      setStep(quickStartStep);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Erro ao configurar"
@@ -187,8 +138,8 @@ export default function SetupPage() {
             <span className="text-xl font-bold">{appConfig.projectName}</span>
           </div>
           <StepQuickStart
-            totalIncomeCents={totalIncomeCents}
-            categoriesCount={budgetCategories.length}
+            totalIncomeCents={0}
+            categoriesCount={0}
             isDuo={isDuo}
             privacyLabel={isDuo ? PRIVACY_LABELS[privacyMode] : undefined}
             onGoToDashboard={handleGoToDashboard}
@@ -258,10 +209,6 @@ export default function SetupPage() {
         {step === financesStep && (
           <StepFinances
             isDuo={isDuo}
-            myIncome={myIncome}
-            onMyIncomeChange={setMyIncome}
-            partnerIncome={partnerIncome}
-            onPartnerIncomeChange={setPartnerIncome}
             mainAccountName={mainAccountName}
             onMainAccountNameChange={setMainAccountName}
             hasCreditCard={hasCreditCard}
@@ -276,19 +223,8 @@ export default function SetupPage() {
             onHasJointAccountChange={setHasJointAccount}
             jointAccountName={jointAccountName}
             onJointAccountNameChange={setJointAccountName}
-            onNext={goToBudget}
+            onNext={handleSubmit}
             onBack={isDuo ? () => setStep(1) : undefined}
-          />
-        )}
-
-        {step === budgetStep && (
-          <StepBudget
-            categories={budgetCategories}
-            totalIncomeCents={totalIncomeCents}
-            onCategoriesChange={setBudgetCategories}
-            onSubmit={handleSubmit}
-            onBack={() => setStep(financesStep)}
-            isSubmitting={isSubmitting}
           />
         )}
       </div>

@@ -8,28 +8,9 @@ import { Button } from "@/shared/ui/button";
 import { Switch } from "@/shared/ui/switch";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { DayPicker } from "@/shared/ui/day-picker";
-import { formatAmount } from "@/shared/lib/formatters";
-import { CurrencyInput } from "@/shared/ui/currency-input";
-
-export interface IncomeSourceInput {
-  name: string;
-  amount: string; // display value (formatted)
-  type: string;
-}
-
-export interface AccountInput {
-  name: string;
-  type: string;
-  closingDay?: number;
-  dueDay?: number;
-}
 
 interface StepFinancesProps {
   isDuo: boolean;
-  myIncome: number;
-  onMyIncomeChange: (value: number) => void;
-  partnerIncome: number;
-  onPartnerIncomeChange: (value: number) => void;
   mainAccountName: string;
   onMainAccountNameChange: (value: string) => void;
   hasCreditCard: boolean;
@@ -50,10 +31,6 @@ interface StepFinancesProps {
 
 export function StepFinances({
   isDuo,
-  myIncome,
-  onMyIncomeChange,
-  partnerIncome,
-  onPartnerIncomeChange,
   mainAccountName,
   onMainAccountNameChange,
   hasCreditCard,
@@ -73,14 +50,8 @@ export function StepFinances({
 }: StepFinancesProps) {
   const [errors, setErrors] = useState<string[]>([]);
 
-  const totalIncome = myIncome + (isDuo ? partnerIncome : 0);
-
   const handleNext = () => {
     const newErrors: string[] = [];
-
-    if (myIncome <= 0) {
-      newErrors.push("Informe sua renda mensal");
-    }
 
     if (!mainAccountName.trim()) {
       newErrors.push("Informe o nome da sua conta principal");
@@ -106,58 +77,20 @@ export function StepFinances({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Suas finanças</h2>
+        <h2 className="text-2xl font-bold mb-2">Suas contas</h2>
         <p className="text-muted-foreground">
-          Informe sua renda e suas contas principais.
+          Cadastre suas contas principais. Rendas e alocações você configura depois.
         </p>
-      </div>
-
-      {/* Income */}
-      <div className="space-y-4">
-        <Label className="text-base font-semibold">Renda mensal</Label>
-
-        <Card>
-          <CardContent className="p-4 space-y-4">
-            <div>
-              <Label className="text-xs">
-                {isDuo ? "Sua renda" : "Renda mensal"}
-              </Label>
-              <CurrencyInput
-                value={myIncome}
-                onChange={onMyIncomeChange}
-              />
-            </div>
-
-            {isDuo && (
-              <div>
-                <Label className="text-xs">Renda do parceiro(a)</Label>
-                <CurrencyInput
-                  value={partnerIncome}
-                  onChange={onPartnerIncomeChange}
-                />
-              </div>
-            )}
-
-            {totalIncome > 0 && (
-              <p className="text-sm text-muted-foreground text-right">
-                {isDuo ? "Renda total do casal: " : ""}
-                <strong>R$ {formatAmount(totalIncome)}</strong>
-              </p>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       {/* Accounts */}
       <div className="space-y-4">
-        <Label className="text-base font-semibold">Contas</Label>
-
         {/* Main checking account */}
         <Card>
           <CardContent className="p-4">
             <Label className="text-xs">Conta principal</Label>
             <Input
-              placeholder="Ex: Nubank, Itaú, Inter..."
+              placeholder="Ex: Nubank"
               value={mainAccountName}
               onChange={(e) => onMainAccountNameChange(e.target.value)}
             />
@@ -180,7 +113,7 @@ export function StepFinances({
                 <div>
                   <Label className="text-xs">Nome do cartão</Label>
                   <Input
-                    placeholder="Ex: Nubank Mastercard"
+                    placeholder="Ex: Nubank Crédito"
                     value={creditCardName}
                     onChange={(e) => onCreditCardNameChange(e.target.value)}
                   />
