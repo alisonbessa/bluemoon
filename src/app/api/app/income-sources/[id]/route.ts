@@ -202,5 +202,19 @@ export const DELETE = withAuthRequired(async (req, context) => {
     })
     .where(eq(incomeSources.id, sourceId));
 
+  // Delete pending income transactions for this source (current month onwards)
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  await db
+    .delete(transactions)
+    .where(
+      and(
+        eq(transactions.incomeSourceId, sourceId),
+        eq(transactions.status, "pending"),
+        eq(transactions.type, "income"),
+        gte(transactions.date, monthStart)
+      )
+    );
+
   return successResponse({ success: true });
 });
