@@ -72,7 +72,7 @@ export default function SetupPage() {
     }
 
     return {
-      templateCodename: isDuo ? "duo-default" : "solo-default",
+      templateCodename: isDuo ? "casal_sem_filhos" : "solteiro",
       income: { sources: [] },
       accounts,
       privacyMode: isDuo ? privacyMode : undefined,
