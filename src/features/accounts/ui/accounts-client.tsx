@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useSetupMode } from "@/shared/hooks/use-setup-mode";
+import { SetupTip } from "@/shared/components/setup-tip";
 import {
   PageHeader,
   PageContent,
@@ -52,6 +54,7 @@ export interface AccountsClientProps {
 
 export function AccountsClient({ initialData }: AccountsClientProps) {
   // SWR hooks for cached data fetching
+  const { isSetupMode, dismissSetup } = useSetupMode();
   const { accounts, isLoading: accountsLoading, deleteAccount, updateAccount, createAccount } = useAccounts(
     initialData ? { fallbackData: initialData } : undefined,
   );
@@ -180,6 +183,14 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
 
   return (
     <PageContent>
+      {isSetupMode && (
+        <SetupTip
+          title="Adicione suas contas"
+          description="Cadastre sua conta principal, cartão de crédito e outras contas que você usa no dia a dia. Clique em '+ Nova Conta' para começar."
+          onDismiss={dismissSetup}
+        />
+      )}
+
       {/* Header */}
       <PageHeader
         title="Contas"

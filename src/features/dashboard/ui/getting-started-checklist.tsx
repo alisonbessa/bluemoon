@@ -60,28 +60,28 @@ export function GettingStartedChecklist() {
           label: "Adicionar suas contas",
           icon: CreditCard,
           done: data.hasAccount,
-          href: "/app/accounts",
+          href: "/app/accounts?setup=true",
         },
         {
           key: "transaction",
           label: "Registrar primeiro gasto",
           icon: Plus,
           done: data.hasTransaction,
-          href: "/app/transactions",
+          href: "/app/transactions?setup=true",
         },
         {
           key: "budget",
           label: "Fazer seu planejamento",
           icon: PieChart,
           done: data.hasBudget,
-          href: "/app/budget",
+          href: "/app/budget?setup=true",
         },
         {
           key: "goal",
           label: "Criar uma meta financeira",
           icon: Target,
           done: data.hasGoal,
-          href: "/app/goals",
+          href: "/app/goals?setup=true",
         },
         ...(data.isDuo
           ? [
@@ -90,7 +90,7 @@ export function GettingStartedChecklist() {
                 label: "Convidar parceiro(a)",
                 icon: Users,
                 done: data.hasPartnerInvited,
-                href: "/app/settings",
+                href: "/app/settings?setup=true",
               } as ChecklistItem,
             ]
           : []),
@@ -99,7 +99,7 @@ export function GettingStartedChecklist() {
           label: "Conectar WhatsApp ou Telegram",
           icon: MessageCircle,
           done: data.hasMessagingConnected,
-          href: "/app/settings",
+          href: "/app/settings?setup=true",
         },
       ]
     : [];

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSetupMode } from '@/shared/hooks/use-setup-mode';
+import { SetupTip } from '@/shared/components/setup-tip';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
 import { Loader2, PiggyBank, User } from 'lucide-react';
@@ -65,6 +67,7 @@ export function BudgetPageClient({
   const { user } = useUser();
   const { notifyActionCompleted, isActive: isTutorialActive } = useTutorial();
   const { viewMode, setHasContributionModel } = useViewMode();
+  const { isSetupMode, dismissSetup } = useSetupMode();
 
   // Period navigation
   const {
@@ -312,6 +315,16 @@ export function BudgetPageClient({
 
   return (
     <div className="flex flex-col h-full">
+      {isSetupMode && (
+        <div className="px-3 sm:px-4 pt-4">
+          <SetupTip
+            title="Configure seu planejamento"
+            description="Adicione suas fontes de renda na seção RECEITAS e distribua o dinheiro nas categorias de DESPESAS. O indicador 'Para Alocar' mostra quanto falta distribuir."
+            onDismiss={dismissSetup}
+          />
+        </div>
+      )}
+
       {/* Sticky Header */}
       <div className="sticky top-0 z-20 bg-background">
         <div className="px-3 sm:px-4 pt-4 pb-2">
