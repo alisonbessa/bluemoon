@@ -122,6 +122,9 @@ export function TransactionsClient({
     [transactions]
   );
 
+  const isPastMonth = periodValue.year < new Date().getFullYear() ||
+    (periodValue.year === new Date().getFullYear() && periodValue.month < new Date().getMonth() + 1);
+
   const { confirmedIncome, confirmedExpenses } = useMemo(() => {
     const isGoalContribution = (t: Transaction) =>
       t.type === "transfer" && t.description?.startsWith("Contribuição para meta");
@@ -458,8 +461,8 @@ export function TransactionsClient({
           accountFilter={accountFilter}
           periodValue={periodValue}
           onPeriodChange={handlePeriodChange}
-          onStartMonth={handleStartMonth}
-          onCopyPreviousMonth={handleCopyPreviousMonth}
+          onStartMonth={isPastMonth ? undefined : handleStartMonth}
+          onCopyPreviousMonth={isPastMonth ? undefined : handleCopyPreviousMonth}
           onEdit={handleEditScheduled}
           onConfirm={handleConfirmScheduled}
           onEditConfirmed={(transaction) => openEdit(transaction as Transaction)}

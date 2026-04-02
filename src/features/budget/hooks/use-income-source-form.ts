@@ -50,6 +50,7 @@ interface UseIncomeSourceFormReturn {
 
   // Actions
   submit: () => Promise<void>;
+  deactivateSource: () => Promise<void>;
   confirmDelete: () => Promise<void>;
 
   // Loading states
@@ -256,8 +257,8 @@ export function useIncomeSourceForm({
     }
   }, [formData, editingSource, budgetId, validateForm, onSuccess]);
 
-  // Delete income source
-  const confirmDelete = useCallback(async () => {
+  // Deactivate income source (soft delete - stops generating future transactions)
+  const deactivateSource = useCallback(async () => {
     if (!deletingSource) return;
 
     setIsDeleting(true);
@@ -266,11 +267,31 @@ export function useIncomeSourceForm({
         method: 'DELETE',
       });
 
-      if (!response.ok) {
-        throw new Error('Erro ao excluir fonte de renda');
-      }
+      if (!response.ok) throw new Error('Erro ao desativar fonte de renda');
 
-      toast.success('Fonte de renda excluída!');
+      toast.success('Fonte de renda desativada a partir deste mês!');
+      setDeletingSource(null);
+      onSuccess?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao desativar');
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deletingSource, onSuccess]);
+
+  // Delete income source permanently (hard delete)
+  const confirmDelete = useCallback(async () => {
+    if (!deletingSource) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/app/income-sources/${deletingSource.id}?permanent=true`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Erro ao excluir fonte de renda');
+
+      toast.success('Fonte de renda excluída permanentemente!');
       setDeletingSource(null);
       onSuccess?.();
     } catch (error) {
@@ -305,6 +326,7 @@ export function useIncomeSourceForm({
 
     // Actions
     submit,
+    deactivateSource,
     confirmDelete,
 
     // Loading states

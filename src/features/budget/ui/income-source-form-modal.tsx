@@ -196,23 +196,43 @@ export function IncomeSourceFormModal({
           </div>
 
           {formData.frequency === 'annual' || formData.frequency === 'once' ? (
-            <div className="grid gap-2">
-              <Label>Mês do Pagamento</Label>
-              <Select
-                value={formData.monthOfYear?.toString() ?? ''}
-                onValueChange={(val) => onFieldChange('monthOfYear', parseInt(val))}
-              >
-                <SelectTrigger className={errors.monthOfYear ? 'border-destructive' : ''}>
-                  <SelectValue placeholder="Mês" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MONTH_LABELS.map((label, i) => (
-                    <SelectItem key={i + 1} value={(i + 1).toString()}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className={formData.frequency === 'once' ? 'grid grid-cols-2 gap-3' : 'grid gap-2'}>
+              <div className="grid gap-2">
+                <Label>Mês</Label>
+                <Select
+                  value={formData.monthOfYear?.toString() ?? ''}
+                  onValueChange={(val) => onFieldChange('monthOfYear', parseInt(val))}
+                >
+                  <SelectTrigger className={errors.monthOfYear ? 'border-destructive' : ''}>
+                    <SelectValue placeholder="Mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTH_LABELS.map((label, i) => (
+                      <SelectItem key={i + 1} value={(i + 1).toString()}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {formData.frequency === 'once' && (
+                <div className="grid gap-2">
+                  <Label>Ano</Label>
+                  <Select
+                    value={formData.yearOfPayment?.toString() ?? ''}
+                    onValueChange={(val) => onFieldChange('yearOfPayment', parseInt(val))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Ano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map((y) => (
+                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           ) : (
             <DayOfMonthInput

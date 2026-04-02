@@ -142,8 +142,14 @@ export function BudgetPageClient({
     item: IncomeSourceData;
   } | null>(null);
 
-  // Show copy hint modal when no allocations exist for current month
+  // Check if viewing a past month
+  const now = new Date();
+  const isPastMonth = currentYear < now.getFullYear() ||
+    (currentYear === now.getFullYear() && currentMonth < now.getMonth() + 1);
+
+  // Show copy hint modal when no allocations exist for current month (not past)
   useEffect(() => {
+    if (isPastMonth) return;
     if (isLoading || groupsData.length === 0) return;
     if (totals.allocated > 0 || !hasPreviousMonthData) return;
 
@@ -325,7 +331,7 @@ export function BudgetPageClient({
         />
 
         <BudgetFilters
-          hasPreviousMonthData={hasPreviousMonthData}
+          hasPreviousMonthData={!isPastMonth && hasPreviousMonthData}
           previousMonthName={budgetActions.previousMonthName}
           onCopyClick={handleCopyClick}
           isCopying={budgetActions.isCopying}
@@ -493,7 +499,24 @@ export function BudgetPageClient({
       <IncomeSourceDeleteDialog
         source={incomeSourceForm.deletingSource}
         onClose={() => incomeSourceForm.setDeletingSource(null)}
-        onConfirm={incomeSourceForm.confirmDelete}
+        onIgnoreThisMonth={async () => {
+          if (!incomeSourceForm.deletingSource || !budgetId) return;
+          await fetch('/api/app/income-allocations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              budgetId,
+              incomeSourceId: incomeSourceForm.deletingSource.id,
+              year: currentYear,
+              month: currentMonth,
+              planned: 0,
+            }),
+          });
+          incomeSourceForm.setDeletingSource(null);
+          refreshData();
+        }}
+        onDeactivate={incomeSourceForm.deactivateSource}
+        onDeletePermanently={incomeSourceForm.confirmDelete}
         isDeleting={incomeSourceForm.isDeleting}
       />
 
