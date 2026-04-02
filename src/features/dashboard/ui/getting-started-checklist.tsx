@@ -16,6 +16,7 @@ import {
   Target,
   PieChart,
   Compass,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useTutorial } from "@/shared/tutorial";
@@ -38,6 +39,7 @@ interface ChecklistItem {
   icon: typeof Check;
   done: boolean;
   href?: string;
+  requiresAccount?: boolean;
 }
 
 const DISMISSED_KEY = "hivebudget_checklist_dismissed";
@@ -68,6 +70,7 @@ export function GettingStartedChecklist() {
           icon: Plus,
           done: data.hasTransaction,
           href: "/app/transactions?setup=true",
+          requiresAccount: true,
         },
         {
           key: "budget",
@@ -75,6 +78,7 @@ export function GettingStartedChecklist() {
           icon: PieChart,
           done: data.hasBudget,
           href: "/app/budget?setup=true",
+          requiresAccount: true,
         },
         {
           key: "goal",
@@ -82,6 +86,7 @@ export function GettingStartedChecklist() {
           icon: Target,
           done: data.hasGoal,
           href: "/app/goals?setup=true",
+          requiresAccount: true,
         },
         ...(data.isDuo
           ? [
@@ -221,13 +226,16 @@ export function GettingStartedChecklist() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
         {items.map((item) => {
           const Icon = item.icon;
+          const isLocked = item.requiresAccount && !data.hasAccount && !item.done;
           const content = (
             <div
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
                 item.done
                   ? "text-muted-foreground"
-                  : "hover:bg-muted/50 cursor-pointer"
+                  : isLocked
+                    ? "opacity-40 cursor-not-allowed"
+                    : "hover:bg-muted/50 cursor-pointer"
               )}
             >
               <div
@@ -240,6 +248,8 @@ export function GettingStartedChecklist() {
               >
                 {item.done ? (
                   <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                ) : isLocked ? (
+                  <Lock className="h-3 w-3 text-muted-foreground" />
                 ) : (
                   <Icon className="h-3 w-3 text-muted-foreground" />
                 )}
@@ -250,7 +260,7 @@ export function GettingStartedChecklist() {
             </div>
           );
 
-          if (item.href && !item.done) {
+          if (item.href && !item.done && !isLocked) {
             return (
               <Link key={item.key} href={item.href}>
                 {content}
