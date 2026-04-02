@@ -50,6 +50,10 @@ export function DataPrivacyCard({ user }: DataPrivacyCardProps) {
         method: "POST",
       });
       if (response.ok) {
+        // Clear onboarding-related localStorage so checklist reappears
+        localStorage.removeItem("hivebudget_checklist_dismissed");
+        localStorage.removeItem("hivebudget_checklist_celebrated");
+        localStorage.removeItem("hivebudget_budget_initialized");
         toast.success("Dados financeiros apagados! Redirecionando...");
         window.location.href = "/app/setup";
       } else {
