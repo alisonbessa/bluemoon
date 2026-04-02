@@ -140,6 +140,21 @@ REGRAS DE ESCOPO (individual vs casal):
 - Exemplos: "quanto eu gastei?" → individual, "quanto gastamos?" → couple, "quanto a gente gastou?" → couple
 - Se não for claro, retorne scope: null (padrão: mostra ambos)
 
+REGRAS DE FORMATO CONCISO (MUITO IMPORTANTE):
+- Muitos usuários enviam mensagens curtas sem verbo, no formato "valor descrição" ou "descrição valor"
+- Exemplos: "Café 14,00", "50,00 mercado", "Uber 11,30", "Roupa 20,00", "Cabelo 80"
+- Esses SEMPRE são REGISTER_EXPENSE com confiança 0.95
+- O número é o valor em reais, o texto é a descrição
+- Também funciona com data: "Uber 50,34 23/03", "87,00 açougue 19/03", "Roupa 20,00 23/03"
+- "147,63 acordo banco Santander" = despesa de R$ 147,63, descrição "acordo banco Santander"
+- "Perfumaria 144" = despesa de R$ 144, descrição "perfumaria"
+- "Plano de saúde 1021,00" = despesa de R$ 1021, descrição "plano de saúde"
+- "Paguei Plano de saúde 1021,00 dia 24/03" = despesa de R$ 1021, data 24/03
+- Palavras como "Comprei", "Paguei", "Gastei com" no início são opcionais e não mudam a intenção
+- Uma mensagem com APENAS texto sem número (ex: "Compras", "Cabelo") pode ser REGISTER_EXPENSE com amount null
+- "Feira 35,00" = despesa de R$ 35, descrição "feira"
+- NÃO retorne UNKNOWN para mensagens que claramente tem valor + descrição!
+
 REGRAS DE SAUDAÇÃO:
 - Se o usuário enviar uma saudação (oi, olá, bom dia, boa tarde, boa noite, e aí) retorne intent GREETING
 - Se o usuário agradecer (obrigado, valeu, thanks, brigado) retorne intent GREETING
@@ -268,6 +283,57 @@ Resposta: {"intent": "QUERY_ACCOUNT", "confidence": 0.88, "data": {"queryType": 
 
 Entrada: "transferi 500 da conta corrente pra poupança"
 Resposta: {"intent": "TRANSFER", "confidence": 0.90, "data": {"amount": 500.00, "fromAccountHint": "conta corrente", "toAccountHint": "poupança"}}
+
+Entrada: "Café 14,00"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 14.00, "description": "café", "categoryHint": "Alimentação", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
+
+Entrada: "Uber 11,30"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 11.30, "description": "uber", "categoryHint": "Transporte", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
+
+Entrada: "Roupa 20,00 23/03"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 20.00, "description": "roupa", "categoryHint": "Vestuário", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": "${currentYear}-03-23"}}
+
+Entrada: "87,00 açougue 19/03"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 87.00, "description": "açougue", "categoryHint": "Alimentação", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": "${currentYear}-03-19"}}
+
+Entrada: "Plano de saúde 1021,00"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 1021.00, "description": "plano de saúde", "categoryHint": "Saúde", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
+
+Entrada: "Cabelo 80"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 80.00, "description": "cabelo", "categoryHint": "", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
+
+Entrada: "45,00 ração"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 45.00, "description": "ração", "categoryHint": "Pet", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
+
+Entrada: "Uber 62,06 3 viagens"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 62.06, "description": "uber - 3 viagens", "categoryHint": "Transporte", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
+
+Entrada: "147,63 acordo banco Santander"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.90, "data": {"amount": 147.63, "description": "acordo banco Santander", "categoryHint": "", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
+
+Entrada: "Comprei Roupa Samuel filho Ryan 20,00 23/03"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 20.00, "description": "roupa Samuel filho Ryan", "categoryHint": "Vestuário", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": "${currentYear}-03-23"}}
+
+Entrada: "Sem parar 57,00 18/03"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 57.00, "description": "sem parar", "categoryHint": "Transporte", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": "${currentYear}-03-18"}}
+
+Entrada: "50,00 empréstimo irmã"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.90, "data": {"amount": 50.00, "description": "empréstimo irmã", "categoryHint": "", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
+
+Entrada: "Gastei 40 reais em Nutella, pagar dia 05 de abril"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 40.00, "description": "Nutella", "categoryHint": "Alimentação", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": "${currentYear}-04-05"}}
+
+Entrada: "Pix para o marido 200,00 22/03"
+Resposta: {"intent": "TRANSFER", "confidence": 0.90, "data": {"amount": 200.00, "fromAccountHint": "", "toAccountHint": "marido"}}
+
+Entrada: "10,00 curso casais 19/03"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 10.00, "description": "curso casais", "categoryHint": "", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": "${currentYear}-03-19"}}
+
+Entrada: "Cabelo"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.85, "data": {"amount": null, "description": "cabelo", "categoryHint": "", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
+
+Entrada: "Compras"
+Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.80, "data": {"amount": null, "description": "compras", "categoryHint": "", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": null}}
 
 Entrada: "oi"
 Resposta: {"intent": "GREETING", "confidence": 0.95, "data": {"type": "greeting"}}
