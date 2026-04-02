@@ -47,6 +47,8 @@ import {
   EyeIcon,
   EyeOffIcon,
   ShieldIcon,
+  UserMinus,
+  Loader2,
 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/shared/ui/radio-group";
 import { toast } from "sonner";
@@ -110,6 +112,33 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
   const [editingBudgetName, setEditingBudgetName] = useState<string>("");
   const [isSavingBudgetName, setIsSavingBudgetName] = useState(false);
   const [selectedPrivacyMode, setSelectedPrivacyMode] = useState<PrivacyMode>("visible");
+  const [removingMember, setRemovingMember] = useState<Member | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  const handleRemovePartner = async () => {
+    if (!removingMember) return;
+    setIsRemoving(true);
+    try {
+      const res = await fetch(`/api/app/members/${removingMember.id}/remove`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Erro ao remover parceiro");
+      }
+      const data = await res.json();
+      toast.success(
+        `${removingMember.name} foi removido(a) do orçamento. ` +
+        `Um novo orçamento Solo foi criado para continuar usando a plataforma.`
+      );
+      setRemovingMember(null);
+      fetchData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao remover parceiro");
+    } finally {
+      setIsRemoving(false);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -357,6 +386,18 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
                       </div>
                     </div>
                   </div>
+                  {/* Remove button for partners (only visible to owner) */}
+                  {member.type === "partner" && member.userId && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                      onClick={() => setRemovingMember(member)}
+                      title="Remover parceiro"
+                    >
+                      <UserMinus className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               );
             })}
@@ -613,6 +654,47 @@ export function MembersManagement({ budgetId }: MembersManagementProps) {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Cancelar Convite
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* Remove Partner Confirmation Dialog */}
+      <AlertDialog open={!!removingMember} onOpenChange={(open) => !open && setRemovingMember(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover {removingMember?.name} do orçamento?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Um novo orçamento Solo será criado para {removingMember?.name} com:
+              </p>
+              <ul className="list-disc pl-5 space-y-1 text-sm">
+                <li>Contas pessoais</li>
+                <li>Categorias pessoais (Prazeres)</li>
+                <li>Fontes de renda pessoais</li>
+                <li>Metas individuais</li>
+                <li>Transações pessoais</li>
+              </ul>
+              <p className="pt-1">
+                As transações e categorias compartilhadas permanecem no seu orçamento.
+                {removingMember?.name} poderá continuar usando a plataforma normalmente.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRemoving}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemovePartner}
+              disabled={isRemoving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isRemoving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Removendo...
+                </>
+              ) : (
+                "Remover parceiro"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
