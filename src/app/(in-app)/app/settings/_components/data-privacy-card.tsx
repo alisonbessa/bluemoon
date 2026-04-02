@@ -50,10 +50,12 @@ export function DataPrivacyCard({ user }: DataPrivacyCardProps) {
         method: "POST",
       });
       if (response.ok) {
-        // Clear onboarding-related localStorage so checklist reappears
+        // Clear onboarding-related localStorage so checklist and tutorials reappear
         localStorage.removeItem("hivebudget_checklist_dismissed");
         localStorage.removeItem("hivebudget_checklist_celebrated");
         localStorage.removeItem("hivebudget_budget_initialized");
+        localStorage.removeItem("bluemoon_tutorial_completed");
+        localStorage.removeItem("bluemoon_tutorial_progress");
         toast.success("Dados financeiros apagados! Redirecionando...");
         window.location.href = "/app/setup";
       } else {
