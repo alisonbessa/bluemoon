@@ -217,7 +217,8 @@ export function GettingStartedChecklist() {
           />
         </div>
       </CardHeader>
-      <CardContent className="pt-0 space-y-1">
+      <CardContent className="pt-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
         {items.map((item) => {
           const Icon = item.icon;
           const content = (
@@ -259,6 +260,7 @@ export function GettingStartedChecklist() {
 
           return <div key={item.key}>{content}</div>;
         })}
+        </div>
 
         {/* Tour button */}
         <div className="pt-2">

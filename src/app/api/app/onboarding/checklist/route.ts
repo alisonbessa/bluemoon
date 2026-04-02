@@ -9,6 +9,7 @@ import {
   goals,
   incomeSources,
   monthlyAllocations,
+  recurringBills,
 } from "@/db/schema";
 import { eq, and, count, isNotNull, gt } from "drizzle-orm";
 import { successResponse } from "@/shared/lib/api/responses";
@@ -39,6 +40,7 @@ export const GET = withAuthRequired(async (_request, context) => {
     goalCount,
     hasContribution,
     allocationCount,
+    recurringBillCount,
   ] = await Promise.all([
     // Has at least 1 financial account?
     budgetId
@@ -106,7 +108,7 @@ export const GET = withAuthRequired(async (_request, context) => {
           .then((r) => (r[0]?.count ?? 0) > 0)
       : Promise.resolve(false),
 
-    // Has at least 1 monthly allocation set? (user visited budget page and edited an allocation)
+    // Has at least 1 monthly allocation OR recurring bill? (user configured budget)
     budgetId
       ? db
           .select({ count: count() })
@@ -119,10 +121,24 @@ export const GET = withAuthRequired(async (_request, context) => {
           )
           .then((r) => r[0]?.count ?? 0)
       : Promise.resolve(0),
+
+    // Has at least 1 recurring bill?
+    budgetId
+      ? db
+          .select({ count: count() })
+          .from(recurringBills)
+          .where(
+            and(
+              eq(recurringBills.budgetId, budgetId),
+              eq(recurringBills.isActive, true)
+            )
+          )
+          .then((r) => r[0]?.count ?? 0)
+      : Promise.resolve(0),
   ]);
 
   return successResponse({
-    hasBudget: allocationCount > 0,
+    hasBudget: allocationCount > 0 || (recurringBillCount as number) > 0,
     hasAccount: accountCount > 0,
     hasTransaction: transactionCount > 0,
     hasGoal: goalCount > 0,
