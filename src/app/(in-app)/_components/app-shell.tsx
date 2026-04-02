@@ -6,12 +6,11 @@ import { SidebarProvider } from "@/shared/ui/sidebar";
 import {
   TutorialProvider,
   TutorialOverlay,
-  CelebrationModal,
   useTutorial,
 } from "@/shared/tutorial";
 import { ViewModeProvider } from "@/shared/providers/view-mode-provider";
 import { FloatingChatbot } from "@/shared/components/floating-chatbot";
-import React, { Suspense, useEffect, useState, useRef } from "react";
+import React, { Suspense, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useCurrentUser, useCurrentPlan } from "@/shared/hooks/use-current-user";
 import { useSubscriptionGate } from "@/shared/hooks/use-subscription-gate";
@@ -58,24 +57,13 @@ function DashboardSkeleton() {
   );
 }
 
-interface SetupSummary {
-  accountsCount: number;
-  incomeSourcesCount: number;
-  categoriesCount: number;
-  goalsCount: number;
-  totalMonthlyIncome: number;
-}
-
 function AppShellContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, hasPartnerAccess, isLoading, error } = useCurrentUser();
   const { currentPlan } = useCurrentPlan();
   const { isReadOnly, status: subscriptionStatus } = useSubscriptionGate();
-  const { isActive: isTutorialActive, currentStep, completeTutorial, setCondition } = useTutorial();
-
-  const [showCelebration, setShowCelebration] = useState(false);
-  const [celebrationSummary, setCelebrationSummary] = useState<SetupSummary | undefined>();
+  const { setCondition } = useTutorial();
 
   // Set tutorial conditions based on user plan
   useEffect(() => {
@@ -118,71 +106,6 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       router.replace("/app/setup");
     }
   }, [user, isLoading, hasPartnerAccess, pathname, router]);
-
-  // Detect when tutorial reaches the celebration step
-  useEffect(() => {
-    if (isTutorialActive && currentStep?.id === "setup-celebration" && pathname === "/app") {
-      fetchSetupSummary();
-    }
-  }, [isTutorialActive, currentStep, pathname]);
-
-  const fetchSetupSummary = async () => {
-    try {
-      const [accountsRes, incomeRes, categoriesRes, goalsRes] = await Promise.all([
-        fetch("/api/app/accounts"),
-        fetch("/api/app/income-sources"),
-        fetch("/api/app/categories"),
-        fetch("/api/app/goals"),
-      ]);
-
-      const accountsData = accountsRes.ok ? await accountsRes.json() : { accounts: [] };
-      const incomeData = incomeRes.ok ? await incomeRes.json() : { incomeSources: [], totalMonthlyIncome: 0 };
-      const categoriesData = categoriesRes.ok ? await categoriesRes.json() : { groups: [] };
-      const goalsData = goalsRes.ok ? await goalsRes.json() : { goals: [] };
-
-      const totalCategories = categoriesData.groups?.reduce(
-        (sum: number, g: { categories: unknown[] }) => sum + (g.categories?.length || 0),
-        0
-      ) || 0;
-
-      setCelebrationSummary({
-        accountsCount: accountsData.accounts?.length || 0,
-        incomeSourcesCount: incomeData.incomeSources?.length || 0,
-        categoriesCount: totalCategories,
-        goalsCount: goalsData.goals?.filter((g: { isCompleted: boolean }) => !g.isCompleted)?.length || 0,
-        totalMonthlyIncome: incomeData.totalMonthlyIncome || 0,
-      });
-
-      setShowCelebration(true);
-    } catch (error) {
-      console.error("Error fetching setup summary:", error);
-    }
-  };
-
-  const handleCelebrationClose = () => {
-    setShowCelebration(false);
-    completeTutorial();
-  };
-
-  const handleConnectMessaging = async () => {
-    setShowCelebration(false);
-    completeTutorial();
-
-    try {
-      const res = await fetch("/api/whatsapp/connect-link");
-      if (res.ok) {
-        const data = await res.json();
-        if (data.code && data.whatsappNumber) {
-          const message = encodeURIComponent(`Olá! Meu código para o HiveBudget é: ${data.code}`);
-          window.open(`https://wa.me/${data.whatsappNumber}?text=${message}`, "_blank");
-        } else {
-          router.push("/app/settings");
-        }
-      }
-    } catch {
-      router.push("/app/settings");
-    }
-  };
 
   // Redirect to home if user is not authenticated (safety net - proxy.ts handles this at edge)
   useEffect(() => {
@@ -237,13 +160,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
           </main>
         </div>
         <FloatingChatbot />
-        <CelebrationModal
-          isOpen={showCelebration}
-          onClose={handleCelebrationClose}
-          onConnectMessaging={handleConnectMessaging}
-          summary={celebrationSummary}
-        />
-        {!showCelebration && <TutorialOverlay />}
+        <TutorialOverlay />
       </div>
     </SidebarProvider>
   );

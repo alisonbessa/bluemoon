@@ -259,43 +259,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         validationKey: "hasTransactions",
       },
 
-      // ===== 7. DASHBOARD - COMPLETION =====
-      {
-        id: "dashboard-intro",
-        route: "/app",
-        title: "Parabéns! Configuração completa!",
-        content:
-          "Você configurou tudo! Este é seu painel principal onde você acompanha suas finanças de forma resumida.",
-        placement: "center",
-      },
-      {
-        id: "dashboard-summary",
-        route: "/app",
-        title: "Resumo do Mês",
-        content:
-          "Aqui você vê seu saldo, receitas e despesas do mês atual. Os valores são atualizados conforme você registra transações.",
-        targetSelector: '[data-tutorial="dashboard-summary"]',
-        placement: "bottom",
-      },
-      {
-        id: "dashboard-goals",
-        route: "/app",
-        title: "Progresso das Metas",
-        content:
-          "Acompanhe o progresso das suas metas financeiras. A barra mostra quanto falta para atingir cada objetivo.",
-        targetSelector: '[data-tutorial="dashboard-goals"]',
-        placement: "bottom",
-      },
-      {
-        id: "dashboard-scheduled",
-        route: "/app",
-        title: "Contas a Pagar/Receber",
-        content:
-          "Veja as próximas contas e rendas previstas. Você pode confirmar recebimentos e pagamentos diretamente daqui.",
-        targetSelector: '[data-tutorial="dashboard-scheduled"]',
-        placement: "bottom",
-      },
-      // ===== 8. SETTINGS - PARTNER INVITE (Duo plan only, before celebration) =====
+      // ===== 7. SETTINGS - PARTNER INVITE (Duo plan only) =====
       {
         id: "settings-partner-intro",
         route: "/app/settings",
@@ -316,15 +280,6 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         condition: "hasDuoPlan",
       },
 
-      // ===== 9. CELEBRATION - Shows celebration modal with WhatsApp CTA =====
-      {
-        id: "setup-celebration",
-        route: "/app",
-        title: "Tudo pronto!",
-        content:
-          "Parabéns! Sua plataforma está configurada!",
-        placement: "center",
-      },
     ],
   },
 

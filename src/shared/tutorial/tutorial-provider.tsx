@@ -138,7 +138,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     return undefined;
   }, [isStepConditionMet]);
 
-  // Initialize from localStorage on mount
+  // Initialize from localStorage on mount (only for full flows, not page mini-flows)
   useEffect(() => {
     // Check if tutorial is already completed
     if (localStorage.getItem(TUTORIAL_STORAGE_KEY) === "true") {
@@ -147,6 +147,12 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
     const progress = getTutorialProgress();
     if (progress) {
+      // Don't auto-resume page mini-flows — they are one-shot
+      if (progress.flowId.startsWith("page-")) {
+        saveTutorialProgress(null);
+        return;
+      }
+
       const flow = getTutorialFlow(progress.flowId);
       if (flow) {
         setCurrentFlow(flow);
@@ -158,12 +164,7 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
 
           // Show tutorial if we're on the right page and not dismissed
           if (step.route === pathname && progress.dismissedForPage !== pathname) {
-            // If waiting for action, show a minimal prompt instead of full tutorial
-            if (progress.waitingForAction) {
-              setIsVisible(true);
-            } else {
-              setIsVisible(true);
-            }
+            setIsVisible(true);
           }
         }
       }
