@@ -168,11 +168,15 @@ export const PATCH = withAuthRequired(async (req, context) => {
   return successResponse({ incomeSource: updatedSource });
 });
 
-// DELETE - Delete an income source (soft delete by deactivating)
+// DELETE - Delete an income source
+// Default: soft delete (deactivate + remove pending transactions)
+// ?permanent=true: hard delete (remove the source record entirely)
 export const DELETE = withAuthRequired(async (req, context) => {
   const { session } = context;
   const params = await context.params;
   const sourceId = params.id as string;
+  const { searchParams } = new URL(req.url);
+  const isPermanent = searchParams.get("permanent") === "true";
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
@@ -193,28 +197,47 @@ export const DELETE = withAuthRequired(async (req, context) => {
     return notFoundError("Income source");
   }
 
-  // Soft delete by deactivating
-  await db
-    .update(incomeSources)
-    .set({
-      isActive: false,
-      updatedAt: new Date(),
-    })
-    .where(eq(incomeSources.id, sourceId));
-
-  // Delete pending income transactions for this source (current month onwards)
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  await db
-    .delete(transactions)
-    .where(
-      and(
-        eq(transactions.incomeSourceId, sourceId),
-        eq(transactions.status, "pending"),
-        eq(transactions.type, "income"),
-        gte(transactions.date, monthStart)
-      )
-    );
+
+  if (isPermanent) {
+    // Hard delete: remove pending transactions, then unlink confirmed, then delete source
+    await db
+      .delete(transactions)
+      .where(
+        and(
+          eq(transactions.incomeSourceId, sourceId),
+          eq(transactions.status, "pending"),
+          eq(transactions.type, "income")
+        )
+      );
+
+    // Unlink confirmed transactions (keep them but remove source reference)
+    await db
+      .update(transactions)
+      .set({ incomeSourceId: null, updatedAt: new Date() })
+      .where(eq(transactions.incomeSourceId, sourceId));
+
+    // Delete the source
+    await db.delete(incomeSources).where(eq(incomeSources.id, sourceId));
+  } else {
+    // Soft delete: deactivate + remove pending from current month onwards
+    await db
+      .update(incomeSources)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(incomeSources.id, sourceId));
+
+    await db
+      .delete(transactions)
+      .where(
+        and(
+          eq(transactions.incomeSourceId, sourceId),
+          eq(transactions.status, "pending"),
+          eq(transactions.type, "income"),
+          gte(transactions.date, monthStart)
+        )
+      );
+  }
 
   return successResponse({ success: true });
 });
