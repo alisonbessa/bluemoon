@@ -20,6 +20,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useTutorial } from "@/shared/tutorial";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/shared/ui/tooltip";
 import confetti from "canvas-confetti";
 
 interface ChecklistData {
@@ -265,6 +270,19 @@ export function GettingStartedChecklist() {
               <Link key={item.key} href={item.href}>
                 {content}
               </Link>
+            );
+          }
+
+          if (isLocked) {
+            return (
+              <Tooltip key={item.key}>
+                <TooltipTrigger asChild>
+                  <div>{content}</div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Adicione uma conta primeiro</p>
+                </TooltipContent>
+              </Tooltip>
             );
           }
 

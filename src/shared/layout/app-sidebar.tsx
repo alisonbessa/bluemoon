@@ -269,15 +269,21 @@ export function AppSidebar() {
                 if (isLocked) {
                   return (
                     <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        isActive={false}
-                        tooltip={`${item.label} — adicione uma conta primeiro`}
-                        className="opacity-40 cursor-not-allowed"
-                      >
-                        <item.icon className="size-4" />
-                        <span>{item.label}</span>
-                        <LockIcon className="size-3 ml-auto text-muted-foreground" />
-                      </SidebarMenuButton>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <SidebarMenuButton
+                            isActive={false}
+                            className="opacity-40 cursor-not-allowed"
+                          >
+                            <item.icon className="size-4" />
+                            <span>{item.label}</span>
+                            <LockIcon className="size-3 ml-auto text-muted-foreground" />
+                          </SidebarMenuButton>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          <p>Adicione uma conta primeiro</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </SidebarMenuItem>
                   );
                 }
