@@ -12,7 +12,7 @@ import {
   financialAccounts,
   budgets,
 } from "@/db/schema";
-import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
+import { eq, and, inArray, sql, gte, lte, or, isNull } from "drizzle-orm";
 import {
   ensurePendingTransactionsForMonth,
   autoActivateMonth,
@@ -195,7 +195,7 @@ export async function fetchBudgetAllocationsData(opts: {
           eq(transactions.budgetId, budgetId),
           gte(transactions.date, startDate),
           lte(transactions.date, endDate),
-          inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+          inArray(transactions.status, ["cleared", "reconciled"]),
           ...(txViewCondition ? [txViewCondition] : [])
         )
       )
@@ -219,7 +219,10 @@ export async function fetchBudgetAllocationsData(opts: {
       .where(
         and(
           eq(recurringBills.budgetId, budgetId),
-          eq(recurringBills.isActive, true)
+          eq(recurringBills.isActive, true),
+          // Only show bills active for this month (respect startDate/endDate)
+          or(isNull(recurringBills.startDate), lte(recurringBills.startDate, endDate)),
+          or(isNull(recurringBills.endDate), gte(recurringBills.endDate, startDate))
         )
       )
       .orderBy(recurringBills.displayOrder),
