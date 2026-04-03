@@ -1,6 +1,9 @@
 import { db } from "@/db";
 import { transactions, categories, incomeSources } from "@/db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("messaging:transaction-matcher");
 import { ensurePendingTransactionsForMonth } from "@/shared/lib/budget/pending-transactions";
 import { getTodayNoonUTC } from "./utils";
 import type { Platform } from "./types";
@@ -370,6 +373,11 @@ export async function findScheduledExpenseByHint(
         eq(transactions.status, "pending")
       )
     );
+
+  logger.info(`[findScheduledExpenseByHint] Found ${pendingExpenses.length} pending expenses. hint="${descriptionHint}", categoryId=${categoryId}`);
+  if (pendingExpenses.length > 0) {
+    logger.info(`[findScheduledExpenseByHint] Pending: ${pendingExpenses.map(tx => `"${tx.description}" (cat=${tx.categoryName})`).join(', ')}`);
+  }
 
   if (pendingExpenses.length === 0) {
     return null;
