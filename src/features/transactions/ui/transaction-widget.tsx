@@ -44,6 +44,7 @@ interface ScheduledTransaction {
   incomeSourceId?: string;
   goalId?: string;
   recurringBillId?: string;
+  accountId?: string;
 }
 
 interface ConfirmedTransaction {
