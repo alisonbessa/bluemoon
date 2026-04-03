@@ -27,7 +27,9 @@ interface UseAccountsOptions {
  */
 export function useAccounts(options?: UseAccountsOptions) {
   const { viewMode, isDuoPlan } = useViewMode();
-  const swrKey = isDuoPlan ? `${BASE_KEY}?viewMode=${viewMode}` : BASE_KEY;
+  // Always fetch ALL accounts (viewMode=all) so the client-side toggle works
+  // regardless of the global sidebar viewMode
+  const swrKey = isDuoPlan ? `${BASE_KEY}?viewMode=all` : BASE_KEY;
 
   const { data, error, isLoading, mutate } = useSWR<AccountsResponse>(swrKey, {
     fallbackData: options?.fallbackData,

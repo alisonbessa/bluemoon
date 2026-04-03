@@ -96,10 +96,9 @@ export function useTransactionData(
     flatCategories: Category[];
   }>("/api/app/categories");
 
-  const accountsVm = isDuoPlan ? `?viewMode=${viewMode}` : "";
   const { data: accountsData, isLoading: accountsLoading } = useSWR<{
     accounts: Account[];
-  }>(`/api/app/accounts${accountsVm}`);
+  }>("/api/app/accounts?viewMode=all");
 
   const { data: budgetsData, isLoading: budgetsLoading } = useSWR<{
     budgets: Budget[];

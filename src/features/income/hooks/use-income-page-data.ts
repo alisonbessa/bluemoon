@@ -72,7 +72,7 @@ export function useIncomePageData(): IncomePageData {
   );
 
   const { data: accountsData, error: accountsError, isLoading: accountsLoading } = useSWR<AccountsResponse>(
-    `/api/app/accounts${vmParam}`
+    '/api/app/accounts?viewMode=all'
   );
 
   const { data: incomeData, error: incomeError, isLoading: incomeLoading, mutate: mutateIncome } = useSWR<IncomeSourcesResponse>(
