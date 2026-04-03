@@ -313,6 +313,8 @@ export function DashboardClient({
       <CreditCardSpending
         creditCards={creditCards}
         isLoading={chartsLoading}
+        budgetId={primaryBudgetId ?? undefined}
+        onPaymentComplete={refreshDashboard}
       />
 
       {/* Navigation Cards */}
