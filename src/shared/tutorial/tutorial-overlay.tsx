@@ -13,6 +13,18 @@ interface SpotlightRect {
   height: number;
 }
 
+const OVERLAY_CONTAINER_ID = "tutorial-overlay-root";
+
+function getOrCreateContainer(): HTMLElement {
+  let container = document.getElementById(OVERLAY_CONTAINER_ID);
+  if (!container) {
+    container = document.createElement("div");
+    container.id = OVERLAY_CONTAINER_ID;
+    document.body.appendChild(container);
+  }
+  return container;
+}
+
 export function TutorialOverlay() {
   const { isVisible, isActive, currentStep, isWaitingForAction } = useTutorial();
   const [mounted, setMounted] = useState(false);
@@ -41,6 +53,13 @@ export function TutorialOverlay() {
 
   useEffect(() => {
     setMounted(true);
+    return () => {
+      // Clean up singleton container on unmount
+      const container = document.getElementById(OVERLAY_CONTAINER_ID);
+      if (container && container.childNodes.length === 0) {
+        container.remove();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -72,7 +91,7 @@ export function TutorialOverlay() {
 
   // When waiting for action OR tutorial is active but not visible (dismissed), show only floating button
   if (isWaitingForAction || (isActive && !isVisible)) {
-    return createPortal(<TutorialFloatingButton />, document.body);
+    return createPortal(<TutorialFloatingButton />, getOrCreateContainer());
   }
 
   // If not visible, don't render anything
@@ -136,5 +155,5 @@ export function TutorialOverlay() {
     </div>
   );
 
-  return createPortal(overlayContent, document.body);
+  return createPortal(overlayContent, getOrCreateContainer());
 }
