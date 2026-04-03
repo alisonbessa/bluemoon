@@ -1,5 +1,6 @@
 'use client';
 
+import { getAccountTypeIcon } from '@/features/accounts/types';
 import {
   Select,
   SelectContent,
@@ -89,7 +90,7 @@ export function AccountSelector({
           {accounts.map((account) => (
             <SelectItem key={account.id} value={account.id}>
               <span className="flex items-center gap-2">
-                <span>{account.icon || ({ checking: '🏦', savings: '🐷', credit_card: '💳', cash: '💵', investment: '📈', benefit: '🍽️' } as Record<string, string>)[account.type ?? ''] || '🏦'}</span>
+                <span>{getAccountTypeIcon(account.type)}</span>
                 <span>{account.name}</span>
               </span>
             </SelectItem>

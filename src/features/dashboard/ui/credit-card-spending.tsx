@@ -33,6 +33,7 @@ import { formatCurrency } from "@/shared/lib/formatters";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
 import { toast } from "sonner";
+import { getAccountTypeIcon } from "@/features/accounts/types";
 
 interface CreditCard {
   id: string;
@@ -272,7 +273,7 @@ export function CreditCardSpending({
                 <SelectContent>
                   {paymentAccounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
-                      {account.icon || "🏦"} {account.name}
+                      {getAccountTypeIcon(account.type)} {account.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
