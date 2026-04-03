@@ -62,7 +62,7 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
   const { members, isLoading: membersLoading } = useMembers();
   const { user, isLoading: userLoading } = useUser();
   const { currentPlan } = useCurrentUser();
-  const { viewMode, setViewMode } = useViewMode();
+  const { viewMode, setViewMode, privacyMode } = useViewMode();
 
   const isLoading = accountsLoading || budgetsLoading || membersLoading || userLoading;
 
@@ -171,8 +171,11 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
   // Check if we have investments (unfiltered) to show toggle
   const hasInvestments = accounts.some((a) => a.type === "investment");
 
-  // Check if we have mixed ownership to show filter (for Duo plans or multi-member budgets)
-  const hasMixedOwnership = isDuoPlan &&
+  // In "tudo compartilhado" (visible privacy), everything is shared - no toggle needed
+  const isAllShared = privacyMode === "visible";
+
+  // Show ownership toggle only when privacy mode separates personal/shared
+  const hasMixedOwnership = isDuoPlan && !isAllShared &&
     accounts.some(a => a.ownerId === currentUserMemberId) &&
     accounts.some(a => !a.ownerId || a.ownerId !== currentUserMemberId);
 
