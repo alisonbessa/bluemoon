@@ -26,6 +26,7 @@ interface ScheduledTransaction {
   incomeSourceId?: string;
   goalId?: string;
   recurringBillId?: string;
+  accountId?: string;
 }
 
 // GET - Get scheduled/projected transactions for a period
@@ -297,6 +298,7 @@ export const GET = withAuthRequired(async (req, context) => {
             sourceId: bill.id,
             categoryId: bill.categoryId,
             recurringBillId: bill.id,
+            accountId: bill.accountId,
           });
         }
       }
@@ -322,6 +324,7 @@ export const GET = withAuthRequired(async (req, context) => {
         sourceId: bill.id,
         categoryId: bill.categoryId,
         recurringBillId: bill.id,
+        accountId: bill.accountId,
       });
     } else {
       // Monthly bills (default)
@@ -343,6 +346,7 @@ export const GET = withAuthRequired(async (req, context) => {
         sourceId: bill.id,
         categoryId: bill.categoryId,
         recurringBillId: bill.id,
+        accountId: bill.accountId,
       });
     }
   }
@@ -377,6 +381,7 @@ export const GET = withAuthRequired(async (req, context) => {
             sourceType: "income_source",
             sourceId: source.id,
             incomeSourceId: source.id,
+            accountId: source.accountId ?? undefined,
           });
         }
       }

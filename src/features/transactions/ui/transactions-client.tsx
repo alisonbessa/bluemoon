@@ -354,13 +354,14 @@ export function TransactionsClient({
       name: string;
       categoryId?: string;
       incomeSourceId?: string;
+      accountId?: string;
       dueDate: string;
     }) => {
       setFormData({
         type: scheduled.type,
         amount: (scheduled.amount / 100).toFixed(2).replace(".", ","),
         description: scheduled.name,
-        accountId: accounts[0]?.id || "",
+        accountId: scheduled.accountId || accounts[0]?.id || "",
         categoryId: scheduled.categoryId || "",
         incomeSourceId: scheduled.incomeSourceId || "",
         toAccountId: "",
