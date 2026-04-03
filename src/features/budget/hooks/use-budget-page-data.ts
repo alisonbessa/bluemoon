@@ -70,9 +70,9 @@ export function useBudgetPageData(
   );
   const members = membersData?.members ?? [];
 
-  // Fetch accounts (filtered by viewMode)
+  // Always fetch all accounts so selectors in forms show all options
   const { data: accountsData, isLoading: accountsLoading } = useSWR<AccountsResponse>(
-    isDuoPlan ? `/api/app/accounts?viewMode=${viewMode}` : '/api/app/accounts'
+    '/api/app/accounts?viewMode=all'
   );
   const accounts = accountsData?.accounts ?? [];
 
