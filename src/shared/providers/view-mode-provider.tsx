@@ -59,13 +59,14 @@ export function ViewModeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isDuoPlan, isPlanLoading, viewMode]);
 
-  // Force "all" when privacy is unified or visible (everything is shared)
-  const isAllSharedPrivacy = privacyMode === "unified" || privacyMode === "visible";
+  // Force "all" only when privacy is "visible" (tudo compartilhado - no selector)
+  // "unified" allows switching between viewModes via the selector
+  const isVisiblePrivacy = privacyMode === "visible";
   useEffect(() => {
-    if (isAllSharedPrivacy && viewMode !== "all") {
+    if (isVisiblePrivacy && viewMode !== "all") {
       setViewModeState("all");
     }
-  }, [isAllSharedPrivacy, viewMode]);
+  }, [isVisiblePrivacy, viewMode]);
 
   // Force "all" when Duo plan has no contribution model (all income is shared)
   useEffect(() => {

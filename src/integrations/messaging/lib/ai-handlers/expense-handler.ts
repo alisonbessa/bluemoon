@@ -13,6 +13,10 @@ import type {
 } from "../types";
 import { matchCategory, CONFIDENCE_THRESHOLDS } from "../gemini";
 import { markLogAsConfirmed } from "../ai-logger";
+import { createLogger } from "@/shared/lib/logger";
+
+const logger = createLogger("messaging:expense-handler");
+
 import {
   findMatchingScheduledTransaction,
   findScheduledExpenseByHint,
@@ -112,13 +116,18 @@ export async function handleExpenseIntent(
   // AI sometimes returns 0 instead of null when no amount is mentioned
   if (!data?.amount || data.amount === 0) {
     // Try to find a scheduled expense by hint
+    const descriptionHint = data?.description || data?.categoryHint || null;
+    logger.info(`[Expense] No amount - searching scheduled by hint: "${descriptionHint}", categoryId: ${categoryId}, month: ${currentMonth}/${currentYear}`);
+
     const scheduledByHint = await findScheduledExpenseByHint(
       budgetId,
       categoryId || null,
-      data?.description || data?.categoryHint || null,
+      descriptionHint,
       currentYear,
       currentMonth
     );
+
+    logger.info(`[Expense] Scheduled match result: ${scheduledByHint ? `confidence=${scheduledByHint.confidence}, desc="${scheduledByHint.transaction.description}"` : 'null'}`);
 
     if (scheduledByHint && scheduledByHint.confidence >= 0.4) {
       // Found a matching scheduled expense - ask for confirmation

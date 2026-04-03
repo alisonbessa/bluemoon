@@ -108,10 +108,11 @@ function ViewModeSelector() {
   const isCollapsed = state === "collapsed";
   const pathname = usePathname();
 
-  // Hide toggle: not duo, unified privacy, no contribution model, or on settings page
-  if (!isDuoPlan || isUnifiedPrivacy || !hasContributionModel || pathname === "/app/settings") return null;
+  // Hide toggle: not duo, "visible" privacy (always all), no contribution model, or on settings page
+  const isAllVisible = privacyMode === "visible";
+  if (!isDuoPlan || isAllVisible || !hasContributionModel || pathname === "/app/settings") return null;
 
-  // When privacy is "private", exclude the "all" option (partner data is hidden)
+  // When privacy is "private", exclude the "all" option (can't see partner's personal data)
   const availableOptions = privacyMode === "private"
     ? viewModeOptions.filter((o) => o.value !== "all")
     : viewModeOptions;
