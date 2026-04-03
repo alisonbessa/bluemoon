@@ -106,6 +106,10 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
     // createAccount does optimistic update + invalidates all /api/app/accounts* caches
     await createAccount({ ...data, budgetId } as Parameters<typeof createAccount>[0]);
 
+    // Invalidate user cache to update hasBudget/subscription gate (unlocks sidebar)
+    const { mutate } = await import("swr");
+    mutate("/api/app/me");
+
     // Switch view mode to show the created account
     if (isDuoPlan) {
       const isSharedAccount = !data.ownerId;

@@ -22,7 +22,7 @@ import {
 import type { MobileViewMode } from '../hooks';
 
 interface IncomeSectionAccordionProps {
-  incomeData: IncomeData;
+  incomeData: IncomeData | null;
   isExpanded: boolean;
   onToggle: () => void;
   expandedMembers: string[];
@@ -72,7 +72,36 @@ export function IncomeSectionAccordion({
   mobileViewMode = 'available',
 }: IncomeSectionAccordionProps) {
   if (!incomeData || incomeData.byMember.length === 0) {
-    return null;
+    // Show empty state with add button
+    return (
+      <div className="border-b-4 border-green-200 dark:border-green-900">
+        <div
+          className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b items-center"
+        >
+          <div />
+          <div className="flex items-center gap-2">
+            <span className="text-lg">💰</span>
+            <span className="font-bold text-sm text-green-800 dark:text-green-200">RECEITAS</span>
+          </div>
+          <div className="hidden sm:block text-sm font-bold tabular-nums text-green-800 dark:text-green-200">R$ 0,00</div>
+          <div className="hidden sm:block text-sm font-bold tabular-nums text-green-600 dark:text-green-400">R$ 0,00</div>
+          <div className="hidden sm:block text-sm font-bold tabular-nums">R$ 0,00</div>
+          <div className="sm:hidden text-xs font-bold tabular-nums pr-2">R$ 0,00</div>
+          <div className="sm:hidden" />
+        </div>
+        <div className="px-4 py-4 text-center">
+          <p className="text-sm text-muted-foreground mb-2">Nenhuma fonte de renda cadastrada</p>
+          {onAddIncomeSource && (
+            <button
+              onClick={() => onAddIncomeSource()}
+              className="text-sm text-primary hover:underline font-medium"
+            >
+              + Adicionar fonte de renda
+            </button>
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (

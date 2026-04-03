@@ -664,7 +664,7 @@ function BudgetSectionBlock({
       )}
 
       {/* Income (only for shared and personal sections, not partner) */}
-      {section.incomeData && !section.isPartnerSection && (
+      {!section.isPartnerSection && (
         <IncomeSectionAccordion
           incomeData={section.incomeData}
           isExpanded={uiState.isIncomeExpanded}
@@ -705,7 +705,7 @@ function BudgetSectionBlock({
       )}
 
       {/* Goals */}
-      {(section.goals.length > 0 || (!section.isPartnerSection && hasContributionModel)) && (
+      {!section.isPartnerSection && (
         <GoalsSectionAccordion
           goals={section.goals}
           totalGoals={section.totalGoals}
