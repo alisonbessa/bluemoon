@@ -187,7 +187,9 @@ export async function ensurePendingTransactionsForMonth(
     memberId: incomeSource.memberId,
   }));
 
-  // Create pending expense transactions from recurring bills
+  // Create expense transactions from recurring bills
+  // Bills with isAutoDebit=true and due date <= today are created as "cleared" (auto-confirmed)
+  const today = new Date();
   const expenseTransactions = [];
   for (const bill of activeBills) {
     if (bill.amount <= 0) continue;
@@ -216,13 +218,14 @@ export async function ensurePendingTransactionsForMonth(
           // Skip if transaction already exists for this date
           if (existingDates.has(dateStr)) continue;
 
+          const autoConfirmWeekly = bill.isAutoDebit && date <= today;
           expenseTransactions.push({
             budgetId,
             accountId: bill.accountId,
             categoryId: bill.categoryId,
             recurringBillId: bill.id,
             type: "expense" as const,
-            status: "pending" as const,
+            status: autoConfirmWeekly ? "cleared" as const : "pending" as const,
             amount: bill.amount,
             description: `${bill.name} (${date.getUTCDate()}/${month})`,
             date,
@@ -241,6 +244,7 @@ export async function ensurePendingTransactionsForMonth(
 
       const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
       const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0));
+      const autoConfirmYearly = bill.isAutoDebit && dueDate <= today;
 
       expenseTransactions.push({
         budgetId,
@@ -248,7 +252,7 @@ export async function ensurePendingTransactionsForMonth(
         categoryId: bill.categoryId,
         recurringBillId: bill.id,
         type: "expense" as const,
-        status: "pending" as const,
+        status: autoConfirmYearly ? "cleared" as const : "pending" as const,
         amount: bill.amount,
         description: bill.name,
         date: dueDate,
@@ -263,6 +267,7 @@ export async function ensurePendingTransactionsForMonth(
 
       const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
       const dueDate = new Date(Date.UTC(year, month - 1, dueDay, 12, 0, 0));
+      const autoConfirm = bill.isAutoDebit && dueDate <= today;
 
       expenseTransactions.push({
         budgetId,
@@ -270,7 +275,7 @@ export async function ensurePendingTransactionsForMonth(
         categoryId: bill.categoryId,
         recurringBillId: bill.id,
         type: "expense" as const,
-        status: "pending" as const,
+        status: autoConfirm ? "cleared" as const : "pending" as const,
         amount: bill.amount,
         description: bill.name,
         date: dueDate,
