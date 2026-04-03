@@ -216,7 +216,7 @@ export function matchAccount(
   }
 
   // 2. Word-level match
-  const hintWords = normalizedHint.split(/\s+/).filter(w => w.length >= 3);
+  const hintWords = normalizedHint.split(/\s+/).filter(w => w.length >= 2);
   for (const account of accounts) {
     const nameWords = normalizeText(account.name).split(/\s+/);
     if (hintWords.some(hw => nameWords.some(nw => nw.includes(hw) || hw.includes(nw)))) {

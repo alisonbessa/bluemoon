@@ -69,9 +69,16 @@ INTENÇÕES VÁLIDAS:
 - QUERY_CATEGORY: Consultar categoria específica (quanto em alimentação)
 - QUERY_GOAL: Consultar meta (como está minha meta)
 - QUERY_ACCOUNT: Consultar saldo de conta específica (quanto tenho na poupança, saldo do nubank)
-- TRANSFER: Transferir entre contas (transferi, movi)
+- TRANSFER: Transferir entre contas (transferi, movi, paguei a fatura)
 - GREETING: Saudação ou agradecimento (oi, bom dia, obrigado)
 - UNKNOWN: Não conseguiu identificar
+
+REGRAS DE FATURA DE CARTÃO:
+- "paguei a fatura do cartão X" → TRANSFER com toAccountHint = nome do cartão
+- "paguei a fatura do nubank" → TRANSFER com toAccountHint = "nubank"
+- "paguei a fatura" (sem especificar cartão) → TRANSFER com toAccountHint = "" (perguntar qual)
+- O valor da fatura o sistema já sabe, retorne amount: null
+- Não confunda com "paguei no cartão" (despesa) vs "paguei a fatura" (transferência)
 
 REGRAS DE VALOR:
 - "50" = 50.00 reais
@@ -331,6 +338,12 @@ Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 
 
 Entrada: "Pix para o marido 200,00 22/03"
 Resposta: {"intent": "TRANSFER", "confidence": 0.90, "data": {"amount": 200.00, "fromAccountHint": "", "toAccountHint": "marido"}}
+
+Entrada: "paguei a fatura do nubank"
+Resposta: {"intent": "TRANSFER", "confidence": 0.90, "data": {"amount": null, "fromAccountHint": "", "toAccountHint": "nubank"}}
+
+Entrada: "paguei a fatura do cartão"
+Resposta: {"intent": "TRANSFER", "confidence": 0.85, "data": {"amount": null, "fromAccountHint": "", "toAccountHint": ""}}
 
 Entrada: "10,00 curso casais 19/03"
 Resposta: {"intent": "REGISTER_EXPENSE", "confidence": 0.95, "data": {"amount": 10.00, "description": "curso casais", "categoryHint": "", "accountHint": "", "paymentMethodHint": "", "isInstallment": false, "totalInstallments": null, "date": "${currentYear}-03-19"}}

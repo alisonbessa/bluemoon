@@ -120,7 +120,7 @@ export async function handleExpenseIntent(
       currentMonth
     );
 
-    if (scheduledByHint && scheduledByHint.confidence >= 0.5) {
+    if (scheduledByHint && scheduledByHint.confidence >= 0.4) {
       // Found a matching scheduled expense - ask for confirmation
       const tx = scheduledByHint.transaction;
       const txCategoryName = tx.categoryName || categoryName || "Despesa";

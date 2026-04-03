@@ -399,19 +399,27 @@ export async function findScheduledExpenseByHint(
 
     // Description and category name match using word overlap
     if (descriptionHint) {
-      // Compare with transaction description
+      const hint = normalizeText(descriptionHint);
+
+      // Compare with transaction description (e.g., "Aluguel" matches "aluguel")
       if (tx.description) {
-        const descOverlap = calculateWordOverlap(descriptionHint, tx.description);
-        if (descOverlap > 0.5) {
-          confidence += 0.3 * descOverlap;
+        const desc = normalizeText(tx.description);
+        // Exact or contains match (highest priority)
+        if (desc === hint || desc.includes(hint) || hint.includes(desc)) {
+          confidence += 0.6;
+        } else {
+          const descOverlap = calculateWordOverlap(descriptionHint, tx.description);
+          if (descOverlap > 0.3) {
+            confidence += 0.4 * descOverlap;
+          }
         }
       }
 
-      // Compare with category name (more important)
+      // Compare with category name (e.g., "Moradia" when user says "aluguel")
       if (tx.categoryName) {
         const catOverlap = calculateWordOverlap(descriptionHint, tx.categoryName);
         if (catOverlap > 0.3) {
-          confidence += 0.5 * catOverlap;
+          confidence += 0.3 * catOverlap;
         }
       }
     }
