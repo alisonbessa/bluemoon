@@ -2,7 +2,7 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
 import { monthlyAllocations, monthlyGroupAllocations, budgetMembers, categories, groups, transactions, incomeSources, monthlyIncomeAllocations, monthlyBudgetStatus, recurringBills, financialAccounts, budgets } from "@/db/schema";
-import { eq, and, inArray, sql, gte, lte } from "drizzle-orm";
+import { eq, and, inArray, sql, gte, lte, or, isNull } from "drizzle-orm";
 import { ensurePendingTransactionsForMonth, autoActivateMonth } from "@/shared/lib/budget/pending-transactions";
 import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import {
@@ -122,7 +122,7 @@ export const GET = withAuthRequired(async (req, context) => {
           eq(transactions.budgetId, budgetId),
           gte(transactions.date, startDate),
           lte(transactions.date, endDate),
-          inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+          inArray(transactions.status, ["cleared", "reconciled"]),
           ...(txViewCondition ? [txViewCondition] : [])
         )
       )
@@ -143,7 +143,9 @@ export const GET = withAuthRequired(async (req, context) => {
       .where(
         and(
           eq(recurringBills.budgetId, budgetId),
-          eq(recurringBills.isActive, true)
+          eq(recurringBills.isActive, true),
+          or(isNull(recurringBills.startDate), lte(recurringBills.startDate, endDate)),
+          or(isNull(recurringBills.endDate), gte(recurringBills.endDate, startDate))
         )
       )
       .orderBy(recurringBills.displayOrder),

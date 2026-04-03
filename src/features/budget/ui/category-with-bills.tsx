@@ -341,6 +341,8 @@ export function CategoryWithBills({
           accountId: editingBill.account?.id || accounts[0]?.id || '',
           isAutoDebit: editingBill.isAutoDebit ?? false,
           isVariable: editingBill.isVariable ?? false,
+          startDate: editingBill.startDate ? new Date(editingBill.startDate).toISOString() : null,
+          endDate: editingBill.endDate ? new Date(editingBill.endDate).toISOString() : null,
         } : null}
       />
 

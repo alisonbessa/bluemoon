@@ -74,3 +74,13 @@ export const ACCOUNT_TYPE_CONFIG: Record<AccountType, { label: string; icon: str
   investment: { label: 'Investimento', icon: '📈' },
   benefit: { label: 'Benefício', icon: '🍽️' },
 };
+
+/**
+ * Get the correct icon for an account type. Always uses the canonical
+ * mapping, ignoring any custom icon stored in the database.
+ * This ensures consistency across the entire platform.
+ */
+export function getAccountTypeIcon(type: string | undefined | null): string {
+  if (!type) return '🏦';
+  return ACCOUNT_TYPE_CONFIG[type as AccountType]?.icon ?? '🏦';
+}

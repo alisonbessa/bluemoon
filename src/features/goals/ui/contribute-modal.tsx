@@ -1,5 +1,6 @@
 'use client';
 
+import { getAccountTypeIcon } from '@/features/accounts/types';
 import { Label } from '@/shared/ui/label';
 import { CurrencyInput } from '@/shared/ui/currency-input';
 import {
@@ -55,7 +56,7 @@ export function ContributeModal({
               {accounts.map((account) => (
                 <SelectItem key={account.id} value={account.id}>
                   <span className="flex items-center gap-2">
-                    <span>{account.icon || '💳'}</span>
+                    <span>{getAccountTypeIcon(account.type)}</span>
                     <span>{account.name}</span>
                     <span className="text-muted-foreground">
                       ({formatCurrency(account.balance)})

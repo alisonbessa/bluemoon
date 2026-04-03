@@ -36,6 +36,8 @@ export interface RecurringBillSummary {
   dueMonth: number | null;
   isAutoDebit?: boolean;
   isVariable?: boolean;
+  startDate?: Date | string | null;
+  endDate?: Date | string | null;
   account: { id: string; name: string; icon: string | null } | null;
 }
 

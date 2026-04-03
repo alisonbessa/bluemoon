@@ -76,7 +76,7 @@ export const GET = withAuthRequired(async (req, context) => {
       and(
         eq(transactions.budgetId, budgetId),
         eq(transactions.type, "expense"),
-        inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+        inArray(transactions.status, ["cleared", "reconciled"]),
         gte(transactions.date, startDate),
         lte(transactions.date, endDate),
         isNull(categories.memberId), // Shared category
@@ -97,7 +97,7 @@ export const GET = withAuthRequired(async (req, context) => {
       and(
         eq(transactions.budgetId, budgetId),
         eq(transactions.type, "expense"),
-        inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+        inArray(transactions.status, ["cleared", "reconciled"]),
         gte(transactions.date, startDate),
         lte(transactions.date, endDate),
         isNull(categories.memberId), // Shared category

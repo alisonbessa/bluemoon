@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { mutate } from "swr";
+import { getAccountTypeIcon } from "@/features/accounts/types";
 import {
   Card,
   CardContent,
@@ -287,7 +288,7 @@ export function SharedExpensesBalance({
                 <SelectContent>
                   {fromMemberAccounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
-                      {account.icon || "🏦"} {account.name}
+                      {getAccountTypeIcon(account.type)} {account.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -304,7 +305,7 @@ export function SharedExpensesBalance({
                 <SelectContent>
                   {toMemberAccounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
-                      {account.icon || "🏦"} {account.name}
+                      {getAccountTypeIcon(account.type)} {account.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
