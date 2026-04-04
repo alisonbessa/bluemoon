@@ -76,6 +76,7 @@ export interface DashboardDataResult {
       creditLimit: number;
       spent: number;
       available: number;
+      closingDay?: number | null;
       closedBill?: number;
       openBill?: number;
       dueDay?: number | null;
@@ -651,6 +652,7 @@ async function fetchStats(opts: {
         creditLimit: cc.creditLimit || 0,
         spent,
         available: (cc.creditLimit || 0) - spent,
+        closingDay: cc.closingDay ?? null,
         closedBill,
         openBill,
         dueDay: cc.dueDay ?? null,

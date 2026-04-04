@@ -71,6 +71,12 @@ export interface CreditCard {
   creditLimit: number;
   spent: number;
   available: number;
+  closingDay?: number | null;
+  closedBill?: number;
+  openBill?: number;
+  dueDay?: number | null;
+  paymentAccountId?: string | null;
+  isAutoPayEnabled?: boolean;
 }
 
 export interface DashboardData {
