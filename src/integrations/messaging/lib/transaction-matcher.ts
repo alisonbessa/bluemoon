@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { transactions, categories, incomeSources } from "@/db/schema";
+import { transactions, categories, incomeSources, recurringBills } from "@/db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
 import { createLogger } from "@/shared/lib/logger";
 
@@ -19,6 +19,7 @@ interface ScheduledTransaction {
   incomeSourceName: string | null;
   status: string;
   date: Date;
+  accountId?: string | null;
 }
 
 interface MatchResult {
@@ -438,6 +439,71 @@ export async function findScheduledExpenseByHint(
         transaction: tx,
         confidence,
       };
+    }
+  }
+
+  // If no pending transaction found, try matching against recurring bills
+  // This handles the case where the pending transaction was already confirmed
+  // or hasn't been generated yet
+  if (!bestMatch && descriptionHint) {
+    logger.info(`[findScheduledExpenseByHint] No pending match, trying recurring bills...`);
+
+    const activeBills = await db
+      .select({
+        id: recurringBills.id,
+        name: recurringBills.name,
+        amount: recurringBills.amount,
+        categoryId: recurringBills.categoryId,
+        accountId: recurringBills.accountId,
+        categoryName: categories.name,
+        categoryIcon: categories.icon,
+      })
+      .from(recurringBills)
+      .leftJoin(categories, eq(recurringBills.categoryId, categories.id))
+      .where(
+        and(
+          eq(recurringBills.budgetId, budgetId),
+          eq(recurringBills.isActive, true)
+        )
+      );
+
+    for (const bill of activeBills) {
+      let confidence = 0;
+      const hint = normalizeText(descriptionHint);
+      const billName = normalizeText(bill.name);
+
+      // Exact/contains match on bill name
+      if (billName === hint || billName.includes(hint) || hint.includes(billName)) {
+        confidence += 0.7;
+      } else {
+        const overlap = calculateWordOverlap(descriptionHint, bill.name);
+        if (overlap > 0.3) confidence += 0.5 * overlap;
+      }
+
+      // Category match
+      if (categoryId && bill.categoryId === categoryId) {
+        confidence += 0.2;
+      }
+
+      if (confidence >= 0.5 && (!bestMatch || confidence > bestMatch.confidence)) {
+        logger.info(`[findScheduledExpenseByHint] Recurring bill match: "${bill.name}" confidence=${confidence}`);
+        bestMatch = {
+          transaction: {
+            id: `bill-${bill.id}`, // Prefix to identify as bill, not transaction
+            amount: bill.amount,
+            description: bill.name,
+            categoryId: bill.categoryId,
+            categoryName: bill.categoryName,
+            categoryIcon: bill.categoryIcon,
+            incomeSourceId: null,
+            incomeSourceName: null,
+            status: "pending",
+            date: new Date(),
+            accountId: bill.accountId,
+          },
+          confidence,
+        };
+      }
     }
   }
 
