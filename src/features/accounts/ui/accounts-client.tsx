@@ -34,7 +34,7 @@ import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
 import { formatCurrency, formatCurrencyCompact } from "@/shared/lib/formatters";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
-import { useBudgets, useMembers, useUser } from "@/shared/hooks";
+import { useBudgets, usePrimaryBudget, useMembers, useUser } from "@/shared/hooks";
 import { useCurrentUser } from "@/shared/hooks/use-current-user";
 import { useViewMode } from "@/shared/providers/view-mode-provider";
 import { useAccounts, type AccountsResponse } from "@/features/accounts/hooks/use-accounts";
@@ -61,6 +61,7 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
     initialData ? { fallbackData: initialData } : undefined,
   );
   const { budgets, isLoading: budgetsLoading } = useBudgets();
+  const { budgetId: primaryBudgetId } = usePrimaryBudget();
   const { members, isLoading: membersLoading } = useMembers();
   const { user, isLoading: userLoading } = useUser();
   const { currentPlan } = useCurrentUser();
@@ -89,7 +90,8 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
   const currentUserMemberId = members.find(m => m.userId === user?.id)?.id;
 
   const handleCreateAccount = async (data: AccountFormData) => {
-    let budgetId = budgets[0]?.id;
+    // Always use the primary budget (shared Duo budget), not the first in the list
+    let budgetId = primaryBudgetId || budgets[0]?.id;
 
     if (!budgetId) {
       try {
@@ -146,7 +148,11 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
     return true;
   };
 
-  const filteredAccounts = isDuoPlan ? accounts.filter(filterByOwnership) : accounts;
+  // Filter to primary budget first (user may have accounts in old solo budget)
+  const budgetAccounts = primaryBudgetId
+    ? accounts.filter(a => a.budgetId === primaryBudgetId)
+    : accounts;
+  const filteredAccounts = isDuoPlan ? budgetAccounts.filter(filterByOwnership) : budgetAccounts;
 
   // Group accounts by type
   const accountsByType = {
