@@ -61,11 +61,19 @@ interface Settlement {
   amount: number;
 }
 
+interface SettledTransfer {
+  fromName: string;
+  toName: string;
+  amount: number;
+  date: string;
+}
+
 interface SharedBalanceResponse {
   members: MemberBalance[];
   totalFromPersonalAccounts: number;
   totalFromSharedAccounts: number;
   settlement: Settlement | null;
+  settledTransfers?: SettledTransfer[];
   privacyMode?: string;
 }
 
@@ -137,7 +145,8 @@ export function SharedExpensesBalance({
   }
 
   const settlement = data.settlement;
-
+  const settledTransfers = data.settledTransfers ?? [];
+  const hasSettled = settledTransfers.length > 0;
   // Filter accounts for settlement: personal accounts of each member
   const fromMemberAccounts = accountsData?.accounts.filter(
     (a) => a.ownerId === settlement?.from && a.type !== "credit_card"
@@ -234,7 +243,7 @@ export function SharedExpensesBalance({
               ))}
           </div>
 
-          {/* Settlement suggestion */}
+          {/* Settlement suggestion - still has balance to settle */}
           {settlement && (
             <div className="rounded-lg bg-muted/50 p-3 border space-y-3">
               <div className="flex items-center justify-center gap-2 text-sm">
@@ -248,6 +257,19 @@ export function SharedExpensesBalance({
               <p className="text-center text-xs text-muted-foreground">
                 para equilibrar os gastos compartilhados
               </p>
+
+              {/* Partial settlement history */}
+              {hasSettled && (
+                <div className="space-y-1 pt-1 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground">Acertos ja realizados:</p>
+                  {settledTransfers.map((t, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{t.fromName} → {t.toName}</span>
+                      <span className="tabular-nums">{formatCurrency(t.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Action buttons */}
               <div className="flex gap-2">
@@ -269,6 +291,24 @@ export function SharedExpensesBalance({
                   <HandshakeIcon className="h-4 w-4 mr-2" />
                   Fazer Acerto
                 </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Settled state - all balanced */}
+          {!settlement && hasSettled && (
+            <div className="rounded-lg border border-green-800/30 bg-green-950/20 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-sm text-green-500">
+                <CheckCircleIcon className="h-4 w-4" />
+                <span className="font-medium">Acerto realizado</span>
+              </div>
+              <div className="space-y-1 pl-6">
+                {settledTransfers.map((t, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{t.fromName} → {t.toName}</span>
+                    <span className="tabular-nums">{formatCurrency(t.amount)}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
