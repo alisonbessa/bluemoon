@@ -31,7 +31,15 @@ import {
   SelectValue,
 } from "@/shared/ui/select";
 import { Label } from "@/shared/ui/label";
-import { ScaleIcon, ArrowRightIcon, HandshakeIcon, CheckCircleIcon } from "lucide-react";
+import { CurrencyInput } from "@/shared/ui/currency-input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/shared/ui/dialog";
+import { ScaleIcon, ArrowRightIcon, HandshakeIcon, CheckCircleIcon, ListIcon } from "lucide-react";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { useViewMode } from "@/shared/providers/view-mode-provider";
 import { toast } from "sonner";
@@ -86,8 +94,10 @@ export function SharedExpensesBalance({
 }: SharedExpensesBalanceProps) {
   const { isDuoPlan, isUnifiedPrivacy } = useViewMode();
   const [showSettleDialog, setShowSettleDialog] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [fromAccountId, setFromAccountId] = useState("");
   const [toAccountId, setToAccountId] = useState("");
+  const [settleAmount, setSettleAmount] = useState(0);
   const [isSettling, setIsSettling] = useState(false);
 
   const shouldFetch = isDuoPlan && !isUnifiedPrivacy;
@@ -138,9 +148,9 @@ export function SharedExpensesBalance({
   ) ?? [];
 
   const handleOpenSettle = () => {
-    // Pre-select first available account for each member
     setFromAccountId(fromMemberAccounts[0]?.id ?? "");
     setToAccountId(toMemberAccounts[0]?.id ?? "");
+    setSettleAmount(settlement?.amount ?? 0);
     setShowSettleDialog(true);
   };
 
@@ -156,7 +166,7 @@ export function SharedExpensesBalance({
           budgetId,
           fromAccountId,
           toAccountId,
-          amount: settlement.amount,
+          amount: settleAmount,
           year,
           month,
         }),
@@ -168,7 +178,7 @@ export function SharedExpensesBalance({
       }
 
       toast.success("Acerto registrado!", {
-        description: `Transferência de ${formatCurrency(settlement.amount)} de ${settlement.fromName} para ${settlement.toName}`,
+        description: `Transferência de ${formatCurrency(settleAmount)} de ${settlement.fromName} para ${settlement.toName}`,
       });
 
       // Revalidate shared balance, accounts, and dashboard summary
@@ -239,16 +249,27 @@ export function SharedExpensesBalance({
                 para equilibrar os gastos compartilhados
               </p>
 
-              {/* Settle button */}
-              <Button
-                onClick={handleOpenSettle}
-                className="w-full"
-                size="sm"
-                variant="default"
-              >
-                <HandshakeIcon className="h-4 w-4 mr-2" />
-                Fazer Acerto
-              </Button>
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowDetailsModal(true)}
+                  className="flex-1"
+                  size="sm"
+                  variant="outline"
+                >
+                  <ListIcon className="h-4 w-4 mr-2" />
+                  Ver detalhes
+                </Button>
+                <Button
+                  onClick={handleOpenSettle}
+                  className="flex-1"
+                  size="sm"
+                  variant="default"
+                >
+                  <HandshakeIcon className="h-4 w-4 mr-2" />
+                  Fazer Acerto
+                </Button>
+              </div>
             </div>
           )}
 
@@ -270,14 +291,29 @@ export function SharedExpensesBalance({
               Fazer Acerto do Mês
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Isso criará uma transferência de{" "}
-              <strong className="text-foreground">{formatCurrency(settlement?.amount ?? 0)}</strong>{" "}
-              de <strong className="text-foreground">{settlement?.fromName}</strong> para{" "}
+              Transferência de <strong className="text-foreground">{settlement?.fromName}</strong> para{" "}
               <strong className="text-foreground">{settlement?.toName}</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <div className="grid gap-4 py-2">
+            {/* Settlement amount */}
+            <div className="grid gap-2">
+              <Label>Valor do acerto</Label>
+              <CurrencyInput
+                value={settleAmount}
+                onChange={setSettleAmount}
+              />
+              {settlement && settleAmount !== settlement.amount && (
+                <button
+                  className="text-xs text-primary hover:underline text-left"
+                  onClick={() => setSettleAmount(settlement.amount)}
+                >
+                  Usar valor total: {formatCurrency(settlement.amount)}
+                </button>
+              )}
+            </div>
+
             {/* From account selector */}
             <div className="grid gap-2">
               <Label>Conta de {settlement?.fromName} (origem)</Label>
@@ -331,6 +367,99 @@ export function SharedExpensesBalance({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Details modal - shows shared transactions by payer */}
+      <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ListIcon className="h-5 w-5" />
+              Detalhes do Acerto
+            </DialogTitle>
+            <DialogDescription>
+              Despesas compartilhadas pagas com contas pessoais em {month}/{year}
+            </DialogDescription>
+          </DialogHeader>
+          <SettlementDetails budgetId={budgetId} year={year} month={month} members={data?.members ?? []} />
+        </DialogContent>
+      </Dialog>
     </>
+  );
+}
+
+function SettlementDetails({ budgetId, year, month, members }: {
+  budgetId: string;
+  year: number;
+  month: number;
+  members: MemberBalance[];
+}) {
+  const { data, isLoading } = useSWR<{ transactions: Array<{
+    id: string;
+    amount: number;
+    description: string | null;
+    date: string;
+    paidByMemberId: string;
+    categoryName: string | null;
+    categoryIcon: string | null;
+    accountName: string | null;
+  }> }>(
+    `/api/app/dashboard/shared-balance/details?budgetId=${budgetId}&year=${year}&month=${month}`
+  );
+
+  if (isLoading) {
+    return <div className="space-y-2 py-4">
+      <Skeleton className="h-8 w-full" />
+      <Skeleton className="h-8 w-full" />
+      <Skeleton className="h-8 w-full" />
+    </div>;
+  }
+
+  const txs = data?.transactions ?? [];
+  if (txs.length === 0) {
+    return <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma despesa compartilhada encontrada.</p>;
+  }
+
+  // Group by payer
+  const grouped = new Map<string, typeof txs>();
+  for (const tx of txs) {
+    const list = grouped.get(tx.paidByMemberId) ?? [];
+    list.push(tx);
+    grouped.set(tx.paidByMemberId, list);
+  }
+
+  return (
+    <div className="space-y-4">
+      {Array.from(grouped.entries()).map(([memberId, memberTxs]) => {
+        const member = members.find(m => m.id === memberId);
+        const total = memberTxs.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        return (
+          <div key={memberId}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: member?.color }} />
+                {member?.name ?? "Desconhecido"}
+              </span>
+              <span className="text-sm font-bold">{formatCurrency(total)}</span>
+            </div>
+            <div className="space-y-1 pl-4 border-l-2" style={{ borderColor: member?.color ?? "#ccc" }}>
+              {memberTxs.map(tx => (
+                <div key={tx.id} className="flex items-center justify-between text-xs py-1">
+                  <span className="flex items-center gap-1.5 min-w-0 flex-1">
+                    <span>{tx.categoryIcon || "📁"}</span>
+                    <span className="truncate">{tx.description || tx.categoryName || "Despesa"}</span>
+                    {tx.accountName && (
+                      <span className="text-muted-foreground shrink-0">• {tx.accountName}</span>
+                    )}
+                  </span>
+                  <span className="font-medium tabular-nums ml-2 shrink-0">
+                    {formatCurrency(Math.abs(tx.amount))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }

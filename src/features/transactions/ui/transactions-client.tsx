@@ -106,9 +106,16 @@ export function TransactionsClient({
     budgets,
     memberId: currentMemberId,
     defaultPaidByMemberId: currentMemberId,
-    onSuccess: () => {
+    onSuccess: async () => {
       fetchData();
       triggerWidgetRefresh();
+      // Invalidate related caches so other components update
+      const { mutate: globalMutate } = await import("swr");
+      globalMutate((key: unknown) => typeof key === "string" && (
+        key.startsWith("/api/app/dashboard") ||
+        key.startsWith("/api/app/accounts") ||
+        key.startsWith("/api/app/allocations")
+      ));
       // Notify tutorial that user created a transaction
       if (isTutorialActive) {
         notifyActionCompleted("hasTransactions");
