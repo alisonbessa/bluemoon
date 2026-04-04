@@ -581,16 +581,22 @@ async function fetchStats(opts: {
   }[] = [];
 
   if (creditCardAccounts.length > 0) {
-    const now = new Date();
     let globalStart = startDate;
     let globalEnd = endDate;
     const closedRanges = new Map<string, { start: Date; end: Date }>();
     const openRanges = new Map<string, { start: Date; end: Date }>();
 
+    // For the selected month M:
+    // - Closed bill = billing cycle for month M (closingDay+1 of M-1 to closingDay of M)
+    // - Open cycle = billing cycle for month M+1 (closingDay+1 of M to closingDay of M+1)
+    let nextMonth = month + 1;
+    let nextYear = year;
+    if (nextMonth > 12) { nextMonth = 1; nextYear = year + 1; }
+
     for (const cc of creditCardAccounts) {
       if (cc.closingDay) {
-        const closed = getClosedBillDates(cc.closingDay, now);
-        const open = getOpenCycleDates(cc.closingDay, now);
+        const closed = getBillingCycleDates(cc.closingDay, year, month);
+        const open = getBillingCycleDates(cc.closingDay, nextYear, nextMonth);
         closedRanges.set(cc.id, closed);
         openRanges.set(cc.id, open);
         if (closed.start < globalStart) globalStart = closed.start;
