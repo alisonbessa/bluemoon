@@ -127,21 +127,17 @@ export const GET = withAuthRequired(async (req, context) => {
     (sum, m) => sum + m.paidFromPersonalAccount, 0
   );
 
-  // Query transfers between personal accounts of the two members this month
-  // These are settlement payments that reduce the outstanding amount
-  const memberIds = members.map((m) => m.id);
-  const settlementTransfers = await db
+  // Query transfers between personal accounts of different members this month.
+  // Uses source account ownerId (not paidByMemberId) to determine who sent money.
+  // Two-step: fetch transfers, then resolve account owners to avoid complex raw SQL joins.
+  const transferRows = await db
     .select({
-      paidByMemberId: transactions.paidByMemberId,
-      toAccountOwnerId: sql<string>`dest_acct."owner_id"`,
-      total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)`,
+      amount: transactions.amount,
+      sourceOwnerId: financialAccounts.ownerId,
+      toAccountId: transactions.toAccountId,
     })
     .from(transactions)
     .innerJoin(financialAccounts, eq(transactions.accountId, financialAccounts.id))
-    .innerJoin(
-      sql`${financialAccounts} AS dest_acct`,
-      sql`dest_acct.id = ${transactions.toAccountId}`
-    )
     .where(
       and(
         eq(transactions.budgetId, budgetId),
@@ -150,19 +146,34 @@ export const GET = withAuthRequired(async (req, context) => {
         gte(transactions.date, startDate),
         lte(transactions.date, endDate),
         isNotNull(financialAccounts.ownerId),
-        sql`dest_acct."owner_id" IS NOT NULL`,
-        // Only transfers between different members
-        sql`${financialAccounts.ownerId} != dest_acct."owner_id"`,
-        inArray(transactions.paidByMemberId, memberIds),
+        isNotNull(transactions.toAccountId),
       )
-    )
-    .groupBy(transactions.paidByMemberId, sql`dest_acct."owner_id"`);
+    );
 
-  // Build a map: payer -> amount already transferred to the other member
-  const transfersByPayer = new Map<string, number>();
-  for (const t of settlementTransfers) {
-    const current = transfersByPayer.get(t.paidByMemberId!) ?? 0;
-    transfersByPayer.set(t.paidByMemberId!, current + Number(t.total));
+  // Resolve destination account owners in one query
+  const destAccountIds = [...new Set(transferRows.map((t) => t.toAccountId!).filter(Boolean))];
+  const destOwnerMap = new Map<string, string>();
+  if (destAccountIds.length > 0) {
+    const destAccounts = await db
+      .select({ id: financialAccounts.id, ownerId: financialAccounts.ownerId })
+      .from(financialAccounts)
+      .where(and(
+        inArray(financialAccounts.id, destAccountIds),
+        isNotNull(financialAccounts.ownerId),
+      ));
+    for (const a of destAccounts) {
+      if (a.ownerId) destOwnerMap.set(a.id, a.ownerId);
+    }
+  }
+
+  // Build net transfers: sourceOwner → amount sent to the other member
+  const transfersBySourceOwner = new Map<string, number>();
+  for (const t of transferRows) {
+    const destOwnerId = destOwnerMap.get(t.toAccountId!);
+    if (!t.sourceOwnerId || !destOwnerId) continue;
+    if (t.sourceOwnerId === destOwnerId) continue; // Same owner, skip
+    const current = transfersBySourceOwner.get(t.sourceOwnerId) ?? 0;
+    transfersBySourceOwner.set(t.sourceOwnerId, current + Number(t.amount));
   }
 
   let settlement: { from: string; fromName: string; to: string; toName: string; amount: number } | null = null;
@@ -173,12 +184,13 @@ export const GET = withAuthRequired(async (req, context) => {
     const fairShare = totalPaidFromPersonal / 2;
     let m1Diff = m1.paidFromPersonalAccount - fairShare;
 
-    // Adjust for transfers already made:
-    // If m1 paid more (m1Diff > 0), m2 owes m1. Transfers from m2→m1 reduce the debt.
-    // If m2 paid more (m1Diff < 0), m1 owes m2. Transfers from m1→m2 reduce the debt.
-    const m1Transferred = transfersByPayer.get(m1.id) ?? 0; // m1 → m2
-    const m2Transferred = transfersByPayer.get(m2.id) ?? 0; // m2 → m1
-    m1Diff = m1Diff - m2Transferred + m1Transferred;
+    // Adjust for transfers already made between members:
+    // sourceOwner = who the money left from (account owner, not transaction creator)
+    const m1Sent = transfersBySourceOwner.get(m1.id) ?? 0; // m1's account → m2's account
+    const m2Sent = transfersBySourceOwner.get(m2.id) ?? 0; // m2's account → m1's account
+    // m2 sending to m1 reduces what m2 owes (reduces m1Diff)
+    // m1 sending to m2 increases what m2 owes (increases m1Diff)
+    m1Diff = m1Diff - m2Sent + m1Sent;
 
     if (Math.abs(m1Diff) > 100) { // > R$1.00 threshold
       if (m1Diff > 0) {
