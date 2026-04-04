@@ -145,14 +145,19 @@ export async function handleExpenseIntent(
 
       const confirmMsgId = await adapter.sendConfirmation(chatId, message);
 
+      // If ID starts with "bill-", it's a recurring bill match (no pending transaction exists)
+      // In that case, we'll create a new transaction on confirmation instead of updating
+      const isBillMatch = tx.id.startsWith("bill-");
+
       await adapter.updateState(chatId, "AWAITING_CONFIRMATION", {
         pendingExpense: {
           amount: tx.amount,
           description: tx.description || undefined,
           categoryId: tx.categoryId || categoryId,
           categoryName: txCategoryName,
+          accountId: tx.accountId || accountId || undefined,
         },
-        scheduledTransactionId: tx.id, // Store ID to update existing transaction
+        scheduledTransactionId: isBillMatch ? undefined : tx.id,
         messagesToDelete: [...initialMessagesToDelete, confirmMsgId],
         lastAILogId: logId || undefined,
       });
