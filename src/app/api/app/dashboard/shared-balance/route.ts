@@ -135,6 +135,7 @@ export const GET = withAuthRequired(async (req, context) => {
       amount: transactions.amount,
       sourceOwnerId: financialAccounts.ownerId,
       toAccountId: transactions.toAccountId,
+      date: transactions.date,
     })
     .from(transactions)
     .innerJoin(financialAccounts, eq(transactions.accountId, financialAccounts.id))
@@ -215,11 +216,26 @@ export const GET = withAuthRequired(async (req, context) => {
     }
   }
 
+  // Build settlement history for the UI
+  const settledTransfers: { fromName: string; toName: string; amount: number; date: string }[] = [];
+  const memberNameMap = new Map(members.map((m) => [m.id, m.name]));
+  for (const t of transferRows) {
+    const destOwnerId = destOwnerMap.get(t.toAccountId!);
+    if (!t.sourceOwnerId || !destOwnerId || t.sourceOwnerId === destOwnerId) continue;
+    settledTransfers.push({
+      fromName: memberNameMap.get(t.sourceOwnerId) ?? "?",
+      toName: memberNameMap.get(destOwnerId) ?? "?",
+      amount: Number(t.amount),
+      date: t.date instanceof Date ? t.date.toISOString() : String(t.date),
+    });
+  }
+
   return successResponse({
     members: memberData,
     totalFromPersonalAccounts: totalPaidFromPersonal,
     totalFromSharedAccounts: Number(sharedAccountExpenses?.total ?? 0),
     settlement,
+    settledTransfers,
     privacyMode: budget?.privacyMode ?? "visible",
   });
 });
