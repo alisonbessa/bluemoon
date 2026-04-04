@@ -566,7 +566,8 @@ export async function handleGroupSelection(
 
     const newCatInstallmentBalanceLine = await getCategoryBalanceSummary(
       budgetInfo.budget.id,
-      newCategory.id
+      newCategory.id,
+      newCategory.name
     );
 
     await adapter.sendMessage(
@@ -627,7 +628,8 @@ export async function handleGroupSelection(
 
     const newCatBalanceLine = await getCategoryBalanceSummary(
       budgetInfo.budget.id,
-      newCategory.id
+      newCategory.id,
+      newCategory.name
     );
 
     await adapter.sendMessage(

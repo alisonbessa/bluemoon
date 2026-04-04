@@ -268,7 +268,8 @@ export async function handleExpenseConfirmation(
 
     const installmentBalanceLine = await getCategoryBalanceSummary(
       budgetInfo.budget.id,
-      context.pendingExpense!.categoryId!
+      context.pendingExpense!.categoryId!,
+      context.pendingExpense!.categoryName
     );
 
     await adapter.sendMessage(
@@ -322,7 +323,8 @@ export async function handleExpenseConfirmation(
 
     const balanceLine = await getCategoryBalanceSummary(
       budgetInfo.budget.id,
-      context.pendingExpense!.categoryId!
+      context.pendingExpense!.categoryId!,
+      context.pendingExpense!.categoryName
     );
 
     await adapter.sendMessage(

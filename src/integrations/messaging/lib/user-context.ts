@@ -174,7 +174,8 @@ export function buildUserContext(userId: string, budgetInfo: BudgetInfo): UserCo
  */
 export async function getCategoryBalanceSummary(
   budgetId: string,
-  categoryId: string
+  categoryId: string,
+  categoryName?: string
 ): Promise<string> {
   const now = new Date();
   const year = now.getFullYear();
@@ -232,15 +233,17 @@ export async function getCategoryBalanceSummary(
     allocated = categoryResult[0].plannedAmount;
   }
 
+  const catLabel = categoryName ? `em *${categoryName}*` : "no mês";
+
   if (allocated > 0) {
     const remaining = allocated - spent;
     if (remaining < 0) {
       const overAmount = spent - allocated;
-      return `🔴 Estourou ${formatCurrency(overAmount)} (gasto: ${formatCurrency(spent)} / ${formatCurrency(allocated)})`;
+      return `🔴 Estourou ${catLabel}\n*${formatCurrency(overAmount)}* acima do planejado (${formatCurrency(spent)} / ${formatCurrency(allocated)})`;
     }
-    return `📊 Restam ${formatCurrency(remaining)} de ${formatCurrency(allocated)}`;
+    return `📊 Restam ${catLabel}\n*${formatCurrency(remaining)}* de ${formatCurrency(allocated)}`;
   }
 
   // No allocation — just show total spent in the month
-  return `📊 Total no mês: ${formatCurrency(spent)}`;
+  return `📊 Total ${catLabel}\n*${formatCurrency(spent)}*`;
 }
