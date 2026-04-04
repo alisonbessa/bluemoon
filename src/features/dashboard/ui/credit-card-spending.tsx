@@ -42,6 +42,11 @@ interface CreditCard {
   creditLimit: number;
   spent: number;
   available: number;
+  closedBill?: number;
+  openBill?: number;
+  dueDay?: number | null;
+  paymentAccountId?: string | null;
+  isAutoPayEnabled?: boolean;
 }
 
 interface Account {
@@ -67,6 +72,7 @@ export function CreditCardSpending({
   const [selectedCardId, setSelectedCardId] = useState<string>("all");
   const [payingCard, setPayingCard] = useState<CreditCard | null>(null);
   const [fromAccountId, setFromAccountId] = useState<string>("");
+  const [settleAmount, setSettleAmount] = useState<number>(0);
   const [isPaying, setIsPaying] = useState(false);
 
   // Fetch non-credit-card accounts for payment source
@@ -88,7 +94,7 @@ export function CreditCardSpending({
         body: JSON.stringify({
           budgetId,
           type: "transfer",
-          amount: payingCard.spent,
+          amount: settleAmount,
           accountId: fromAccountId,
           toAccountId: payingCard.id,
           description: `Pagamento fatura ${payingCard.name}`,
@@ -182,13 +188,8 @@ export function CreditCardSpending({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Progress bar */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Gasto</span>
-              <span className={`font-bold ${isOverLimit ? "text-red-600" : ""}`}>
-                {formatCurrency(selectedCard.spent)}
-              </span>
-            </div>
             <Progress
               value={usagePercent}
               className={`h-2 ${isOverLimit ? "[&>div]:bg-red-600" : ""}`}
@@ -202,8 +203,61 @@ export function CreditCardSpending({
             </div>
           </div>
 
-          {/* Pay bill button */}
-          {canPay && (
+          {/* Closed bill (ready to pay) */}
+          {selectedCard.closedBill != null && selectedCard.closedBill > 0 && selectedCardId !== "all" && (
+            <div className="rounded-lg border p-3 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Fatura fechada</span>
+                <span className="font-bold text-red-600">{formatCurrency(selectedCard.closedBill)}</span>
+              </div>
+              {(selectedCard as CreditCard).dueDay && (
+                <p className="text-xs text-muted-foreground">
+                  Vencimento dia {(selectedCard as CreditCard).dueDay}
+                </p>
+              )}
+              <Button
+                variant="default"
+                size="sm"
+                className="w-full gap-2"
+                onClick={() => {
+                  const card = creditCards.find((cc) => cc.id === selectedCardId);
+                  if (card) {
+                    setPayingCard(card);
+                    setSettleAmount(card.closedBill ?? card.spent);
+                    if (card.paymentAccountId) {
+                      setFromAccountId(card.paymentAccountId);
+                    } else if (paymentAccounts.length === 1) {
+                      setFromAccountId(paymentAccounts[0].id);
+                    }
+                  }
+                }}
+              >
+                <Banknote className="h-4 w-4" />
+                Pagar fatura
+              </Button>
+            </div>
+          )}
+
+          {/* Open cycle */}
+          {selectedCard.openBill != null && selectedCard.openBill > 0 && selectedCardId !== "all" && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Ciclo atual</span>
+              <span className="font-medium">{formatCurrency(selectedCard.openBill)}</span>
+            </div>
+          )}
+
+          {/* Total for "all" view or fallback */}
+          {(selectedCardId === "all" || selectedCard.closedBill == null) && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Gasto total</span>
+              <span className={`font-bold ${isOverLimit ? "text-red-600" : ""}`}>
+                {formatCurrency(selectedCard.spent)}
+              </span>
+            </div>
+          )}
+
+          {/* Pay bill button fallback (all view or no closed/open) */}
+          {canPay && (selectedCardId === "all" || selectedCard.closedBill == null || selectedCard.closedBill === 0) && (
             <Button
               variant="outline"
               size="sm"
@@ -212,7 +266,10 @@ export function CreditCardSpending({
                 const card = creditCards.find((cc) => cc.id === selectedCardId);
                 if (card) {
                   setPayingCard(card);
-                  if (paymentAccounts.length === 1) {
+                  setSettleAmount(card.spent);
+                  if (card.paymentAccountId) {
+                    setFromAccountId(card.paymentAccountId);
+                  } else if (paymentAccounts.length === 1) {
                     setFromAccountId(paymentAccounts[0].id);
                   }
                 }
@@ -258,7 +315,7 @@ export function CreditCardSpending({
             </AlertDialogTitle>
             <AlertDialogDescription>
               Criar uma transferência de{" "}
-              <strong className="text-foreground">{formatCurrency(payingCard?.spent ?? 0)}</strong>{" "}
+              <strong className="text-foreground">{formatCurrency(settleAmount)}</strong>{" "}
               para quitar a fatura do cartão.
             </AlertDialogDescription>
           </AlertDialogHeader>

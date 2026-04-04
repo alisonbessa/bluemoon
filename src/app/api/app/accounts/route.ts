@@ -76,6 +76,8 @@ export const GET = withAuthRequired(async (req, context) => {
       creditLimit: financialAccounts.creditLimit,
       closingDay: financialAccounts.closingDay,
       dueDay: financialAccounts.dueDay,
+      paymentAccountId: financialAccounts.paymentAccountId,
+      isAutoPayEnabled: financialAccounts.isAutoPayEnabled,
       isArchived: financialAccounts.isArchived,
       displayOrder: financialAccounts.displayOrder,
       createdAt: financialAccounts.createdAt,

@@ -33,7 +33,11 @@ export interface Account {
   creditLimit?: number | null;
   closingDay?: number | null;
   dueDay?: number | null;
+  paymentAccountId?: string | null;
+  isAutoPayEnabled?: boolean | null;
   currentBill?: number | null;
+  closedBill?: number | null;
+  openBill?: number | null;
   clearedBalance?: number;
   isArchived?: boolean | null;
   displayOrder?: number;
@@ -62,6 +66,8 @@ export interface AccountFormData {
   creditLimit?: number;
   closingDay?: number;
   dueDay?: number;
+  paymentAccountId?: string | null;
+  isAutoPayEnabled?: boolean;
   icon?: string;
   color?: string;
 }

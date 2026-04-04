@@ -2,13 +2,14 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
 import { financialAccounts } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, ne } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
   validationError,
   notFoundError,
   successResponse,
+  errorResponse,
 } from "@/shared/lib/api/responses";
 import { updateAccountSchema } from "@/shared/lib/validations";
 
@@ -75,6 +76,25 @@ export const PATCH = withAuthRequired(async (req, context) => {
   const validation = updateAccountSchema.safeParse(body);
   if (!validation.success) {
     return validationError(validation.error);
+  }
+
+  // Validate paymentAccountId belongs to the same budget and is not a credit card or self
+  if (validation.data.paymentAccountId) {
+    const [paymentAccount] = await db
+      .select({ id: financialAccounts.id, type: financialAccounts.type })
+      .from(financialAccounts)
+      .where(
+        and(
+          eq(financialAccounts.id, validation.data.paymentAccountId),
+          eq(financialAccounts.budgetId, existingAccount.budgetId),
+          ne(financialAccounts.id, accountId),
+          ne(financialAccounts.type, "credit_card"),
+          eq(financialAccounts.isArchived, false),
+        )
+      );
+    if (!paymentAccount) {
+      return errorResponse("Payment account not found or invalid", 400);
+    }
   }
 
   const updateData = {
