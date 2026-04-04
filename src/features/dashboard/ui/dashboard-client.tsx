@@ -317,6 +317,7 @@ export function DashboardClient({
         isLoading={chartsLoading}
         budgetId={primaryBudgetId ?? undefined}
         onPaymentComplete={refreshDashboard}
+        year={currentYear}
         month={currentMonth}
       />
 

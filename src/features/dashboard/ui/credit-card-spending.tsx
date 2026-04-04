@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import useSWR, { mutate } from "swr";
 import {
   Card,
@@ -26,7 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/shared/ui/alert-dialog";
 import { Progress } from "@/shared/ui/progress";
-import { CreditCardIcon, Loader2, Banknote } from "lucide-react";
+import { CreditCardIcon, Loader2, Banknote, FileTextIcon } from "lucide-react";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { Button } from "@/shared/ui/button";
@@ -61,6 +62,8 @@ interface CreditCardSpendingProps {
   isLoading?: boolean;
   budgetId?: string;
   onPaymentComplete?: () => void;
+  /** Selected year on the dashboard */
+  year?: number;
   /** Selected month on the dashboard (1-12) */
   month?: number;
 }
@@ -70,6 +73,7 @@ export function CreditCardSpending({
   isLoading,
   budgetId,
   onPaymentComplete,
+  year,
   month,
 }: CreditCardSpendingProps) {
   const [selectedCardId, setSelectedCardId] = useState<string>(
@@ -157,9 +161,7 @@ export function CreditCardSpending({
 
   const totalClosedBill = creditCards.reduce((sum, cc) => sum + (cc.closedBill ?? 0), 0);
   const totalOpenBill = creditCards.reduce((sum, cc) => sum + (cc.openBill ?? 0), 0);
-  const totalSpent = creditCards.reduce((sum, cc) => sum + cc.spent, 0);
   const totalLimit = creditCards.reduce((sum, cc) => sum + cc.creditLimit, 0);
-  const totalAvailable = totalLimit - totalSpent;
 
   const isAllView = selectedCardId === "all";
   const selectedCard = isAllView
@@ -170,17 +172,16 @@ export function CreditCardSpending({
   const monthNames = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
   const nextMonthLabel = month ? monthNames[month % 12] : "";
 
-  // Values to display
+  // Values to display — limit usage based on closed bill only
   const displayClosedBill = isAllView ? totalClosedBill : (selectedCard?.closedBill ?? 0);
   const displayOpenBill = isAllView ? totalOpenBill : (selectedCard?.openBill ?? 0);
-  const displaySpent = isAllView ? totalSpent : (selectedCard?.spent ?? 0);
   const displayLimit = isAllView ? totalLimit : (selectedCard?.creditLimit ?? 0);
-  const displayAvailable = isAllView ? totalAvailable : (selectedCard?.available ?? 0);
+  const displayAvailable = displayLimit - displayClosedBill;
 
   const usagePercent = displayLimit > 0
-    ? Math.min((displaySpent / displayLimit) * 100, 100)
+    ? Math.min((displayClosedBill / displayLimit) * 100, 100)
     : 0;
-  const isOverLimit = displaySpent > displayLimit;
+  const isOverLimit = displayClosedBill > displayLimit;
 
   return (
     <>
@@ -227,15 +228,28 @@ export function CreditCardSpending({
                 </p>
               )}
               {!isAllView && selectedCard && budgetId && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="w-full gap-2"
-                  onClick={() => openPayDialog(selectedCard, selectedCard.closedBill ?? selectedCard.spent)}
-                >
-                  <Banknote className="h-4 w-4" />
-                  Pagar fatura
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 gap-2"
+                    asChild
+                  >
+                    <Link href={`/app/insights/credit-card/${selectedCard.id}?year=${year || new Date().getFullYear()}&month=${month || new Date().getMonth() + 1}`}>
+                      <FileTextIcon className="h-4 w-4" />
+                      Ver fatura
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="flex-1 gap-2"
+                    onClick={() => openPayDialog(selectedCard, selectedCard.closedBill ?? 0)}
+                  >
+                    <Banknote className="h-4 w-4" />
+                    Pagar fatura
+                  </Button>
+                </div>
               )}
             </div>
           )}
