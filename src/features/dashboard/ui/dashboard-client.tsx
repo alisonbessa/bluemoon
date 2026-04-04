@@ -195,9 +195,11 @@ export function DashboardClient({
             label: "Despesas do Mês",
             value: formatCurrency(monthSummary?.expenses.spent ?? 0),
             valueColor: "negative",
-            subtitle: (monthSummary?.expenses.spent ?? 0) <= (monthSummary?.expenses.allocated ?? 0)
-              ? `Restam ${formatCurrency((monthSummary?.expenses.allocated ?? 0) - (monthSummary?.expenses.spent ?? 0))}`
-              : `Excedido em ${formatCurrency((monthSummary?.expenses.spent ?? 0) - (monthSummary?.expenses.allocated ?? 0))}`,
+            subtitle: (monthSummary?.expenses.spentPending ?? 0) > 0
+              ? `Pendentes ${formatCurrency(monthSummary?.expenses.spentPending ?? 0)}`
+              : (monthSummary?.expenses.spent ?? 0) <= (monthSummary?.expenses.allocated ?? 0)
+                ? `Restam ${formatCurrency((monthSummary?.expenses.allocated ?? 0) - (monthSummary?.expenses.spent ?? 0))}`
+                : `Excedido em ${formatCurrency((monthSummary?.expenses.spent ?? 0) - (monthSummary?.expenses.allocated ?? 0))}`,
           },
         ]}
         className="grid-cols-1 sm:grid-cols-3"
@@ -315,6 +317,7 @@ export function DashboardClient({
         isLoading={chartsLoading}
         budgetId={primaryBudgetId ?? undefined}
         onPaymentComplete={refreshDashboard}
+        month={currentMonth}
       />
 
       {/* Navigation Cards */}

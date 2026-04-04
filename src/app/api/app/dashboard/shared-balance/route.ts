@@ -127,13 +127,58 @@ export const GET = withAuthRequired(async (req, context) => {
     (sum, m) => sum + m.paidFromPersonalAccount, 0
   );
 
+  // Query transfers between personal accounts of the two members this month
+  // These are settlement payments that reduce the outstanding amount
+  const memberIds = members.map((m) => m.id);
+  const settlementTransfers = await db
+    .select({
+      paidByMemberId: transactions.paidByMemberId,
+      toAccountOwnerId: sql<string>`dest_acct."owner_id"`,
+      total: sql<number>`COALESCE(SUM(${transactions.amount}), 0)`,
+    })
+    .from(transactions)
+    .innerJoin(financialAccounts, eq(transactions.accountId, financialAccounts.id))
+    .innerJoin(
+      sql`${financialAccounts} AS dest_acct`,
+      sql`dest_acct.id = ${transactions.toAccountId}`
+    )
+    .where(
+      and(
+        eq(transactions.budgetId, budgetId),
+        eq(transactions.type, "transfer"),
+        inArray(transactions.status, ["cleared", "reconciled"]),
+        gte(transactions.date, startDate),
+        lte(transactions.date, endDate),
+        isNotNull(financialAccounts.ownerId),
+        sql`dest_acct."owner_id" IS NOT NULL`,
+        // Only transfers between different members
+        sql`${financialAccounts.ownerId} != dest_acct."owner_id"`,
+        inArray(transactions.paidByMemberId, memberIds),
+      )
+    )
+    .groupBy(transactions.paidByMemberId, sql`dest_acct."owner_id"`);
+
+  // Build a map: payer -> amount already transferred to the other member
+  const transfersByPayer = new Map<string, number>();
+  for (const t of settlementTransfers) {
+    const current = transfersByPayer.get(t.paidByMemberId!) ?? 0;
+    transfersByPayer.set(t.paidByMemberId!, current + Number(t.total));
+  }
+
   let settlement: { from: string; fromName: string; to: string; toName: string; amount: number } | null = null;
 
   if (totalPaidFromPersonal > 0 && memberData.length === 2) {
     const [m1, m2] = memberData;
     // Fair share: each should pay half
     const fairShare = totalPaidFromPersonal / 2;
-    const m1Diff = m1.paidFromPersonalAccount - fairShare;
+    let m1Diff = m1.paidFromPersonalAccount - fairShare;
+
+    // Adjust for transfers already made:
+    // If m1 paid more (m1Diff > 0), m2 owes m1. Transfers from m2→m1 reduce the debt.
+    // If m2 paid more (m1Diff < 0), m1 owes m2. Transfers from m1→m2 reduce the debt.
+    const m1Transferred = transfersByPayer.get(m1.id) ?? 0; // m1 → m2
+    const m2Transferred = transfersByPayer.get(m2.id) ?? 0; // m2 → m1
+    m1Diff = m1Diff - m2Transferred + m1Transferred;
 
     if (Math.abs(m1Diff) > 100) { // > R$1.00 threshold
       if (m1Diff > 0) {

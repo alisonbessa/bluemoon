@@ -36,6 +36,7 @@ export const financialAccounts = pgTable("financial_accounts", {
   closingDay: integer("closing_day"), // Day of month (1-31)
   dueDay: integer("due_day"), // Day of month (1-31)
   paymentAccountId: text("payment_account_id"), // Account used to pay this credit card (self-reference)
+  isAutoPayEnabled: boolean("is_auto_pay_enabled").default(false),
 
   // Benefit specific fields (VR, VA, etc)
   monthlyDeposit: bigint("monthly_deposit", { mode: "number" }), // In cents - value deposited each month

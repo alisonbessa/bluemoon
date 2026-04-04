@@ -22,6 +22,8 @@ export const createAccountSchema = z.object({
   creditLimit: z.number().int().min(0).max(MAX_CENTS).optional(),
   closingDay: z.number().int().min(1).max(31).optional(),
   dueDay: z.number().int().min(1).max(31).optional(),
+  paymentAccountId: z.string().uuid().optional().nullable(),
+  isAutoPayEnabled: z.boolean().optional(),
 });
 
 /**
@@ -42,6 +44,8 @@ export const updateAccountSchema = z.object({
   creditLimit: z.number().int().min(0).max(MAX_CENTS).optional().nullable(),
   closingDay: z.number().int().min(1).max(31).optional().nullable(),
   dueDay: z.number().int().min(1).max(31).optional().nullable(),
+  paymentAccountId: z.string().uuid().optional().nullable(),
+  isAutoPayEnabled: z.boolean().optional().nullable(),
   isArchived: z.boolean().optional(),
   displayOrder: z.number().int().min(0).optional(),
 });

@@ -527,6 +527,7 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
         members={members}
         allowSharedOwnership={isDuoPlan}
         currentUserMemberId={currentUserMemberId}
+        availableAccounts={accounts.filter((a) => a.type !== "credit_card")}
         initialData={{
           ...(preselectedType ? { type: preselectedType as "checking" | "savings" | "credit_card" | "cash" | "investment" | "benefit" } : {}),
           ...(isDuoPlan && viewMode === "mine" && currentUserMemberId ? { ownerId: currentUserMemberId } : {}),
@@ -546,6 +547,8 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
             creditLimit: editingAccount.creditLimit || undefined,
             closingDay: editingAccount.closingDay || undefined,
             dueDay: editingAccount.dueDay || undefined,
+            paymentAccountId: editingAccount.paymentAccountId,
+            isAutoPayEnabled: editingAccount.isAutoPayEnabled ?? undefined,
             icon: editingAccount.icon || undefined,
             color: editingAccount.color || undefined,
           }}
@@ -553,6 +556,7 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
           members={members}
           allowSharedOwnership={isDuoPlan}
           currentUserMemberId={currentUserMemberId}
+          availableAccounts={accounts.filter((a) => a.type !== "credit_card" && a.id !== editingAccount.id)}
         />
       )}
 

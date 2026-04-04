@@ -146,6 +146,64 @@ export function calculateInstallmentDates(
  * @param closingDay - Credit card closing day
  * @returns The date to assign to the first installment
  */
+/**
+ * Get the date range for the closed bill (fatura fechada) — the one ready to pay.
+ *
+ * If today > closingDay: the current month's cycle already closed.
+ * If today <= closingDay: the previous month's cycle is the closed one.
+ */
+export function getClosedBillDates(
+  closingDay: number,
+  referenceDate: Date = new Date()
+): { start: Date; end: Date } {
+  const day = referenceDate.getDate();
+  const month = referenceDate.getMonth() + 1;
+  const year = referenceDate.getFullYear();
+
+  const effectiveClosingDay = Math.min(closingDay, new Date(year, month, 0).getDate());
+
+  if (day > effectiveClosingDay) {
+    return getBillingCycleDates(closingDay, year, month);
+  } else {
+    let prevMonth = month - 1;
+    let prevYear = year;
+    if (prevMonth < 1) {
+      prevMonth = 12;
+      prevYear = year - 1;
+    }
+    return getBillingCycleDates(closingDay, prevYear, prevMonth);
+  }
+}
+
+/**
+ * Get the date range for the currently open billing cycle (not yet closed).
+ *
+ * If today > closingDay: next month's cycle is open.
+ * If today <= closingDay: current month's cycle is still open.
+ */
+export function getOpenCycleDates(
+  closingDay: number,
+  referenceDate: Date = new Date()
+): { start: Date; end: Date } {
+  const day = referenceDate.getDate();
+  const month = referenceDate.getMonth() + 1;
+  const year = referenceDate.getFullYear();
+
+  const effectiveClosingDay = Math.min(closingDay, new Date(year, month, 0).getDate());
+
+  if (day > effectiveClosingDay) {
+    let nextMonth = month + 1;
+    let nextYear = year;
+    if (nextMonth > 12) {
+      nextMonth = 1;
+      nextYear = year + 1;
+    }
+    return getBillingCycleDates(closingDay, nextYear, nextMonth);
+  } else {
+    return getBillingCycleDates(closingDay, year, month);
+  }
+}
+
 export function getFirstInstallmentDate(
   purchaseDate: Date,
   closingDay: number

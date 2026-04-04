@@ -5,7 +5,6 @@ import useSWR, { mutate } from "swr";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/shared/ui/card";
@@ -42,6 +41,12 @@ interface CreditCard {
   creditLimit: number;
   spent: number;
   available: number;
+  closingDay?: number | null;
+  closedBill?: number;
+  openBill?: number;
+  dueDay?: number | null;
+  paymentAccountId?: string | null;
+  isAutoPayEnabled?: boolean;
 }
 
 interface Account {
@@ -56,6 +61,8 @@ interface CreditCardSpendingProps {
   isLoading?: boolean;
   budgetId?: string;
   onPaymentComplete?: () => void;
+  /** Selected month on the dashboard (1-12) */
+  month?: number;
 }
 
 export function CreditCardSpending({
@@ -63,10 +70,14 @@ export function CreditCardSpending({
   isLoading,
   budgetId,
   onPaymentComplete,
+  month,
 }: CreditCardSpendingProps) {
-  const [selectedCardId, setSelectedCardId] = useState<string>("all");
+  const [selectedCardId, setSelectedCardId] = useState<string>(
+    creditCards.length === 1 ? creditCards[0]?.id ?? "all" : "all"
+  );
   const [payingCard, setPayingCard] = useState<CreditCard | null>(null);
   const [fromAccountId, setFromAccountId] = useState<string>("");
+  const [settleAmount, setSettleAmount] = useState<number>(0);
   const [isPaying, setIsPaying] = useState(false);
 
   // Fetch non-credit-card accounts for payment source
@@ -88,7 +99,7 @@ export function CreditCardSpending({
         body: JSON.stringify({
           budgetId,
           type: "transfer",
-          amount: payingCard.spent,
+          amount: settleAmount,
           accountId: fromAccountId,
           toAccountId: payingCard.id,
           description: `Pagamento fatura ${payingCard.name}`,
@@ -116,6 +127,18 @@ export function CreditCardSpending({
     }
   };
 
+  const openPayDialog = (card: CreditCard, amount: number) => {
+    setPayingCard(card);
+    setSettleAmount(amount);
+    if (card.paymentAccountId) {
+      setFromAccountId(card.paymentAccountId);
+    } else if (paymentAccounts.length === 1) {
+      setFromAccountId(paymentAccounts[0].id);
+    } else {
+      setFromAccountId("");
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -132,42 +155,49 @@ export function CreditCardSpending({
 
   if (creditCards.length === 0) return null;
 
+  const totalClosedBill = creditCards.reduce((sum, cc) => sum + (cc.closedBill ?? 0), 0);
+  const totalOpenBill = creditCards.reduce((sum, cc) => sum + (cc.openBill ?? 0), 0);
   const totalSpent = creditCards.reduce((sum, cc) => sum + cc.spent, 0);
   const totalLimit = creditCards.reduce((sum, cc) => sum + cc.creditLimit, 0);
   const totalAvailable = totalLimit - totalSpent;
 
-  const selectedCard = selectedCardId === "all"
-    ? { id: "all", name: "Todos os Cartões", spent: totalSpent, creditLimit: totalLimit, available: totalAvailable, icon: null }
+  const isAllView = selectedCardId === "all";
+  const selectedCard = isAllView
+    ? null
     : creditCards.find((cc) => cc.id === selectedCardId);
 
-  if (!selectedCard) return null;
+  // Month names for "Fecha dia X/mes"
+  const monthNames = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  const nextMonthLabel = month ? monthNames[month % 12] : "";
 
-  const usagePercent = selectedCard.creditLimit > 0
-    ? Math.min((selectedCard.spent / selectedCard.creditLimit) * 100, 100)
+  // Values to display
+  const displayClosedBill = isAllView ? totalClosedBill : (selectedCard?.closedBill ?? 0);
+  const displayOpenBill = isAllView ? totalOpenBill : (selectedCard?.openBill ?? 0);
+  const displaySpent = isAllView ? totalSpent : (selectedCard?.spent ?? 0);
+  const displayLimit = isAllView ? totalLimit : (selectedCard?.creditLimit ?? 0);
+  const displayAvailable = isAllView ? totalAvailable : (selectedCard?.available ?? 0);
+
+  const usagePercent = displayLimit > 0
+    ? Math.min((displaySpent / displayLimit) * 100, 100)
     : 0;
-
-  const isOverLimit = selectedCard.spent > selectedCard.creditLimit;
-  const canPay = selectedCardId !== "all" && selectedCard.spent > 0 && budgetId;
+  const isOverLimit = displaySpent > displayLimit;
 
   return (
     <>
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <CreditCardIcon className="h-4 w-4" />
-                Fatura do Cartão
-              </CardTitle>
-              <CardDescription>Gastos no mês atual</CardDescription>
-            </div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <CreditCardIcon className="h-4 w-4" />
+              Cartoes de Credito
+            </CardTitle>
             {creditCards.length > 1 && (
               <Select value={selectedCardId} onValueChange={setSelectedCardId}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Selecione um cartão" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os Cartões</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   {creditCards.map((cc) => (
                     <SelectItem key={cc.id} value={cc.id}>
                       <span className="flex items-center gap-2">
@@ -182,67 +212,89 @@ export function CreditCardSpending({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Gasto</span>
-              <span className={`font-bold ${isOverLimit ? "text-red-600" : ""}`}>
-                {formatCurrency(selectedCard.spent)}
-              </span>
+          {/* Closed bill section */}
+          {displayClosedBill > 0 && (
+            <div className="rounded-lg border p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Fatura fechada</span>
+                <span className="text-lg font-bold text-red-600">
+                  {formatCurrency(displayClosedBill)}
+                </span>
+              </div>
+              {!isAllView && selectedCard?.dueDay && (
+                <p className="text-xs text-muted-foreground">
+                  Vence dia {selectedCard.dueDay}
+                </p>
+              )}
+              {!isAllView && selectedCard && budgetId && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full gap-2"
+                  onClick={() => openPayDialog(selectedCard, selectedCard.closedBill ?? selectedCard.spent)}
+                >
+                  <Banknote className="h-4 w-4" />
+                  Pagar fatura
+                </Button>
+              )}
             </div>
+          )}
+
+          {/* No closed bill */}
+          {displayClosedBill === 0 && (
+            <div className="rounded-lg border border-dashed p-3">
+              <p className="text-sm text-center text-muted-foreground">
+                Nenhuma fatura pendente
+              </p>
+            </div>
+          )}
+
+          {/* Open cycle */}
+          {displayOpenBill > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <div>
+                <span className="text-muted-foreground">Proxima fatura</span>
+                {!isAllView && selectedCard?.closingDay && nextMonthLabel && (
+                  <span className="text-xs text-muted-foreground ml-1">
+                    (fecha dia {selectedCard.closingDay}/{nextMonthLabel})
+                  </span>
+                )}
+              </div>
+              <span className="font-semibold tabular-nums">{formatCurrency(displayOpenBill)}</span>
+            </div>
+          )}
+
+          {/* Limit usage bar */}
+          <div className="space-y-1.5 pt-1">
             <Progress
               value={usagePercent}
               className={`h-2 ${isOverLimit ? "[&>div]:bg-red-600" : ""}`}
             />
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Limite: {formatCurrency(selectedCard.creditLimit)}</span>
-              <span className={selectedCard.available < 0 ? "text-red-600" : "text-green-600"}>
-                {selectedCard.available >= 0 ? "Disponível: " : "Excedido: "}
-                {formatCurrency(Math.abs(selectedCard.available))}
+              <span>Limite: {formatCurrency(displayLimit)}</span>
+              <span className={displayAvailable < 0 ? "text-red-600" : "text-green-600"}>
+                {displayAvailable >= 0 ? "Disponivel: " : "Excedido: "}
+                {formatCurrency(Math.abs(displayAvailable))}
               </span>
             </div>
           </div>
 
-          {/* Pay bill button */}
-          {canPay && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full gap-2"
-              onClick={() => {
-                const card = creditCards.find((cc) => cc.id === selectedCardId);
-                if (card) {
-                  setPayingCard(card);
-                  if (paymentAccounts.length === 1) {
-                    setFromAccountId(paymentAccounts[0].id);
-                  }
-                }
-              }}
-            >
-              <Banknote className="h-4 w-4" />
-              Pagar fatura
-            </Button>
-          )}
-
-          {/* Individual cards summary when "all" is selected */}
-          {selectedCardId === "all" && creditCards.length > 1 && (
+          {/* Per-card breakdown in "all" view */}
+          {isAllView && creditCards.length > 1 && (
             <div className="space-y-2 pt-2 border-t">
-              {creditCards.map((cc) => {
-                const cardPercent = cc.creditLimit > 0
-                  ? Math.min((cc.spent / cc.creditLimit) * 100, 100)
-                  : 0;
-                return (
-                  <div key={cc.id} className="flex items-center gap-2 text-sm">
-                    <span className="w-5">{cc.icon || "💳"}</span>
-                    <span className="flex-1 truncate">{cc.name}</span>
-                    <span className="font-medium tabular-nums">
-                      {formatCurrency(cc.spent)}
-                    </span>
-                    <div className="w-16">
-                      <Progress value={cardPercent} className="h-1.5" />
-                    </div>
-                  </div>
-                );
-              })}
+              {creditCards.map((cc) => (
+                <div
+                  key={cc.id}
+                  className="flex items-center gap-2 text-sm cursor-pointer hover:bg-muted/50 rounded p-1 -mx-1 transition-colors"
+                  onClick={() => setSelectedCardId(cc.id)}
+                >
+                  <span className="w-5">{cc.icon || "💳"}</span>
+                  <span className="flex-1 truncate">{cc.name}</span>
+                  <span className="font-medium tabular-nums text-red-600">
+                    {formatCurrency(cc.closedBill ?? 0)}
+                  </span>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
@@ -257,9 +309,9 @@ export function CreditCardSpending({
               Pagar fatura de {payingCard?.name}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Criar uma transferência de{" "}
-              <strong className="text-foreground">{formatCurrency(payingCard?.spent ?? 0)}</strong>{" "}
-              para quitar a fatura do cartão.
+              Criar uma transferencia de{" "}
+              <strong className="text-foreground">{formatCurrency(settleAmount)}</strong>{" "}
+              para quitar a fatura do cartao.
             </AlertDialogDescription>
           </AlertDialogHeader>
 

@@ -12,9 +12,11 @@ import {
 } from "@/shared/ui/select";
 import { FormModalWrapper } from "@/shared/molecules";
 import { DayPicker } from "@/shared/ui/day-picker";
+import { Switch } from "@/shared/ui/switch";
 import { formatAmount, formatCurrencyFromDigits, parseCurrency } from "@/shared/lib/formatters";
 import { useViewMode } from "@/shared/providers/view-mode-provider";
 import type { AccountType, AccountFormData, AccountOwner } from "../types";
+import { getAccountTypeIcon } from "../types";
 
 interface AccountFormProps {
   open: boolean;
@@ -31,6 +33,8 @@ interface AccountFormProps {
   allowSharedOwnership?: boolean;
   /** Current user's member ID - used to filter owner options to self only */
   currentUserMemberId?: string;
+  /** Non-credit-card accounts available for payment account selection */
+  availableAccounts?: { id: string; name: string; type: string; icon?: string | null }[];
 }
 
 const ACCOUNT_TYPES: { value: AccountType; label: string; icon: string }[] = [
@@ -51,6 +55,7 @@ export function AccountForm({
   members = [],
   allowSharedOwnership,
   currentUserMemberId,
+  availableAccounts = [],
 }: AccountFormProps) {
   const { isUnifiedPrivacy } = useViewMode();
   // Show owner selector if explicitly allowed or if there are multiple members
@@ -66,6 +71,8 @@ export function AccountForm({
     creditLimit: initialData?.creditLimit,
     closingDay: initialData?.closingDay,
     dueDay: initialData?.dueDay,
+    paymentAccountId: initialData?.paymentAccountId,
+    isAutoPayEnabled: initialData?.isAutoPayEnabled,
     icon: initialData?.icon,
     color: initialData?.color,
   });
@@ -90,6 +97,8 @@ export function AccountForm({
         creditLimit: initialData.creditLimit,
         closingDay: initialData.closingDay,
         dueDay: initialData.dueDay,
+        paymentAccountId: initialData.paymentAccountId,
+        isAutoPayEnabled: initialData.isAutoPayEnabled,
         icon: initialData.icon || accountType?.icon,
         color: initialData.color,
       });
@@ -124,6 +133,8 @@ export function AccountForm({
 
       if (isCreditCard) {
         dataToSubmit.creditLimit = parseCurrency(creditLimitInput);
+        dataToSubmit.paymentAccountId = formData.paymentAccountId;
+        dataToSubmit.isAutoPayEnabled = formData.isAutoPayEnabled;
       }
 
       await onSubmit(dataToSubmit);
@@ -139,6 +150,8 @@ export function AccountForm({
         creditLimit: undefined,
         closingDay: undefined,
         dueDay: undefined,
+        paymentAccountId: undefined,
+        isAutoPayEnabled: undefined,
       });
       setBalanceInput("0,00");
       setCreditLimitInput("0,00");
@@ -158,6 +171,8 @@ export function AccountForm({
         creditLimit: undefined,
         closingDay: undefined,
         dueDay: undefined,
+        paymentAccountId: undefined,
+        isAutoPayEnabled: undefined,
       }),
     }));
   };
@@ -395,6 +410,57 @@ export function AccountForm({
               </p>
             </div>
           </div>
+        )}
+
+        {isCreditCard && availableAccounts.length > 0 && (
+          <>
+            <div className="grid gap-2">
+              <Label htmlFor="paymentAccount">Conta para pagamento</Label>
+              <Select
+                value={formData.paymentAccountId || "none"}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    paymentAccountId: value === "none" ? undefined : value,
+                    ...(value === "none" && { isAutoPayEnabled: false }),
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  {availableAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {getAccountTypeIcon(account.type)} {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Conta usada para pagar a fatura
+              </p>
+            </div>
+
+            {formData.paymentAccountId && (
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="autoPay">Pagamento automatico</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Pagar fatura no vencimento
+                  </p>
+                </div>
+                <Switch
+                  id="autoPay"
+                  checked={formData.isAutoPayEnabled ?? false}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, isAutoPayEnabled: checked }))
+                  }
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </FormModalWrapper>
