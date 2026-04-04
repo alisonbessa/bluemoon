@@ -20,6 +20,7 @@ import {
 } from "@/shared/ui/compact-table";
 import { AccountForm } from "@/features/accounts/ui";
 import type { Account, AccountFormData } from "@/features/accounts/types";
+import { getAccountTypeIcon } from "@/features/accounts/types";
 import {
   Plus,
   Wallet,
@@ -27,6 +28,7 @@ import {
   PiggyBank,
   Eye,
   EyeOff,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
@@ -422,12 +424,14 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
 
                         {/* Mobile Card */}
                         <div
-                          className="md:hidden flex items-center justify-between p-3 border-t cursor-pointer hover:bg-muted/50"
-                          onClick={() => setEditingAccount(account)}
+                          className="md:hidden flex items-center justify-between p-3 border-t hover:bg-muted/50"
                         >
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div
+                            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
+                            onClick={() => setEditingAccount(account)}
+                          >
                             <div className="flex-shrink-0 text-lg">
-                              {account.icon || config.icon}
+                              {getAccountTypeIcon(account.type)}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
@@ -475,6 +479,15 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
                             {isCreditCardAccount && account.balance > 0 && "-"}
                             {formatCurrencyCompact(Math.abs(account.balance))}
                           </div>
+                          <button
+                            className="ml-2 p-1.5 text-muted-foreground hover:text-destructive flex-shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingAccount(account);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
                     );
