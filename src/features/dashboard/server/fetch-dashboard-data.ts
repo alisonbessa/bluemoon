@@ -21,7 +21,7 @@ import {
   getPartnerPrivacyLevel,
 } from "@/shared/lib/api/permissions";
 import { getViewModeCondition, type ViewMode } from "@/shared/lib/api/view-mode-filter";
-import { getBillingCycleDates } from "@/shared/lib/billing-cycle";
+import { getBillingCycleDates, getClosedBillDates, getOpenCycleDates } from "@/shared/lib/billing-cycle";
 import { calculateGoalMetrics } from "@/shared/lib/goals/calculate-metrics";
 
 /**
@@ -39,7 +39,7 @@ export type DashboardGoal = typeof goals.$inferSelect &
 export interface DashboardDataResult {
   allocations: {
     income?: { totals: { planned: number; contributionPlanned: number; received: number } };
-    totals?: { allocated: number; spent: number };
+    totals?: { allocated: number; spent: number; spentPending?: number };
     hasContributionModel?: boolean;
   };
   commitments: Array<{
@@ -76,6 +76,11 @@ export interface DashboardDataResult {
       creditLimit: number;
       spent: number;
       available: number;
+      closedBill?: number;
+      openBill?: number;
+      dueDay?: number | null;
+      paymentAccountId?: string | null;
+      isAutoPayEnabled?: boolean;
     }>;
   };
 }
@@ -182,6 +187,7 @@ async function fetchAllocations(opts: {
     db.select({
       categoryId: transactions.categoryId,
       totalSpent: sql<number>`SUM(CASE WHEN ${transactions.type} = 'expense' THEN ${transactions.amount} ELSE 0 END)`,
+      totalSpentCleared: sql<number>`SUM(CASE WHEN ${transactions.type} = 'expense' AND ${transactions.status} IN ('cleared', 'reconciled') THEN ${transactions.amount} ELSE 0 END)`,
     }).from(transactions)
       .where(and(
         eq(transactions.budgetId, budgetId),
@@ -237,6 +243,7 @@ async function fetchAllocations(opts: {
 
   // Process spending & allocations
   const spendingMap = new Map(spending.map((s) => [s.categoryId, Number(s.totalSpent) || 0]));
+  const spendingClearedMap = new Map(spending.map((s) => [s.categoryId, Number(s.totalSpentCleared) || 0]));
   const allocationsMap = new Map(allocations.map((a) => [a.categoryId, a]));
 
   // Bills map
@@ -248,6 +255,7 @@ async function fetchAllocations(opts: {
   // Calculate totals
   let totalAllocated = 0;
   let totalSpent = 0;
+  let totalSpentCleared = 0;
 
   for (const { category } of budgetCategories) {
     const isOtherMember = category.memberId !== null && category.memberId !== userMemberId;
@@ -259,9 +267,11 @@ async function fetchAllocations(opts: {
     const allocated = manualAlloc > 0 ? manualAlloc : billsTotal;
     const carriedOver = allocation?.carriedOver || 0;
     const spent = spendingMap.get(category.id) || 0;
+    const spentCleared = spendingClearedMap.get(category.id) || 0;
 
     totalAllocated += allocated + carriedOver;
     totalSpent += spent;
+    totalSpentCleared += spentCleared;
   }
 
   // Process income
@@ -330,7 +340,8 @@ async function fetchAllocations(opts: {
     },
     totals: {
       allocated: totalAllocated + totalGoalAllocated,
-      spent: totalSpent + totalGoalSpent,
+      spent: totalSpentCleared + totalGoalSpent,
+      spentPending: (totalSpent - totalSpentCleared),
     },
     goalTotals: {
       allocated: totalGoalAllocated,
@@ -511,6 +522,9 @@ async function fetchStats(opts: {
       icon: financialAccounts.icon,
       creditLimit: financialAccounts.creditLimit,
       closingDay: financialAccounts.closingDay,
+      dueDay: financialAccounts.dueDay,
+      paymentAccountId: financialAccounts.paymentAccountId,
+      isAutoPayEnabled: financialAccounts.isAutoPayEnabled,
     }).from(financialAccounts).where(and(...baseCcConditions)),
   ]);
 
@@ -558,22 +572,32 @@ async function fetchStats(opts: {
     });
   }
 
-  // Credit card spending
-  let creditCards: { id: string; name: string; icon: string | null; creditLimit: number; spent: number; available: number }[] = [];
+  // Credit card spending — compute closed bill + open cycle separately
+  let creditCards: {
+    id: string; name: string; icon: string | null; creditLimit: number;
+    spent: number; available: number;
+    closedBill: number; openBill: number;
+    dueDay: number | null; paymentAccountId: string | null; isAutoPayEnabled: boolean;
+  }[] = [];
 
   if (creditCardAccounts.length > 0) {
+    const now = new Date();
     let globalStart = startDate;
     let globalEnd = endDate;
-    const billingRanges = new Map<string, { start: Date; end: Date }>();
+    const closedRanges = new Map<string, { start: Date; end: Date }>();
+    const openRanges = new Map<string, { start: Date; end: Date }>();
 
     for (const cc of creditCardAccounts) {
       if (cc.closingDay) {
-        const cycle = getBillingCycleDates(cc.closingDay, year, month);
-        billingRanges.set(cc.id, cycle);
-        if (cycle.start < globalStart) globalStart = cycle.start;
-        if (cycle.end > globalEnd) globalEnd = cycle.end;
+        const closed = getClosedBillDates(cc.closingDay, now);
+        const open = getOpenCycleDates(cc.closingDay, now);
+        closedRanges.set(cc.id, closed);
+        openRanges.set(cc.id, open);
+        if (closed.start < globalStart) globalStart = closed.start;
+        if (open.end > globalEnd) globalEnd = open.end;
       } else {
-        billingRanges.set(cc.id, { start: startDate, end: endDate });
+        closedRanges.set(cc.id, { start: startDate, end: endDate });
+        openRanges.set(cc.id, { start: endDate, end: endDate });
       }
     }
 
@@ -589,7 +613,6 @@ async function fetchStats(opts: {
         inArray(transactions.status, ["pending", "cleared", "reconciled"])
       ));
 
-    // Group transactions by accountId for O(n+m) instead of O(n*m)
     const txByAccount = new Map<string, typeof ccTransactions>();
     for (const tx of ccTransactions) {
       const list = txByAccount.get(tx.accountId) ?? [];
@@ -598,16 +621,23 @@ async function fetchStats(opts: {
     }
 
     creditCards = creditCardAccounts.map((cc) => {
-      const range = billingRanges.get(cc.id)!;
-      const startTime = range.start.getTime();
-      const endTime = range.end.getTime();
-      let spent = 0;
+      const closedRange = closedRanges.get(cc.id)!;
+      const openRange = openRanges.get(cc.id)!;
+
+      let closedBill = 0;
+      let openBill = 0;
+
       for (const tx of txByAccount.get(cc.id) ?? []) {
         const txTime = new Date(tx.date).getTime();
-        if (txTime >= startTime && txTime <= endTime) {
-          spent += Math.abs(Number(tx.amount) || 0);
+        if (txTime >= closedRange.start.getTime() && txTime <= closedRange.end.getTime()) {
+          closedBill += Math.abs(Number(tx.amount) || 0);
+        }
+        if (txTime >= openRange.start.getTime() && txTime <= openRange.end.getTime()) {
+          openBill += Math.abs(Number(tx.amount) || 0);
         }
       }
+
+      const spent = closedBill + openBill;
       return {
         id: cc.id,
         name: cc.name,
@@ -615,6 +645,11 @@ async function fetchStats(opts: {
         creditLimit: cc.creditLimit || 0,
         spent,
         available: (cc.creditLimit || 0) - spent,
+        closedBill,
+        openBill,
+        dueDay: cc.dueDay ?? null,
+        paymentAccountId: cc.paymentAccountId ?? null,
+        isAutoPayEnabled: cc.isAutoPayEnabled ?? false,
       };
     });
   }

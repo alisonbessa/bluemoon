@@ -15,7 +15,7 @@ import type {
 export interface DashboardResponse {
   allocations: {
     income?: { totals: { planned: number; contributionPlanned: number; received: number } };
-    totals?: { allocated: number; spent: number };
+    totals?: { allocated: number; spent: number; spentPending?: number };
     hasContributionModel?: boolean;
   };
   commitments: Commitment[];
@@ -73,7 +73,7 @@ export function useDashboardData(
         contribution: {
           planned: allocationsData.income?.totals?.contributionPlanned ?? allocationsData.income?.totals?.planned ?? 0,
         },
-        expenses: allocationsData.totals ?? { allocated: 0, spent: 0 },
+        expenses: allocationsData.totals ?? { allocated: 0, spent: 0, spentPending: 0 },
         available:
           (allocationsData.income?.totals?.planned ?? 0) -
           (allocationsData.totals?.allocated ?? 0),
