@@ -157,7 +157,7 @@ export function useTransactionForm(
             accountId: formData.accountId,
             categoryId: formData.categoryId,
             date: new Date(formData.date).toISOString(),
-            status: "cleared",
+            status: new Date(formData.date) > new Date() ? "pending" : "cleared",
             memberId: memberId || undefined,
             paidByMemberId: formData.paidByMemberId || defaultPaidByMemberId || memberId || undefined,
             recurringBillId: recurringBillId || undefined,
@@ -212,7 +212,8 @@ export function useTransactionForm(
         toAccountId:
           formData.type === "transfer" ? formData.toAccountId || undefined : undefined,
         date: new Date(formData.date).toISOString(),
-        status: "cleared", // Manual transactions are confirmed by default
+        // Future dates are pending, today or past are cleared
+        status: new Date(formData.date) > new Date() ? "pending" : "cleared",
         memberId: memberId || undefined,
         paidByMemberId: formData.paidByMemberId || defaultPaidByMemberId || memberId || undefined,
         // Installment fields (only for new credit card expenses)
