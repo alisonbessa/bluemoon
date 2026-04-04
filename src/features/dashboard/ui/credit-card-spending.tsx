@@ -32,6 +32,7 @@ import { Skeleton } from "@/shared/ui/skeleton";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { Button } from "@/shared/ui/button";
 import { Label } from "@/shared/ui/label";
+import { CurrencyInput } from "@/shared/ui/currency-input";
 import { toast } from "sonner";
 import { getAccountTypeIcon } from "@/features/accounts/types";
 
@@ -323,13 +324,26 @@ export function CreditCardSpending({
               Pagar fatura de {payingCard?.name}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Criar uma transferencia de{" "}
-              <strong className="text-foreground">{formatCurrency(settleAmount)}</strong>{" "}
-              para quitar a fatura do cartao.
+              Informe o valor e a conta para pagamento da fatura.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label>Valor do pagamento</Label>
+              <CurrencyInput
+                value={settleAmount}
+                onChange={setSettleAmount}
+              />
+              {payingCard && settleAmount !== (payingCard.closedBill ?? 0) && (payingCard.closedBill ?? 0) > 0 && (
+                <button
+                  className="text-xs text-primary hover:underline text-left"
+                  onClick={() => setSettleAmount(payingCard.closedBill ?? 0)}
+                >
+                  Usar valor total: {formatCurrency(payingCard.closedBill ?? 0)}
+                </button>
+              )}
+            </div>
             <div className="grid gap-2">
               <Label>Pagar com qual conta?</Label>
               <Select value={fromAccountId} onValueChange={setFromAccountId}>
@@ -351,7 +365,7 @@ export function CreditCardSpending({
             <AlertDialogCancel disabled={isPaying}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handlePayBill}
-              disabled={isPaying || !fromAccountId}
+              disabled={isPaying || !fromAccountId || settleAmount <= 0}
             >
               {isPaying ? (
                 <>
