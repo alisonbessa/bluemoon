@@ -16,20 +16,23 @@ import { formatCurrency } from "@/shared/lib/formatters";
 
 // Get user's default budget, accounts, categories, income sources, goals, and pending transactions
 export async function getUserBudgetInfo(userId: string): Promise<BudgetInfo | null> {
-  // Get user's first budget
-  const membership = await db
+  // Get all user's budget memberships
+  const allMemberships = await db
     .select({
       budget: budgets,
       member: budgetMembers,
     })
     .from(budgetMembers)
     .innerJoin(budgets, eq(budgetMembers.budgetId, budgets.id))
-    .where(eq(budgetMembers.userId, userId))
-    .limit(1);
+    .where(eq(budgetMembers.userId, userId));
 
-  if (membership.length === 0) return null;
+  if (allMemberships.length === 0) return null;
 
-  const budgetId = membership[0].budget.id;
+  // Prefer budgets where user is a partner (shared Duo budget) over owner (old solo)
+  // This ensures partners use the shared budget, not their old solo budget
+  const membership = allMemberships.find(m => m.member.type === "partner") ?? allMemberships[0];
+
+  const budgetId = membership.budget.id;
 
   // Run all queries in parallel
   const now = new Date();
@@ -95,13 +98,13 @@ export async function getUserBudgetInfo(userId: string): Promise<BudgetInfo | nu
 
   return {
     budget: {
-      id: membership[0].budget.id,
-      name: membership[0].budget.name,
-      privacyMode: membership[0].budget.privacyMode || "visible",
+      id: membership.budget.id,
+      name: membership.budget.name,
+      privacyMode: membership.budget.privacyMode || "visible",
     },
     member: {
-      id: membership[0].member.id,
-      userId: membership[0].member.userId!,
+      id: membership.member.id,
+      userId: membership.member.userId!,
     },
     defaultAccount: defaultAccount ? {
       id: defaultAccount.id,

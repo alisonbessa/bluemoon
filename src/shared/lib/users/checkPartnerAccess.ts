@@ -27,7 +27,9 @@ export async function checkUserAccess(userId: string): Promise<UserAccessInfo> {
     .where(eq(budgetMembers.userId, userId));
 
   const hasBudget = allMemberships.length > 0;
-  const primaryBudgetId = allMemberships[0]?.budgetId ?? null;
+  // Prefer budget where user is a partner (shared Duo) over owner (solo)
+  const partnerMembership = allMemberships.find(m => m.type === "partner");
+  const primaryBudgetId = partnerMembership?.budgetId ?? allMemberships[0]?.budgetId ?? null;
 
   // Filter to only partner memberships for the access check
   const partnerBudgetIds = allMemberships
