@@ -36,6 +36,7 @@ import { Skeleton } from "@/shared/ui/skeleton";
 import { Switch } from "@/shared/ui/switch";
 import { Label } from "@/shared/ui/label";
 import { formatCurrency as formatCurrencyBase } from "@/shared/lib/formatters";
+import { cn } from "@/shared/lib/utils";
 
 // Chart-specific currency formatter (no decimals for cleaner display)
 const formatCurrency = (cents: number) => formatCurrencyBase(cents, { decimals: 0 });
@@ -240,11 +241,13 @@ export function DashboardCharts({
                     labelFormatter={(label) => `Dia ${label}`}
                     formatter={(value, name, item) => {
                       const config = dailyChartConfig[item.dataKey as keyof typeof dailyChartConfig];
+                      const isBalance = item.dataKey === "balance" || item.dataKey === "pendingBalance";
+                      const numValue = Number(value);
                       return (
                         <>
                           <span className="text-muted-foreground">{config?.label || name}</span>
-                          <span className="ml-auto font-mono font-medium">
-                            {formatCurrency(Math.abs(Number(value)))}
+                          <span className={cn("ml-auto font-mono font-medium", isBalance && numValue < 0 && "text-red-500")}>
+                            {isBalance ? formatCurrency(numValue) : formatCurrency(Math.abs(numValue))}
                           </span>
                         </>
                       );

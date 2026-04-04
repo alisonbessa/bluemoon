@@ -72,6 +72,7 @@ export const GET = withAuthRequired(async (req, context) => {
     })
     .from(transactions)
     .innerJoin(categories, eq(transactions.categoryId, categories.id))
+    .innerJoin(financialAccounts, eq(transactions.accountId, financialAccounts.id))
     .where(
       and(
         eq(transactions.budgetId, budgetId),
@@ -80,7 +81,8 @@ export const GET = withAuthRequired(async (req, context) => {
         gte(transactions.date, startDate),
         lte(transactions.date, endDate),
         isNull(categories.memberId), // Shared category
-        isNotNull(transactions.paidByMemberId) // Has a payer
+        isNotNull(transactions.paidByMemberId), // Has a payer
+        isNotNull(financialAccounts.ownerId) // Paid from PERSONAL account (not shared)
       )
     )
     .groupBy(transactions.paidByMemberId);
