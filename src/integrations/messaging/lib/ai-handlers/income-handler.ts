@@ -18,7 +18,7 @@ import {
   findMatchingScheduledIncome,
   findScheduledIncomeByHint,
 } from "../transaction-matcher";
-import { getTodayNoonUTC } from "../utils";
+import { getTodayNoonUTC, formatUndoHint } from "../utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { matchAccount } from "./account-utils";
@@ -163,7 +163,7 @@ export async function handleIncomeIntent(
         `Valor: ${formatCurrency(data.amount)}\n` +
         (accountName ? `Conta: ${accountName}\n` : "") +
         (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
-        `Use /desfazer para remover.`
+        `${formatUndoHint(adapter.platform)}`
     );
     return;
   }

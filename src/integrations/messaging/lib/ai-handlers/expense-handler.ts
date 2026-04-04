@@ -21,7 +21,7 @@ import {
   findMatchingScheduledTransaction,
   findScheduledExpenseByHint,
 } from "../transaction-matcher";
-import { getTodayNoonUTC, formatInstallmentMonths } from "../utils";
+import { getTodayNoonUTC, formatInstallmentMonths, formatUndoHint } from "../utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib/billing-cycle";
@@ -275,7 +275,7 @@ export async function handleExpenseIntent(
           `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
           (accountName ? `${formatAccountDisplay(accountName, accountType)}\n` : "") +
           (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
-          `Use /desfazer para remover.`
+          `${formatUndoHint(adapter.platform)}`
       );
       return;
     }
@@ -311,7 +311,7 @@ export async function handleExpenseIntent(
         `Valor: ${formatCurrency(data.amount)}\n` +
         (accountName ? `${formatAccountDisplay(accountName, accountType)}\n` : "") +
         (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
-        `Use /desfazer para remover.`
+        `${formatUndoHint(adapter.platform)}`
     );
     return;
   }
