@@ -4,7 +4,7 @@ import {
   transactions,
   financialAccounts,
 } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, gte, lte, sql } from "drizzle-orm";
 import type { ConversationContext } from "@/integrations/messaging/lib/types";
 import { WhatsAppAdapter } from "./whatsapp-adapter";
 import {
@@ -105,6 +105,58 @@ export async function handleExpenseConfirmation(
         `Envie *desfazer* para remover.`
     );
     return;
+  }
+
+  // Before creating new: try to find and confirm existing pending transaction
+  // (e.g., lazy-generated from recurring bill that wasn't in the scheduled list at match time)
+  if (context.pendingExpense.description) {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const [existingPending] = await db
+      .select({ id: transactions.id })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.budgetId, budgetInfo.budget.id),
+          eq(transactions.type, "expense"),
+          eq(transactions.status, "pending"),
+          gte(transactions.date, monthStart),
+          lte(transactions.date, monthEnd),
+          eq(transactions.amount, context.pendingExpense.amount),
+          ...(context.pendingExpense.categoryId
+            ? [eq(transactions.categoryId, context.pendingExpense.categoryId)]
+            : [])
+        )
+      )
+      .limit(1);
+
+    if (existingPending) {
+      await markTransactionAsPaid(
+        existingPending.id,
+        context.pendingExpense.amount,
+        context.pendingExpense.description,
+        "whatsapp"
+      );
+      transactionId = existingPending.id;
+
+      if (context.lastAILogId) await markLogAsConfirmed(context.lastAILogId);
+
+      await adapter.updateState(phoneNumber, "IDLE", {
+        lastTransactionId: transactionId,
+      });
+
+      await adapter.sendMessage(
+        phoneNumber,
+        `*Despesa confirmada!*\n\n` +
+          `Valor: ${formatCurrency(context.pendingExpense.amount)}\n` +
+          `Categoria: ${context.pendingExpense.categoryName}\n` +
+          `Descrição: ${capitalizeFirst(context.pendingExpense.description)}\n\n` +
+          `Envie *desfazer* para remover.`
+      );
+      return;
+    }
   }
 
   // Create new transaction
