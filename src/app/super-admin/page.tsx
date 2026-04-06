@@ -66,9 +66,9 @@ interface OverviewData {
     pendingFeedback: number;
   };
   activity: {
-    dau: number;
-    wau: number;
-    mau: number;
+    dau: KpiMetric;
+    wau: KpiMetric;
+    mau: KpiMetric;
   };
   budgets: {
     total: number;
@@ -311,7 +311,13 @@ function PeriodSelector({
   );
 }
 
-function ActivityCards({ activity }: { activity: OverviewData["activity"] }) {
+function ActivityCards({ activity, totalUsers }: { activity: OverviewData["activity"]; totalUsers: number }) {
+  const items = [
+    { label: "Hoje", sublabel: "vs ontem", metric: activity.dau },
+    { label: "Semana", sublabel: "vs semana passada", metric: activity.wau },
+    { label: "Mes", sublabel: "vs mes passado", metric: activity.mau },
+  ];
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -319,18 +325,21 @@ function ActivityCards({ activity }: { activity: OverviewData["activity"] }) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-3 divide-x">
-          {[
-            { label: "Hoje (DAU)", value: activity.dau },
-            { label: "Semana (WAU)", value: activity.wau },
-            { label: "Mes (MAU)", value: activity.mau },
-          ].map((item) => (
-            <div key={item.label} className="text-center px-3">
-              <p className="text-2xl font-bold tabular-nums">{item.value}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {item.label}
-              </p>
-            </div>
-          ))}
+          {items.map((item) => {
+            const pctOfTotal = totalUsers > 0 ? Math.round((item.metric.current / totalUsers) * 100) : 0;
+            return (
+              <div key={item.label} className="text-center px-3 space-y-1">
+                <p className="text-2xl font-bold tabular-nums">{item.metric.current}</p>
+                <DeltaBadge delta={item.metric.delta} />
+                <p className="text-xs text-muted-foreground">
+                  {item.label}
+                </p>
+                <p className="text-[10px] text-muted-foreground/70">
+                  {item.metric.previous} anterior · {pctOfTotal}% do total
+                </p>
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
@@ -1019,7 +1028,7 @@ export default function SuperAdminDashboard() {
       {/* Activity + Budgets + Roles row */}
       {activity && budgets && roles ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <ActivityCards activity={activity} />
+          <ActivityCards activity={activity} totalUsers={kpis?.totalUsers || 0} />
           <BudgetCards budgets={budgets} />
           <RoleDistribution roles={roles} totalUsers={kpis?.totalUsers || 0} />
         </div>

@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   CreditCard,
   Users,
+  UsersRound,
   MessageSquare,
   MessageSquarePlus,
   LogOut,
@@ -32,7 +33,8 @@ import {
 const navigation = [
   { name: "Painel", href: "/super-admin", icon: LayoutDashboard },
   { name: "Planos", href: "/super-admin/plans", icon: CreditCard },
-  { name: "Usuários", href: "/super-admin/users", icon: Users },
+  { name: "Usuarios", href: "/super-admin/users", icon: Users },
+  { name: "Segmentos", href: "/super-admin/segments", icon: UsersRound },
   { name: "Lifetime Deal", href: "/super-admin/coupons", icon: Ticket },
   { name: "Links de Acesso", href: "/super-admin/access-links", icon: LinkIcon },
   { name: "Mensagens", href: "/super-admin/messages", icon: MessageSquare },
