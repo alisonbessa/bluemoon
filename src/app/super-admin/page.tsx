@@ -134,7 +134,7 @@ interface PeriodRange {
 const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
   { key: "day", label: "Dia" },
   { key: "week", label: "Semana" },
-  { key: "month", label: "Mes" },
+  { key: "month", label: "Mês" },
   { key: "quarter", label: "Trimestre" },
   { key: "year", label: "Ano" },
 ];
@@ -315,13 +315,13 @@ function ActivityCards({ activity, totalUsers }: { activity: OverviewData["activ
   const items = [
     { label: "Hoje", sublabel: "vs ontem", metric: activity.dau },
     { label: "Semana", sublabel: "vs semana passada", metric: activity.wau },
-    { label: "Mes", sublabel: "vs mes passado", metric: activity.mau },
+    { label: "Mês", sublabel: "vs mês passado", metric: activity.mau },
   ];
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Usuarios Ativos</CardTitle>
+        <CardTitle className="text-base">Usuários Ativos</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-3 divide-x">
@@ -350,7 +350,7 @@ function BudgetCards({ budgets }: { budgets: OverviewData["budgets"] }) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Orcamentos</CardTitle>
+        <CardTitle className="text-base">Orçamentos</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-3 divide-x">
@@ -395,7 +395,7 @@ function RoleDistribution({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Distribuicao por Role</CardTitle>
+        <CardTitle className="text-base">Distribuição por Role</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
@@ -437,7 +437,7 @@ function OnboardingFunnel({
       color: "#82ca9d",
     },
     {
-      label: "1a Transacao",
+      label: "1a Transação",
       value: funnel.createdTransactions,
       color: "#ffc658",
     },
@@ -479,7 +479,7 @@ function OnboardingFunnel({
           })}
         </div>
         <p className="text-xs text-muted-foreground mt-3">
-          Usuarios que se cadastraram no periodo selecionado
+          Usuários que se cadastraram no período selecionado
         </p>
       </CardContent>
     </Card>
@@ -500,7 +500,7 @@ function TransactionBreakdown({
   const typeLabels: Record<string, string> = {
     expense: "Despesa",
     income: "Receita",
-    transfer: "Transferencia",
+    transfer: "Transferência",
   };
   const typeColors: Record<string, string> = {
     expense: "#ef4444",
@@ -518,7 +518,7 @@ function TransactionBreakdown({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Transacoes por Tipo</CardTitle>
+        <CardTitle className="text-base">Transações por Tipo</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[180px] mb-4">
@@ -586,7 +586,7 @@ function TelegramResolutions({
         <CardTitle className="text-base">
           WhatsApp IA
           <span className="ml-2 text-sm font-normal text-muted-foreground">
-            ({total} mensagens, {accuracy}% acuracia)
+            ({total} mensagens, {accuracy}% acurácia)
           </span>
         </CardTitle>
       </CardHeader>
@@ -677,7 +677,7 @@ function CohortTable({ cohorts }: { cohorts: CohortEntry[] }) {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
-          Retencao por Cohort
+          Retenção por Cohort
           <span className="text-xs font-normal text-muted-foreground">(mensal)</span>
         </CardTitle>
       </CardHeader>
@@ -689,7 +689,7 @@ function CohortTable({ cohorts }: { cohorts: CohortEntry[] }) {
                 Cohort
               </th>
               <th className="text-center py-2 px-3 font-medium text-muted-foreground text-xs">
-                Usuarios
+                Usuários
               </th>
               {sortedMonths.map((m) => {
                 const monthNum = m.slice(5);
@@ -729,7 +729,7 @@ function CohortTable({ cohorts }: { cohorts: CohortEntry[] }) {
                       <div
                         className={`inline-flex items-center justify-center min-w-[44px] px-1.5 py-1 rounded-md text-xs font-semibold tabular-nums transition-colors ${getHeatmapDarkStyle(pct)} ${isSelf ? "ring-1 ring-primary/30" : ""}`}
                         style={getHeatmapStyle(pct)}
-                        title={`${active} de ${c.cohortSize} usuarios ativos`}
+                        title={`${active} de ${c.cohortSize} usuários ativos`}
                       >
                         {pct}%
                       </div>
@@ -758,7 +758,7 @@ function CohortTable({ cohorts }: { cohorts: CohortEntry[] }) {
         </table>
         <div className="flex items-center gap-3 mt-4">
           <p className="text-xs text-muted-foreground flex-1">
-            % de usuarios que criaram pelo menos 1 transacao no mes
+            % de usuários que criaram pelo menos 1 transação no mês
           </p>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span>0%</span>
@@ -798,7 +798,7 @@ function ConversionMetrics({
       pctValue: pct(conversion.onboarded),
     },
     {
-      label: "Tem Plano Atribuido",
+      label: "Tem Plano Atribuído",
       value: conversion.withPlan,
       pctValue: pct(conversion.withPlan),
     },
@@ -808,12 +808,12 @@ function ConversionMetrics({
       pctValue: pct(conversion.stripeSubscribers),
     },
     {
-      label: "Usuarios Beta",
+      label: "Usuários Beta",
       value: conversion.betaUsers,
       pctValue: pct(conversion.betaUsers),
     },
     {
-      label: "Usuarios Lifetime",
+      label: "Usuários Lifetime",
       value: conversion.lifetimeUsers,
       pctValue: pct(conversion.lifetimeUsers),
     },
@@ -822,7 +822,7 @@ function ConversionMetrics({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Conversao e Saude</CardTitle>
+        <CardTitle className="text-base">Conversão e Saúde</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
@@ -853,7 +853,7 @@ function ConversionMetrics({
             </span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Contas Excluidas</span>
+            <span className="text-muted-foreground">Contas Excluídas</span>
             <span className="font-medium tabular-nums">
               {conversion.deletedUsers}
             </span>
@@ -861,7 +861,7 @@ function ConversionMetrics({
           {conversion.pendingDeletion > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">
-                Exclusao Pendente
+                Exclusão Pendente
               </span>
               <span className="font-medium text-red-600 dark:text-red-400 tabular-nums">
                 {conversion.pendingDeletion}
@@ -882,7 +882,7 @@ function ConversionMetrics({
               </span>
             </div>
             <div>
-              <span className="text-muted-foreground">Links disponiveis:</span>{" "}
+              <span className="text-muted-foreground">Links disponíveis:</span>{" "}
               <span className="font-medium tabular-nums">
                 {conversion.accessLinksAvailable}
               </span>
@@ -894,7 +894,7 @@ function ConversionMetrics({
               </span>
             </div>
             <div>
-              <span className="text-muted-foreground">Cupons disponiveis:</span>{" "}
+              <span className="text-muted-foreground">Cupons disponíveis:</span>{" "}
               <span className="font-medium tabular-nums">
                 {conversion.couponsAvailable}
               </span>
@@ -975,7 +975,7 @@ export default function SuperAdminDashboard() {
       ) : kpis ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
           <KpiCard
-            title="Total de Usuarios"
+            title="Total de Usuários"
             value={kpis.totalUsers}
             icon={Users}
           />
@@ -987,14 +987,14 @@ export default function SuperAdminDashboard() {
             icon={UserPlus}
           />
           <KpiCard
-            title="Usuarios Ativos"
+            title="Usuários Ativos"
             value={kpis.activeUsers.current}
             delta={kpis.activeUsers.delta}
             subtitle={`${kpis.activeUsers.previous} anterior`}
             icon={Activity}
           />
           <KpiCard
-            title="Transacoes Criadas"
+            title="Transações Criadas"
             value={kpis.transactions.current}
             delta={kpis.transactions.delta}
             subtitle={`${kpis.transactions.previous} anterior`}
@@ -1003,7 +1003,7 @@ export default function SuperAdminDashboard() {
             sparklineColor="#8884d8"
           />
           <KpiCard
-            title="Usuarios WhatsApp"
+            title="Usuários WhatsApp"
             value={kpis.telegramUsers.current}
             delta={kpis.telegramUsers.delta}
             subtitle={`${kpis.telegramUsers.previous} anterior`}
@@ -1044,10 +1044,10 @@ export default function SuperAdminDashboard() {
           <Card>
             <CardHeader className="pb-2 sm:pb-6">
               <CardTitle className="text-base sm:text-lg">
-                Atividade Diaria
+                Atividade Diária
               </CardTitle>
               <p className="text-xs text-muted-foreground">
-                Linhas tracejadas = periodo anterior
+                Linhas tracejadas = período anterior
               </p>
             </CardHeader>
             <CardContent className="h-[250px] sm:h-[300px] px-2 sm:px-6">
@@ -1084,7 +1084,7 @@ export default function SuperAdminDashboard() {
                     strokeOpacity={0.3}
                     strokeWidth={1.5}
                     strokeDasharray="5 5"
-                    name="Transacoes (anterior)"
+                    name="Transações (anterior)"
                     dot={false}
                   />
                   <Line
@@ -1102,7 +1102,7 @@ export default function SuperAdminDashboard() {
                     type="monotone"
                     dataKey="transactions"
                     stroke="#8884d8"
-                    name="Transacoes"
+                    name="Transações"
                     strokeWidth={2}
                   />
                   <Line
@@ -1137,7 +1137,7 @@ export default function SuperAdminDashboard() {
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2 sm:pb-6">
             <CardTitle className="text-base sm:text-lg">
-              Crescimento de Usuarios
+              Crescimento de Usuários
             </CardTitle>
           </CardHeader>
           <CardContent className="h-[250px] sm:h-[350px] px-2 sm:px-6">
@@ -1163,7 +1163,7 @@ export default function SuperAdminDashboard() {
                   type="monotone"
                   dataKey="users"
                   stroke="#8884d8"
-                  name="Novos Usuarios"
+                  name="Novos Usuários"
                   strokeWidth={2}
                 />
                 <Line
@@ -1182,7 +1182,7 @@ export default function SuperAdminDashboard() {
       {/* Plan Distribution Cards */}
       <div>
         <h2 className="text-lg font-semibold mb-3">
-          Distribuicao de Usuarios por Plano
+          Distribuição de Usuários por Plano
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {planStats?.data.map((plan) => (
@@ -1215,7 +1215,7 @@ export default function SuperAdminDashboard() {
       {/* Cohort & Conversion Section */}
       {cohortData?.data && (
         <>
-          <h2 className="text-lg font-semibold mt-2">Retencao e Conversao</h2>
+          <h2 className="text-lg font-semibold mt-2">Retenção e Conversão</h2>
 
           <CohortTable cohorts={cohortData.data.cohorts} />
 
