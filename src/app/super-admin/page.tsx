@@ -925,15 +925,6 @@ export default function SuperAdminDashboard() {
     "/api/super-admin/stats/cohort?months=6"
   );
 
-  const { data: chatLogsData } = useSWR<{
-    stats: { totalMessages: number; uniqueUsers: number; totalSessions: number; userMessages: number; assistantMessages: number };
-    recentSessions: Array<{
-      session_id: string; user_id: string; message_count: number;
-      started_at: string; last_message_at: string;
-      first_user_message: string; last_assistant_message: string;
-      user_name: string; user_email: string; user_image: string | null;
-    }>;
-  }>("/api/super-admin/stats/chat-logs");
 
   const { data: dailyStats } = useSWR<{ data: DailyStats[] }>(
     "/api/super-admin/stats/daily"
@@ -1137,79 +1128,6 @@ export default function SuperAdminDashboard() {
               resolutions={engagement.data.telegramResolutions}
             />
           </div>
-        </>
-      )}
-
-      {/* Chat IA Section */}
-      {chatLogsData && chatLogsData.stats.totalMessages > 0 && (
-        <>
-          <h2 className="text-lg font-semibold mt-2">Chat IA (ultimos 7 dias)</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Card>
-              <CardContent className="pt-4 pb-3 px-4">
-                <p className="text-xs font-medium text-muted-foreground">Conversas</p>
-                <p className="text-2xl font-bold tabular-nums">{chatLogsData.stats.totalSessions}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 pb-3 px-4">
-                <p className="text-xs font-medium text-muted-foreground">Usuarios</p>
-                <p className="text-2xl font-bold tabular-nums">{chatLogsData.stats.uniqueUsers}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 pb-3 px-4">
-                <p className="text-xs font-medium text-muted-foreground">Mensagens</p>
-                <p className="text-2xl font-bold tabular-nums">{chatLogsData.stats.totalMessages}</p>
-                <p className="text-xs text-muted-foreground">{chatLogsData.stats.userMessages} usuario / {chatLogsData.stats.assistantMessages} IA</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-4 pb-3 px-4">
-                <p className="text-xs font-medium text-muted-foreground">Msgs/Conversa</p>
-                <p className="text-2xl font-bold tabular-nums">
-                  {chatLogsData.stats.totalSessions > 0
-                    ? (chatLogsData.stats.totalMessages / chatLogsData.stats.totalSessions).toFixed(1)
-                    : "0"}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Conversas Recentes</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y">
-                {chatLogsData.recentSessions.slice(0, 10).map((session) => (
-                  <div key={session.session_id} className="px-4 py-3 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3 mb-1">
-                      {session.user_image ? (
-                        <img src={session.user_image} alt="" className="h-6 w-6 rounded-full" />
-                      ) : (
-                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                          {(session.user_name || session.user_email)?.[0]?.toUpperCase()}
-                        </div>
-                      )}
-                      <span className="text-sm font-medium">{session.user_name || session.user_email}</span>
-                      <span className="text-xs text-muted-foreground ml-auto">
-                        {session.message_count} msgs · {format(parseISO(session.last_message_at), "dd MMM HH:mm", { locale: ptBR })}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate pl-9">
-                      <span className="font-medium text-foreground">Usuario:</span> {session.first_user_message?.slice(0, 100)}
-                    </p>
-                    {session.last_assistant_message && (
-                      <p className="text-xs text-muted-foreground truncate pl-9 mt-0.5">
-                        <span className="font-medium text-primary">IA:</span> {session.last_assistant_message?.slice(0, 100)}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </>
       )}
 
