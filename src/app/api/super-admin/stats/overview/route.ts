@@ -39,6 +39,9 @@ export const GET = withSuperAdminAuthRequired(async (req: NextRequest) => {
     usersByRoleResult,
     dailyActiveResult,
     weeklyActiveResult,
+    prevDailyActiveResult,
+    prevWeeklyActiveResult,
+    prevMonthlyActiveResult,
   ] = await Promise.all([
     // Total users (non-deleted)
     db
@@ -166,6 +169,30 @@ export const GET = withSuperAdminAuthRequired(async (req: NextRequest) => {
         JOIN budget_members bm ON bm.budget_id = t.budget_id AND bm.user_id IS NOT NULL
         WHERE t.created_at >= ${startOfDay(subDays(now, 7)).toISOString()}::timestamp`
     ),
+
+    // Previous day active users (yesterday)
+    db.select({ count: sql<number>`COUNT(DISTINCT bm.user_id)` }).from(
+      sql`transactions t
+        JOIN budget_members bm ON bm.budget_id = t.budget_id AND bm.user_id IS NOT NULL
+        WHERE t.created_at >= ${startOfDay(subDays(now, 1)).toISOString()}::timestamp
+        AND t.created_at < ${startOfDay(now).toISOString()}::timestamp`
+    ),
+
+    // Previous week active users (7-14 days ago)
+    db.select({ count: sql<number>`COUNT(DISTINCT bm.user_id)` }).from(
+      sql`transactions t
+        JOIN budget_members bm ON bm.budget_id = t.budget_id AND bm.user_id IS NOT NULL
+        WHERE t.created_at >= ${startOfDay(subDays(now, 14)).toISOString()}::timestamp
+        AND t.created_at < ${startOfDay(subDays(now, 7)).toISOString()}::timestamp`
+    ),
+
+    // Previous month active users (30-60 days ago)
+    db.select({ count: sql<number>`COUNT(DISTINCT bm.user_id)` }).from(
+      sql`transactions t
+        JOIN budget_members bm ON bm.budget_id = t.budget_id AND bm.user_id IS NOT NULL
+        WHERE t.created_at >= ${startOfDay(subDays(now, 60)).toISOString()}::timestamp
+        AND t.created_at < ${startOfDay(subDays(now, 30)).toISOString()}::timestamp`
+    ),
   ]);
 
   const totalUsers_n = Number(totalUsersResult[0].count);
@@ -223,9 +250,9 @@ export const GET = withSuperAdminAuthRequired(async (req: NextRequest) => {
         pendingFeedback: Number(pendingFeedbackResult[0].count),
       },
       activity: {
-        dau: Number(dailyActiveResult[0].count),
-        wau: Number(weeklyActiveResult[0].count),
-        mau: activeUsersCurrent,
+        dau: { current: Number(dailyActiveResult[0].count), previous: Number(prevDailyActiveResult[0].count), delta: calcDelta(Number(dailyActiveResult[0].count), Number(prevDailyActiveResult[0].count)) },
+        wau: { current: Number(weeklyActiveResult[0].count), previous: Number(prevWeeklyActiveResult[0].count), delta: calcDelta(Number(weeklyActiveResult[0].count), Number(prevWeeklyActiveResult[0].count)) },
+        mau: { current: activeUsersCurrent, previous: Number(prevMonthlyActiveResult[0].count), delta: calcDelta(activeUsersCurrent, Number(prevMonthlyActiveResult[0].count)) },
       },
       budgets: {
         total: Number(totalBudgetsResult[0].count),

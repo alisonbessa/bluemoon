@@ -203,10 +203,10 @@ export default function TelegramAIPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
             <Bot className="h-6 w-6 sm:h-8 sm:w-8" />
-            Telegram AI Analytics
+            WhatsApp AI Analytics
           </h1>
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-            Analise e melhore a precisão do bot do Telegram
+            Analise e melhore a precisao do bot do WhatsApp
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
