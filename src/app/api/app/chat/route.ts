@@ -1,7 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
-import { transactions, financialAccounts, categories } from "@/db/schema";
+import { transactions, financialAccounts, categories, chatLogs } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import {
   getFirstInstallmentDate,
@@ -95,6 +95,7 @@ class WebCollectorAdapter implements MessagingAdapter {
 const messageRequestSchema = z.object({
   action: z.literal("message"),
   message: z.string().min(1).max(2000),
+  sessionId: z.string().optional(),
 });
 
 const confirmRequestSchema = z.object({
@@ -103,6 +104,7 @@ const confirmRequestSchema = z.object({
     type: z.enum(["expense", "income"]),
     data: z.record(z.unknown()),
   }),
+  sessionId: z.string().optional(),
 });
 
 const chatRequestSchema = z.discriminatedUnion("action", [
@@ -324,12 +326,28 @@ export const POST = withAuthRequired(async (req, context) => {
     }
 
     const data = parsed.data;
+    const sessionId = data.sessionId || crypto.randomUUID();
 
+    let response: Response;
     if (data.action === "confirm") {
-      return handleConfirm(session.user.id, data.pendingAction);
+      logChat(session.user.id, sessionId, "user", `[confirm ${data.pendingAction.type}]`);
+      response = await handleConfirm(session.user.id, data.pendingAction);
+    } else {
+      response = await handleMessage(session.user.id, data.message, sessionId);
     }
 
-    return handleMessage(session.user.id, data.message);
+    // Log assistant response (best-effort, don't block)
+    try {
+      const clone = response.clone();
+      const json = await clone.json();
+      const msgs = json?.data?.messages;
+      if (Array.isArray(msgs) && msgs.length > 0) {
+        const replyText = msgs.map((m: { content: string }) => m.content).join("\n");
+        logChat(session.user.id, sessionId, "assistant", replyText);
+      }
+    } catch { /* ignore logging errors */ }
+
+    return response;
   } catch (error) {
     logger.error("Chat error:", error);
     return internalError("Erro ao processar mensagem");
@@ -340,12 +358,23 @@ export const POST = withAuthRequired(async (req, context) => {
 // Handle free-form message
 // ============================================
 
-async function handleMessage(userId: string, message: string) {
+async function logChat(userId: string, sessionId: string, role: "user" | "assistant", content: string) {
+  try {
+    await db.insert(chatLogs).values({ userId, sessionId, role, content });
+  } catch (e) {
+    logger.error("Failed to log chat message:", e);
+  }
+}
+
+async function handleMessage(userId: string, message: string, sessionId: string) {
+  // Log user message
+  logChat(userId, sessionId, "user", message);
+
   const budgetInfo = await getUserBudgetInfo(userId);
   if (!budgetInfo) {
-    return successResponse({
-      messages: [{ content: "Você precisa configurar seu orçamento primeiro para usar o chat." }],
-    });
+    const reply = "Voce precisa configurar seu orcamento primeiro para usar o chat.";
+    logChat(userId, sessionId, "assistant", reply);
+    return successResponse({ messages: [{ content: reply }] });
   }
 
   const userContext = buildUserContext(userId, budgetInfo);
@@ -377,7 +406,7 @@ async function handleMessage(userId: string, message: string) {
       const transferData = data as ExtractedTransferData;
       return successResponse({
         messages: [{
-          content: `Transferências pelo chat ainda não são suportadas. Use o app para transferir${transferData.amount ? ` ${formatCurrency(transferData.amount)}` : ""}.`,
+          content: `Transferencias pelo chat ainda nao sao suportadas. Use o app para transferir${transferData.amount ? ` ${formatCurrency(transferData.amount)}` : ""}.`,
         }],
       });
     }
@@ -385,32 +414,28 @@ async function handleMessage(userId: string, message: string) {
     case "GREETING": {
       return successResponse({
         messages: [{
-          content: "Olá! Posso ajudar com:\n\n" +
+          content: "Ola! Posso ajudar com:\n\n" +
             "- Registrar gastos: \"gastei 50 no mercado\"\n" +
-            "- Registrar receitas: \"recebi 5000 de salário\"\n" +
-            "- Consultar saldo: \"quanto gastei esse mês?\"\n" +
-            "- Consultar categoria: \"quanto sobrou em alimentação?\"\n" +
-            "- Consultar metas: \"como está minha meta?\"\n\n" +
+            "- Registrar receitas: \"recebi 5000 de salario\"\n" +
+            "- Consultar saldo: \"quanto gastei esse mes?\"\n" +
+            "- Consultar categoria: \"quanto sobrou em alimentacao?\"\n" +
+            "- Consultar metas: \"como esta minha meta?\"\n\n" +
             "O que deseja fazer?",
         }],
       });
     }
 
     default: {
-      // Try answering as a help/FAQ question using the knowledge base
       const helpAnswer = await answerHelpQuestion(message);
       if (helpAnswer) {
-        return successResponse({
-          messages: [{ content: helpAnswer }],
-        });
+        return successResponse({ messages: [{ content: helpAnswer }] });
       }
 
-      // Knowledge base couldn't answer - give helpful fallback
       return successResponse({
         messages: [{
-          content: "Não consigo fazer isso diretamente pelo chat, mas posso te ajudar de outras formas:\n\n" +
+          content: "Nao consigo fazer isso diretamente pelo chat, mas posso te ajudar de outras formas:\n\n" +
             "- Registrar gastos: \"gastei 50 no mercado\"\n" +
-            "- Registrar receitas: \"recebi 5000 de salário\"\n" +
+            "- Registrar receitas: \"recebi 5000 de salario\"\n" +
             "- Consultar saldo ou categorias\n\n" +
             "Para criar metas, categorias ou contas, use o menu lateral do app. Quer que eu explique como?",
           suggestHuman: true,

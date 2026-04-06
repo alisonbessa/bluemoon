@@ -64,6 +64,7 @@ export function FloatingChatbot() {
   const panelRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const sessionIdRef = useRef<string>(crypto.randomUUID());
   const pathname = usePathname();
 
   // Load minimized state
@@ -141,7 +142,7 @@ export function FloatingChatbot() {
       const res = await fetch("/api/app/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "confirm", pendingAction }),
+        body: JSON.stringify({ action: "confirm", pendingAction, sessionId: sessionIdRef.current }),
       });
 
       if (!res.ok) throw new Error("Failed");
@@ -293,7 +294,7 @@ export function FloatingChatbot() {
       const res = await fetch("/api/app/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "message", message: msg }),
+        body: JSON.stringify({ action: "message", message: msg, sessionId: sessionIdRef.current }),
       });
 
       if (!res.ok) throw new Error("Failed");

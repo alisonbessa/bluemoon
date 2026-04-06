@@ -40,7 +40,7 @@ const navigation = [
   { name: "Mensagens", href: "/super-admin/messages", icon: MessageSquare },
   { name: "Feedback", href: "/super-admin/feedback", icon: MessageSquarePlus },
   { name: "Blog", href: "/super-admin/blog", icon: FileText },
-  { name: "Telegram IA", href: "/super-admin/telegram-ai", icon: Bot },
+  { name: "WhatsApp IA", href: "/super-admin/telegram-ai", icon: Bot },
   { name: "Lista de Espera", href: "/super-admin/waitlist", icon: ClipboardList },
   { name: "Migrações", href: "/super-admin/migrations", icon: Rocket },
   { name: "Banco de Dados", href: "/super-admin/database", icon: Database },
