@@ -56,7 +56,7 @@ const navigationGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Usuarios",
+    label: "Usuários",
     items: [
       { name: "Todos", href: "/super-admin/users", icon: Users },
       { name: "Segmentos", href: "/super-admin/segments", icon: UsersRound },
@@ -64,14 +64,14 @@ const navigationGroups: NavGroup[] = [
     ],
   },
   {
-    label: "IA & Automacao",
+    label: "IA & Automação",
     items: [
       { name: "WhatsApp IA", href: "/super-admin/telegram-ai", icon: Bot },
       { name: "Chat IA", href: "/super-admin/chat-logs", icon: Sparkles },
     ],
   },
   {
-    label: "Comunicacao",
+    label: "Comunicação",
     items: [
       { name: "Mensagens", href: "/super-admin/messages", icon: MessageSquare },
       { name: "Feedback", href: "/super-admin/feedback", icon: MessageSquarePlus },
@@ -81,7 +81,7 @@ const navigationGroups: NavGroup[] = [
   {
     label: "Sistema",
     items: [
-      { name: "Migracoes", href: "/super-admin/migrations", icon: Rocket },
+      { name: "Migrações", href: "/super-admin/migrations", icon: Rocket },
       { name: "Banco de Dados", href: "/super-admin/database", icon: Database },
       { name: "Sair", href: "/super-admin/logout", icon: LogOut },
     ],
@@ -140,7 +140,7 @@ function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
           </DropdownMenu>
           <div className="flex flex-1 items-center justify-between">
             <Link href="/super-admin" className="font-semibold">
-              {appConfig.projectName} - Administracao
+              {appConfig.projectName} - Administração
             </Link>
             <div className="flex items-center gap-4">
               <ThemeSwitcher />

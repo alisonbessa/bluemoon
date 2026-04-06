@@ -126,9 +126,9 @@ export default function ChatLogsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Chat IA - Historico</h1>
+        <h1 className="text-2xl font-bold">Chat IA - Histórico</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Conversas dos ultimos 7 dias entre usuarios e o assistente
+          Conversas dos últimos 7 dias entre usuários e o assistente
         </p>
       </div>
 
@@ -148,7 +148,7 @@ export default function ChatLogsPage() {
             <CardContent className="pt-4 pb-3 px-4">
               <div className="flex items-center gap-2 mb-1">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                <p className="text-xs font-medium text-muted-foreground">Usuarios</p>
+                <p className="text-xs font-medium text-muted-foreground">Usuários</p>
               </div>
               <p className="text-2xl font-bold tabular-nums">{stats.uniqueUsers}</p>
             </CardContent>
@@ -192,8 +192,8 @@ export default function ChatLogsPage() {
           ) : sessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <MessageSquare className="h-8 w-8 mb-3" />
-              <p className="text-sm">Nenhuma conversa registrada nos ultimos 7 dias</p>
-              <p className="text-xs mt-1">As conversas aparecerao aqui quando usuarios usarem o assistente</p>
+              <p className="text-sm">Nenhuma conversa registrada nos últimos 7 dias</p>
+              <p className="text-xs mt-1">As conversas aparecerão aqui quando usuários usarem o assistente</p>
             </div>
           ) : (
             <div className="divide-y">

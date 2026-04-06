@@ -39,11 +39,11 @@ import { ptBR } from "date-fns/locale";
 type Segment = "power" | "active" | "inactive" | "new_inactive" | "never_active";
 
 const SEGMENTS: { key: Segment; label: string; description: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { key: "power", label: "Power Users", description: "20+ transacoes no periodo", icon: Zap },
-  { key: "active", label: "Ativos", description: "Pelo menos 1 transacao no periodo", icon: Users },
-  { key: "inactive", label: "Inativos", description: "Cadastrados antes, sem atividade no periodo", icon: UserX },
-  { key: "new_inactive", label: "Novos Inativos", description: "Cadastrados no periodo, nunca criaram transacao", icon: UserPlus },
-  { key: "never_active", label: "Nunca Ativos", description: "Nunca criaram nenhuma transacao", icon: Ghost },
+  { key: "power", label: "Power Users", description: "20+ transações no período", icon: Zap },
+  { key: "active", label: "Ativos", description: "Pelo menos 1 transação no período", icon: Users },
+  { key: "inactive", label: "Inativos", description: "Cadastrados antes, sem atividade no período", icon: UserX },
+  { key: "new_inactive", label: "Novos Inativos", description: "Cadastrados no período, nunca criaram transação", icon: UserPlus },
+  { key: "never_active", label: "Nunca Ativos", description: "Nunca criaram nenhuma transação", icon: Ghost },
 ];
 
 const DAYS_OPTIONS = [
@@ -158,9 +158,9 @@ export default function SegmentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Segmentos de Usuarios</h1>
+          <h1 className="text-2xl font-bold">Segmentos de Usuários</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Filtre usuarios por comportamento e envie emails direcionados
+            Filtre usuários por comportamento e envie emails direcionados
           </p>
         </div>
       </div>
@@ -190,7 +190,7 @@ export default function SegmentsPage() {
 
       {/* Days filter */}
       <div className="flex items-center gap-4">
-        <span className="text-sm text-muted-foreground">Periodo:</span>
+        <span className="text-sm text-muted-foreground">Período:</span>
         <div className="flex gap-1 bg-muted rounded-lg p-1">
           {DAYS_OPTIONS.map((opt) => (
             <button
@@ -208,7 +208,7 @@ export default function SegmentsPage() {
         </div>
         {pagination && (
           <span className="text-sm text-muted-foreground ml-auto">
-            {pagination.total} usuario(s) encontrado(s)
+            {pagination.total} usuário(s) encontrado(s)
           </span>
         )}
       </div>
@@ -233,7 +233,7 @@ export default function SegmentsPage() {
             variant="ghost"
             onClick={() => setSelectedIds(new Set())}
           >
-            Limpar selecao
+            Limpar seleção
           </Button>
         </div>
       )}
@@ -248,7 +248,7 @@ export default function SegmentsPage() {
           ) : users.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <activeSegment.icon className="h-8 w-8 mb-3" />
-              <p className="text-sm">Nenhum usuario neste segmento</p>
+              <p className="text-sm">Nenhum usuário neste segmento</p>
             </div>
           ) : (
             <table className="w-full text-sm">
@@ -262,8 +262,8 @@ export default function SegmentsPage() {
                   </th>
                   <th className="text-left py-3 px-2 font-medium text-muted-foreground">Usuario</th>
                   <th className="text-left py-3 px-2 font-medium text-muted-foreground">Email</th>
-                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Transacoes</th>
-                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Ultima Atividade</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Transações</th>
+                  <th className="text-left py-3 px-2 font-medium text-muted-foreground">Última Atividade</th>
                   <th className="text-left py-3 px-2 font-medium text-muted-foreground">Cadastro</th>
                   <th className="w-10 py-3 px-2" />
                 </tr>
@@ -329,7 +329,7 @@ export default function SegmentsPage() {
       {pagination && pagination.pageCount > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Pagina {pagination.currentPage} de {pagination.pageCount}
+            Página {pagination.currentPage} de {pagination.pageCount}
           </p>
           <div className="flex gap-2">
             <Button
@@ -358,10 +358,10 @@ export default function SegmentsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
-              Enviar Email para {selectedIds.size} usuario(s)
+              Enviar Email para {selectedIds.size} usuário(s)
             </AlertDialogTitle>
             <AlertDialogDescription>
-              O email sera enviado individualmente para cada usuario selecionado.
+              O email será enviado individualmente para cada usuário selecionado.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
