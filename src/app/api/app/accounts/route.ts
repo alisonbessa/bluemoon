@@ -118,31 +118,58 @@ export const GET = withAuthRequired(async (req, context) => {
       if (!globalEnd || range.end > globalEnd) globalEnd = range.end;
     }
 
-    // Single query with the widest date range, grouped by accountId (fix 3.4)
+    // Fetch expenses and payments (transfers) for credit cards
     const ccIds = creditCardAccounts.map((a) => a.id);
-    const ccBills = await db
-      .select({
-        accountId: transactions.accountId,
-        amount: transactions.amount,
-        date: transactions.date,
-      })
-      .from(transactions)
-      .where(
-        and(
-          inArray(transactions.accountId, ccIds),
-          eq(transactions.type, "expense"),
-          inArray(transactions.status, ["pending", "cleared", "reconciled"]),
-          gte(transactions.date, globalStart!),
-          lte(transactions.date, globalEnd!)
-        )
-      );
+    const [ccBills, ccPayments] = await Promise.all([
+      db
+        .select({
+          accountId: transactions.accountId,
+          amount: transactions.amount,
+          date: transactions.date,
+        })
+        .from(transactions)
+        .where(
+          and(
+            inArray(transactions.accountId, ccIds),
+            eq(transactions.type, "expense"),
+            inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+            gte(transactions.date, globalStart!),
+            lte(transactions.date, globalEnd!)
+          )
+        ),
+      db
+        .select({
+          toAccountId: transactions.toAccountId,
+          amount: transactions.amount,
+          date: transactions.date,
+        })
+        .from(transactions)
+        .where(
+          and(
+            inArray(transactions.toAccountId, ccIds),
+            eq(transactions.type, "transfer"),
+            inArray(transactions.status, ["pending", "cleared", "reconciled"]),
+            gte(transactions.date, globalStart!),
+            lte(transactions.date, globalEnd!)
+          )
+        ),
+    ]);
 
-    // Group transactions by accountId for O(n+m) instead of O(n*m)
+    // Group expenses by accountId
     const txByAccount = new Map<string, typeof ccBills>();
     for (const row of ccBills) {
       const list = txByAccount.get(row.accountId) ?? [];
       list.push(row);
       txByAccount.set(row.accountId, list);
+    }
+
+    // Group payments by toAccountId
+    const paymentsByAccount = new Map<string, typeof ccPayments>();
+    for (const row of ccPayments) {
+      const accId = row.toAccountId!;
+      const list = paymentsByAccount.get(accId) ?? [];
+      list.push(row);
+      paymentsByAccount.set(accId, list);
     }
 
     // Aggregate per account filtered by its specific billing cycle
@@ -158,7 +185,17 @@ export const GET = withAuthRequired(async (req, context) => {
           total += Number(row.amount) || 0;
         }
       }
-      billsMap.set(account.id, total);
+
+      // Subtract payments (transfers to this card) within the billing cycle
+      let payments = 0;
+      for (const row of paymentsByAccount.get(account.id) ?? []) {
+        const txTime = new Date(row.date).getTime();
+        if (txTime >= startTime && txTime <= endTime) {
+          payments += Math.abs(Number(row.amount) || 0);
+        }
+      }
+
+      billsMap.set(account.id, Math.abs(total) - payments);
     }
   }
 

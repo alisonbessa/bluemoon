@@ -609,40 +609,73 @@ async function fetchStats(opts: {
     }
 
     const ccIds = creditCardAccounts.map((cc) => cc.id);
-    const ccTransactions = await db
-      .select({ accountId: transactions.accountId, amount: transactions.amount, date: transactions.date })
-      .from(transactions)
-      .where(and(
-        inArray(transactions.accountId, ccIds),
-        eq(transactions.type, "expense"),
-        gte(transactions.date, globalStart),
-        lte(transactions.date, globalEnd),
-        inArray(transactions.status, ["pending", "cleared", "reconciled"])
-      ));
 
-    const txByAccount = new Map<string, typeof ccTransactions>();
-    for (const tx of ccTransactions) {
-      const list = txByAccount.get(tx.accountId) ?? [];
+    // Fetch expenses on credit cards and payments (transfers) to credit cards
+    const [ccExpenses, ccPayments] = await Promise.all([
+      db
+        .select({ accountId: transactions.accountId, amount: transactions.amount, date: transactions.date })
+        .from(transactions)
+        .where(and(
+          inArray(transactions.accountId, ccIds),
+          eq(transactions.type, "expense"),
+          gte(transactions.date, globalStart),
+          lte(transactions.date, globalEnd),
+          inArray(transactions.status, ["pending", "cleared", "reconciled"])
+        )),
+      db
+        .select({ toAccountId: transactions.toAccountId, amount: transactions.amount, date: transactions.date })
+        .from(transactions)
+        .where(and(
+          inArray(transactions.toAccountId, ccIds),
+          eq(transactions.type, "transfer"),
+          gte(transactions.date, globalStart),
+          lte(transactions.date, globalEnd),
+          inArray(transactions.status, ["pending", "cleared", "reconciled"])
+        )),
+    ]);
+
+    const expensesByAccount = new Map<string, typeof ccExpenses>();
+    for (const tx of ccExpenses) {
+      const list = expensesByAccount.get(tx.accountId) ?? [];
       list.push(tx);
-      txByAccount.set(tx.accountId, list);
+      expensesByAccount.set(tx.accountId, list);
+    }
+
+    const paymentsByAccount = new Map<string, typeof ccPayments>();
+    for (const tx of ccPayments) {
+      const accId = tx.toAccountId!;
+      const list = paymentsByAccount.get(accId) ?? [];
+      list.push(tx);
+      paymentsByAccount.set(accId, list);
     }
 
     creditCards = creditCardAccounts.map((cc) => {
       const closedRange = closedRanges.get(cc.id)!;
       const openRange = openRanges.get(cc.id)!;
+      const closedStart = closedRange.start.getTime();
+      const closedEnd = closedRange.end.getTime();
+      const openStart = openRange.start.getTime();
+      const openEnd = openRange.end.getTime();
 
       let closedBill = 0;
       let openBill = 0;
 
-      for (const tx of txByAccount.get(cc.id) ?? []) {
+      for (const tx of expensesByAccount.get(cc.id) ?? []) {
         const txTime = new Date(tx.date).getTime();
-        if (txTime >= closedRange.start.getTime() && txTime <= closedRange.end.getTime()) {
+        if (txTime >= closedStart && txTime <= closedEnd) {
           closedBill += Math.abs(Number(tx.amount) || 0);
         }
-        if (txTime >= openRange.start.getTime() && txTime <= openRange.end.getTime()) {
+        if (txTime >= openStart && txTime <= openEnd) {
           openBill += Math.abs(Number(tx.amount) || 0);
         }
       }
+
+      // Subtract payments (transfers to this card) — reduces closed bill first
+      let totalPayments = 0;
+      for (const tx of paymentsByAccount.get(cc.id) ?? []) {
+        totalPayments += Math.abs(Number(tx.amount) || 0);
+      }
+      closedBill = Math.max(0, closedBill - totalPayments);
 
       const spent = closedBill + openBill;
       return {
