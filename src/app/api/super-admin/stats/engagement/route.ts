@@ -13,21 +13,30 @@ export const GET = withSuperAdminAuthRequired(async (req: NextRequest) => {
 
   const periodStart = startOfDay(subDays(new Date(), days));
   const periodStartISO = periodStart.toISOString();
+  const previousPeriodStart = startOfDay(subDays(new Date(), days * 2));
+  const previousPeriodStartISO = previousPeriodStart.toISOString();
 
   // Generate date array for the period
   const dates = Array.from({ length: days + 1 }, (_, i) => {
     return format(subDays(new Date(), days - i), "yyyy-MM-dd");
   });
 
+  // Generate date array for previous period
+  const prevDates = Array.from({ length: days + 1 }, (_, i) => {
+    return format(subDays(new Date(), days * 2 - i), "yyyy-MM-dd");
+  });
+
   const [
     dailyTransactionsResult,
+    prevDailyTransactionsResult,
     transactionsBySourceResult,
     transactionsByTypeResult,
     telegramDailyResult,
+    prevTelegramDailyResult,
     telegramResolutionResult,
     onboardingFunnelResult,
   ] = await Promise.all([
-    // Daily transactions count
+    // Daily transactions count - current period
     db
       .select({
         date: sql<string>`DATE(${transactions.createdAt})::text`,
@@ -35,6 +44,17 @@ export const GET = withSuperAdminAuthRequired(async (req: NextRequest) => {
       })
       .from(transactions)
       .where(sql`${transactions.createdAt} >= ${periodStartISO}::timestamp`)
+      .groupBy(sql`DATE(${transactions.createdAt})`)
+      .orderBy(sql`DATE(${transactions.createdAt})`),
+
+    // Daily transactions count - previous period
+    db
+      .select({
+        date: sql<string>`DATE(${transactions.createdAt})::text`,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(transactions)
+      .where(sql`${transactions.createdAt} >= ${previousPeriodStartISO}::timestamp AND ${transactions.createdAt} < ${periodStartISO}::timestamp`)
       .groupBy(sql`DATE(${transactions.createdAt})`)
       .orderBy(sql`DATE(${transactions.createdAt})`),
 
@@ -58,7 +78,7 @@ export const GET = withSuperAdminAuthRequired(async (req: NextRequest) => {
       .where(sql`${transactions.createdAt} >= ${periodStartISO}::timestamp`)
       .groupBy(transactions.type),
 
-    // Daily telegram messages
+    // Daily telegram messages - current period
     db
       .select({
         date: sql<string>`DATE(${telegramAILogs.createdAt})::text`,
@@ -67,6 +87,19 @@ export const GET = withSuperAdminAuthRequired(async (req: NextRequest) => {
       .from(telegramAILogs)
       .where(
         sql`${telegramAILogs.createdAt} >= ${periodStartISO}::timestamp`
+      )
+      .groupBy(sql`DATE(${telegramAILogs.createdAt})`)
+      .orderBy(sql`DATE(${telegramAILogs.createdAt})`),
+
+    // Daily telegram messages - previous period
+    db
+      .select({
+        date: sql<string>`DATE(${telegramAILogs.createdAt})::text`,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(telegramAILogs)
+      .where(
+        sql`${telegramAILogs.createdAt} >= ${previousPeriodStartISO}::timestamp AND ${telegramAILogs.createdAt} < ${periodStartISO}::timestamp`
       )
       .groupBy(sql`DATE(${telegramAILogs.createdAt})`)
       .orderBy(sql`DATE(${telegramAILogs.createdAt})`),
@@ -114,7 +147,7 @@ export const GET = withSuperAdminAuthRequired(async (req: NextRequest) => {
       ),
   ]);
 
-  // Build daily chart data
+  // Build daily chart data - current period
   const transactionsByDate = new Map(
     dailyTransactionsResult.map((r) => [r.date, Number(r.count)])
   );
@@ -126,6 +159,20 @@ export const GET = withSuperAdminAuthRequired(async (req: NextRequest) => {
     date,
     transactions: transactionsByDate.get(date) || 0,
     telegramMessages: telegramByDate.get(date) || 0,
+  }));
+
+  // Build daily chart data - previous period (indexed by day offset for overlay)
+  const prevTransactionsByDate = new Map(
+    prevDailyTransactionsResult.map((r) => [r.date, Number(r.count)])
+  );
+  const prevTelegramByDate = new Map(
+    prevTelegramDailyResult.map((r) => [r.date, Number(r.count)])
+  );
+
+  const prevDailyChart = prevDates.map((date) => ({
+    date,
+    transactions: prevTransactionsByDate.get(date) || 0,
+    telegramMessages: prevTelegramByDate.get(date) || 0,
   }));
 
   // Source breakdown
@@ -151,6 +198,7 @@ export const GET = withSuperAdminAuthRequired(async (req: NextRequest) => {
   return NextResponse.json({
     data: {
       dailyChart,
+      prevDailyChart,
       transactionsBySource: sourceMap,
       transactionsByType: typeMap,
       telegramResolutions: resolutionMap,
