@@ -10,8 +10,13 @@ import { CookieConsent } from "@/shared/components/cookie-consent";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
+function getBaseUrl() {
+  const url = process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com";
+  return url.startsWith("http") ? url : `https://${url}`;
+}
+
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com"),
+  metadataBase: new URL(getBaseUrl()),
   title: {
     template: `%s | ${appConfig.projectName}`,
     absolute: appConfig.projectName,
