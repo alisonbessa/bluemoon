@@ -6,7 +6,7 @@ interface StructuredDataProps {
 }
 
 export function StructuredData({ type = "WebSite", data = {} }: StructuredDataProps) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com.br";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com";
 
   const getStructuredData = () => {
     const baseData = {

@@ -10,7 +10,7 @@ import { CookieConsent } from "@/shared/components/cookie-consent";
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com.br"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com"),
   title: {
     template: `%s | ${appConfig.projectName}`,
     absolute: appConfig.projectName,

@@ -154,7 +154,7 @@ async function main() {
       if (!url) {
         console.log("\n❌ Uso: npx tsx scripts/telegram-webhook.ts set <URL> [SECRET]");
         console.log("\nExemplo:");
-        console.log("  npx tsx scripts/telegram-webhook.ts set https://hivebudget.com.br/api/telegram/webhook SEU_SECRET");
+        console.log("  npx tsx scripts/telegram-webhook.ts set https://hivebudget.com/api/telegram/webhook SEU_SECRET");
         process.exit(1);
       }
 
@@ -179,8 +179,8 @@ Comandos:
 Exemplos:
   npx tsx scripts/telegram-webhook.ts info
   npx tsx scripts/telegram-webhook.ts commands
-  npx tsx scripts/telegram-webhook.ts set https://hivebudget.com.br/api/telegram/webhook
-  npx tsx scripts/telegram-webhook.ts set https://hivebudget.com.br/api/telegram/webhook meu_secret_token
+  npx tsx scripts/telegram-webhook.ts set https://hivebudget.com/api/telegram/webhook
+  npx tsx scripts/telegram-webhook.ts set https://hivebudget.com/api/telegram/webhook meu_secret_token
   npx tsx scripts/telegram-webhook.ts delete
       `);
   }

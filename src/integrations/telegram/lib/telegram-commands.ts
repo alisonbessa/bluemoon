@@ -144,7 +144,7 @@ export async function handleStart(
       `👋 Bem-vindo ao <b>HiveBudget</b>!\n\n` +
         `Para registrar seus gastos pelo Telegram, você precisa conectar sua conta.\n\n` +
         `<b>Como conectar:</b>\n` +
-        `1. Acesse o app em hivebudget.com.br\n` +
+        `1. Acesse o app em hivebudget.com\n` +
         `2. Vá em Configurações > Conectar Telegram\n` +
         `3. Clique no link gerado\n\n` +
         `Aguardando conexão...`
