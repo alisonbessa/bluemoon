@@ -39,6 +39,8 @@ export const Layout = ({ children, previewText }: LayoutProps) => {
                 border: "#e5e7eb",
                 muted: "#6b7280",
                 ["primary-foreground"]: "#ffffff",
+                destructive: "#dc2626",
+                ["destructive-foreground"]: "#ffffff",
               },
             },
           },

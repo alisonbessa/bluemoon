@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Button, Text, Hr, Section } from "@react-email/components";
 import Layout from "./components/Layout";
+import { RejectButton } from "./components/RejectButton";
 import { appConfig } from "@/shared/lib/config";
 
 const PRIVACY_MODE_LABELS: Record<string, string> = {
@@ -67,12 +68,7 @@ export default function PrivacyChangeRequestEmail({
       </Section>
 
       <Section className="mt-3 text-center">
-        <Button
-          href={rejectUrl}
-          className="bg-muted text-muted-foreground rounded-md py-3 px-6 font-semibold"
-        >
-          Rejeitar
-        </Button>
+        <RejectButton href={rejectUrl}>Rejeitar</RejectButton>
       </Section>
 
       <Hr className="border border-solid border-border my-[26px] mx-0 w-full" />
