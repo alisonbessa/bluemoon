@@ -67,7 +67,7 @@ async function handleAIMessage(chatId: number, text: string, userId: string, mes
     await sendMessage(
       chatId,
       "Você precisa configurar seu orçamento primeiro no app.\n\n" +
-        "Acesse hivebudget.com.br e complete a configuração."
+        "Acesse hivebudget.com e complete a configuração."
     );
     return;
   }

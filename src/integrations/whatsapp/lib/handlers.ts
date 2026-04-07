@@ -78,7 +78,7 @@ async function handleAIMessage(
     await adapter.sendMessage(
       phoneNumber,
       "Você precisa configurar seu orçamento primeiro no app.\n\n" +
-        "Acesse hivebudget.com.br e complete a configuração."
+        "Acesse hivebudget.com e complete a configuração."
     );
     return;
   }
