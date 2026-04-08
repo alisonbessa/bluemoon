@@ -195,7 +195,7 @@ export async function fetchBudgetAllocationsData(opts: {
           eq(transactions.budgetId, budgetId),
           gte(transactions.date, startDate),
           lte(transactions.date, endDate),
-          inArray(transactions.status, ["cleared", "reconciled"]),
+          inArray(transactions.status, ["pending", "cleared", "reconciled"]),
           ...(txViewCondition ? [txViewCondition] : [])
         )
       )
@@ -281,7 +281,7 @@ export async function fetchBudgetAllocationsData(opts: {
           eq(transactions.budgetId, budgetId),
           gte(transactions.date, prevStartDate),
           lte(transactions.date, prevEndDate),
-          inArray(transactions.status, ["cleared", "reconciled"])
+          inArray(transactions.status, ["pending", "cleared", "reconciled"])
         )
       )
       .groupBy(transactions.categoryId);

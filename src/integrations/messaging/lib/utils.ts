@@ -48,6 +48,17 @@ export function formatInstallmentMonths(totalInstallments: number): string {
 }
 
 /**
+ * Get the undo hint text appropriate for the platform.
+ * Telegram uses /desfazer (slash command), WhatsApp uses plain "desfazer".
+ */
+export function getUndoHint(platform: "telegram" | "whatsapp"): string {
+  if (platform === "whatsapp") {
+    return "Envie *desfazer* para remover.";
+  }
+  return "Use /desfazer para remover.";
+}
+
+/**
  * Extract amount and description from text
  */
 export function parseExpenseInput(text: string): {
