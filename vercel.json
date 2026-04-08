@@ -4,12 +4,6 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.hivebudget.com" }],
-      "destination": "https://hivebudget.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/:path*",
       "has": [{ "type": "host", "value": "hivebudget.com.br" }],
       "destination": "https://hivebudget.com/:path*",
       "permanent": true

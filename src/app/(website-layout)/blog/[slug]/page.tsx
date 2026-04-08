@@ -102,7 +102,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     || `${process.env.NEXT_PUBLIC_APP_URL}/api/og?title=${encodeURIComponent(post.title)}`;
 
   return {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL!),
+    metadataBase: new URL(
+      (process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com").startsWith("http")
+        ? process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com"
+        : `https://${process.env.NEXT_PUBLIC_APP_URL}`
+    ),
     title,
     description,
     keywords: post.seoKeywords || post.tags,

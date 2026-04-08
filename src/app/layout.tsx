@@ -3,18 +3,20 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { appConfig } from "@/shared/lib/config";
 import Providers from "./Providers";
+import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { CookieConsent } from "@/shared/components/cookie-consent";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
 
+function getBaseUrl() {
+  const url = process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com";
+  return url.startsWith("http") ? url : `https://${url}`;
+}
+
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    (process.env.NEXT_PUBLIC_APP_URL?.startsWith("http")
-      ? process.env.NEXT_PUBLIC_APP_URL
-      : `https://${process.env.NEXT_PUBLIC_APP_URL}`) || "https://hivebudget.com"
-  ),
+  metadataBase: new URL(getBaseUrl()),
   title: {
     template: `%s | ${appConfig.projectName}`,
     absolute: appConfig.projectName,
@@ -53,6 +55,7 @@ export default function RootLayout({
           <div id="main-content">{children}</div>
           <CookieConsent />
         </Providers>
+        <Analytics />
         <SpeedInsights />
         {process.env.NEXT_PUBLIC_GA_ID && (
           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
