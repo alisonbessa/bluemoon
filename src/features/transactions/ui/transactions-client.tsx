@@ -135,18 +135,25 @@ export function TransactionsClient({
   const isPastMonth = periodValue.year < new Date().getFullYear() ||
     (periodValue.year === new Date().getFullYear() && periodValue.month < new Date().getMonth() + 1);
 
-  const { confirmedIncome, confirmedExpenses } = useMemo(() => {
+  const { confirmedIncome, confirmedExpenses, totalIncome, totalExpenses } = useMemo(() => {
     const isGoalContribution = (t: Transaction) =>
       t.type === "transfer" && t.description?.startsWith("Contribuição para meta");
+    const confirmed = transactions.filter((t) => t.status !== "pending");
     return {
-      confirmedIncome: confirmedTransactions
+      confirmedIncome: confirmed
         .filter((t) => t.type === "income")
         .reduce((sum, t) => sum + t.amount, 0),
-      confirmedExpenses: confirmedTransactions
+      confirmedExpenses: confirmed
+        .filter((t) => t.type === "expense" || isGoalContribution(t))
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0),
+      totalIncome: transactions
+        .filter((t) => t.type === "income")
+        .reduce((sum, t) => sum + t.amount, 0),
+      totalExpenses: transactions
         .filter((t) => t.type === "expense" || isGoalContribution(t))
         .reduce((sum, t) => sum + Math.abs(t.amount), 0),
     };
-  }, [confirmedTransactions]);
+  }, [transactions]);
 
   // ============== HANDLERS ==============
   const handleDelete = useCallback(async () => {
@@ -421,7 +428,7 @@ export function TransactionsClient({
       />
 
       {/* Summary Cards */}
-      <TransactionSummary income={confirmedIncome} expenses={confirmedExpenses} />
+      <TransactionSummary income={confirmedIncome} expenses={confirmedExpenses} totalIncome={totalIncome} totalExpenses={totalExpenses} />
 
       {/* Filters - Desktop */}
       <TransactionFiltersBar
