@@ -94,13 +94,29 @@ interface TransactionWidgetProps {
   onDeleteConfirmed?: (transaction: ConfirmedTransaction) => void;
   onDeletePending?: (transaction: ScheduledTransaction) => void;
   onRevertConfirmed?: (transaction: ConfirmedTransaction) => void;
-  // Bulk selection (only applies to confirmed transactions that live in DB)
-  selectedIds?: Set<string>;
-  onToggleSelect?: (id: string) => void;
+  // Bulk selection - pending stores full objects (synthetic IDs), confirmed stores UUIDs
+  selectedPending?: Map<string, PendingBulkItem>;
+  selectedConfirmedIds?: Set<string>;
+  onTogglePendingSelect?: (item: PendingBulkItem) => void;
+  onToggleConfirmedSelect?: (id: string) => void;
+  onSelectAllPending?: (items: PendingBulkItem[]) => void;
   onSelectAllConfirmed?: (ids: string[]) => void;
   // Month actions
   onStartMonth?: () => Promise<void>;
   onCopyPreviousMonth?: () => Promise<void>;
+}
+
+export interface PendingBulkItem {
+  id: string;
+  type: "income" | "expense";
+  amount: number;
+  name: string;
+  categoryId?: string;
+  incomeSourceId?: string;
+  recurringBillId?: string;
+  goalId?: string;
+  sourceType: string;
+  dueDate: string;
 }
 
 export function TransactionWidget({
@@ -121,8 +137,11 @@ export function TransactionWidget({
   onDeleteConfirmed,
   onDeletePending,
   onRevertConfirmed,
-  selectedIds,
-  onToggleSelect,
+  selectedPending,
+  selectedConfirmedIds,
+  onTogglePendingSelect,
+  onToggleConfirmedSelect,
+  onSelectAllPending,
   onSelectAllConfirmed,
   onStartMonth,
   onCopyPreviousMonth,
@@ -316,7 +335,37 @@ export function TransactionWidget({
           {/* Pending Section */}
           {unpaidScheduled.length > 0 && (
             <div>
-              <div className="px-3 py-2 bg-amber-50 dark:bg-amber-950/20 border-y">
+              <div className="flex items-center gap-3 px-3 py-2 bg-amber-50 dark:bg-amber-950/20 border-y">
+                {onSelectAllPending && selectedPending && (
+                  <Checkbox
+                    checked={
+                      unpaidScheduled.length > 0 &&
+                      unpaidScheduled.every((t) => selectedPending.has(t.id))
+                    }
+                    onCheckedChange={(checked) => {
+                      const items = unpaidScheduled.map((t) => ({
+                        id: t.id,
+                        type: t.type,
+                        amount: t.amount,
+                        name: t.name,
+                        categoryId: t.categoryId,
+                        incomeSourceId: t.incomeSourceId,
+                        recurringBillId: t.recurringBillId,
+                        goalId: t.goalId,
+                        sourceType: t.sourceType,
+                        dueDate: t.dueDate,
+                      }));
+                      if (checked) {
+                        onSelectAllPending(items);
+                      } else {
+                        items.forEach((i) => {
+                          if (selectedPending.has(i.id)) onTogglePendingSelect?.(i);
+                        });
+                      }
+                    }}
+                    aria-label="Selecionar todas pendentes"
+                  />
+                )}
                 <span className="text-xs font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wide">
                   Pendentes
                 </span>
@@ -325,15 +374,35 @@ export function TransactionWidget({
                 {unpaidScheduled.map((item) => {
                   const isOverdue = isCurrentMonth && item.dueDay < currentDay;
                   const isToday = isCurrentMonth && item.dueDay === currentDay;
+                  const bulkItem = {
+                    id: item.id,
+                    type: item.type,
+                    amount: item.amount,
+                    name: item.name,
+                    categoryId: item.categoryId,
+                    incomeSourceId: item.incomeSourceId,
+                    recurringBillId: item.recurringBillId,
+                    goalId: item.goalId,
+                    sourceType: item.sourceType,
+                    dueDate: item.dueDate,
+                  };
 
                   return (
                     <div
                       key={item.id}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2",
-                        isOverdue && "bg-red-50 dark:bg-red-950/20"
+                        isOverdue && "bg-red-50 dark:bg-red-950/20",
+                        selectedPending?.has(item.id) && "bg-muted/40"
                       )}
                     >
+                      {onTogglePendingSelect && selectedPending && (
+                        <Checkbox
+                          checked={selectedPending.has(item.id)}
+                          onCheckedChange={() => onTogglePendingSelect(bulkItem)}
+                          aria-label="Selecionar transação pendente"
+                        />
+                      )}
                       <div className="flex items-center justify-center w-6">
                         <span className="text-base">{item.icon || (item.type === "income" ? "💰" : "📋")}</span>
                       </div>
@@ -419,11 +488,11 @@ export function TransactionWidget({
           {sortedConfirmed.length > 0 && (
             <div>
               <div className="flex items-center gap-3 px-3 py-2 bg-green-50 dark:bg-green-950/20 border-y">
-                {onSelectAllConfirmed && selectedIds && (
+                {onSelectAllConfirmed && selectedConfirmedIds && (
                   <Checkbox
                     checked={
                       sortedConfirmed.length > 0 &&
-                      sortedConfirmed.every((t) => selectedIds.has(t.id))
+                      sortedConfirmed.every((t) => selectedConfirmedIds.has(t.id))
                     }
                     onCheckedChange={(checked) => {
                       const ids = sortedConfirmed.map((t) => t.id);
@@ -431,7 +500,7 @@ export function TransactionWidget({
                         onSelectAllConfirmed(ids);
                       } else {
                         ids.forEach((id) => {
-                          if (selectedIds.has(id)) onToggleSelect?.(id);
+                          if (selectedConfirmedIds.has(id)) onToggleConfirmedSelect?.(id);
                         });
                       }
                     }}
@@ -448,14 +517,14 @@ export function TransactionWidget({
                     key={transaction.id}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2",
-                      selectedIds?.has(transaction.id) && "bg-muted/40"
+                      selectedConfirmedIds?.has(transaction.id) && "bg-muted/40"
                     )}
                   >
-                    {onToggleSelect && selectedIds && (
+                    {onToggleConfirmedSelect && selectedConfirmedIds && (
                       <Checkbox
-                        checked={selectedIds.has(transaction.id)}
-                        onCheckedChange={() => onToggleSelect(transaction.id)}
-                        aria-label="Selecionar transacao"
+                        checked={selectedConfirmedIds.has(transaction.id)}
+                        onCheckedChange={() => onToggleConfirmedSelect(transaction.id)}
+                        aria-label="Selecionar transação"
                       />
                     )}
                     <div className="flex items-center justify-center w-6">

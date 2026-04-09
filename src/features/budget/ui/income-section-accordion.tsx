@@ -39,7 +39,9 @@ interface IncomeSectionAccordionProps {
 // Helper to get the value based on view mode for income
 function getIncomeDisplayValue(
   planned: number,
+  pending: number,
   received: number,
+  saldo: number,
   mode: MobileViewMode
 ): { value: number; colorClass: string } {
   switch (mode) {
@@ -47,23 +49,14 @@ function getIncomeDisplayValue(
       return { value: planned, colorClass: 'text-green-800 dark:text-green-200' };
     case 'actual':
       return { value: received, colorClass: 'text-green-600 dark:text-green-400' };
-    case 'pending': {
-      // For income, "pending" shows what's still expected
-      const remaining = planned - received;
-      return {
-        value: Math.max(0, remaining),
-        colorClass: 'text-amber-600',
-      };
-    }
+    case 'pending':
+      return { value: pending, colorClass: pending > 0 ? 'text-amber-600' : '' };
     case 'saldo':
-    default: {
-      // Saldo for income = what's still expected (or surplus)
-      const saldo = planned - received;
+    default:
       return {
-        value: Math.abs(saldo),
-        colorClass: received < planned ? 'text-red-600' : 'text-green-600',
+        value: saldo,
+        colorClass: saldo > 0 ? 'text-red-600' : 'text-green-600',
       };
-    }
   }
 }
 
@@ -86,16 +79,17 @@ export function IncomeSectionAccordion({
     return (
       <div className="border-b-4 border-green-200 dark:border-green-900">
         <div
-          className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b items-center"
+          className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b items-center"
         >
           <div />
           <div className="flex items-center gap-2">
             <span className="text-lg">💰</span>
             <span className="font-bold text-sm text-green-800 dark:text-green-200">RECEITAS</span>
           </div>
-          <div className="hidden sm:block text-sm font-bold tabular-nums text-green-800 dark:text-green-200">R$ 0,00</div>
-          <div className="hidden sm:block text-sm font-bold tabular-nums text-green-600 dark:text-green-400">R$ 0,00</div>
-          <div className="hidden sm:block text-sm font-bold tabular-nums">R$ 0,00</div>
+          <div className="hidden sm:block text-sm font-bold tabular-nums text-green-800 dark:text-green-200 text-right pr-2">R$ 0,00</div>
+          <div className="hidden sm:block text-sm font-bold tabular-nums text-right pr-2">R$ 0,00</div>
+          <div className="hidden sm:block text-sm font-bold tabular-nums text-green-600 dark:text-green-400 text-right pr-2">R$ 0,00</div>
+          <div className="hidden sm:block text-sm font-bold tabular-nums text-right pr-2">R$ 0,00</div>
           <div className="sm:hidden text-xs font-bold tabular-nums pr-2">R$ 0,00</div>
           <div className="sm:hidden" />
         </div>
@@ -118,7 +112,7 @@ export function IncomeSectionAccordion({
     <div className="border-b-4 border-green-200 dark:border-green-900">
       {/* Income Section Header - Clickable Toggle */}
       <div
-        className="group grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b items-center cursor-pointer hover:bg-green-200/50 dark:hover:bg-green-950/70 transition-colors"
+        className="group grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-2 bg-green-100 dark:bg-green-950/50 border-b items-center cursor-pointer hover:bg-green-200/50 dark:hover:bg-green-950/70 transition-colors"
         onClick={onToggle}
       >
         <ChevronDown
@@ -143,30 +137,34 @@ export function IncomeSectionAccordion({
             <Plus className="h-3.5 w-3.5 text-green-700 dark:text-green-300" />
           </button>
         </div>
-        <div className="hidden sm:block text-sm font-bold tabular-nums text-green-800 dark:text-green-200">
+        <div className="hidden sm:block text-sm font-bold tabular-nums text-green-800 dark:text-green-200 text-right pr-2">
           {formatCurrency(incomeData.totals.planned)}
         </div>
-        <div className="hidden sm:block text-sm font-bold tabular-nums text-green-600 dark:text-green-400">
+        <div className={cn(
+          "hidden sm:block text-sm font-bold tabular-nums text-right pr-2",
+          incomeData.totals.pending > 0 ? "text-amber-600" : "text-green-800 dark:text-green-200"
+        )}>
+          {formatCurrency(incomeData.totals.pending)}
+        </div>
+        <div className="hidden sm:block text-sm font-bold tabular-nums text-green-600 dark:text-green-400 text-right pr-2">
           {formatCurrency(incomeData.totals.received)}
         </div>
-        {/* Desktop: always show available */}
+        {/* Desktop: Saldo = planned - pending - received */}
         <div
           className={cn(
-            'hidden sm:block text-sm font-bold tabular-nums',
-            incomeData.totals.received < incomeData.totals.planned
-              ? 'text-red-600'
-              : 'text-green-600'
+            'hidden sm:block text-sm font-bold tabular-nums text-right pr-2',
+            incomeData.totals.saldo > 0 ? 'text-red-600' : 'text-green-600'
           )}
         >
-          {formatCurrency(
-            Math.abs(incomeData.totals.planned - incomeData.totals.received)
-          )}
+          {formatCurrency(incomeData.totals.saldo)}
         </div>
         {/* Mobile: show based on view mode */}
         {(() => {
           const display = getIncomeDisplayValue(
             incomeData.totals.planned,
+            incomeData.totals.pending,
             incomeData.totals.received,
+            incomeData.totals.saldo,
             mobileViewMode
           );
           return (
@@ -192,16 +190,22 @@ export function IncomeSectionAccordion({
       <AccordionContent isOpen={isExpanded}>
         <div>
           {/* Income Table Header */}
-          <div className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
+          <div className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-green-50/50 dark:bg-green-950/20">
             <div />
             <div>Fonte</div>
-            <div className="hidden sm:block">Planejado</div>
-            <div className="hidden sm:block">Realizado</div>
-            {/* Desktop: always show Disp. */}
-            <div className="hidden sm:block">Disp.</div>
+            <div className="hidden sm:block text-right pr-2">Planejado</div>
+            <div className="hidden sm:block text-right pr-2">Pendente</div>
+            <div className="hidden sm:block text-right pr-2">Realizado</div>
+            <div className="hidden sm:block text-right pr-2">Saldo</div>
             {/* Mobile: show based on view mode */}
             <div className="sm:hidden">
-              {mobileViewMode === 'planned' ? 'Plan.' : mobileViewMode === 'actual' ? 'Real.' : 'Disp.'}
+              {mobileViewMode === 'planned'
+                ? 'Plan.'
+                : mobileViewMode === 'pending'
+                  ? 'Pend.'
+                  : mobileViewMode === 'actual'
+                    ? 'Real.'
+                    : 'Saldo'}
             </div>
             <div className="sm:hidden" />
           </div>
@@ -274,14 +278,11 @@ function IncomeMemberSection({
   onAddSource,
   mobileViewMode = 'saldo',
 }: IncomeMemberSectionProps) {
-  const memberAvailable =
-    memberGroup.totals.planned - memberGroup.totals.received;
-
   return (
     <div>
       {/* Member Row */}
       <div
-        className="group grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center bg-green-50/50 dark:bg-green-950/20 border-b cursor-pointer hover:bg-green-100/50 dark:hover:bg-green-950/40 text-sm"
+        className="group grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-1.5 items-center bg-green-50/50 dark:bg-green-950/20 border-b cursor-pointer hover:bg-green-100/50 dark:hover:bg-green-950/40 text-sm"
         onClick={onToggle}
       >
         <div />
@@ -318,28 +319,33 @@ function IncomeMemberSection({
             <Plus className="h-3.5 w-3.5 text-green-700 dark:text-green-300" />
           </button>
         </div>
-        <div className="hidden sm:block text-xs tabular-nums font-bold">
+        <div className="hidden sm:block text-xs tabular-nums font-bold text-right pr-2">
           {formatCurrency(memberGroup.totals.planned)}
         </div>
-        <div className="hidden sm:block text-xs tabular-nums font-bold text-green-600 dark:text-green-400">
+        <div className={cn(
+          "hidden sm:block text-xs tabular-nums font-bold text-right pr-2",
+          memberGroup.totals.pending > 0 && "text-amber-600"
+        )}>
+          {formatCurrency(memberGroup.totals.pending)}
+        </div>
+        <div className="hidden sm:block text-xs tabular-nums font-bold text-green-600 dark:text-green-400 text-right pr-2">
           {formatCurrency(memberGroup.totals.received)}
         </div>
-        {/* Desktop: always show available */}
         <div
           className={cn(
-            'hidden sm:block text-xs tabular-nums font-bold',
-            memberGroup.totals.received < memberGroup.totals.planned
-              ? 'text-red-600'
-              : 'text-green-600'
+            'hidden sm:block text-xs tabular-nums font-bold text-right pr-2',
+            memberGroup.totals.saldo > 0 ? 'text-red-600' : 'text-green-600'
           )}
         >
-          {formatCurrency(Math.abs(memberAvailable))}
+          {formatCurrency(memberGroup.totals.saldo)}
         </div>
         {/* Mobile: show based on view mode */}
         {(() => {
           const display = getIncomeDisplayValue(
             memberGroup.totals.planned,
+            memberGroup.totals.pending,
             memberGroup.totals.received,
+            memberGroup.totals.saldo,
             mobileViewMode
           );
           return (
@@ -412,12 +418,11 @@ function IncomeSourceRow({
 }: IncomeSourceRowProps) {
   const isIgnored = item.planned === 0 && item.defaultAmount > 0;
   const isEdited = !isIgnored && item.planned !== item.defaultAmount;
-  const available = item.planned - item.received;
 
   return (
     <div
       className={cn(
-        'group/row grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center border-b text-sm',
+        'group/row grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-1.5 items-center border-b text-sm',
         isIgnored
           ? 'opacity-50 hover:opacity-70'
           : 'hover:bg-green-50/50 dark:hover:bg-green-950/20 cursor-pointer'
@@ -471,24 +476,29 @@ function IncomeSourceRow({
           )}
         </div>
       </div>
-      <div className="hidden sm:block text-xs tabular-nums">
+      <div className="hidden sm:block text-xs tabular-nums text-right pr-2">
         {formatCurrency(item.planned)}
       </div>
-      <div className="hidden sm:block text-xs tabular-nums text-green-600 dark:text-green-400">
+      <div className={cn(
+        "hidden sm:block text-xs tabular-nums text-right pr-2",
+        item.pending > 0 && "text-amber-600"
+      )}>
+        {formatCurrency(item.pending)}
+      </div>
+      <div className="hidden sm:block text-xs tabular-nums text-green-600 dark:text-green-400 text-right pr-2">
         {formatCurrency(item.received)}
       </div>
-      {/* Desktop: always show available */}
       <div
         className={cn(
-          'hidden sm:block text-xs tabular-nums',
-          item.received < item.planned ? 'text-red-600' : 'text-green-600'
+          'hidden sm:block text-xs tabular-nums text-right pr-2',
+          item.saldo > 0 ? 'text-red-600' : 'text-green-600'
         )}
       >
-        {formatCurrency(Math.abs(available))}
+        {formatCurrency(item.saldo)}
       </div>
       {/* Mobile: show based on view mode */}
       {(() => {
-        const display = getIncomeDisplayValue(item.planned, item.received, mobileViewMode);
+        const display = getIncomeDisplayValue(item.planned, item.pending, item.received, item.saldo, mobileViewMode);
         return (
           <div className={cn('sm:hidden text-xs tabular-nums pr-2', display.colorClass)}>
             {formatCurrency(display.value)}

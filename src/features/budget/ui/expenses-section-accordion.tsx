@@ -138,7 +138,7 @@ export function ExpensesSectionAccordion({
     <>
       {/* Expenses Section Header - Clickable Toggle */}
       <div
-        className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_85px_85px_85px_90px] px-3 sm:px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b items-center cursor-pointer hover:bg-red-200/50 dark:hover:bg-red-950/70 transition-colors"
+        className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b items-center cursor-pointer hover:bg-red-200/50 dark:hover:bg-red-950/70 transition-colors"
         onClick={onToggle}
       >
         <ChevronDown
@@ -188,7 +188,7 @@ export function ExpensesSectionAccordion({
 
       <AccordionContent isOpen={isExpanded}>
         {/* Expenses Table Header */}
-        <div className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_85px_85px_85px_90px] px-3 sm:px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
+        <div className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
           <div />
           <div>Categoria</div>
           <div className="hidden sm:block text-right pr-2">Planejado</div>
@@ -220,7 +220,7 @@ export function ExpensesSectionAccordion({
             <div key={group.id}>
               {/* Group Row */}
               <div
-                className="group grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_85px_85px_85px_90px] px-3 sm:px-4 py-1.5 items-center bg-muted/40 border-b cursor-pointer hover:bg-muted/60 text-sm"
+                className="group grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-1.5 items-center bg-muted/40 border-b cursor-pointer hover:bg-muted/60 text-sm"
                 onClick={() => {
                   // Clicking the row always ensures the group is expanded
                   if (!isGroupExpanded) onToggleGroup(group.id);
@@ -350,7 +350,7 @@ export function ExpensesSectionAccordion({
                     return (
                       <div
                         key={item.category.id}
-                        className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_85px_85px_85px_90px] px-3 sm:px-4 py-1.5 items-center border-b text-sm opacity-75 cursor-default"
+                        className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-1.5 items-center border-b text-sm opacity-75 cursor-default"
                         data-tutorial="category-row"
                       >
                         <div className="h-3.5 w-3.5" />

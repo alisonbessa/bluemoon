@@ -28,6 +28,7 @@ import { RecurringBillItem } from './recurring-bill-item';
 import { CategoryTransactionItem, type CategoryTransaction } from './category-transaction-item';
 import { UnifiedExpenseForm } from '@/features/expenses';
 import { useTransactionCacheInvalidation } from '@/features/transactions/hooks/use-transaction-cache-invalidation';
+import { useViewMode } from '@/shared/providers/view-mode-provider';
 import type {
   Category,
   CategoryAllocation,
@@ -96,12 +97,13 @@ export function CategoryWithBills({
   const [deletingBill, setDeletingBill] = useState<RecurringBillSummary | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const invalidateCaches = useTransactionCacheInvalidation();
+  const { viewMode } = useViewMode();
 
   // Fetch transactions for this category (only when expanded)
   const startDate = new Date(year, month - 1, 1).toISOString();
   const endDate = new Date(year, month, 0, 23, 59, 59).toISOString();
   const txKey = isExpanded
-    ? `/api/app/transactions?budgetId=${budgetId}&categoryId=${item.category.id}&startDate=${startDate}&endDate=${endDate}&limit=200`
+    ? `/api/app/transactions?budgetId=${budgetId}&categoryId=${item.category.id}&startDate=${startDate}&endDate=${endDate}&viewMode=${viewMode}&limit=200`
     : null;
   const { data: txData, mutate: mutateTxList } = useSWR<{ transactions: CategoryTransaction[] }>(txKey);
   const categoryTransactions = txData?.transactions ?? [];
@@ -217,7 +219,7 @@ export function CategoryWithBills({
       {/* Category Row */}
       <div
         className={cn(
-          'group/row grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_85px_85px_85px_90px] px-3 sm:px-4 py-1.5 items-center border-b hover:bg-muted/20 text-sm cursor-pointer'
+          'group/row grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-1.5 items-center border-b hover:bg-muted/20 text-sm cursor-pointer'
         )}
         onClick={handleCategoryClick}
         data-tutorial="category-row"

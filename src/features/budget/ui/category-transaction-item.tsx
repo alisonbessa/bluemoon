@@ -41,20 +41,19 @@ export function CategoryTransactionItem({
     <div
       className={cn(
         'flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-muted/40',
-        isPending && 'bg-amber-50/40 dark:bg-amber-950/10'
+        isPending && 'bg-amber-50/50 dark:bg-amber-950/20 border-l-2 border-amber-500'
       )}
     >
-      {/* Status dot */}
-      <div
-        className={cn(
-          'w-1.5 h-1.5 rounded-full shrink-0',
-          isPending ? 'bg-amber-500' : 'bg-green-500'
-        )}
-      />
-
       {/* Description + date */}
       <div className="flex-1 min-w-0">
-        <span className="truncate block">{tx.description || 'Sem descrição'}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="truncate">{tx.description || 'Sem descrição'}</span>
+          {isPending && (
+            <span className="shrink-0 px-1 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 rounded uppercase tracking-wide">
+              Pendente
+            </span>
+          )}
+        </div>
         <span className="text-[10px] text-muted-foreground">
           {format(parseLocalDate(tx.date), 'dd MMM', { locale: ptBR })}
           {tx.account?.name && ` · ${tx.account.name}`}
@@ -62,7 +61,10 @@ export function CategoryTransactionItem({
       </div>
 
       {/* Amount */}
-      <span className="tabular-nums font-medium text-red-600">
+      <span className={cn(
+        "tabular-nums font-medium",
+        isPending ? "text-amber-600" : "text-red-600"
+      )}>
         -{formatCurrencyCompact(Math.abs(tx.amount))}
       </span>
 

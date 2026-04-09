@@ -168,30 +168,75 @@ export function TransactionsClient({
   }, [transactions]);
 
   // ============== SELECTION STATE ==============
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Two separate maps - only one section can have selections at a time.
+  // Pending items are scheduled (synthetic IDs), so we store the full object.
+  type PendingItem = {
+    id: string;
+    type: "income" | "expense";
+    amount: number;
+    name: string;
+    categoryId?: string;
+    incomeSourceId?: string;
+    recurringBillId?: string;
+    goalId?: string;
+    sourceType: string;
+    dueDate: string;
+  };
+  const [selectedPending, setSelectedPending] = useState<Map<string, PendingItem>>(new Map());
+  const [selectedConfirmedIds, setSelectedConfirmedIds] = useState<Set<string>>(new Set());
   const [bulkPending, setBulkPending] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const invalidateCaches = useTransactionCacheInvalidation();
 
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+  const activeSelection: "pending" | "confirmed" | null =
+    selectedPending.size > 0
+      ? "pending"
+      : selectedConfirmedIds.size > 0
+        ? "confirmed"
+        : null;
+  const selectionCount = selectedPending.size + selectedConfirmedIds.size;
+
+  const togglePendingSelect = useCallback((item: PendingItem) => {
+    setSelectedPending((prev) => {
+      const next = new Map(prev);
+      if (next.has(item.id)) {
+        next.delete(item.id);
+      } else {
+        next.set(item.id, item);
+        // Selecting pending clears confirmed
+        setSelectedConfirmedIds(new Set());
+      }
       return next;
     });
+  }, []);
+
+  const toggleConfirmedSelect = useCallback((id: string) => {
+    setSelectedConfirmedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+        // Selecting confirmed clears pending
+        setSelectedPending(new Map());
+      }
+      return next;
+    });
+  }, []);
+
+  const selectAllPending = useCallback((items: PendingItem[]) => {
+    setSelectedPending(new Map(items.map((i) => [i.id, i])));
+    setSelectedConfirmedIds(new Set());
   }, []);
 
   const selectAllConfirmed = useCallback((ids: string[]) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      ids.forEach((id) => next.add(id));
-      return next;
-    });
+    setSelectedConfirmedIds(new Set(ids));
+    setSelectedPending(new Map());
   }, []);
 
   const clearSelection = useCallback(() => {
-    setSelectedIds(new Set());
+    setSelectedPending(new Map());
+    setSelectedConfirmedIds(new Set());
   }, []);
 
   // ============== HANDLERS ==============
@@ -424,9 +469,11 @@ export function TransactionsClient({
     [fetchData, triggerWidgetRefresh, invalidateCaches]
   );
 
-  const runBulkAction = useCallback(
+  // Bulk action for CONFIRMED section (uses bulk API, passes real transaction IDs)
+  const runConfirmedBulkAction = useCallback(
     async (action: "updateStatus" | "delete", status?: "pending" | "cleared") => {
-      if (selectedIds.size === 0) return;
+      const ids = Array.from(selectedConfirmedIds);
+      if (ids.length === 0) return;
       setBulkPending(true);
       try {
         const res = await fetch("/api/app/transactions/bulk", {
@@ -434,16 +481,14 @@ export function TransactionsClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action,
-            transactionIds: Array.from(selectedIds),
+            transactionIds: ids,
             ...(status && { status }),
           }),
         });
         if (!res.ok) throw new Error();
         const data = await res.json();
         const successCount = data.success ?? 0;
-        if (action === "updateStatus" && status === "cleared") {
-          toast.success(`${successCount} transações confirmadas`);
-        } else if (action === "updateStatus" && status === "pending") {
+        if (action === "updateStatus" && status === "pending") {
           toast.success(`${successCount} transações voltaram para pendente`);
         } else if (action === "delete") {
           toast.success(`${successCount} transações excluídas`);
@@ -459,18 +504,96 @@ export function TransactionsClient({
         setBulkPending(false);
       }
     },
-    [selectedIds, clearSelection, invalidateCaches, triggerWidgetRefresh, fetchData]
+    [selectedConfirmedIds, clearSelection, invalidateCaches, triggerWidgetRefresh, fetchData]
   );
 
-  const handleBulkConfirm = useCallback(
-    () => runBulkAction("updateStatus", "cleared"),
-    [runBulkAction]
+  // Bulk action for PENDING section (loops because items are scheduled/synthetic)
+  const runPendingBulkAction = useCallback(
+    async (action: "confirm" | "delete") => {
+      const items = Array.from(selectedPending.values());
+      if (items.length === 0) return;
+      setBulkPending(true);
+      let successCount = 0;
+      let failedCount = 0;
+      try {
+        for (const item of items) {
+          try {
+            if (action === "confirm") {
+              if (accounts.length === 0) {
+                failedCount++;
+                continue;
+              }
+              const res = await fetch("/api/app/transactions/confirm-scheduled", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  budgetId: budgets[0]?.id,
+                  type: item.type,
+                  amount: item.amount,
+                  description: item.name,
+                  accountId: accounts[0].id,
+                  categoryId: item.categoryId || undefined,
+                  incomeSourceId: item.incomeSourceId || undefined,
+                  recurringBillId: item.recurringBillId || undefined,
+                  date: new Date(item.dueDate).toISOString(),
+                }),
+              });
+              if (res.ok) successCount++;
+              else failedCount++;
+            } else if (action === "delete") {
+              // Only works for real DB transactions (pending rows with UUID id)
+              const res = await fetch(`/api/app/transactions/${item.id}`, {
+                method: "DELETE",
+              });
+              if (res.ok) successCount++;
+              else failedCount++;
+            }
+          } catch {
+            failedCount++;
+          }
+        }
+        if (action === "confirm") {
+          toast.success(`${successCount} transações confirmadas`);
+        } else {
+          toast.success(`${successCount} transações excluídas`);
+        }
+        if (failedCount > 0) {
+          toast.error(`${failedCount} falharam`);
+        }
+        clearSelection();
+        setBulkDeleteOpen(false);
+        invalidateCaches();
+        triggerWidgetRefresh();
+        fetchData();
+      } finally {
+        setBulkPending(false);
+      }
+    },
+    [selectedPending, accounts, budgets, clearSelection, invalidateCaches, triggerWidgetRefresh, fetchData]
   );
-  const handleBulkRevert = useCallback(
-    () => runBulkAction("updateStatus", "pending"),
-    [runBulkAction]
-  );
-  const handleBulkDelete = useCallback(() => runBulkAction("delete"), [runBulkAction]);
+
+  const handleBulkConfirm = useCallback(() => {
+    // Only applies to pending section
+    if (activeSelection === "pending") {
+      return runPendingBulkAction("confirm");
+    }
+  }, [activeSelection, runPendingBulkAction]);
+
+  const handleBulkRevert = useCallback(() => {
+    // Only applies to confirmed section
+    if (activeSelection === "confirmed") {
+      return runConfirmedBulkAction("updateStatus", "pending");
+    }
+  }, [activeSelection, runConfirmedBulkAction]);
+
+  const handleBulkDelete = useCallback(() => {
+    if (activeSelection === "pending") {
+      return runPendingBulkAction("delete");
+    }
+    if (activeSelection === "confirmed") {
+      return runConfirmedBulkAction("delete");
+    }
+  }, [activeSelection, runPendingBulkAction, runConfirmedBulkAction]);
 
   const handleEditScheduled = useCallback(
     (scheduled: {
@@ -586,7 +709,8 @@ export function TransactionsClient({
 
       {/* Bulk Actions Bar */}
       <TransactionBulkActionsBar
-        count={selectedIds.size}
+        count={selectionCount}
+        activeSection={activeSelection}
         onConfirm={handleBulkConfirm}
         onRevertToPending={handleBulkRevert}
         onDelete={() => setBulkDeleteOpen(true)}
@@ -616,8 +740,11 @@ export function TransactionsClient({
           onDeleteConfirmed={(transaction) => setDeletingTransaction(transaction as Transaction)}
           onDeletePending={handleDeletePending}
           onRevertConfirmed={handleRevertConfirmed}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelect}
+          selectedPending={selectedPending}
+          selectedConfirmedIds={selectedConfirmedIds}
+          onTogglePendingSelect={togglePendingSelect}
+          onToggleConfirmedSelect={toggleConfirmedSelect}
+          onSelectAllPending={selectAllPending}
           onSelectAllConfirmed={selectAllConfirmed}
         />
       )}
@@ -626,7 +753,7 @@ export function TransactionsClient({
       <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir {selectedIds.size} transações?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir {selectionCount} transações?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta ação não pode ser desfeita. Os saldos das contas serão revertidos.
             </AlertDialogDescription>
