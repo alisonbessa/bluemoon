@@ -25,6 +25,18 @@ import {
   type Transaction,
   type TransactionsResponse,
 } from "@/features/transactions";
+import { TransactionBulkActionsBar } from "./transaction-bulk-actions-bar";
+import { useTransactionCacheInvalidation } from "@/features/transactions/hooks/use-transaction-cache-invalidation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/alert-dialog";
 
 export interface TransactionsClientProps {
   initialYear: number;
@@ -155,6 +167,33 @@ export function TransactionsClient({
     };
   }, [transactions]);
 
+  // ============== SELECTION STATE ==============
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkPending, setBulkPending] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const invalidateCaches = useTransactionCacheInvalidation();
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectAllConfirmed = useCallback((ids: string[]) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.add(id));
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
   // ============== HANDLERS ==============
   const handleDelete = useCallback(async () => {
     if (!deletingTransaction) return;
@@ -176,12 +215,13 @@ export function TransactionsClient({
 
       toast.success(isFromPlanning ? "Confirmação desfeita!" : "Transação excluída!");
       setDeletingTransaction(null);
+      invalidateCaches();
       triggerWidgetRefresh();
       fetchData();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao excluir");
     }
-  }, [deletingTransaction, fetchData, triggerWidgetRefresh]);
+  }, [deletingTransaction, fetchData, triggerWidgetRefresh, invalidateCaches]);
 
   const handleStartMonth = useCallback(async () => {
     if (budgets.length === 0) {
@@ -276,13 +316,14 @@ export function TransactionsClient({
         });
         if (!res.ok) throw new Error();
         toast.success(`"${scheduled.name}" excluída`);
+        invalidateCaches();
         triggerWidgetRefresh();
         fetchData();
       } catch {
         toast.error("Erro ao excluir transação pendente");
       }
     },
-    [triggerWidgetRefresh, fetchData]
+    [triggerWidgetRefresh, fetchData, invalidateCaches]
   );
 
   const handleConfirmScheduled = useCallback(
@@ -352,14 +393,84 @@ export function TransactionsClient({
           toast.success("Transação confirmada!");
         }
 
+        invalidateCaches();
         triggerWidgetRefresh();
         fetchData();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Erro ao confirmar");
       }
     },
-    [accounts, budgets, periodValue, fetchData, triggerWidgetRefresh]
+    [accounts, budgets, periodValue, fetchData, triggerWidgetRefresh, invalidateCaches]
   );
+
+  // ============== BULK & REVERT HANDLERS ==============
+  const handleRevertConfirmed = useCallback(
+    async (transaction: { id: string }) => {
+      try {
+        const res = await fetch(`/api/app/transactions/${transaction.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "pending" }),
+        });
+        if (!res.ok) throw new Error();
+        toast.success("Voltou para pendente");
+        invalidateCaches();
+        triggerWidgetRefresh();
+        fetchData();
+      } catch {
+        toast.error("Erro ao reverter transação");
+      }
+    },
+    [fetchData, triggerWidgetRefresh, invalidateCaches]
+  );
+
+  const runBulkAction = useCallback(
+    async (action: "updateStatus" | "delete", status?: "pending" | "cleared") => {
+      if (selectedIds.size === 0) return;
+      setBulkPending(true);
+      try {
+        const res = await fetch("/api/app/transactions/bulk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action,
+            transactionIds: Array.from(selectedIds),
+            ...(status && { status }),
+          }),
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const successCount = data.success ?? 0;
+        if (action === "updateStatus" && status === "cleared") {
+          toast.success(`${successCount} transações confirmadas`);
+        } else if (action === "updateStatus" && status === "pending") {
+          toast.success(`${successCount} transações voltaram para pendente`);
+        } else if (action === "delete") {
+          toast.success(`${successCount} transações excluídas`);
+        }
+        clearSelection();
+        setBulkDeleteOpen(false);
+        invalidateCaches();
+        triggerWidgetRefresh();
+        fetchData();
+      } catch {
+        toast.error("Erro ao processar ação em massa");
+      } finally {
+        setBulkPending(false);
+      }
+    },
+    [selectedIds, clearSelection, invalidateCaches, triggerWidgetRefresh, fetchData]
+  );
+
+  const handleBulkConfirm = useCallback(
+    () => runBulkAction("updateStatus", "cleared"),
+    [runBulkAction]
+  );
+  const handleBulkRevert = useCallback(
+    () => runBulkAction("updateStatus", "pending"),
+    [runBulkAction]
+  );
+  const handleBulkDelete = useCallback(() => runBulkAction("delete"), [runBulkAction]);
 
   const handleEditScheduled = useCallback(
     (scheduled: {
@@ -473,6 +584,16 @@ export function TransactionsClient({
         onClear={clearAllFilters}
       />
 
+      {/* Bulk Actions Bar */}
+      <TransactionBulkActionsBar
+        count={selectedIds.size}
+        onConfirm={handleBulkConfirm}
+        onRevertToPending={handleBulkRevert}
+        onDelete={() => setBulkDeleteOpen(true)}
+        onClear={clearSelection}
+        isPending={bulkPending}
+      />
+
       {/* Transaction Widget */}
       {budgets.length > 0 && (
         <TransactionWidget
@@ -494,8 +615,35 @@ export function TransactionsClient({
           onEditConfirmed={(transaction) => openEdit(transaction as Transaction)}
           onDeleteConfirmed={(transaction) => setDeletingTransaction(transaction as Transaction)}
           onDeletePending={handleDeletePending}
+          onRevertConfirmed={handleRevertConfirmed}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          onSelectAllConfirmed={selectAllConfirmed}
         />
       )}
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {selectedIds.size} transações?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Os saldos das contas serão revertidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={bulkPending}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {/* Transaction Form Modal */}
       <TransactionFormModal

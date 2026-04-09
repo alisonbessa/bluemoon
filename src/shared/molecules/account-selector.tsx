@@ -75,7 +75,7 @@ export function AccountSelector({
   };
 
   return (
-    <div className={cn('grid gap-2', className)}>
+    <div className={cn('grid gap-2 min-w-0', className)}>
       {showLabel && <Label>{label}</Label>}
       <Select
         value={value || (allowNone ? 'none' : undefined)}

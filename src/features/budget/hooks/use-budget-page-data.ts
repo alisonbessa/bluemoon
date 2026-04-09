@@ -14,7 +14,7 @@ import type { Account } from '@/features/accounts';
 
 interface AllocationsResponse {
   groups: GroupData[];
-  totals: { allocated: number; spent: number; available: number };
+  totals: { allocated: number; spent: number; pending: number; confirmed: number; saldo: number; available: number };
   income: IncomeData | null;
   hasPreviousMonthData: boolean;
   hasContributionModel: boolean;
@@ -102,7 +102,14 @@ export function useBudgetPageData(
 
   // Process data
   const groupsData = allocationsData?.groups ?? [];
-  const totals = allocationsData?.totals ?? { allocated: 0, spent: 0, available: 0 };
+  const totals = allocationsData?.totals ?? {
+    allocated: 0,
+    spent: 0,
+    pending: 0,
+    confirmed: 0,
+    saldo: 0,
+    available: 0,
+  };
   const incomeData = allocationsData?.income ?? null;
   const totalIncome = incomeData?.totals?.planned ?? 0;
   const hasPreviousMonthData = allocationsData?.hasPreviousMonthData ?? false;

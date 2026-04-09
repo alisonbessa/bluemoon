@@ -45,7 +45,15 @@ export interface CategoryAllocation {
   category: Category;
   allocated: number;
   carriedOver: number;
+  /** @deprecated use `pending + confirmed`. Alias kept for compat. */
   spent: number;
+  /** Pending expenses in this category (status='pending') */
+  pending: number;
+  /** Confirmed expenses in this category (status='cleared'|'reconciled') */
+  confirmed: number;
+  /** allocated + carriedOver - pending - confirmed */
+  saldo: number;
+  /** @deprecated use `saldo`. Alias kept for compat. */
   available: number;
   isOtherMemberCategory?: boolean;
   recurringBills?: RecurringBillSummary[];
@@ -71,6 +79,9 @@ export interface GroupData {
   totals: {
     allocated: number;
     spent: number;
+    pending: number;
+    confirmed: number;
+    saldo: number;
     available: number;
   };
   groupAllocated?: number | null; // Ceiling set by user
