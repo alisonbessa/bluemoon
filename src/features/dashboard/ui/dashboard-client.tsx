@@ -172,14 +172,6 @@ export function DashboardClient({
         data-tutorial="dashboard-summary"
         items={[
           {
-            id: "balance",
-            icon: <WalletIcon className="h-full w-full text-muted-foreground" />,
-            label: viewMode === "shared" && hasContributionModel ? "Saldo Compartilhado" : "Saldo do Mês",
-            value: formatCurrency(effectiveIncomeReceived - (monthSummary?.expenses.spent ?? 0)),
-            valueColor: (effectiveIncomeReceived - (monthSummary?.expenses.spent ?? 0)) >= 0 ? "positive" : "negative",
-            subtitle: `Planejado ${formatCurrency(effectiveIncomePlanned - (monthSummary?.expenses.allocated ?? 0))}`,
-          },
-          {
             id: "income",
             icon: <TrendingUpIcon className="h-full w-full text-green-500" />,
             label: viewMode === "shared" && hasContributionModel ? "Contribuição do Mês" : "Receitas do Mês",
@@ -200,6 +192,14 @@ export function DashboardClient({
               : (monthSummary?.expenses.spent ?? 0) <= (monthSummary?.expenses.allocated ?? 0)
                 ? `Restam ${formatCurrency((monthSummary?.expenses.allocated ?? 0) - (monthSummary?.expenses.spent ?? 0))}`
                 : `Excedido em ${formatCurrency((monthSummary?.expenses.spent ?? 0) - (monthSummary?.expenses.allocated ?? 0))}`,
+          },
+          {
+            id: "balance",
+            icon: <WalletIcon className="h-full w-full text-muted-foreground" />,
+            label: viewMode === "shared" && hasContributionModel ? "Saldo Compartilhado" : "Saldo do Mês",
+            value: formatCurrency(effectiveIncomeReceived - (monthSummary?.expenses.spent ?? 0)),
+            valueColor: (effectiveIncomeReceived - (monthSummary?.expenses.spent ?? 0)) >= 0 ? "positive" : "negative",
+            subtitle: `Planejado ${formatCurrency(effectiveIncomePlanned - (monthSummary?.expenses.allocated ?? 0))}`,
           },
         ]}
         className="grid-cols-1 sm:grid-cols-3"
