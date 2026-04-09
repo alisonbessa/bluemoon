@@ -435,25 +435,61 @@ export function UnifiedExpenseForm({
         {/* Período e opções extras (só recorrente) */}
         {isRecurring && (
           <>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="expense-startDate">Data de início</Label>
-                <Input
-                  id="expense-startDate"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="expense-endDate">Data de fim</Label>
-                <Input
-                  id="expense-endDate"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  min={startDate || undefined}
-                />
+            <div className="grid gap-2 rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">
+                <strong>Opcional.</strong> Deixe em branco para a despesa aparecer em todos os meses.
+                Use apenas se a despesa tem data de início ou fim específica (ex: parcelamento).
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="expense-startDate" className="text-xs">
+                    Primeiro mês (opcional)
+                  </Label>
+                  <div className="flex gap-1">
+                    <Input
+                      id="expense-startDate"
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="flex-1"
+                    />
+                    {startDate && (
+                      <button
+                        type="button"
+                        onClick={() => setStartDate('')}
+                        className="px-2 text-xs text-muted-foreground hover:text-foreground"
+                        title="Limpar"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="expense-endDate" className="text-xs">
+                    Último mês (opcional)
+                  </Label>
+                  <div className="flex gap-1">
+                    <Input
+                      id="expense-endDate"
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      min={startDate || undefined}
+                      className="flex-1"
+                    />
+                    {endDate && (
+                      <button
+                        type="button"
+                        onClick={() => setEndDate('')}
+                        className="px-2 text-xs text-muted-foreground hover:text-foreground"
+                        title="Limpar"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
