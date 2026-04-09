@@ -28,6 +28,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/shared/ui/tooltip";
+import { Checkbox } from "@/shared/ui/checkbox";
 
 interface ScheduledTransaction {
   id: string;
@@ -92,6 +93,11 @@ interface TransactionWidgetProps {
   onEditConfirmed?: (transaction: ConfirmedTransaction) => void;
   onDeleteConfirmed?: (transaction: ConfirmedTransaction) => void;
   onDeletePending?: (transaction: ScheduledTransaction) => void;
+  onRevertConfirmed?: (transaction: ConfirmedTransaction) => void;
+  // Bulk selection (only applies to confirmed transactions that live in DB)
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+  onSelectAllConfirmed?: (ids: string[]) => void;
   // Month actions
   onStartMonth?: () => Promise<void>;
   onCopyPreviousMonth?: () => Promise<void>;
@@ -114,6 +120,10 @@ export function TransactionWidget({
   onEditConfirmed,
   onDeleteConfirmed,
   onDeletePending,
+  onRevertConfirmed,
+  selectedIds,
+  onToggleSelect,
+  onSelectAllConfirmed,
   onStartMonth,
   onCopyPreviousMonth,
 }: TransactionWidgetProps) {
@@ -408,7 +418,26 @@ export function TransactionWidget({
           {/* Confirmed Section */}
           {sortedConfirmed.length > 0 && (
             <div>
-              <div className="px-3 py-2 bg-green-50 dark:bg-green-950/20 border-y">
+              <div className="flex items-center gap-3 px-3 py-2 bg-green-50 dark:bg-green-950/20 border-y">
+                {onSelectAllConfirmed && selectedIds && (
+                  <Checkbox
+                    checked={
+                      sortedConfirmed.length > 0 &&
+                      sortedConfirmed.every((t) => selectedIds.has(t.id))
+                    }
+                    onCheckedChange={(checked) => {
+                      const ids = sortedConfirmed.map((t) => t.id);
+                      if (checked) {
+                        onSelectAllConfirmed(ids);
+                      } else {
+                        ids.forEach((id) => {
+                          if (selectedIds.has(id)) onToggleSelect?.(id);
+                        });
+                      }
+                    }}
+                    aria-label="Selecionar todas efetivadas"
+                  />
+                )}
                 <span className="text-xs font-medium text-green-700 dark:text-green-400 uppercase tracking-wide">
                   Efetivadas
                 </span>
@@ -417,8 +446,18 @@ export function TransactionWidget({
                 {sortedConfirmed.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="flex items-center gap-3 px-3 py-2"
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2",
+                      selectedIds?.has(transaction.id) && "bg-muted/40"
+                    )}
                   >
+                    {onToggleSelect && selectedIds && (
+                      <Checkbox
+                        checked={selectedIds.has(transaction.id)}
+                        onCheckedChange={() => onToggleSelect(transaction.id)}
+                        aria-label="Selecionar transacao"
+                      />
+                    )}
                     <div className="flex items-center justify-center w-6">
                       {transaction.type === "transfer" ? (
                         <ArrowLeftRight className="h-4 w-4 text-blue-500" />
@@ -499,30 +538,34 @@ export function TransactionWidget({
                           <TooltipContent>Editar transação</TooltipContent>
                         </Tooltip>
                       )}
+                      {onRevertConfirmed && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-amber-600 hover:text-amber-700"
+                              onClick={() => onRevertConfirmed(transaction)}
+                            >
+                              <Undo2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Voltar para pendente</TooltipContent>
+                        </Tooltip>
+                      )}
                       {onDeleteConfirmed && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className={cn(
-                                "h-7 w-7",
-                                transaction.recurringBillId || transaction.incomeSourceId
-                                  ? "text-amber-600 hover:text-amber-700"
-                                  : "text-destructive hover:text-destructive"
-                              )}
+                              className="h-7 w-7 text-destructive hover:text-destructive"
                               onClick={() => onDeleteConfirmed(transaction)}
                             >
-                              {transaction.recurringBillId || transaction.incomeSourceId
-                                ? <Undo2 className="h-3.5 w-3.5" />
-                                : <Trash2 className="h-3.5 w-3.5" />}
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            {transaction.recurringBillId || transaction.incomeSourceId
-                              ? "Desfazer confirmação"
-                              : "Excluir transação"}
-                          </TooltipContent>
+                          <TooltipContent>Excluir transação</TooltipContent>
                         </Tooltip>
                       )}
                     </div>

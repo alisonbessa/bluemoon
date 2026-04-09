@@ -110,11 +110,12 @@ export const GET = withAuthRequired(async (req, context) => {
         )
       ),
 
-    // Get spending per category for this month (filtered by viewMode)
+    // Get spending per category for this month split by status
     db
       .select({
         categoryId: transactions.categoryId,
-        totalSpent: sql<number>`SUM(CASE WHEN ${transactions.type} = 'expense' THEN ${transactions.amount} ELSE 0 END)`,
+        pendingSpent: sql<number>`SUM(CASE WHEN ${transactions.type} = 'expense' AND ${transactions.status} = 'pending' THEN ${transactions.amount} ELSE 0 END)`,
+        confirmedSpent: sql<number>`SUM(CASE WHEN ${transactions.type} = 'expense' AND ${transactions.status} IN ('cleared', 'reconciled') THEN ${transactions.amount} ELSE 0 END)`,
       })
       .from(transactions)
       .where(
@@ -122,7 +123,7 @@ export const GET = withAuthRequired(async (req, context) => {
           eq(transactions.budgetId, budgetId),
           gte(transactions.date, startDate),
           lte(transactions.date, endDate),
-          inArray(transactions.status, ["cleared", "reconciled"]),
+          inArray(transactions.status, ["pending", "cleared", "reconciled"]),
           ...(txViewCondition ? [txViewCondition] : [])
         )
       )
@@ -163,7 +164,15 @@ export const GET = withAuthRequired(async (req, context) => {
       ),
   ]);
 
-  const spendingMap = new Map(spending.map((s) => [s.categoryId, Number(s.totalSpent) || 0]));
+  const spendingMap = new Map(
+    spending.map((s) => [
+      s.categoryId,
+      {
+        pending: Number(s.pendingSpent) || 0,
+        confirmed: Number(s.confirmedSpent) || 0,
+      },
+    ])
+  );
   const allocationsMap = new Map(allocations.map((a) => [a.categoryId, a]));
 
   // Calculate carriedOver from previous month
@@ -322,11 +331,14 @@ export const GET = withAuthRequired(async (req, context) => {
       allocated: number;
       carriedOver: number;
       spent: number;
+      pending: number;
+      confirmed: number;
+      saldo: number;
       available: number;
       isOtherMemberCategory: boolean; // True if category belongs to another member
       recurringBills: RecurringBillSummary[]; // Recurring bills for this category
     }>;
-    totals: { allocated: number; spent: number; available: number };
+    totals: { allocated: number; spent: number; pending: number; confirmed: number; saldo: number; available: number };
     groupAllocated: number | null;
   }>();
 
@@ -336,7 +348,7 @@ export const GET = withAuthRequired(async (req, context) => {
       groupedData.set(group.id, {
         group,
         categories: [],
-        totals: { allocated: 0, spent: 0, available: 0 },
+        totals: { allocated: 0, spent: 0, pending: 0, confirmed: 0, saldo: 0, available: 0 },
         groupAllocated: ceiling != null ? ceiling : null,
       });
     }
@@ -346,22 +358,23 @@ export const GET = withAuthRequired(async (req, context) => {
 
     const billsTotal = categoryBills.reduce((sum, bill) => sum + bill.amount, 0);
     const manualAlloc = allocation?.allocated ?? 0;
-    // Manual allocation is the budget limit; bills total is the fallback
     const allocated = manualAlloc > 0 ? manualAlloc : billsTotal;
     const carriedOver = allocation?.carriedOver || 0;
-    const spent = spendingMap.get(category.id) || 0;
-    const available = allocated + carriedOver - spent;
+    const spendSplit = spendingMap.get(category.id) ?? { pending: 0, confirmed: 0 };
+    const pending = spendSplit.pending;
+    const confirmed = spendSplit.confirmed;
+    const spent = pending + confirmed;
+    const saldo = allocated + carriedOver - pending - confirmed;
+    const available = saldo;
 
     // Check if this category belongs to another member (not the current user)
     const isOtherMemberCategory = category.memberId !== null && category.memberId !== userMemberId;
 
     // Server-side privacy enforcement
-    // "private": completely exclude other member's personal categories
     if (privacyMode === "private" && isOtherMemberCategory) {
       continue;
     }
 
-    // "unified" and "visible": show everything with real amounts
     const groupData = groupedData.get(group.id)!;
 
     groupData.categories.push({
@@ -369,33 +382,45 @@ export const GET = withAuthRequired(async (req, context) => {
       allocated,
       carriedOver,
       spent,
+      pending,
+      confirmed,
+      saldo,
       available,
       isOtherMemberCategory,
       recurringBills: categoryBills,
     });
     groupData.totals.allocated += allocated + carriedOver;
     groupData.totals.spent += spent;
-    groupData.totals.available += available;
+    groupData.totals.pending += pending;
+    groupData.totals.confirmed += confirmed;
+    groupData.totals.saldo += saldo;
+    groupData.totals.available += saldo;
   }
 
   // Calculate overall totals
   const overallTotals = {
     allocated: 0,
     spent: 0,
+    pending: 0,
+    confirmed: 0,
+    saldo: 0,
     available: 0,
   };
 
   const groupedResult = Array.from(groupedData.values())
     .sort((a, b) => a.group.displayOrder - b.group.displayOrder)
     .map((g) => {
-      // Apply group ceiling: if user set a ceiling, use it as allocated
       if (g.groupAllocated != null && g.groupAllocated > 0) {
         g.totals.allocated = g.groupAllocated;
-        g.totals.available = g.groupAllocated - g.totals.spent;
+        g.totals.saldo = g.groupAllocated - g.totals.pending - g.totals.confirmed;
+        g.totals.available = g.totals.saldo;
       }
       overallTotals.allocated += g.totals.allocated;
       overallTotals.spent += g.totals.spent;
-      overallTotals.available += g.totals.available;
+      overallTotals.pending += g.totals.pending;
+      overallTotals.confirmed += g.totals.confirmed;
+      overallTotals.saldo += g.totals.saldo;
+      overallTotals.available += g.totals.saldo;
       return g;
     });
 

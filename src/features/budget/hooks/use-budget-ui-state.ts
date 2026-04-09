@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 
 /** View mode for mobile - which column to show */
-export type MobileViewMode = 'planned' | 'actual' | 'available';
+export type MobileViewMode = 'planned' | 'pending' | 'actual' | 'saldo';
 
 interface UseBudgetUIStateReturn {
   // Section expansion
@@ -30,7 +30,7 @@ interface UseBudgetUIStateReturn {
 interface UseBudgetUIStateOptions {
   /** Default section to expand. Defaults to 'income' */
   defaultExpandedSection?: 'income' | 'expenses' | 'goals' | 'none';
-  /** Default mobile view mode. Defaults to 'available' */
+  /** Default mobile view mode. Defaults to 'saldo' */
   defaultMobileViewMode?: MobileViewMode;
 }
 
@@ -52,7 +52,7 @@ interface UseBudgetUIStateOptions {
  * ```
  */
 export function useBudgetUIState(options: UseBudgetUIStateOptions = {}): UseBudgetUIStateReturn {
-  const { defaultExpandedSection = 'income', defaultMobileViewMode = 'planned' } = options;
+  const { defaultExpandedSection = 'income', defaultMobileViewMode = 'saldo' } = options;
 
   // Section expansion state
   const [isIncomeExpanded, setIsIncomeExpanded] = useState(defaultExpandedSection === 'income');

@@ -47,13 +47,23 @@ function getIncomeDisplayValue(
       return { value: planned, colorClass: 'text-green-800 dark:text-green-200' };
     case 'actual':
       return { value: received, colorClass: 'text-green-600 dark:text-green-400' };
-    case 'available':
-    default:
-      const available = planned - received;
+    case 'pending': {
+      // For income, "pending" shows what's still expected
+      const remaining = planned - received;
       return {
-        value: Math.abs(available),
+        value: Math.max(0, remaining),
+        colorClass: 'text-amber-600',
+      };
+    }
+    case 'saldo':
+    default: {
+      // Saldo for income = what's still expected (or surplus)
+      const saldo = planned - received;
+      return {
+        value: Math.abs(saldo),
         colorClass: received < planned ? 'text-red-600' : 'text-green-600',
       };
+    }
   }
 }
 
@@ -69,7 +79,7 @@ export function IncomeSectionAccordion({
   onRestoreIncome,
   onDeleteIncomeSource,
   onAddIncomeSource,
-  mobileViewMode = 'available',
+  mobileViewMode = 'saldo',
 }: IncomeSectionAccordionProps) {
   if (!incomeData || incomeData.byMember.length === 0) {
     // Show empty state with add button
@@ -262,7 +272,7 @@ function IncomeMemberSection({
   onRestore,
   onDeleteSource,
   onAddSource,
-  mobileViewMode = 'available',
+  mobileViewMode = 'saldo',
 }: IncomeMemberSectionProps) {
   const memberAvailable =
     memberGroup.totals.planned - memberGroup.totals.received;
@@ -398,7 +408,7 @@ function IncomeSourceRow({
   onIgnore,
   onRestore,
   onDeleteSource,
-  mobileViewMode = 'available',
+  mobileViewMode = 'saldo',
 }: IncomeSourceRowProps) {
   const isIgnored = item.planned === 0 && item.defaultAmount > 0;
   const isEdited = !isIgnored && item.planned !== item.defaultAmount;

@@ -26,7 +26,7 @@ import type { MobileViewMode } from '../hooks';
 
 interface ExpensesSectionAccordionProps {
   groupsData: GroupData[];
-  totals: { allocated: number; spent: number; available: number };
+  totals: { allocated: number; spent: number; pending: number; confirmed: number; saldo: number; available: number };
   budgetId: string;
   accounts: Account[];
   isExpanded: boolean;
@@ -49,20 +49,23 @@ interface ExpensesSectionAccordionProps {
 // Helper to get the value based on view mode for expenses
 function getExpenseDisplayValue(
   allocated: number,
-  spent: number,
+  pending: number,
+  confirmed: number,
+  saldo: number,
   mode: MobileViewMode
 ): { value: number; colorClass: string } {
   switch (mode) {
     case 'planned':
       return { value: allocated, colorClass: 'text-red-800 dark:text-red-200' };
+    case 'pending':
+      return { value: pending, colorClass: pending > 0 ? 'text-amber-600' : '' };
     case 'actual':
-      return { value: spent, colorClass: 'text-red-600 dark:text-red-400' };
-    case 'available':
+      return { value: confirmed, colorClass: 'text-red-600 dark:text-red-400' };
+    case 'saldo':
     default:
-      const available = allocated - spent;
       return {
-        value: available,
-        colorClass: available >= 0 ? 'text-green-600' : 'text-red-600',
+        value: saldo,
+        colorClass: saldo >= 0 ? 'text-green-600' : 'text-red-600',
       };
   }
 }
@@ -81,7 +84,7 @@ export function ExpensesSectionAccordion({
   onDeleteCategory,
   onAddCategory,
   onBillsChange,
-  mobileViewMode = 'available',
+  mobileViewMode = 'saldo',
   sectionTitle,
   year,
   month,
@@ -135,7 +138,7 @@ export function ExpensesSectionAccordion({
     <>
       {/* Expenses Section Header - Clickable Toggle */}
       <div
-        className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b items-center cursor-pointer hover:bg-red-200/50 dark:hover:bg-red-950/70 transition-colors"
+        className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_85px_85px_85px_90px] px-3 sm:px-4 py-2 bg-red-100 dark:bg-red-950/50 border-b items-center cursor-pointer hover:bg-red-200/50 dark:hover:bg-red-950/70 transition-colors"
         onClick={onToggle}
       >
         <ChevronDown
@@ -150,24 +153,29 @@ export function ExpensesSectionAccordion({
             {sectionTitle ?? 'DESPESAS'}
           </span>
         </div>
-        <div className="hidden sm:block text-sm font-bold tabular-nums text-red-800 dark:text-red-200">
+        <div className="hidden sm:block text-sm font-bold tabular-nums text-red-800 dark:text-red-200 text-right pr-2">
           {formatCurrency(totals.allocated)}
         </div>
-        <div className="hidden sm:block text-sm font-bold tabular-nums text-red-600 dark:text-red-400">
-          {formatCurrency(totals.spent)}
+        <div className={cn(
+          "hidden sm:block text-sm font-bold tabular-nums text-right pr-2",
+          totals.pending > 0 ? "text-amber-600" : "text-red-800 dark:text-red-200"
+        )}>
+          {formatCurrency(totals.pending)}
         </div>
-        {/* Desktop: always show available */}
+        <div className="hidden sm:block text-sm font-bold tabular-nums text-red-600 dark:text-red-400 text-right pr-2">
+          {formatCurrency(totals.confirmed)}
+        </div>
         <div
           className={cn(
-            'hidden sm:block text-sm font-bold tabular-nums',
-            totals.allocated - totals.spent >= 0 ? '' : 'text-red-600'
+            'hidden sm:block text-sm font-bold tabular-nums text-right pr-2',
+            totals.saldo >= 0 ? 'text-green-600' : 'text-red-600'
           )}
         >
-          {formatCurrency(totals.allocated - totals.spent)}
+          {formatCurrency(totals.saldo)}
         </div>
         {/* Mobile: show based on view mode */}
         {(() => {
-          const display = getExpenseDisplayValue(totals.allocated, totals.spent, mobileViewMode);
+          const display = getExpenseDisplayValue(totals.allocated, totals.pending, totals.confirmed, totals.saldo, mobileViewMode);
           return (
             <div className={cn('sm:hidden text-xs font-bold tabular-nums pr-2 whitespace-nowrap', display.colorClass)}>
               {formatCurrency(display.value)}
@@ -180,16 +188,22 @@ export function ExpensesSectionAccordion({
 
       <AccordionContent isOpen={isExpanded}>
         {/* Expenses Table Header */}
-        <div className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
+        <div className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_85px_85px_85px_90px] px-3 sm:px-4 py-1.5 text-[11px] font-medium text-muted-foreground uppercase border-b bg-muted/50">
           <div />
           <div>Categoria</div>
-          <div className="hidden sm:block">Planejado</div>
-          <div className="hidden sm:block">Realizado</div>
-          {/* Desktop: always show Disp. */}
-          <div className="hidden sm:block">Disp.</div>
+          <div className="hidden sm:block text-right pr-2">Planejado</div>
+          <div className="hidden sm:block text-right pr-2">Pendente</div>
+          <div className="hidden sm:block text-right pr-2">Realizado</div>
+          <div className="hidden sm:block text-right pr-2">Saldo</div>
           {/* Mobile: show based on view mode */}
           <div className="sm:hidden">
-            {mobileViewMode === 'planned' ? 'Plan.' : mobileViewMode === 'actual' ? 'Real.' : 'Disp.'}
+            {mobileViewMode === 'planned'
+              ? 'Plan.'
+              : mobileViewMode === 'pending'
+                ? 'Pend.'
+                : mobileViewMode === 'actual'
+                  ? 'Real.'
+                  : 'Saldo'}
           </div>
           <div className="sm:hidden" />
         </div>
@@ -206,7 +220,7 @@ export function ExpensesSectionAccordion({
             <div key={group.id}>
               {/* Group Row */}
               <div
-                className="group grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center bg-muted/40 border-b cursor-pointer hover:bg-muted/60 text-sm"
+                className="group grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_85px_85px_85px_90px] px-3 sm:px-4 py-1.5 items-center bg-muted/40 border-b cursor-pointer hover:bg-muted/60 text-sm"
                 onClick={() => {
                   // Clicking the row always ensures the group is expanded
                   if (!isGroupExpanded) onToggleGroup(group.id);
@@ -259,7 +273,7 @@ export function ExpensesSectionAccordion({
                   </div>
                 </div>
                 <div
-                  className="hidden sm:block text-xs tabular-nums font-bold cursor-pointer hover:underline"
+                  className="hidden sm:block text-xs tabular-nums font-bold cursor-pointer hover:underline text-right pr-2"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEditGroupAllocation(group, groupAllocated ?? null);
@@ -270,21 +284,26 @@ export function ExpensesSectionAccordion({
                     ? formatCurrency(groupAllocated)
                     : formatCurrency(groupTotals.allocated)}
                 </div>
-                <div className="hidden sm:block text-xs tabular-nums font-bold">
-                  {formatCurrency(groupTotals.spent)}
+                <div className={cn(
+                  "hidden sm:block text-xs tabular-nums font-bold text-right pr-2",
+                  groupTotals.pending > 0 && "text-amber-600"
+                )}>
+                  {formatCurrency(groupTotals.pending)}
                 </div>
-                {/* Desktop: always show available */}
+                <div className="hidden sm:block text-xs tabular-nums font-bold text-right pr-2">
+                  {formatCurrency(groupTotals.confirmed)}
+                </div>
                 <div
                   className={cn(
-                    'hidden sm:block text-xs tabular-nums font-bold',
-                    groupTotals.available >= 0 ? 'text-green-600' : 'text-red-600'
+                    'hidden sm:block text-xs tabular-nums font-bold text-right pr-2',
+                    groupTotals.saldo >= 0 ? 'text-green-600' : 'text-red-600'
                   )}
                 >
-                  {formatCurrency(groupTotals.available)}
+                  {formatCurrency(groupTotals.saldo)}
                 </div>
                 {/* Mobile: show based on view mode */}
                 {(() => {
-                  const display = getExpenseDisplayValue(groupTotals.allocated, groupTotals.spent, mobileViewMode);
+                  const display = getExpenseDisplayValue(groupTotals.allocated, groupTotals.pending, groupTotals.confirmed, groupTotals.saldo, mobileViewMode);
                   return (
                     <div className={cn('sm:hidden text-xs tabular-nums font-bold pr-2', display.colorClass)}>
                       {formatCurrency(display.value)}
@@ -331,7 +350,7 @@ export function ExpensesSectionAccordion({
                     return (
                       <div
                         key={item.category.id}
-                        className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_100px_100px_100px] px-3 sm:px-4 py-1.5 items-center border-b text-sm opacity-75 cursor-default"
+                        className="grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_85px_85px_85px_90px] px-3 sm:px-4 py-1.5 items-center border-b text-sm opacity-75 cursor-default"
                         data-tutorial="category-row"
                       >
                         <div className="h-3.5 w-3.5" />
@@ -339,28 +358,33 @@ export function ExpensesSectionAccordion({
                           <span className="shrink-0">{item.category.icon || '📌'}</span>
                           <span className="truncate">{item.category.name}</span>
                         </div>
-                        <div className="hidden sm:block text-xs tabular-nums">
+                        <div className="hidden sm:block text-xs tabular-nums text-right pr-2">
                           {formatCurrency(item.allocated)}
                         </div>
-                        <div className="hidden sm:block text-xs tabular-nums">
-                          {formatCurrency(item.spent)}
+                        <div className={cn(
+                          "hidden sm:block text-xs tabular-nums text-right pr-2",
+                          item.pending > 0 && "text-amber-600"
+                        )}>
+                          {formatCurrency(item.pending)}
                         </div>
-                        {/* Desktop: always show available */}
+                        <div className="hidden sm:block text-xs tabular-nums text-right pr-2">
+                          {formatCurrency(item.confirmed)}
+                        </div>
                         <div
                           className={cn(
-                            'hidden sm:block text-xs tabular-nums font-medium',
-                            item.available > 0
+                            'hidden sm:block text-xs tabular-nums font-medium text-right pr-2',
+                            item.saldo > 0
                               ? 'text-green-600'
-                              : item.available < 0
+                              : item.saldo < 0
                                 ? 'text-red-600'
                                 : ''
                           )}
                         >
-                          {formatCurrency(item.available)}
+                          {formatCurrency(item.saldo)}
                         </div>
                         {/* Mobile: show based on view mode */}
                         {(() => {
-                          const display = getExpenseDisplayValue(item.allocated, item.spent, mobileViewMode);
+                          const display = getExpenseDisplayValue(item.allocated, item.pending, item.confirmed, item.saldo, mobileViewMode);
                           return (
                             <div className={cn('sm:hidden text-xs tabular-nums font-medium pr-2', display.colorClass)}>
                               {formatCurrency(display.value)}
@@ -380,6 +404,8 @@ export function ExpensesSectionAccordion({
                       item={item}
                       budgetId={budgetId}
                       accounts={accounts}
+                      year={year}
+                      month={month}
                       onEditAllocation={onEditAllocation}
                       onEditCategory={onEditCategory}
                       onDeleteCategory={onDeleteCategory}

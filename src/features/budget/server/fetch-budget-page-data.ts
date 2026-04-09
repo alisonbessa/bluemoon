@@ -38,15 +38,37 @@ export interface BudgetAllocationsResult {
       category: typeof categories.$inferSelect;
       allocated: number;
       carriedOver: number;
+      /** @deprecated use `confirmed` (pending + confirmed sum). Kept for compat. */
       spent: number;
+      /** Pending expenses (status='pending') */
+      pending: number;
+      /** Confirmed expenses (status='cleared'|'reconciled') */
+      confirmed: number;
+      /** Planejado + carriedOver - pending - confirmed */
+      saldo: number;
+      /** @deprecated use `saldo`. Alias kept for compat. */
       available: number;
       isOtherMemberCategory: boolean;
       recurringBills: RecurringBillSummary[];
     }>;
-    totals: { allocated: number; spent: number; available: number };
+    totals: {
+      allocated: number;
+      spent: number;
+      pending: number;
+      confirmed: number;
+      saldo: number;
+      available: number;
+    };
     groupAllocated: number | null;
   }>;
-  totals: { allocated: number; spent: number; available: number };
+  totals: {
+    allocated: number;
+    spent: number;
+    pending: number;
+    confirmed: number;
+    saldo: number;
+    available: number;
+  };
   income: {
     byMember: Array<{
       member: typeof budgetMembers.$inferSelect | null;
@@ -183,11 +205,12 @@ export async function fetchBudgetAllocationsData(opts: {
         )
       ),
 
-    // Get spending per category for this month (filtered by viewMode)
+    // Get spending per category split by status (pending vs confirmed)
     db
       .select({
         categoryId: transactions.categoryId,
-        totalSpent: sql<number>`SUM(CASE WHEN ${transactions.type} = 'expense' THEN ${transactions.amount} ELSE 0 END)`,
+        pendingSpent: sql<number>`SUM(CASE WHEN ${transactions.type} = 'expense' AND ${transactions.status} = 'pending' THEN ${transactions.amount} ELSE 0 END)`,
+        confirmedSpent: sql<number>`SUM(CASE WHEN ${transactions.type} = 'expense' AND ${transactions.status} IN ('cleared', 'reconciled') THEN ${transactions.amount} ELSE 0 END)`,
       })
       .from(transactions)
       .where(
@@ -240,8 +263,15 @@ export async function fetchBudgetAllocationsData(opts: {
       ),
   ]);
 
+  // Split spending into pending vs confirmed per category
   const spendingMap = new Map(
-    spending.map((s) => [s.categoryId, Number(s.totalSpent) || 0])
+    spending.map((s) => [
+      s.categoryId,
+      {
+        pending: Number(s.pendingSpent) || 0,
+        confirmed: Number(s.confirmedSpent) || 0,
+      },
+    ])
   );
   const allocationsMap = new Map(
     allocations.map((a) => [a.categoryId, a])
@@ -269,7 +299,7 @@ export async function fetchBudgetAllocationsData(opts: {
     const prevStartDate = new Date(prevYear, prevMonth - 1, 1);
     const prevEndDate = new Date(prevYear, prevMonth, 0, 23, 59, 59);
 
-    // Get spending per category for previous month
+    // Get spending per category for previous month (used only for carry-over calc)
     const prevSpending = await db
       .select({
         categoryId: transactions.categoryId,
@@ -392,11 +422,14 @@ export async function fetchBudgetAllocationsData(opts: {
         allocated: number;
         carriedOver: number;
         spent: number;
+        pending: number;
+        confirmed: number;
+        saldo: number;
         available: number;
         isOtherMemberCategory: boolean;
         recurringBills: RecurringBillSummary[];
       }>;
-      totals: { allocated: number; spent: number; available: number };
+      totals: { allocated: number; spent: number; pending: number; confirmed: number; saldo: number; available: number };
       groupAllocated: number | null; // Ceiling set by user, null = not set
     }
   >();
@@ -407,7 +440,7 @@ export async function fetchBudgetAllocationsData(opts: {
       groupedData.set(group.id, {
         group,
         categories: [],
-        totals: { allocated: 0, spent: 0, available: 0 },
+        totals: { allocated: 0, spent: 0, pending: 0, confirmed: 0, saldo: 0, available: 0 },
         groupAllocated: ceiling != null ? ceiling : null,
       });
     }
@@ -417,12 +450,14 @@ export async function fetchBudgetAllocationsData(opts: {
 
     const billsTotal = categoryBills.reduce((sum, bill) => sum + bill.amount, 0);
     const manualAlloc = allocation?.allocated ?? 0;
-    // Manual allocation is the budget limit; bills total is the fallback
-    // when no manual allocation has been set
     const allocated = manualAlloc > 0 ? manualAlloc : billsTotal;
     const carriedOver = allocation?.carriedOver || 0;
-    const spent = spendingMap.get(category.id) || 0;
-    const available = allocated + carriedOver - spent;
+    const spendSplit = spendingMap.get(category.id) ?? { pending: 0, confirmed: 0 };
+    const pending = spendSplit.pending;
+    const confirmed = spendSplit.confirmed;
+    const spent = pending + confirmed; // legacy alias
+    const saldo = allocated + carriedOver - pending - confirmed;
+    const available = saldo; // legacy alias
 
     const isOtherMemberCategory =
       category.memberId !== null && category.memberId !== userMemberId;
@@ -439,19 +474,28 @@ export async function fetchBudgetAllocationsData(opts: {
       allocated,
       carriedOver,
       spent,
+      pending,
+      confirmed,
+      saldo,
       available,
       isOtherMemberCategory,
       recurringBills: categoryBills,
     });
     groupData.totals.allocated += allocated + carriedOver;
     groupData.totals.spent += spent;
-    groupData.totals.available += available;
+    groupData.totals.pending += pending;
+    groupData.totals.confirmed += confirmed;
+    groupData.totals.saldo += saldo;
+    groupData.totals.available += saldo;
   }
 
   // Calculate overall totals
   const overallTotals = {
     allocated: 0,
     spent: 0,
+    pending: 0,
+    confirmed: 0,
+    saldo: 0,
     available: 0,
   };
 
@@ -461,11 +505,15 @@ export async function fetchBudgetAllocationsData(opts: {
       // Apply group ceiling: if user set a ceiling, use it as allocated
       if (g.groupAllocated != null && g.groupAllocated > 0) {
         g.totals.allocated = g.groupAllocated;
-        g.totals.available = g.groupAllocated - g.totals.spent;
+        g.totals.saldo = g.groupAllocated - g.totals.pending - g.totals.confirmed;
+        g.totals.available = g.totals.saldo;
       }
       overallTotals.allocated += g.totals.allocated;
       overallTotals.spent += g.totals.spent;
-      overallTotals.available += g.totals.available;
+      overallTotals.pending += g.totals.pending;
+      overallTotals.confirmed += g.totals.confirmed;
+      overallTotals.saldo += g.totals.saldo;
+      overallTotals.available += g.totals.saldo;
       return g;
     });
 

@@ -34,7 +34,7 @@ export interface BudgetSection {
   key: string;
   title: string;
   groupsData: GroupData[];
-  totals: { allocated: number; spent: number; available: number };
+  totals: { allocated: number; spent: number; pending: number; confirmed: number; saldo: number; available: number };
   goals: GoalLocal[];
   totalGoals: number;
   incomeData: IncomeData | null;
@@ -44,7 +44,7 @@ export interface BudgetSection {
 
 interface BudgetSectionsInput {
   groupsData: GroupData[];
-  totals: { allocated: number; spent: number; available: number };
+  totals: { allocated: number; spent: number; pending: number; confirmed: number; saldo: number; available: number };
   incomeData: IncomeData | null;
   totalIncome: number;
   totalContribution: number;
@@ -64,17 +64,23 @@ function filterGroupsByMember(
       const filtered = g.categories.filter(filterFn);
       if (filtered.length === 0) return null;
       const catAllocated = filtered.reduce((sum, c) => sum + c.allocated + c.carriedOver, 0);
-      const catSpent = filtered.reduce((sum, c) => sum + c.spent, 0);
+      const catPending = filtered.reduce((sum, c) => sum + c.pending, 0);
+      const catConfirmed = filtered.reduce((sum, c) => sum + c.confirmed, 0);
+      const catSpent = catPending + catConfirmed;
       // Apply group ceiling if set
       const hasCeiling = g.groupAllocated != null && g.groupAllocated > 0;
       const allocated = hasCeiling ? g.groupAllocated! : catAllocated;
+      const saldo = allocated - catPending - catConfirmed;
       return {
         ...g,
         categories: filtered,
         totals: {
           allocated,
           spent: catSpent,
-          available: allocated - catSpent,
+          pending: catPending,
+          confirmed: catConfirmed,
+          saldo,
+          available: saldo,
         },
       };
     })
@@ -82,12 +88,29 @@ function filterGroupsByMember(
 }
 
 function calcTotals(groupsData: GroupData[]) {
+  const allocated = groupsData.reduce((sum, g) => sum + g.totals.allocated, 0);
+  const pending = groupsData.reduce((sum, g) => sum + g.totals.pending, 0);
+  const confirmed = groupsData.reduce((sum, g) => sum + g.totals.confirmed, 0);
+  const spent = pending + confirmed;
+  const saldo = allocated - pending - confirmed;
   return {
-    allocated: groupsData.reduce((sum, g) => sum + g.totals.allocated, 0),
-    spent: groupsData.reduce((sum, g) => sum + g.totals.spent, 0),
-    available: groupsData.reduce((sum, g) => sum + g.totals.available, 0),
+    allocated,
+    spent,
+    pending,
+    confirmed,
+    saldo,
+    available: saldo,
   };
 }
+
+const EMPTY_TOTALS = {
+  allocated: 0,
+  spent: 0,
+  pending: 0,
+  confirmed: 0,
+  saldo: 0,
+  available: 0,
+};
 
 function transformIncomeForView(
   incomeData: IncomeData | null,
@@ -191,7 +214,7 @@ export function useBudgetSections({
         key: 'shared',
         title: 'Planejamento Compartilhado',
         groupsData: sharedGroups,
-        totals: sharedGroups.length > 0 ? calcTotals(sharedGroups) : { allocated: 0, spent: 0, available: 0 },
+        totals: sharedGroups.length > 0 ? calcTotals(sharedGroups) : EMPTY_TOTALS,
         goals: sharedGoals,
         totalGoals: sharedGoals.reduce((sum, g) => sum + (g.monthlyTarget || 0), 0),
         incomeData: sharedIncomeData,
@@ -213,7 +236,7 @@ export function useBudgetSections({
         key: 'mine',
         title: `Meu Planejamento (${userName})`,
         groupsData: myGroups,
-        totals: myGroups.length > 0 ? calcTotals(myGroups) : { allocated: 0, spent: 0, available: 0 },
+        totals: myGroups.length > 0 ? calcTotals(myGroups) : EMPTY_TOTALS,
         goals: myGoals,
         totalGoals: myGoals.reduce((sum, g) => sum + (g.monthlyTarget || 0), 0),
         incomeData: myIncomeData,
@@ -236,7 +259,7 @@ export function useBudgetSections({
         key: 'partner',
         title: `Planejamento de ${partnerName}`,
         groupsData: partnerGroups,
-        totals: partnerGroups.length > 0 ? calcTotals(partnerGroups) : { allocated: 0, spent: 0, available: 0 },
+        totals: partnerGroups.length > 0 ? calcTotals(partnerGroups) : EMPTY_TOTALS,
         goals: partnerGoals,
         totalGoals: partnerGoals.reduce((sum, g) => sum + (g.monthlyTarget || 0), 0),
         incomeData: null, // Partner income not shown
@@ -256,6 +279,9 @@ export function useBudgetSections({
     return {
       allocated: sections.reduce((sum, s) => sum + s.totals.allocated, 0),
       spent: sections.reduce((sum, s) => sum + s.totals.spent, 0),
+      pending: sections.reduce((sum, s) => sum + s.totals.pending, 0),
+      confirmed: sections.reduce((sum, s) => sum + s.totals.confirmed, 0),
+      saldo: sections.reduce((sum, s) => sum + s.totals.saldo, 0),
       available: sections.reduce((sum, s) => sum + s.totals.available, 0),
     };
   }, [sections]);

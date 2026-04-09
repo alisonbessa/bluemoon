@@ -11,8 +11,9 @@ import type { MobileViewMode } from '../hooks';
 
 const VIEW_MODE_LABELS: Record<MobileViewMode, string> = {
   planned: 'Planejado',
+  pending: 'Pendente',
   actual: 'Realizado',
-  available: 'Disponível',
+  saldo: 'Saldo',
 };
 
 interface BudgetFiltersProps {
@@ -80,16 +81,22 @@ export function BudgetFilters({
               Planejado
             </DropdownMenuItem>
             <DropdownMenuItem
+              onClick={() => onViewModeChange('pending')}
+              className={mobileViewMode === 'pending' ? 'bg-muted' : ''}
+            >
+              Pendente
+            </DropdownMenuItem>
+            <DropdownMenuItem
               onClick={() => onViewModeChange('actual')}
               className={mobileViewMode === 'actual' ? 'bg-muted' : ''}
             >
               Realizado
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => onViewModeChange('available')}
-              className={mobileViewMode === 'available' ? 'bg-muted' : ''}
+              onClick={() => onViewModeChange('saldo')}
+              className={mobileViewMode === 'saldo' ? 'bg-muted' : ''}
             >
-              Pendente
+              Saldo
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
