@@ -26,7 +26,7 @@ export function TransactionSummary({ income, expenses, totalIncome, totalExpense
           label: "Receitas",
           value: formatCurrency(income),
           subtitle: hasUnconfirmed && totalIncome !== undefined && totalIncome !== income
-            ? `de ${formatCurrency(totalIncome)} planejado`
+            ? `de ${formatCurrency(totalIncome)}`
             : undefined,
           valueColor: "positive",
         },
@@ -36,7 +36,7 @@ export function TransactionSummary({ income, expenses, totalIncome, totalExpense
           label: "Despesas",
           value: formatCurrency(expenses),
           subtitle: hasUnconfirmed && totalExpenses !== undefined && totalExpenses !== expenses
-            ? `de ${formatCurrency(totalExpenses)} planejado`
+            ? `de ${formatCurrency(totalExpenses)}`
             : undefined,
           valueColor: "negative",
         },
@@ -46,7 +46,7 @@ export function TransactionSummary({ income, expenses, totalIncome, totalExpense
           label: "Saldo",
           value: formatCurrency(balance),
           subtitle: hasUnconfirmed
-            ? `de ${formatCurrency(totalBalance)} planejado`
+            ? `de ${formatCurrency(totalBalance)}`
             : undefined,
           valueColor: balance >= 0 ? "positive" : "negative",
         },

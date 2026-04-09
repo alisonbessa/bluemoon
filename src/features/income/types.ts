@@ -47,18 +47,23 @@ export interface IncomeSourceData {
   contributionPlanned: number;
   defaultAmount: number;
   defaultContribution: number;
+  /** Income transactions with status='pending' (scheduled but not received) */
+  pending: number;
+  /** Income transactions actually received (cleared/reconciled) */
   received: number;
+  /** planned - received - pending (what's still uncertain to come in) */
+  saldo: number;
 }
 
 export interface IncomeMemberGroup {
   member: Member | null;
   sources: IncomeSourceData[];
-  totals: { planned: number; contributionPlanned: number; received: number };
+  totals: { planned: number; contributionPlanned: number; pending: number; received: number; saldo: number };
 }
 
 export interface IncomeData {
   byMember: IncomeMemberGroup[];
-  totals: { planned: number; received: number };
+  totals: { planned: number; pending: number; received: number; saldo: number };
 }
 
 export interface IncomeSourceFormData {

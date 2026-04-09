@@ -78,14 +78,18 @@ export interface BudgetAllocationsResult {
         contributionPlanned: number;
         defaultAmount: number;
         defaultContribution: number;
+        pending: number;
         received: number;
+        saldo: number;
       }>;
-      totals: { planned: number; contributionPlanned: number; received: number };
+      totals: { planned: number; contributionPlanned: number; pending: number; received: number; saldo: number };
     }>;
     totals: {
       planned: number;
       contributionPlanned: number;
+      pending: number;
       received: number;
+      saldo: number;
     };
   } | null;
   hasPreviousMonthData: boolean;
@@ -562,11 +566,12 @@ export async function fetchBudgetAllocationsData(opts: {
           )
         ),
 
-      // Get income received per income source for this month
+      // Get income received per income source for this month (split pending vs confirmed)
       db
         .select({
           incomeSourceId: transactions.incomeSourceId,
-          totalReceived: sql<number>`SUM(${transactions.amount})`,
+          pendingReceived: sql<number>`SUM(CASE WHEN ${transactions.status} = 'pending' THEN ${transactions.amount} ELSE 0 END)`,
+          confirmedReceived: sql<number>`SUM(CASE WHEN ${transactions.status} IN ('cleared', 'reconciled') THEN ${transactions.amount} ELSE 0 END)`,
         })
         .from(transactions)
         .where(
@@ -575,7 +580,7 @@ export async function fetchBudgetAllocationsData(opts: {
             eq(transactions.type, "income"),
             gte(transactions.date, startDate),
             lte(transactions.date, endDate),
-            inArray(transactions.status, ["cleared", "reconciled"])
+            inArray(transactions.status, ["pending", "cleared", "reconciled"])
           )
         )
         .groupBy(transactions.incomeSourceId),
@@ -586,7 +591,13 @@ export async function fetchBudgetAllocationsData(opts: {
   );
 
   const incomeReceivedMap = new Map(
-    incomeReceived.map((i) => [i.incomeSourceId, Number(i.totalReceived) || 0])
+    incomeReceived.map((i) => [
+      i.incomeSourceId,
+      {
+        pending: Number(i.pendingReceived) || 0,
+        confirmed: Number(i.confirmedReceived) || 0,
+      },
+    ])
   );
 
   // Group income sources by member
@@ -600,12 +611,16 @@ export async function fetchBudgetAllocationsData(opts: {
         contributionPlanned: number;
         defaultAmount: number;
         defaultContribution: number;
+        pending: number;
         received: number;
+        saldo: number;
       }>;
       totals: {
         planned: number;
         contributionPlanned: number;
+        pending: number;
         received: number;
+        saldo: number;
       };
     }
   >();
@@ -617,7 +632,7 @@ export async function fetchBudgetAllocationsData(opts: {
       incomeByMember.set(memberId, {
         member,
         sources: [],
-        totals: { planned: 0, contributionPlanned: 0, received: 0 },
+        totals: { planned: 0, contributionPlanned: 0, pending: 0, received: 0, saldo: 0 },
       });
     }
 
@@ -665,7 +680,12 @@ export async function fetchBudgetAllocationsData(opts: {
         ? defaultMonthlyContribution
         : planned);
 
-    const received = incomeReceivedMap.get(incomeSource.id) || 0;
+    const receivedSplit = incomeReceivedMap.get(incomeSource.id) ?? { pending: 0, confirmed: 0 };
+    const pending = receivedSplit.pending;
+    const received = receivedSplit.confirmed;
+    // Saldo for income = what's still expected to come in
+    // (pessimistic: do not count pending as "done")
+    const saldo = Math.max(0, planned - received - pending);
 
     const memberData = incomeByMember.get(memberId)!;
     memberData.sources.push({
@@ -674,24 +694,32 @@ export async function fetchBudgetAllocationsData(opts: {
       contributionPlanned,
       defaultAmount: defaultMonthlyAmount,
       defaultContribution: defaultMonthlyContribution,
+      pending,
       received,
+      saldo,
     });
     memberData.totals.planned += planned;
     memberData.totals.contributionPlanned += contributionPlanned;
+    memberData.totals.pending += pending;
     memberData.totals.received += received;
+    memberData.totals.saldo += saldo;
   }
 
   // Calculate total income from income sources
   const incomeTotals = {
     planned: 0,
     contributionPlanned: 0,
+    pending: 0,
     received: 0,
+    saldo: 0,
   };
 
   const incomeGroups = Array.from(incomeByMember.values()).map((g) => {
     incomeTotals.planned += g.totals.planned;
     incomeTotals.contributionPlanned += g.totals.contributionPlanned;
+    incomeTotals.pending += g.totals.pending;
     incomeTotals.received += g.totals.received;
+    incomeTotals.saldo += g.totals.saldo;
     return g;
   });
 
