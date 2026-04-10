@@ -181,7 +181,7 @@ export function TransactionFormModal({
 
           {/* Account + Category (for expenses) */}
           {formData.type === 'expense' && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 *:min-w-0">
               <AccountSelector
                 value={formData.accountId}
                 onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
@@ -224,7 +224,7 @@ export function TransactionFormModal({
 
           {/* Account + Income Source (for income) */}
           {formData.type === 'income' && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 *:min-w-0">
               <AccountSelector
                 value={formData.accountId}
                 onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
@@ -266,7 +266,7 @@ export function TransactionFormModal({
 
           {/* Transfer: Origin + Destination */}
           {formData.type === 'transfer' && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 *:min-w-0">
               <AccountSelector
                 value={formData.accountId}
                 onChange={(value) => setFormData({ ...formData, accountId: value || '' })}

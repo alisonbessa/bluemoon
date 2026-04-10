@@ -266,9 +266,21 @@ export const GET = withAuthRequired(async (req, context) => {
 
   const scheduledTransactions: ScheduledTransaction[] = [];
 
+  // Helper: check if bill is active for the month being queried
+  const monthStartBound = new Date(Date.UTC(filterYear, filterMonth - 1, 1));
+  const monthEndBound = new Date(Date.UTC(filterYear, filterMonth, 0, 23, 59, 59));
+  const isBillActiveForQueriedMonth = (bill: { startDate: Date | null; endDate: Date | null }) => {
+    if (bill.startDate && new Date(bill.startDate) > monthEndBound) return false;
+    if (bill.endDate && new Date(bill.endDate) < monthStartBound) return false;
+    return true;
+  };
+
   // Add scheduled expenses from recurring bills
   for (const { bill, category } of activeBills) {
     if (bill.amount <= 0) continue;
+
+    // Skip bills outside their active date range (respect startDate/endDate)
+    if (!isBillActiveForQueriedMonth(bill)) continue;
 
     // Handle different frequencies
     if (bill.frequency === "weekly") {
