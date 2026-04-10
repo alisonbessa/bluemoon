@@ -10,6 +10,7 @@ const MAX_ROWS_RETURNED = 500;
 const MAX_ROWS_AFFECTED = 200;
 
 // Blacklisted keywords - these commands are never allowed
+// Keywords blocked anywhere in the query
 const BLACKLISTED_KEYWORDS = [
   "DROP",
   "TRUNCATE",
@@ -24,11 +25,12 @@ const BLACKLISTED_KEYWORDS = [
   "\\COPY",
   "REFRESH",
   "LOCK",
-  "SET",
-  "RESET",
   "COMMENT ON",
   "SECURITY",
 ];
+
+// Keywords blocked only as the first word of the query (e.g. SET search_path, RESET ALL)
+const BLACKLISTED_FIRST_WORD = ["SET", "RESET"];
 
 // Detect the operation type from the query
 function detectOperation(query: string): "SELECT" | "UPDATE" | "DELETE" | "INSERT" | "UNKNOWN" {
@@ -63,13 +65,24 @@ function validateQuery(query: string): { valid: boolean; error?: string } {
   }
 
   // Check blacklisted keywords (word boundary to avoid false positives like "CREATEd_at")
-  const upperCleaned = withoutTrailingSemi.toUpperCase();
   for (const keyword of BLACKLISTED_KEYWORDS) {
     const regex = new RegExp(`\\b${keyword.replace(/\\/g, "\\\\")}\\b`, "i");
-    if (regex.test(upperCleaned)) {
+    if (regex.test(withoutTrailingSemi)) {
       return {
         valid: false,
-        error: `Comando "${keyword}" não permitido por seguranca`,
+        error: `Comando "${keyword}" não permitido por segurança`,
+      };
+    }
+  }
+
+  // Check keywords that are only dangerous as the first word
+  // (e.g. "SET search_path" is dangerous, but "UPDATE x SET y" is fine)
+  const firstWord = withoutTrailingSemi.trim().split(/\s+/)[0]?.toUpperCase();
+  for (const keyword of BLACKLISTED_FIRST_WORD) {
+    if (firstWord === keyword) {
+      return {
+        valid: false,
+        error: `Comando "${keyword}" não permitido por segurança`,
       };
     }
   }
