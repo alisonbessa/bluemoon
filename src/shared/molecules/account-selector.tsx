@@ -82,7 +82,7 @@ export function AccountSelector({
         onValueChange={handleChange}
         disabled={disabled}
       >
-        <SelectTrigger className={cn('w-full', hasError && 'border-destructive')}>
+        <SelectTrigger className={cn('w-full overflow-hidden', hasError && 'border-destructive')}>
           <SelectValue placeholder={placeholder} className="truncate" />
         </SelectTrigger>
         <SelectContent>

@@ -18,7 +18,9 @@ export function useTransactionCacheInvalidation() {
         (key.startsWith("/api/app/transactions") ||
           key.startsWith("/api/app/allocations") ||
           key.startsWith("/api/app/dashboard") ||
-          key.startsWith("/api/app/accounts"))
+          key.startsWith("/api/app/accounts")),
+      undefined,
+      { revalidate: true }
     );
   }, []);
 }

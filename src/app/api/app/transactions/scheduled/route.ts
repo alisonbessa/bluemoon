@@ -355,6 +355,18 @@ export const GET = withAuthRequired(async (req, context) => {
   for (const source of incomeSourcesWithDay) {
     if (source.amount <= 0) continue;
 
+    // Skip income sources outside their active period
+    if (source.startYear && source.startMonth) {
+      const startPeriod = source.startYear * 12 + source.startMonth;
+      const currentPeriod = filterYear * 12 + filterMonth;
+      if (currentPeriod < startPeriod) continue;
+    }
+    if (source.endYear && source.endMonth) {
+      const endPeriod = source.endYear * 12 + source.endMonth;
+      const currentPeriod = filterYear * 12 + filterMonth;
+      if (currentPeriod >= endPeriod) continue;
+    }
+
     const frequency = source.frequency || "monthly";
     const paidDates = paidIncomeDates.get(source.id) || new Set();
     const incomeIcon = source.type === "salary" ? "💼" : source.type === "benefit" ? "🍽️" : "💰";
