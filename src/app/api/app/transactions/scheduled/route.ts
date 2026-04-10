@@ -50,16 +50,18 @@ export const GET = withAuthRequired(async (req, context) => {
   }
 
   // Calculate date range - prefer startDate/endDate params, fallback to year/month
+  // Always use UTC to avoid timezone mismatches between client and server
   let startDate: Date, endDate: Date;
   if (startDateParam && endDateParam) {
-    startDate = new Date(startDateParam);
-    endDate = new Date(endDateParam);
-    // Ensure endDate includes the full day
-    endDate.setHours(23, 59, 59, 999);
+    // Extract year/month from the params to build consistent UTC dates
+    const parsedStart = new Date(startDateParam);
+    const parsedEnd = new Date(endDateParam);
+    startDate = new Date(Date.UTC(parsedStart.getUTCFullYear(), parsedStart.getUTCMonth(), 1));
+    endDate = new Date(Date.UTC(parsedEnd.getUTCFullYear(), parsedEnd.getUTCMonth() + 1, 0, 23, 59, 59, 999));
   } else {
     // Legacy: calculate from year/month
-    startDate = new Date(year, month - 1, 1);
-    endDate = new Date(year, month, 0, 23, 59, 59);
+    startDate = new Date(Date.UTC(year, month - 1, 1));
+    endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
   }
 
   // Determine if this is a past period (for historical filtering)
@@ -71,7 +73,7 @@ export const GET = withAuthRequired(async (req, context) => {
   const filterYear = startDate.getFullYear();
   const filterMonth = startDate.getMonth() + 1;
   // For date calculations, we need the last day of the month
-  const lastDayOfMonth = new Date(filterYear, filterMonth, 0).getDate();
+  const lastDayOfMonth = new Date(Date.UTC(filterYear, filterMonth, 0)).getUTCDate();
 
   // Get month status
   const [monthStatusRecord] = await db
@@ -319,7 +321,7 @@ export const GET = withAuthRequired(async (req, context) => {
       if (bill.dueMonth !== filterMonth) continue;
 
       const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
-      const dueDate = new Date(filterYear, filterMonth - 1, dueDay);
+      const dueDate = new Date(Date.UTC(filterYear, filterMonth - 1, dueDay, 12, 0, 0));
 
       scheduledTransactions.push({
         id: `bill-${bill.id}-${filterYear}-${filterMonth}`,
@@ -341,7 +343,7 @@ export const GET = withAuthRequired(async (req, context) => {
     } else {
       // Monthly bills (default)
       const dueDay = bill.dueDay ? Math.min(bill.dueDay, lastDayOfMonth) : 1;
-      const dueDate = new Date(filterYear, filterMonth - 1, dueDay);
+      const dueDate = new Date(Date.UTC(filterYear, filterMonth - 1, dueDay, 12, 0, 0));
 
       scheduledTransactions.push({
         id: `bill-${bill.id}-${filterYear}-${filterMonth}`,
@@ -437,7 +439,7 @@ export const GET = withAuthRequired(async (req, context) => {
       }
     } else if (source.dayOfMonth) {
       // Monthly income (default)
-      const dueDate = new Date(filterYear, filterMonth - 1, Math.min(source.dayOfMonth, lastDayOfMonth));
+      const dueDate = new Date(Date.UTC(filterYear, filterMonth - 1, Math.min(source.dayOfMonth, lastDayOfMonth), 12, 0, 0));
 
       scheduledTransactions.push({
         id: `income-${source.id}-${filterYear}-${filterMonth}`,
@@ -474,7 +476,7 @@ export const GET = withAuthRequired(async (req, context) => {
 
       if (monthlyTarget > 0) {
         // Use the 1st day of the month as default due day for goals
-        const dueDate = new Date(filterYear, filterMonth - 1, 1);
+        const dueDate = new Date(Date.UTC(filterYear, filterMonth - 1, 1, 12, 0, 0));
 
         scheduledTransactions.push({
           id: `goal-${goal.id}-${filterYear}-${filterMonth}`,
