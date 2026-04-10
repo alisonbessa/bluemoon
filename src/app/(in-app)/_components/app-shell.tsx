@@ -9,8 +9,13 @@ import {
   useTutorial,
 } from "@/shared/tutorial";
 import { ViewModeProvider } from "@/shared/providers/view-mode-provider";
-import { FloatingChatbot } from "@/shared/components/floating-chatbot";
 import React, { Suspense, useEffect } from "react";
+import dynamic from "next/dynamic";
+
+const FloatingChatbot = dynamic(
+  () => import("@/shared/components/floating-chatbot").then((mod) => ({ default: mod.FloatingChatbot })),
+  { ssr: false }
+);
 import { useRouter, usePathname } from "next/navigation";
 import { useCurrentUser, useCurrentPlan } from "@/shared/hooks/use-current-user";
 import { useSubscriptionGate } from "@/shared/hooks/use-subscription-gate";
@@ -78,16 +83,31 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     document.getElementById("main-content")?.scrollTo(0, 0);
   }, [pathname]);
 
-  // Redirect new users who haven't completed onboarding to the setup wizard
+  // Consolidated redirect logic: auth check, subscription gate, onboarding
   useEffect(() => {
-    if (isLoading || !user) return;
+    if (isLoading) return;
+
+    // Not authenticated — redirect to home (safety net, proxy.ts handles at edge)
+    if (!user || error) {
+      router.replace("/");
+      return;
+    }
+
     if (pathname?.startsWith("/app/setup") || pathname?.startsWith("/app/choose-plan")) return;
+
+    // Redirect to choose-plan if no subscription
+    if (!SUBSCRIPTION_EXEMPT_PATHS.some((path) => pathname?.startsWith(path))) {
+      if (subscriptionStatus === "none" || subscriptionStatus === "needs_plan") {
+        router.replace("/app/choose-plan");
+        return;
+      }
+    }
 
     const hasActiveSubscription = user.stripeSubscriptionId !== null;
     const hasExemptRole = user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role);
     if (!hasActiveSubscription && !hasExemptRole && !hasPartnerAccess) return;
 
-    // Invited partners should see the partner welcome flow first, not the main setup
+    // Invited partners should see the partner welcome flow first
     if (hasPartnerAccess && !pathname?.startsWith("/app/partner-welcome")) {
       const partnerWelcomeDone = localStorage.getItem("hivebudget_partner_welcome_done") === "true";
       if (!partnerWelcomeDone) {
@@ -105,24 +125,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     if (!hasPartnerAccess) {
       router.replace("/app/setup");
     }
-  }, [user, isLoading, hasPartnerAccess, pathname, router]);
-
-  // Redirect to home if user is not authenticated (safety net - proxy.ts handles this at edge)
-  useEffect(() => {
-    if (!isLoading && (!user || error)) {
-      router.replace("/");
-    }
-  }, [isLoading, user, error, router]);
-
-  // Redirect to choose-plan if needed
-  useEffect(() => {
-    if (isLoading || !user) return;
-    if (SUBSCRIPTION_EXEMPT_PATHS.some((path) => pathname?.startsWith(path))) return;
-
-    if (subscriptionStatus === "none" || subscriptionStatus === "needs_plan") {
-      router.replace("/app/choose-plan");
-    }
-  }, [isLoading, user, subscriptionStatus, pathname, router]);
+  }, [user, isLoading, error, hasPartnerAccess, pathname, router, subscriptionStatus]);
 
   if (isLoading || !user || error) {
     return <DashboardSkeleton />;

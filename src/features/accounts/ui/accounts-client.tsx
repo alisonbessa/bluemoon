@@ -18,8 +18,13 @@ import {
   HoverActions,
   useExpandedGroups,
 } from "@/shared/ui/compact-table";
-import { AccountForm } from "@/features/accounts/ui";
+import dynamic from "next/dynamic";
 import type { Account, AccountFormData } from "@/features/accounts/types";
+
+const AccountForm = dynamic(
+  () => import("@/features/accounts/ui/account-form").then((m) => ({ default: m.AccountForm })),
+  { ssr: false }
+);
 import { getAccountTypeIcon } from "@/features/accounts/types";
 import {
   Plus,

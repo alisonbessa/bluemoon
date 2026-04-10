@@ -26,22 +26,24 @@ import {
 
 import type { BudgetSection } from '@/features/budget/hooks';
 
+import dynamic from 'next/dynamic';
 import {
   BudgetHeader,
   BudgetFilters,
   IncomeSectionAccordion,
   ExpensesSectionAccordion,
   GoalsSectionAccordion,
-  AllocationModal,
-  CategoryFormModal,
   CategoryDeleteDialog,
-  IncomeAllocationModal,
-  IncomeSourceFormModal,
   IncomeSourceDeleteDialog,
   IncomeEditScopeDialog,
-  CopyAllocationsModal,
-  CopyHintModal,
 } from '@/features/budget/ui';
+
+const AllocationModal = dynamic(() => import('@/features/budget/ui/allocation-modal').then((m) => ({ default: m.AllocationModal })), { ssr: false });
+const CategoryFormModal = dynamic(() => import('@/features/budget/ui/category-form-modal').then((m) => ({ default: m.CategoryFormModal })), { ssr: false });
+const IncomeAllocationModal = dynamic(() => import('@/features/budget/ui/income-allocation-modal').then((m) => ({ default: m.IncomeAllocationModal })), { ssr: false });
+const IncomeSourceFormModal = dynamic(() => import('@/features/budget/ui/income-source-form-modal').then((m) => ({ default: m.IncomeSourceFormModal })), { ssr: false });
+const CopyAllocationsModal = dynamic(() => import('@/features/budget/ui/copy-allocations-modal').then((m) => ({ default: m.CopyAllocationsModal })), { ssr: false });
+const CopyHintModal = dynamic(() => import('@/features/budget/ui/copy-hint-modal').then((m) => ({ default: m.CopyHintModal })), { ssr: false });
 
 import { formatCurrency } from '@/shared/lib/formatters';
 
