@@ -89,7 +89,7 @@ export function AccountSelector({
           {allowNone && <SelectItem value="none">{noneLabel}</SelectItem>}
           {accounts.map((account) => (
             <SelectItem key={account.id} value={account.id}>
-              <span className="flex items-center gap-2 min-w-0">
+              <span className="flex items-center gap-2 min-w-0 overflow-hidden">
                 <span className="shrink-0">{getAccountTypeIcon(account.type)}</span>
                 <span className="truncate">{account.name}</span>
               </span>

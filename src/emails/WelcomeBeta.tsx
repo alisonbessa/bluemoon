@@ -18,42 +18,54 @@ export default function WelcomeBeta({ userName, dashboardUrl }: WelcomeBetaEmail
         previewText={`Bem-vindo ao time de beta testers do ${appConfig.projectName}!`}
       >
         <Text>
-          Olá, {userName}!
+          Oi, {userName}! Tudo bem?
         </Text>
 
         <Text>
-          Você é um dos primeiros a usar o {appConfig.projectName}. Obrigado por
-          topar essa jornada com a gente!
+          Que bom ter você aqui! Você é um dos primeiros a usar o{" "}
+          {appConfig.projectName} e isso significa muito pra gente.
+        </Text>
+
+        <Text>
+          A ideia do {appConfig.projectName} é simples: construir uma
+          plataforma que resolve problemas reais de quem quer organizar a
+          vida financeira. E pra isso, nada melhor do que feedbacks reais e
+          sinceros de quem está usando no dia a dia.
+        </Text>
+
+        <Text>
+          Então fica à vontade! Toda sugestão é bem-vinda, seja uma ideia
+          nova, algo que ficou confuso, ou um "isso aqui podia ser diferente".
+          Não existe feedback pequeno.
         </Text>
 
         <Container className="ml-4 mt-4">
           <Text className="mb-2">
-            O que significa ser beta tester:
+            O que você ganha como beta tester:
           </Text>
           <Text className="ml-4 mb-2">
-            <strong>Acesso gratuito</strong> a todas as funcionalidades
-            enquanto a plataforma estiver em desenvolvimento
+            <strong>Acesso gratuito</strong> a tudo enquanto estivermos em
+            desenvolvimento
           </Text>
           <Text className="ml-4 mb-2">
-            <strong>Seu feedback constrói o produto.</strong> Conte pra gente o que
-            funciona e o que não funciona
+            <strong>Voz ativa</strong> no que a gente constrói a seguir
           </Text>
           <Text className="ml-4 mb-2">
-            <strong>Desconto exclusivo de lançamento</strong> garantido quando
-            sairmos do beta
+            <strong>Desconto exclusivo</strong> garantido quando sairmos do
+            beta
           </Text>
         </Container>
 
         <Container className="ml-4 mt-4">
           <Text className="mb-2">
-            Primeiros passos:
+            Pra começar é bem rápido:
           </Text>
           <Text className="ml-4 mb-2">1. Escolha seu plano (Solo ou Duo)</Text>
           <Text className="ml-4 mb-2">2. Configure seu orçamento com nosso assistente</Text>
           <Text className="ml-4 mb-2">3. Registre seu primeiro gasto</Text>
         </Container>
 
-        <Text className="mt-4">Vamos lá?</Text>
+        <Text className="mt-4">Bora?</Text>
 
         <Button
           href={dashboardUrl}
@@ -63,9 +75,9 @@ export default function WelcomeBeta({ userName, dashboardUrl }: WelcomeBetaEmail
         </Button>
 
         <Text className="mt-4 text-muted">
-          Encontrou um bug ou tem uma sugestão? Use o botão de feedback
-          dentro do app ou responda este email diretamente. Cada mensagem
-          sua faz diferença.
+          Encontrou um bug, teve uma ideia ou quer desabafar sobre algo que
+          não curtiu? Use o botão de feedback dentro do app ou responda este
+          email. A gente lê tudo e leva a sério cada mensagem.
         </Text>
       </Layout>
     </Html>
