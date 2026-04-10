@@ -2,7 +2,7 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
 import { transactions, financialAccounts, categories, budgetMembers } from "@/db/schema";
-import { eq, and, inArray, or, sql } from "drizzle-orm";
+import { eq, and, inArray, or, sql, gte, lte } from "drizzle-orm";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import { updateTransactionSchema } from "@/shared/lib/validations/transaction.schema";
 import {
@@ -281,6 +281,19 @@ export const PATCH = withAuthRequired(async (req, context) => {
   return successResponse({ transaction: updatedTransaction });
 });
 
+// Parse virtual/scheduled IDs like "income-{uuid}-{year}-{month}" or "bill-{uuid}-{year}-{month}"
+function parseVirtualId(id: string) {
+  const match = id.match(/^(income|bill|goal)-([0-9a-f-]{36})-(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$/);
+  if (!match) return null;
+  return {
+    type: match[1] as "income" | "bill" | "goal",
+    sourceId: match[2],
+    year: parseInt(match[3]),
+    month: parseInt(match[4]),
+    day: match[5] ? parseInt(match[5]) : undefined,
+  };
+}
+
 // DELETE - Delete a transaction
 export const DELETE = withAuthRequired(async (req, context) => {
   const { session } = context;
@@ -295,6 +308,75 @@ export const DELETE = withAuthRequired(async (req, context) => {
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (budgetIds.length === 0) {
     return notFoundError("Transaction");
+  }
+
+  // Handle virtual/scheduled IDs (from the scheduled transactions endpoint)
+  const virtualId = parseVirtualId(transactionId);
+  if (virtualId) {
+    const startDate = new Date(virtualId.year, virtualId.month - 1, 1);
+    const endDate = new Date(virtualId.year, virtualId.month, 0, 23, 59, 59);
+
+    // Build condition based on source type
+    const sourceCondition =
+      virtualId.type === "income"
+        ? eq(transactions.incomeSourceId, virtualId.sourceId)
+        : eq(transactions.recurringBillId, virtualId.sourceId);
+
+    // Find the real transaction(s) matching this scheduled item
+    const matchingTransactions = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          sourceCondition,
+          inArray(transactions.budgetId, budgetIds),
+          gte(transactions.date, startDate),
+          lte(transactions.date, endDate)
+        )
+      );
+
+    if (matchingTransactions.length === 0) {
+      return notFoundError("Transaction");
+    }
+
+    // Delete all matching transactions (handles duplicates)
+    for (const existingTransaction of matchingTransactions) {
+      await db.transaction(async (tx) => {
+        const [account] = await tx
+          .select()
+          .from(financialAccounts)
+          .where(eq(financialAccounts.id, existingTransaction.accountId));
+
+        const balanceChange =
+          existingTransaction.type === "income"
+            ? -existingTransaction.amount
+            : Math.abs(existingTransaction.amount);
+
+        if (account) {
+          await tx
+            .update(financialAccounts)
+            .set({
+              balance: sql`${financialAccounts.balance} + ${balanceChange}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(financialAccounts.id, existingTransaction.accountId));
+
+          const isConfirmed = existingTransaction.status === "cleared" || existingTransaction.status === "reconciled";
+          if (isConfirmed) {
+            await tx
+              .update(financialAccounts)
+              .set({
+                clearedBalance: sql`${financialAccounts.clearedBalance} + ${balanceChange}`,
+              })
+              .where(eq(financialAccounts.id, existingTransaction.accountId));
+          }
+        }
+
+        await tx.delete(transactions).where(eq(transactions.id, existingTransaction.id));
+      });
+    }
+
+    return successResponse({ success: true, deletedCount: matchingTransactions.length });
   }
 
   const [existingTransaction] = await db
