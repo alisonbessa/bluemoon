@@ -1,7 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
-import { transactions, financialAccounts, categories, budgetMembers } from "@/db/schema";
+import { transactions, financialAccounts, categories, budgetMembers, incomeSources, recurringBills } from "@/db/schema";
 import { eq, and, inArray, or, sql, gte, lte } from "drizzle-orm";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import { updateTransactionSchema } from "@/shared/lib/validations/transaction.schema";
@@ -316,13 +316,12 @@ export const DELETE = withAuthRequired(async (req, context) => {
     const startDate = new Date(virtualId.year, virtualId.month - 1, 1);
     const endDate = new Date(virtualId.year, virtualId.month, 0, 23, 59, 59);
 
-    // Build condition based on source type
     const sourceCondition =
       virtualId.type === "income"
         ? eq(transactions.incomeSourceId, virtualId.sourceId)
         : eq(transactions.recurringBillId, virtualId.sourceId);
 
-    // Find the real transaction(s) matching this scheduled item
+    // Find real transaction(s) matching this scheduled item
     const matchingTransactions = await db
       .select()
       .from(transactions)
@@ -335,48 +334,76 @@ export const DELETE = withAuthRequired(async (req, context) => {
         )
       );
 
-    if (matchingTransactions.length === 0) {
-      return notFoundError("Transaction");
-    }
+    if (matchingTransactions.length > 0) {
+      // Delete all matching transactions (handles duplicates)
+      for (const tx of matchingTransactions) {
+        await db.transaction(async (dbTx) => {
+          const [account] = await dbTx
+            .select()
+            .from(financialAccounts)
+            .where(eq(financialAccounts.id, tx.accountId));
 
-    // Delete all matching transactions (handles duplicates)
-    for (const existingTransaction of matchingTransactions) {
-      await db.transaction(async (tx) => {
-        const [account] = await tx
-          .select()
-          .from(financialAccounts)
-          .where(eq(financialAccounts.id, existingTransaction.accountId));
+          const balanceChange =
+            tx.type === "income" ? -tx.amount : Math.abs(tx.amount);
 
-        const balanceChange =
-          existingTransaction.type === "income"
-            ? -existingTransaction.amount
-            : Math.abs(existingTransaction.amount);
-
-        if (account) {
-          await tx
-            .update(financialAccounts)
-            .set({
-              balance: sql`${financialAccounts.balance} + ${balanceChange}`,
-              updatedAt: new Date(),
-            })
-            .where(eq(financialAccounts.id, existingTransaction.accountId));
-
-          const isConfirmed = existingTransaction.status === "cleared" || existingTransaction.status === "reconciled";
-          if (isConfirmed) {
-            await tx
+          if (account) {
+            await dbTx
               .update(financialAccounts)
               .set({
-                clearedBalance: sql`${financialAccounts.clearedBalance} + ${balanceChange}`,
+                balance: sql`${financialAccounts.balance} + ${balanceChange}`,
+                updatedAt: new Date(),
               })
-              .where(eq(financialAccounts.id, existingTransaction.accountId));
-          }
-        }
+              .where(eq(financialAccounts.id, tx.accountId));
 
-        await tx.delete(transactions).where(eq(transactions.id, existingTransaction.id));
-      });
+            const isConfirmed = tx.status === "cleared" || tx.status === "reconciled";
+            if (isConfirmed) {
+              await dbTx
+                .update(financialAccounts)
+                .set({
+                  clearedBalance: sql`${financialAccounts.clearedBalance} + ${balanceChange}`,
+                })
+                .where(eq(financialAccounts.id, tx.accountId));
+            }
+          }
+
+          await dbTx.delete(transactions).where(eq(transactions.id, tx.id));
+        });
+      }
+      return successResponse({ success: true, deletedCount: matchingTransactions.length });
     }
 
-    return successResponse({ success: true, deletedCount: matchingTransactions.length });
+    // No real transaction found — delete the income source or recurring bill itself
+    if (virtualId.type === "income") {
+      const [source] = await db
+        .select()
+        .from(incomeSources)
+        .where(
+          and(
+            eq(incomeSources.id, virtualId.sourceId),
+            inArray(incomeSources.budgetId, budgetIds)
+          )
+        );
+      if (source) {
+        await db.delete(incomeSources).where(eq(incomeSources.id, virtualId.sourceId));
+        return successResponse({ success: true, deletedSource: true });
+      }
+    } else if (virtualId.type === "bill") {
+      const [bill] = await db
+        .select()
+        .from(recurringBills)
+        .where(
+          and(
+            eq(recurringBills.id, virtualId.sourceId),
+            inArray(recurringBills.budgetId, budgetIds)
+          )
+        );
+      if (bill) {
+        await db.delete(recurringBills).where(eq(recurringBills.id, virtualId.sourceId));
+        return successResponse({ success: true, deletedSource: true });
+      }
+    }
+
+    return notFoundError("Transaction");
   }
 
   const [existingTransaction] = await db
