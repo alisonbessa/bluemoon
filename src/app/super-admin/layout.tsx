@@ -21,6 +21,7 @@ import {
   Rocket,
   FileText,
   Sparkles,
+  Terminal,
 } from "lucide-react";
 import { ThemeSwitcher } from "@/shared/theme-switcher";
 import { appConfig } from "@/shared/lib/config";
@@ -83,6 +84,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "Migrações", href: "/super-admin/migrations", icon: Rocket },
       { name: "Banco de Dados", href: "/super-admin/database", icon: Database },
+      { name: "SQL Query", href: "/super-admin/sql", icon: Terminal },
       { name: "Sair", href: "/super-admin/logout", icon: LogOut },
     ],
   },
