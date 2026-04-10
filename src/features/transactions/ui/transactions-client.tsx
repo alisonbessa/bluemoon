@@ -11,11 +11,11 @@ import { PageHeader, PageContent, ResponsiveButton } from "@/shared/molecules";
 import { useTutorial } from "@/shared/tutorial/tutorial-provider";
 import { useMembers, useUser } from "@/shared/hooks";
 import { useViewMode } from "@/shared/providers/view-mode-provider";
+import dynamic from "next/dynamic";
 import {
   TransactionSummary,
   TransactionFiltersBar,
   TransactionFiltersMobile,
-  TransactionFormModal,
   TransactionDeleteDialog,
   TransactionWidget,
   TransactionFiltersSheet,
@@ -25,6 +25,11 @@ import {
   type Transaction,
   type TransactionsResponse,
 } from "@/features/transactions";
+
+const TransactionFormModal = dynamic(
+  () => import("@/features/transactions/ui/transaction-form-modal").then((mod) => ({ default: mod.TransactionFormModal })),
+  { ssr: false }
+);
 import { TransactionBulkActionsBar } from "./transaction-bulk-actions-bar";
 import { useTransactionCacheInvalidation } from "@/features/transactions/hooks/use-transaction-cache-invalidation";
 import {

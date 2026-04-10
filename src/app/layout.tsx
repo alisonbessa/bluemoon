@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { appConfig } from "@/shared/lib/config";
 import Providers from "./Providers";
@@ -8,7 +8,16 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { CookieConsent } from "@/shared/components/cookie-consent";
 
-const inter = Inter({ subsets: ["latin"], display: "swap" });
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono",
+});
 
 function getBaseUrl() {
   const url = process.env.NEXT_PUBLIC_APP_URL || "https://hivebudget.com";
@@ -47,7 +56,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#8b5cf6" />
         <link rel="preconnect" href="https://api.dicebear.com" />
       </head>
-      <body className={`${inter.className} antialiased bg-background`} suppressHydrationWarning>
+      <body className={`${plusJakarta.className} ${jetbrainsMono.variable} antialiased bg-background`} suppressHydrationWarning>
         <a href="#main-content" className="skip-to-content">
           Pular para o conteúdo
         </a>
