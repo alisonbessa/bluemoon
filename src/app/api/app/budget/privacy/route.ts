@@ -16,6 +16,7 @@ import sendMail from "@/shared/lib/email/sendMail";
 import { render } from "@react-email/components";
 import PrivacyChangeRequestEmail from "@/emails/PrivacyChangeRequestEmail";
 import { appConfig } from "@/shared/lib/config";
+import { signPrivacyToken } from "@/app/api/public/budget-privacy/route";
 
 const logger = createLogger("api:budget:privacy");
 
@@ -112,10 +113,12 @@ export const PATCH = withAuthRequired(async (request, context) => {
       .where(eq(budgets.id, budgetId))
       .returning();
 
-    // Send email to partner for confirmation
+    // Send email to partner for confirmation (signed JWT token, no login required)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "";
-    const confirmUrl = `${baseUrl}/api/app/budget/privacy?action=confirm&budgetId=${budgetId}&token=${membership.id}`;
-    const rejectUrl = `${baseUrl}/api/app/budget/privacy?action=reject&budgetId=${budgetId}&token=${membership.id}`;
+    const confirmToken = await signPrivacyToken({ budgetId, membershipId: partner.member.id });
+    const rejectToken = await signPrivacyToken({ budgetId, membershipId: partner.member.id });
+    const confirmUrl = `${baseUrl}/api/public/budget-privacy?action=confirm&token=${confirmToken}`;
+    const rejectUrl = `${baseUrl}/api/public/budget-privacy?action=reject&token=${rejectToken}`;
 
     const requesterName = membership.name;
     const partnerEmail = partner.user.email;
@@ -147,89 +150,5 @@ export const PATCH = withAuthRequired(async (request, context) => {
   } catch (error) {
     logger.error("Error requesting privacy change:", error);
     return internalError("Failed to request privacy change");
-  }
-});
-
-// GET - Confirm or reject privacy change (via email link)
-export const GET = withAuthRequired(async (request, context) => {
-  const { session } = context;
-  const { searchParams } = new URL(request.url);
-  const action = searchParams.get("action");
-  const budgetId = searchParams.get("budgetId");
-  const token = searchParams.get("token");
-
-  if (!action || !budgetId || !token) {
-    return errorResponse("Missing parameters", 400);
-  }
-
-  if (action !== "confirm" && action !== "reject") {
-    return errorResponse("Invalid action", 400);
-  }
-
-  try {
-    // Verify user is a member of this budget
-    const [membership] = await db
-      .select()
-      .from(budgetMembers)
-      .where(
-        and(
-          eq(budgetMembers.budgetId, budgetId),
-          eq(budgetMembers.userId, session.user.id)
-        )
-      )
-      .limit(1);
-
-    if (!membership) {
-      return forbiddenError("Unauthorized");
-    }
-
-    // Get current budget
-    const [budget] = await db
-      .select()
-      .from(budgets)
-      .where(eq(budgets.id, budgetId))
-      .limit(1);
-
-    if (!budget || !budget.pendingPrivacyMode) {
-      return errorResponse("No pending privacy change", 400);
-    }
-
-    // Verify the confirming user is NOT the one who requested (must be partner)
-    if (budget.privacyChangeRequestedBy === membership.id) {
-      return errorResponse("You cannot confirm your own request", 400);
-    }
-
-    if (action === "confirm") {
-      const [updated] = await db
-        .update(budgets)
-        .set({
-          privacyMode: budget.pendingPrivacyMode,
-          pendingPrivacyMode: null,
-          privacyChangeRequestedBy: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(budgets.id, budgetId))
-        .returning();
-
-      // Redirect to settings page with success
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "";
-      return Response.redirect(`${baseUrl}/app/settings?privacyChanged=true`);
-    } else {
-      // Reject: clear pending
-      await db
-        .update(budgets)
-        .set({
-          pendingPrivacyMode: null,
-          privacyChangeRequestedBy: null,
-          updatedAt: new Date(),
-        })
-        .where(eq(budgets.id, budgetId));
-
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "";
-      return Response.redirect(`${baseUrl}/app/settings?privacyRejected=true`);
-    }
-  } catch (error) {
-    logger.error("Error processing privacy change:", error);
-    return internalError("Failed to process privacy change");
   }
 });
