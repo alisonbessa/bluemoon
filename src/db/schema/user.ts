@@ -56,6 +56,10 @@ export const users = pgTable("app_user", {
   deletedAt: timestamp("deleted_at", { mode: "date" }),
   deletionRequestedAt: timestamp("deletion_requested_at", { mode: "date" }),
   deletionReason: text("deletion_reason"),
+
+  // Global opt-out for marketing / retention email campaigns.
+  // Transactional emails (auth, trial reminders, invites) are NOT affected.
+  unsubscribedFromCampaignsAt: timestamp("unsubscribed_from_campaigns_at", { mode: "date" }),
 }, (table) => [
   // PERFORMANCE: Index for Stripe webhook lookups
   index("idx_users_stripe_customer_id").on(table.stripeCustomerId),
