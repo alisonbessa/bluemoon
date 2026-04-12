@@ -6,6 +6,7 @@ import { sendTrialReminders } from "./send-trial-reminders";
 import { sendInviteReminders } from "./send-invite-reminders";
 import { autoPayCreditCards } from "./auto-pay-credit-cards";
 import { pruneChatLogs } from "./prune-chat-logs";
+import { runRetentionCampaigns } from "./run-retention-campaigns";
 
 export type InngestEvents = {
   // Add your events here
@@ -21,4 +22,5 @@ export const functions = [
   sendInviteReminders,
   autoPayCreditCards,
   pruneChatLogs,
+  runRetentionCampaigns,
 ];

@@ -22,6 +22,7 @@ import {
   FileText,
   Sparkles,
   Terminal,
+  Mail,
 } from "lucide-react";
 import { ThemeSwitcher } from "@/shared/theme-switcher";
 import { appConfig } from "@/shared/lib/config";
@@ -76,6 +77,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: "Mensagens", href: "/super-admin/messages", icon: MessageSquare },
       { name: "Feedback", href: "/super-admin/feedback", icon: MessageSquarePlus },
+      { name: "Campanhas de E-mail", href: "/super-admin/email-campaigns", icon: Mail },
       { name: "Blog", href: "/super-admin/blog", icon: FileText },
     ],
   },

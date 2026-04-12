@@ -16,6 +16,12 @@ import * as React from "react";
 interface LayoutProps {
   children: React.ReactNode;
   previewText?: string;
+  /**
+   * If provided, renders an unsubscribe link in the footer. Only pass this
+   * for retention/marketing campaigns — transactional emails (auth, billing,
+   * invites) should omit it.
+   */
+  unsubscribeUrl?: string;
 }
 
 const baseUrl =
@@ -23,7 +29,7 @@ const baseUrl =
     ? process.env.NEXT_PUBLIC_APP_URL
     : "http://localhost:3000";
 
-export const Layout = ({ children, previewText }: LayoutProps) => {
+export const Layout = ({ children, previewText, unsubscribeUrl }: LayoutProps) => {
   return (
     <Html>
       <Head />
@@ -95,6 +101,17 @@ export const Layout = ({ children, previewText }: LayoutProps) => {
                 Fale Conosco
               </Link>
               .
+              {unsubscribeUrl ? (
+                <>
+                  <br />
+                  <Link
+                    className="text-muted underline"
+                    href={unsubscribeUrl}
+                  >
+                    Não quero mais receber estes e-mails
+                  </Link>
+                </>
+              ) : null}
             </Text>
           </Container>
         </Body>
