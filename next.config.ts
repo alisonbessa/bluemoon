@@ -36,7 +36,7 @@ const securityHeaders = [
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://use.typekit.net",
       "connect-src 'self' https://api.stripe.com https://vitals.vercel-insights.com https://*.vercel-insights.com https://vercel.live wss://ws-us3.pusher.com https://www.google-analytics.com https://analytics.google.com",
-      "frame-src https://js.stripe.com https://vercel.live",
+      "frame-src 'self' https://js.stripe.com https://vercel.live",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
