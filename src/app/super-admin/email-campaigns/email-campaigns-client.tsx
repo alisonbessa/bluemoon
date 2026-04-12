@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
 import { toast } from "sonner";
+import { useCurrentUser } from "@/shared/hooks/use-current-user";
 import {
   Table,
   TableBody,
@@ -24,7 +25,7 @@ import { Badge } from "@/shared/ui/badge";
 import { Switch } from "@/shared/ui/switch";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { Eye, Pencil } from "lucide-react";
+import { Eye, Pencil, Send, List } from "lucide-react";
 
 interface CampaignRow {
   key: string;
@@ -49,9 +50,11 @@ export function EmailCampaignsClient() {
   const { data, error, isLoading } = useSWR<{ campaigns: CampaignRow[] }>(
     LIST_URL
   );
+  const { user: adminUser } = useCurrentUser();
 
   const [previewKey, setPreviewKey] = useState<string | null>(null);
   const [editCampaign, setEditCampaign] = useState<CampaignRow | null>(null);
+  const [sendsKey, setSendsKey] = useState<string | null>(null);
 
   async function toggleEnabled(key: string, enabled: boolean) {
     try {
@@ -161,7 +164,7 @@ export function EmailCampaignsClient() {
                       variant="ghost"
                       size="icon"
                       onClick={() => setPreviewKey(c.key)}
-                      title="Pré-visualizar"
+                      title="Pré-visualizar e enviar teste"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -173,6 +176,15 @@ export function EmailCampaignsClient() {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSendsKey(c.key)}
+                      title="Ver envios recentes"
+                      disabled={c.stats.total === 0}
+                    >
+                      <List className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -183,6 +195,7 @@ export function EmailCampaignsClient() {
 
       <PreviewDialog
         campaignKey={previewKey}
+        defaultTestEmail={adminUser?.email ?? ""}
         onClose={() => setPreviewKey(null)}
       />
 
@@ -194,21 +207,34 @@ export function EmailCampaignsClient() {
           onSave={saveSubjectOverride}
         />
       ) : null}
+
+      {sendsKey ? (
+        <SendsDialog
+          key={sendsKey}
+          campaignKey={sendsKey}
+          campaignName={
+            data?.campaigns.find((c) => c.key === sendsKey)?.name ?? sendsKey
+          }
+          onClose={() => setSendsKey(null)}
+        />
+      ) : null}
     </div>
   );
 }
 
 function PreviewDialog({
   campaignKey,
+  defaultTestEmail,
   onClose,
 }: {
   campaignKey: string | null;
+  defaultTestEmail: string;
   onClose: () => void;
 }) {
   const open = campaignKey !== null;
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0 overflow-hidden">
+      <DialogContent className="max-w-3xl h-[85vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>Pré-visualização</DialogTitle>
           <DialogDescription>
@@ -216,6 +242,13 @@ function PreviewDialog({
             variar dependendo do usuário.
           </DialogDescription>
         </DialogHeader>
+        {campaignKey && (
+          <SendTestBar
+            key={`test-${campaignKey}`}
+            campaignKey={campaignKey}
+            defaultEmail={defaultTestEmail}
+          />
+        )}
         {campaignKey && (
           <iframe
             title="Pré-visualização do e-mail"
@@ -289,6 +322,193 @@ function EditDialog({
             Salvar
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SendTestBar({
+  campaignKey,
+  defaultEmail,
+}: {
+  campaignKey: string;
+  defaultEmail: string;
+}) {
+  const [email, setEmail] = useState(defaultEmail);
+  const [sending, setSending] = useState(false);
+
+  async function handleSendTest() {
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      toast.error("Informe um e-mail válido");
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await fetch(
+        `/api/super-admin/email-campaigns/${campaignKey}/send-test`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ email }),
+        }
+      );
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(json?.message || "Falha ao enviar teste");
+      }
+      toast.success(`E-mail de teste enviado para ${email}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao enviar teste");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="px-6 pb-3 flex gap-2 items-center">
+      <Input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="seu@email.com"
+        className="flex-1"
+        disabled={sending}
+      />
+      <Button onClick={handleSendTest} disabled={sending} size="sm">
+        <Send className="h-4 w-4 mr-1.5" />
+        {sending ? "Enviando..." : "Enviar teste"}
+      </Button>
+    </div>
+  );
+}
+
+interface SendRow {
+  id: string;
+  userId: string;
+  userName: string | null;
+  userEmail: string | null;
+  status: "sent" | "failed";
+  errorMessage: string | null;
+  sentAt: string;
+}
+
+function SendsDialog({
+  campaignKey,
+  campaignName,
+  onClose,
+}: {
+  campaignKey: string;
+  campaignName: string;
+  onClose: () => void;
+}) {
+  const [page, setPage] = useState(1);
+  const limit = 20;
+
+  const { data, isLoading } = useSWR<{
+    sends: SendRow[];
+    pagination: { page: number; limit: number; total: number; pageCount: number };
+  }>(
+    `/api/super-admin/email-campaigns/${campaignKey}/sends?page=${page}&limit=${limit}`
+  );
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Envios recentes · {campaignName}</DialogTitle>
+          <DialogDescription>
+            Lista dos últimos destinatários. Cada linha é um envio único — o
+            índice único impede reenvios da mesma campanha para o mesmo usuário.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-auto rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Usuário</TableHead>
+                <TableHead className="w-[120px]">Status</TableHead>
+                <TableHead className="w-[160px]">Data</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
+                    Carregando...
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && data?.sends.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground py-6">
+                    Nenhum envio ainda.
+                  </TableCell>
+                </TableRow>
+              )}
+              {data?.sends.map((s) => (
+                <TableRow key={s.id}>
+                  <TableCell>
+                    <div className="text-sm font-medium">
+                      {s.userName || "—"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {s.userEmail || "—"}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={s.status === "sent" ? "secondary" : "destructive"}
+                    >
+                      {s.status === "sent" ? "Enviado" : "Falha"}
+                    </Badge>
+                    {s.errorMessage && (
+                      <div
+                        className="text-[11px] text-destructive mt-1 truncate max-w-[200px]"
+                        title={s.errorMessage}
+                      >
+                        {s.errorMessage}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {new Date(s.sentAt).toLocaleString("pt-BR", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {data && data.pagination.pageCount > 1 && (
+          <div className="flex items-center justify-between text-sm">
+            <div className="text-muted-foreground">
+              Página {data.pagination.page} de {data.pagination.pageCount} ·{" "}
+              {data.pagination.total} envios
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= data.pagination.pageCount}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Próxima
+              </Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
