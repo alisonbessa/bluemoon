@@ -7,11 +7,11 @@ import { whatsappUsers } from "@/db/schema/whatsapp-users";
 import { telegramAILogs } from "@/db/schema/telegram-ai-logs";
 import { chatLogs } from "@/db/schema/chat-logs";
 import {
+  emailCampaignConfigs,
   emailCampaignSends,
   type CampaignKey,
 } from "@/db/schema/email-campaigns";
 import { and, eq, gte, inArray, isNotNull, isNull, lt, lte, sql } from "drizzle-orm";
-import { render } from "@react-email/render";
 import sendMail from "@/shared/lib/email/sendMail";
 import { createLogger } from "@/shared/lib/logger";
 import { appConfig } from "@/shared/lib/config";
@@ -20,14 +20,7 @@ import {
   CAMPAIGN_THROTTLE_DAYS,
   recordCampaignSend,
 } from "@/shared/lib/email/campaign-eligibility";
-
-import OnboardingReminderD1 from "@/emails/OnboardingReminderD1";
-import OnboardingStuckD7 from "@/emails/OnboardingStuckD7";
-import NoTransactionD3 from "@/emails/NoTransactionD3";
-import WhatsAppInviteD7 from "@/emails/WhatsAppInviteD7";
-import AIAssistantDemoD10 from "@/emails/AIAssistantDemoD10";
-import PowerUserFeedback from "@/emails/PowerUserFeedback";
-import WinBackD21 from "@/emails/WinBackD21";
+import { CAMPAIGNS_REGISTRY } from "@/shared/lib/email/campaigns-registry";
 
 const logger = createLogger("inngest:retention-campaigns");
 
@@ -79,6 +72,32 @@ export const runRetentionCampaigns = inngest.createFunction(
   { id: "run-retention-campaigns", name: "Run Retention Campaigns" },
   { cron: "0 13 * * *" },
   async ({ step }) => {
+    // ------------------------------------------------------------------
+    // 0. Load per-campaign config (enabled flag + subject overrides).
+    //    Missing rows default to "enabled" for safety.
+    // ------------------------------------------------------------------
+    const configs = await step.run("load-campaign-configs", async () =>
+      db
+        .select({
+          campaignKey: emailCampaignConfigs.campaignKey,
+          enabled: emailCampaignConfigs.enabled,
+          subjectOverride: emailCampaignConfigs.subjectOverride,
+        })
+        .from(emailCampaignConfigs)
+    );
+
+    const configByKey = new Map<CampaignKey, { enabled: boolean; subjectOverride: string | null }>();
+    for (const c of configs) {
+      configByKey.set(c.campaignKey, {
+        enabled: c.enabled,
+        subjectOverride: c.subjectOverride,
+      });
+    }
+    const isEnabled = (key: CampaignKey) => configByKey.get(key)?.enabled ?? true;
+    const resolveSubject = (key: CampaignKey) =>
+      configByKey.get(key)?.subjectOverride?.trim() ||
+      CAMPAIGNS_REGISTRY[key].defaultSubject;
+
     // ------------------------------------------------------------------
     // 1. Build candidate lists for each segment
     // ------------------------------------------------------------------
@@ -239,6 +258,7 @@ export const runRetentionCampaigns = inngest.createFunction(
     // ------------------------------------------------------------------
     const pickedByUser = new Map<string, CampaignCandidate>();
     const pushCandidates = (list: typeof onboardingD1, key: CampaignKey) => {
+      if (!isEnabled(key)) return;
       for (const u of list) {
         if (!u.email) continue;
         const prev = pickedByUser.get(u.id);
@@ -329,7 +349,14 @@ export const runRetentionCampaigns = inngest.createFunction(
     for (const candidate of eligibleUsers) {
       try {
         const unsubscribeUrl = `${appUrl}/api/unsubscribe?token=${createUnsubscribeToken(candidate.userId)}`;
-        const { subject, html } = await renderCampaignEmail(candidate, unsubscribeUrl);
+        const meta = CAMPAIGNS_REGISTRY[candidate.campaignKey];
+        const subject = resolveSubject(candidate.campaignKey);
+        const html = await meta.render({
+          userName: candidate.userName,
+          appUrl,
+          unsubscribeUrl,
+          replyMailto,
+        });
 
         await step.run(`send-${candidate.campaignKey}-${candidate.userId}`, async () => {
           await sendMail(candidate.email, subject, html);
@@ -463,87 +490,3 @@ async function filterInactiveUsers(
   return candidates.filter((u) => !active.has(u.id));
 }
 
-async function renderCampaignEmail(
-  candidate: CampaignCandidate,
-  unsubscribeUrl: string
-): Promise<{ subject: string; html: string }> {
-  switch (candidate.campaignKey) {
-    case "onboarding_d1":
-      return {
-        subject: `Falta pouco pra começar no ${appConfig.projectName}`,
-        html: await render(
-          OnboardingReminderD1({
-            userName: candidate.userName,
-            setupUrl: `${appUrl}/app/setup`,
-            unsubscribeUrl,
-          })
-        ),
-      };
-    case "onboarding_stuck_d7":
-      return {
-        subject: `O que te fez parar, ${candidate.userName}?`,
-        html: await render(
-          OnboardingStuckD7({
-            userName: candidate.userName,
-            replyMailto,
-            unsubscribeUrl,
-          })
-        ),
-      };
-    case "no_transaction_d3":
-      return {
-        subject: "Registre seu primeiro gasto em 10 segundos",
-        html: await render(
-          NoTransactionD3({
-            userName: candidate.userName,
-            appUrl,
-            unsubscribeUrl,
-          })
-        ),
-      };
-    case "no_whatsapp_d7":
-      return {
-        subject: `Registre gastos pelo WhatsApp, ${candidate.userName}`,
-        html: await render(
-          WhatsAppInviteD7({
-            userName: candidate.userName,
-            connectUrl: `${appUrl}/app/settings`,
-            unsubscribeUrl,
-          })
-        ),
-      };
-    case "no_ai_d10":
-      return {
-        subject: `Já testou o assistente de IA, ${candidate.userName}?`,
-        html: await render(
-          AIAssistantDemoD10({
-            userName: candidate.userName,
-            appUrl,
-            unsubscribeUrl,
-          })
-        ),
-      };
-    case "power_user_feedback":
-      return {
-        subject: "3 minutos do seu tempo? (Alison / HiveBudget)",
-        html: await render(
-          PowerUserFeedback({
-            userName: candidate.userName,
-            surveyUrl: `${appUrl}/app/survey/power-user-v1`,
-            unsubscribeUrl,
-          })
-        ),
-      };
-    case "winback_d21":
-      return {
-        subject: `O que faltou, ${candidate.userName}?`,
-        html: await render(
-          WinBackD21({
-            userName: candidate.userName,
-            replyMailto,
-            unsubscribeUrl,
-          })
-        ),
-      };
-  }
-}

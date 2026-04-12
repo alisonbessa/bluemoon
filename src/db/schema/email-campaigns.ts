@@ -1,4 +1,5 @@
 import { timestamp, pgTable, text, index, uniqueIndex, integer, boolean } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 import { users } from "./user";
 
@@ -94,3 +95,31 @@ export const betaSurveysRelations = relations(betaSurveys, ({ one }) => ({
 
 export type BetaSurvey = typeof betaSurveys.$inferSelect;
 export type NewBetaSurvey = typeof betaSurveys.$inferInsert;
+
+/**
+ * Per-campaign runtime configuration editable by super-admins.
+ * Rows are seeded in the migration — the cron treats missing rows as
+ * "enabled with default subject" for safety.
+ */
+export const emailCampaignConfigs = pgTable(
+  "email_campaign_configs",
+  {
+    campaignKey: text("campaign_key").$type<CampaignKey>().primaryKey(),
+    // Human-friendly display fields, kept in sync with the code registry
+    name: text("name").notNull(),
+    description: text("description").notNull(),
+    // Master switch per campaign. The daily cron skips disabled ones.
+    enabled: boolean("enabled").notNull().default(true),
+    // When set, overrides the default subject baked into the code.
+    subjectOverride: text("subject_override"),
+    createdAt: timestamp("created_at", { mode: "date" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" })
+      .notNull()
+      .default(sql`now()`),
+  }
+);
+
+export type EmailCampaignConfig = typeof emailCampaignConfigs.$inferSelect;
+export type NewEmailCampaignConfig = typeof emailCampaignConfigs.$inferInsert;
