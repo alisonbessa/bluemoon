@@ -20,26 +20,29 @@ export default function WinBackD21({
       unsubscribeUrl={unsubscribeUrl}
     >
       <Text className="text-foreground text-[16px] leading-[24px]">
-        Oi, {userName}.
+        Olá, {userName}.
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">
-        Aqui é o Alison, criador do {appConfig.projectName}. Vi que você
-        não volta ao app há umas 3 semanas e queria te perguntar, sem
-        rodeios: o que faltou?
+        Aqui é o Alison, criador do {appConfig.projectName}. Notei que
+        você não acessa o app há cerca de 3 semanas e queria te perguntar
+        com sinceridade: o que faltou?
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">
-        Tô resolvendo uma dor que era minha (controle financeiro junto com
-        a família), mas só faz sentido continuar se o app resolve a dor de
-        outras pessoas também. Por isso o seu &ldquo;não funcionou pra mim
-        porque...&rdquo; é o feedback mais valioso que existe.
+        Estou resolvendo uma necessidade que era minha (organizar as
+        finanças junto com a família), mas só faz sentido continuar se o
+        {" "}{appConfig.projectName} resolve a necessidade de outras
+        pessoas também. Por isso um &ldquo;não funcionou para mim
+        porque...&rdquo; seu é, honestamente, o retorno mais valioso que
+        posso receber.
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">
-        Pode só responder este e-mail com uma linha — &ldquo;achei complicado&rdquo;,
-        &ldquo;não era o que eu esperava&rdquo;, &ldquo;esqueci&rdquo;, qualquer coisa serve. Ou me
-        escreve em{" "}
+        Basta responder este e-mail com uma linha — &ldquo;achei
+        complicado&rdquo;, &ldquo;não era o que eu esperava&rdquo;,
+        &ldquo;esqueci&rdquo;, qualquer resposta ajuda. Se preferir, pode
+        também me escrever em{" "}
         <Link href={replyMailto} className="text-primary underline">
           {replyMailto.replace("mailto:", "")}
         </Link>
@@ -49,7 +52,7 @@ export default function WinBackD21({
       <Hr className="border border-solid border-border my-[26px] mx-0 w-full" />
 
       <Text className="text-muted text-[12px] leading-[20px]">
-        Obrigado pela honestidade, independente da resposta.
+        Obrigado pela honestidade, independentemente da resposta.
       </Text>
     </Layout>
   );
