@@ -25,7 +25,7 @@ import { Badge } from "@/shared/ui/badge";
 import { Switch } from "@/shared/ui/switch";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { Eye, Pencil, Send, List } from "lucide-react";
+import { Eye, Pencil, Send, List, Play } from "lucide-react";
 
 interface CampaignRow {
   key: string;
@@ -44,6 +44,14 @@ interface CampaignRow {
   };
 }
 
+interface RunResult {
+  considered: number;
+  eligible: number;
+  sentByCampaign: Record<string, number>;
+  errors: number;
+  disabledSegments: string[];
+}
+
 const LIST_URL = "/api/super-admin/email-campaigns";
 
 export function EmailCampaignsClient() {
@@ -55,6 +63,38 @@ export function EmailCampaignsClient() {
   const [previewKey, setPreviewKey] = useState<string | null>(null);
   const [editCampaign, setEditCampaign] = useState<CampaignRow | null>(null);
   const [sendsKey, setSendsKey] = useState<string | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [lastRun, setLastRun] = useState<RunResult | null>(null);
+
+  async function runNow() {
+    if (isRunning) return;
+    const proceed = confirm(
+      "Executar agora envia e-mails reais para todos os usuários que qualificam agora mesmo. Continuar?"
+    );
+    if (!proceed) return;
+
+    setIsRunning(true);
+    try {
+      const res = await fetch(`${LIST_URL}/run-now`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.message || "Falha ao executar");
+      setLastRun(json.result);
+      mutate(LIST_URL);
+      const totalSent = Object.values(json.result.sentByCampaign ?? {}).reduce(
+        (sum: number, n) => sum + (n as number),
+        0
+      );
+      toast.success(
+        totalSent > 0
+          ? `Enviado: ${totalSent} e-mail${totalSent === 1 ? "" : "s"}`
+          : "Execução concluída — ninguém qualificou agora"
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro inesperado");
+    } finally {
+      setIsRunning(false);
+    }
+  }
 
   async function toggleEnabled(key: string, enabled: boolean) {
     try {
@@ -89,13 +129,62 @@ export function EmailCampaignsClient() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Campanhas de e-mail</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Ative ou desative o disparo automático de cada campanha, ajuste o
-          assunto e pré-visualize o conteúdo que será enviado.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-semibold">Campanhas de e-mail</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Ative ou desative o disparo automático de cada campanha, ajuste o
+            assunto e pré-visualize o conteúdo que será enviado.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            O cron roda automaticamente todo dia às 10h de Brasília. Use
+            &ldquo;Executar agora&rdquo; para disparar na hora (respeita
+            desativação, dedupe e throttle de 3 dias).
+          </p>
+        </div>
+        <Button onClick={runNow} disabled={isRunning}>
+          <Play className="h-4 w-4 mr-1.5" />
+          {isRunning ? "Executando..." : "Executar agora"}
+        </Button>
       </div>
+
+      {lastRun && (
+        <div className="rounded-lg border bg-muted/30 p-4 text-sm">
+          <div className="font-medium mb-1">Última execução manual</div>
+          <div className="text-muted-foreground">
+            {lastRun.considered} candidato{lastRun.considered === 1 ? "" : "s"} ·{" "}
+            {lastRun.eligible} elegível{lastRun.eligible === 1 ? "" : "eis"} ·{" "}
+            {Object.values(lastRun.sentByCampaign).reduce(
+              (s, n) => s + n,
+              0
+            )}{" "}
+            enviados
+            {lastRun.errors > 0 && (
+              <span className="text-destructive">
+                {" "}
+                · {lastRun.errors} erro{lastRun.errors === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
+          {Object.keys(lastRun.sentByCampaign).length > 0 && (
+            <div className="text-xs text-muted-foreground mt-2 flex flex-wrap gap-x-3 gap-y-1">
+              {Object.entries(lastRun.sentByCampaign).map(([k, n]) => (
+                <span key={k}>
+                  <span className="font-mono">{k}</span>: {n}
+                </span>
+              ))}
+            </div>
+          )}
+          {lastRun.disabledSegments.length > 0 && (
+            <div className="text-xs text-muted-foreground mt-2">
+              Desativados:{" "}
+              <span className="font-mono">
+                {lastRun.disabledSegments.join(", ")}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
       {error && (
