@@ -44,7 +44,7 @@ export const CAMPAIGNS_REGISTRY: Record<CampaignKey, CampaignMeta> = {
     name: "Onboarding D+1",
     description:
       "Enviado 1 dia após o signup, se o usuário ainda não completou o onboarding.",
-    defaultSubject: `Falta pouco pra começar no ${appConfig.projectName}`,
+    defaultSubject: `Falta pouco para você começar no ${appConfig.projectName}`,
     render: async (p) =>
       render(
         OnboardingReminderD1({
@@ -169,7 +169,7 @@ export const CAMPAIGNS_REGISTRY: Record<CampaignKey, CampaignMeta> = {
     name: "Feedback de power user",
     description:
       "Enviado uma única vez para usuários com 5+ transações nos últimos 30 dias. Leva ao formulário de survey.",
-    defaultSubject: `3 minutos do seu tempo? (Alison / ${appConfig.projectName})`,
+    defaultSubject: `Posso pedir 3 minutos do seu tempo? · ${appConfig.projectName}`,
     render: async (p) =>
       render(
         PowerUserFeedback({

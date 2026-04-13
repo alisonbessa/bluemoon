@@ -20,13 +20,13 @@ export default function WhatsAppInviteD7({
       unsubscribeUrl={unsubscribeUrl}
     >
       <Text className="text-foreground text-[16px] leading-[24px]">
-        Oi, {userName}!
+        Olá, {userName}.
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">
-        A feature que mais muda o dia a dia de quem usa o{" "}
-        {appConfig.projectName} é o registro pelo WhatsApp. Em vez de abrir
-        o app, você só manda uma mensagem como:
+        A funcionalidade que mais muda o dia a dia de quem usa o{" "}
+        {appConfig.projectName} é o registro pelo WhatsApp. Em vez de
+        abrir o app, você envia uma mensagem simples:
       </Text>
 
       <Section className="bg-primary/10 rounded-lg p-4 my-4">
@@ -40,8 +40,8 @@ export default function WhatsAppInviteD7({
       </Section>
 
       <Text className="text-foreground text-[14px] leading-[24px]">
-        O assistente entende, categoriza e registra. Leva menos tempo do
-        que salvar o cupom fiscal.
+        O assistente interpreta, categoriza e registra automaticamente.
+        Leva menos tempo do que guardar um cupom fiscal.
       </Text>
 
       <Button
@@ -54,7 +54,7 @@ export default function WhatsAppInviteD7({
       <Hr className="border border-solid border-border my-[26px] mx-0 w-full" />
 
       <Text className="text-muted text-[12px] leading-[20px]">
-        Pode testar à vontade — os dados vão direto pro seu orçamento
+        Pode testar à vontade — tudo vai direto para o seu orçamento já
         existente.
       </Text>
     </Layout>

@@ -16,24 +16,25 @@ export default function PowerUserFeedback({
 }: PowerUserFeedbackProps) {
   return (
     <Layout
-      previewText={`${userName}, preciso de 3 minutos do seu tempo`}
+      previewText={`${userName}, posso pedir 3 minutos do seu tempo?`}
       unsubscribeUrl={unsubscribeUrl}
     >
       <Text className="text-foreground text-[16px] leading-[24px]">
-        Oi, {userName}!
+        Olá, {userName}.
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">
         Aqui é o Alison, criador do {appConfig.projectName}. O app ainda
-        está em beta, e você é uma das pessoas que mais tem usado — o que
-        já é um puta presente pra mim.
+        está em fase beta e você é uma das pessoas que mais vem usando —
+        isso realmente significa muito para mim.
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">
-        O {appConfig.projectName} nasceu de uma dor minha (controle
-        financeiro junto com a família) e tem crescido ouvindo pessoas como
-        você. Por isso vou pedir um favor: responde um formulário curto
-        (3 perguntas, só texto — sem ligação nem vídeo)?
+        O {appConfig.projectName} nasceu de uma necessidade que era
+        minha: organizar as finanças junto com a família. Ele tem
+        evoluído ouvindo pessoas como você. Se puder ajudar, tenho um
+        pedido: você responderia um formulário curto, de 3 perguntas?
+        Tudo por texto, sem ligação nem vídeo.
       </Text>
 
       <Button
@@ -46,8 +47,9 @@ export default function PowerUserFeedback({
       <Hr className="border border-solid border-border my-[26px] mx-0 w-full" />
 
       <Text className="text-muted text-[12px] leading-[20px]">
-        Se preferir, pode responder esse e-mail direto contando o que você
-        mais gosta e o que ainda falta. Eu leio tudo, um a um.
+        Se preferir, pode simplesmente responder este e-mail contando o
+        que mais tem gostado e o que ainda sente falta. Leio cada
+        resposta pessoalmente.
       </Text>
     </Layout>
   );

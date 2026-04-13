@@ -20,20 +20,21 @@ export default function NoTransactionD3({
       unsubscribeUrl={unsubscribeUrl}
     >
       <Text className="text-foreground text-[16px] leading-[24px]">
-        Oi, {userName}!
+        Olá, {userName}.
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">
-        Você terminou o setup do {appConfig.projectName}, mas ainda não
-        registrou nenhuma transação. Esse é o ponto onde o app começa a
-        fazer diferença — ver pra onde o dinheiro está indo.
+        Você concluiu a configuração do {appConfig.projectName}, mas ainda
+        não registrou nenhuma transação. É a partir daqui que o app começa
+        a fazer diferença de verdade — dando visibilidade sobre para onde
+        o seu dinheiro está indo.
       </Text>
 
       <Section className="bg-primary/10 rounded-lg p-4 my-4">
         <Text className="text-foreground text-[14px] leading-[22px] m-0">
-          <strong>Dica rápida:</strong> o jeito mais fácil é conectar o
-          WhatsApp e mandar uma mensagem do tipo &ldquo;gastei 25 no almoço&rdquo;. O
-          assistente cria a transação pra você.
+          <strong>Dica:</strong> o caminho mais rápido é conectar o
+          WhatsApp e enviar uma mensagem como &ldquo;gastei 25 no
+          almoço&rdquo;. O assistente cria a transação automaticamente.
         </Text>
       </Section>
 
@@ -47,7 +48,8 @@ export default function NoTransactionD3({
       <Hr className="border border-solid border-border my-[26px] mx-0 w-full" />
 
       <Text className="text-muted text-[12px] leading-[20px]">
-        Travou? Responda esse e-mail que eu ajudo direto.
+        Se encontrar algum obstáculo, basta responder este e-mail que eu
+        ajudo diretamente.
       </Text>
     </Layout>
   );
