@@ -26,7 +26,7 @@ export default function PowerUserFeedback({
       <Text className="text-foreground text-[14px] leading-[24px]">
         Aqui é o Alison, criador do {appConfig.projectName}. O app ainda
         está em beta, e você é uma das pessoas que mais tem usado — o que
-        já é um puta presente pra mim.
+        já significa muito pra mim.
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">
