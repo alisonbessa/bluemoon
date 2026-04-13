@@ -23,6 +23,7 @@ import {
   Sparkles,
   Terminal,
   Mail,
+  ClipboardCheck,
 } from "lucide-react";
 import { ThemeSwitcher } from "@/shared/theme-switcher";
 import { appConfig } from "@/shared/lib/config";
@@ -78,6 +79,7 @@ const navigationGroups: NavGroup[] = [
       { name: "Mensagens", href: "/super-admin/messages", icon: MessageSquare },
       { name: "Feedback", href: "/super-admin/feedback", icon: MessageSquarePlus },
       { name: "Campanhas de E-mail", href: "/super-admin/email-campaigns", icon: Mail },
+      { name: "Respostas de Survey", href: "/super-admin/surveys", icon: ClipboardCheck },
       { name: "Blog", href: "/super-admin/blog", icon: FileText },
     ],
   },
