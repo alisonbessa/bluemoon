@@ -8,8 +8,14 @@ import {
 } from "@/db/schema/email-campaigns";
 import { max, sql } from "drizzle-orm";
 import { CAMPAIGNS_REGISTRY, CAMPAIGN_KEYS } from "@/shared/lib/email/campaigns-registry";
+import { seedMissingConfigs } from "@/shared/lib/email/retention-runner";
 
 export const GET = withSuperAdminAuthRequired(async () => {
+  // Auto-seed config rows that the code knows about but the DB is missing.
+  // Defensive: if the SQL seed in the migration didn't run (prod deploys
+  // only apply DDL, etc.), the admin page still shows all campaigns.
+  await seedMissingConfigs();
+
   const configs = await db.select().from(emailCampaignConfigs);
 
   const statsRows = await db
