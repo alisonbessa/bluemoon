@@ -277,7 +277,12 @@ async function answerHelpQuestion(question: string): Promise<string | null> {
       const cacheManager = new GoogleAICacheManager(apiKey);
       const cachedContent = await cacheManager.get(cacheName);
       const model = genAI.getGenerativeModelFromCachedContent(cachedContent, {
-        generationConfig: { temperature: 0.3, maxOutputTokens: 512 },
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 2048,
+          // @ts-expect-error thinkingConfig is passed through to Gemini 2.5 API but not typed in @google/generative-ai v0.21
+          thinkingConfig: { thinkingBudget: 0 },
+        },
       });
       const result = await model.generateContent(question);
       answer = result.response.text().trim();
@@ -286,7 +291,12 @@ async function answerHelpQuestion(question: string): Promise<string | null> {
       logger.warn("Gemini cache unavailable, falling back to full prompt");
       const model = genAI.getGenerativeModel({
         model: "gemini-2.5-flash",
-        generationConfig: { temperature: 0.3, maxOutputTokens: 512 },
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 2048,
+          // @ts-expect-error thinkingConfig is passed through to Gemini 2.5 API but not typed in @google/generative-ai v0.21
+          thinkingConfig: { thinkingBudget: 0 },
+        },
       });
       const prompt = `${HELP_SYSTEM_INSTRUCTION}\n\nDOCUMENTACAO DA PLATAFORMA:\n${PLATFORM_KNOWLEDGE}\n\nPERGUNTA DO USUARIO: "${question}"\n\nRESPOSTA:`;
       const result = await model.generateContent(prompt);
