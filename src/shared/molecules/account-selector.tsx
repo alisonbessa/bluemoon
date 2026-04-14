@@ -1,15 +1,26 @@
 'use client';
 
-import { getAccountTypeIcon } from '@/features/accounts/types';
+import { ACCOUNT_TYPE_CONFIG, getAccountTypeIcon, type AccountType } from '@/features/accounts/types';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
 import { Label } from '@/shared/ui/label';
 import { cn } from '@/shared/lib/utils';
+
+const ACCOUNT_TYPE_ORDER: AccountType[] = [
+  'checking',
+  'savings',
+  'credit_card',
+  'cash',
+  'investment',
+  'benefit',
+];
 
 interface Account {
   id: string;
@@ -74,6 +85,24 @@ export function AccountSelector({
     onChange(val === 'none' ? undefined : val);
   };
 
+  const accountsByType = new Map<string, Account[]>();
+  for (const account of accounts) {
+    const type = account.type || 'checking';
+    const bucket = accountsByType.get(type);
+    if (bucket) {
+      bucket.push(account);
+    } else {
+      accountsByType.set(type, [account]);
+    }
+  }
+
+  const orderedTypes = [
+    ...ACCOUNT_TYPE_ORDER.filter((t) => accountsByType.has(t)),
+    ...Array.from(accountsByType.keys()).filter(
+      (t) => !ACCOUNT_TYPE_ORDER.includes(t as AccountType)
+    ),
+  ];
+
   return (
     <div className={cn('grid gap-2 min-w-0', className)}>
       {showLabel && <Label>{label}</Label>}
@@ -87,14 +116,26 @@ export function AccountSelector({
         </SelectTrigger>
         <SelectContent>
           {allowNone && <SelectItem value="none">{noneLabel}</SelectItem>}
-          {accounts.map((account) => (
-            <SelectItem key={account.id} value={account.id}>
-              <span className="flex items-center gap-2 min-w-0 overflow-hidden">
-                <span className="shrink-0">{getAccountTypeIcon(account.type)}</span>
-                <span className="truncate">{account.name}</span>
-              </span>
-            </SelectItem>
-          ))}
+          {orderedTypes.map((type) => {
+            const group = accountsByType.get(type)!.slice().sort((a, b) =>
+              a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
+            );
+            const typeLabel =
+              ACCOUNT_TYPE_CONFIG[type as AccountType]?.label ?? type;
+            return (
+              <SelectGroup key={type}>
+                <SelectLabel>{typeLabel}</SelectLabel>
+                {group.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    <span className="flex items-center gap-2 min-w-0 overflow-hidden">
+                      <span className="shrink-0">{getAccountTypeIcon(account.type)}</span>
+                      <span className="truncate">{account.name}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            );
+          })}
         </SelectContent>
       </Select>
     </div>

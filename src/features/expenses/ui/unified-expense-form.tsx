@@ -21,6 +21,7 @@ import {
 } from '@/shared/molecules';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useTransactionCacheInvalidation } from '@/features/transactions/hooks/use-transaction-cache-invalidation';
 
 interface Account {
   id: string;
@@ -93,6 +94,7 @@ export function UnifiedExpenseForm({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const invalidateCaches = useTransactionCacheInvalidation();
 
   // Reset form when opening/closing or switching mode
   useEffect(() => {
@@ -214,6 +216,7 @@ export function UnifiedExpenseForm({
         toast.success('Despesa criada!');
       }
 
+      invalidateCaches();
       onSuccess();
       onClose();
     } catch (error) {

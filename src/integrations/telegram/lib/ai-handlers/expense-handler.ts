@@ -9,7 +9,6 @@ import {
 } from "../transaction-matcher";
 import { getTodayNoonUTC } from "../telegram-utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
-import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import {
   sendMessage,
   formatCurrency,
@@ -137,22 +136,11 @@ export async function handleExpenseIntent(
       const installmentAmount = Math.round(data.amount / data.totalInstallments);
       const transactionDate = data.date || getTodayNoonUTC();
 
-      // Check if account is a credit card with billing cycle
-      const account = accounts.find(a => a.id === accountId);
-      const closingDay = account?.type === "credit_card" ? account.closingDay : null;
-
-      // Calculate installment dates using billing cycle if available
-      let installmentDates: Date[];
-      if (closingDay) {
-        const firstDate = getFirstInstallmentDate(transactionDate, closingDay);
-        installmentDates = calculateInstallmentDates(firstDate, data.totalInstallments);
-      } else {
-        installmentDates = Array.from({ length: data.totalInstallments }, (_, i) => {
-          const d = new Date(transactionDate);
-          d.setMonth(d.getMonth() + i);
-          return d;
-        });
-      }
+      const installmentDates = Array.from({ length: data.totalInstallments }, (_, i) => {
+        const d = new Date(transactionDate);
+        d.setMonth(d.getMonth() + i);
+        return d;
+      });
 
       // Create parent transaction (first installment)
       const [parentTransaction] = await db

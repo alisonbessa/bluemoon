@@ -11,7 +11,7 @@ import { initialFormData } from "../types";
 interface UseTransactionFormOptions {
   accounts: Account[];
   budgets: Budget[];
-  onSuccess: () => void;
+  onSuccess: (submittedDate?: Date) => void;
   memberId?: string;
   defaultPaidByMemberId?: string;
 }
@@ -189,7 +189,7 @@ export function useTransactionForm(
 
         setIsOpen(false);
         setEditingTransaction(null);
-        onSuccess();
+        onSuccess(new Date(formData.date));
         return;
       }
 
@@ -259,7 +259,7 @@ export function useTransactionForm(
 
       setIsOpen(false);
       setEditingTransaction(null);
-      onSuccess();
+      onSuccess(new Date(formData.date));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao salvar");
     } finally {
