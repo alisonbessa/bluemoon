@@ -16,6 +16,7 @@ import {
 import { markLogAsConfirmed } from "@/integrations/messaging/lib/ai-logger";
 import { getTodayNoonUTC, formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
+import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { getAccountIcon, getAccountTypeName, formatAccountDisplay } from "@/integrations/messaging/lib/ai-handlers/account-utils";
@@ -467,14 +468,7 @@ export async function handleGroupSelection(
     );
     const transactionDate = getTodayNoonUTC();
 
-    const installmentDates = Array.from(
-      { length: totalInstallments },
-      (_, i) => {
-        const d = new Date(transactionDate);
-        d.setMonth(d.getMonth() + i);
-        return d;
-      }
-    );
+    const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
 
     // Derive scope from the newly created category
     const scopeMemberId = getScopeFromCategory(

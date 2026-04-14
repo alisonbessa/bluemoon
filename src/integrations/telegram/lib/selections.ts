@@ -10,6 +10,7 @@ import { eq, and, isNull } from "drizzle-orm";
 import type { TelegramConversationContext } from "@/db/schema/telegram-users";
 import { getUserBudgetInfo, getCategoryBalanceSummary } from "@/integrations/messaging/lib/user-context";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
+import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import {
   sendMessage,
   answerCallbackQuery,
@@ -409,11 +410,7 @@ export async function handleGroupSelection(chatId: number, groupId: string, call
     const installmentAmount = Math.round(context.pendingExpense.amount / totalInstallments);
     const transactionDate = getTodayNoonUTC();
 
-    const installmentDates = Array.from({ length: totalInstallments }, (_, i) => {
-      const d = new Date(transactionDate);
-      d.setMonth(d.getMonth() + i);
-      return d;
-    });
+    const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
 
     // Derive scope from the new category
     const allCategories = [...budgetInfo.categories, newCategory];

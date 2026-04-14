@@ -189,7 +189,7 @@ export function useTransactionForm(
 
         setIsOpen(false);
         setEditingTransaction(null);
-        onSuccess(new Date(formData.date));
+        onSuccess(parseLocalDate(formData.date));
         return;
       }
 

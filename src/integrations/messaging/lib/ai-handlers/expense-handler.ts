@@ -24,6 +24,7 @@ import {
 import { getTodayNoonUTC, formatInstallmentMonths, getUndoHint } from "../utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { formatCurrency } from "@/shared/lib/formatters";
+import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { getVisibleCategories, formatCategoryName, suggestGroupForCategory } from "./category-utils";
 import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
 import {
@@ -199,11 +200,7 @@ export async function handleExpenseIntent(
       const installmentAmount = Math.round(data.amount / data.totalInstallments);
       const transactionDate = data.date || getTodayNoonUTC();
 
-      const installmentDates = Array.from({ length: data.totalInstallments }, (_, i) => {
-        const d = new Date(transactionDate);
-        d.setMonth(d.getMonth() + i);
-        return d;
-      });
+      const installmentDates = calculateInstallmentDates(transactionDate, data.totalInstallments);
 
       // Create parent transaction (first installment)
       const [parentTransaction] = await db

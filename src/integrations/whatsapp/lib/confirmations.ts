@@ -18,6 +18,7 @@ import {
 import { markTransactionAsPaid } from "@/integrations/messaging/lib/transaction-matcher";
 import { getTodayNoonUTC, formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
+import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { getScopeFromCategory, getScopeFromIncomeSource } from "@/shared/lib/transactions/scope";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { formatAccountDisplay, formatAccountWithIcon } from "@/integrations/messaging/lib/ai-handlers/account-utils";
@@ -174,14 +175,7 @@ export async function handleExpenseConfirmation(
     );
     const transactionDate = getTodayNoonUTC();
 
-    const installmentDates = Array.from(
-      { length: totalInstallments },
-      (_, i) => {
-        const d = new Date(transactionDate);
-        d.setMonth(d.getMonth() + i);
-        return d;
-      }
-    );
+    const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
 
     // Derive scope from the category
     const scopeMemberId = getScopeFromCategory(

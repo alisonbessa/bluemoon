@@ -51,6 +51,11 @@ export const generateClosingDayBills = inngest.createFunction(
   async ({ step }) => {
     const now = new Date();
     const todayDay = now.getDate();
+    const lastDayOfThisMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0
+    ).getDate();
 
     const cards = await step.run("fetch-cards-closing-today", async () => {
       return db
@@ -74,7 +79,10 @@ export const generateClosingDayBills = inngest.createFunction(
         );
     });
 
-    const closingToday = cards.filter((c) => c.closingDay === todayDay);
+    // Clamp closingDay to the month's last day so e.g. closingDay=31 fires on Feb 28
+    const closingToday = cards.filter(
+      (c) => Math.min(c.closingDay!, lastDayOfThisMonth) === todayDay
+    );
 
     if (closingToday.length === 0) {
       return { created: 0, message: "No credit cards closing today" };
@@ -118,8 +126,9 @@ export const generateClosingDayBills = inngest.createFunction(
           now
         );
 
-        // Idempotency: skip if any transfer for this cycle's dueDate already exists
-        const existing = await step.run(`check-${card.id}`, async () => {
+        // Idempotent check-and-insert in a single step so Inngest retries can't
+        // create a duplicate pending transfer.
+        const inserted = await step.run(`ensure-pending-${card.id}`, async () => {
           const dayStart = new Date(
             dueDate.getFullYear(),
             dueDate.getMonth(),
@@ -136,41 +145,44 @@ export const generateClosingDayBills = inngest.createFunction(
             59,
             59
           );
-          const rows = await db
-            .select({ id: transactions.id })
-            .from(transactions)
-            .where(
-              and(
-                eq(transactions.type, "transfer"),
-                eq(transactions.accountId, card.paymentAccountId!),
-                eq(transactions.toAccountId, card.id),
-                gte(transactions.date, dayStart),
-                lte(transactions.date, dayEnd),
-                inArray(transactions.status, ["pending", "cleared", "reconciled"])
+
+          return db.transaction(async (tx) => {
+            const existing = await tx
+              .select({ id: transactions.id })
+              .from(transactions)
+              .where(
+                and(
+                  eq(transactions.type, "transfer"),
+                  eq(transactions.accountId, card.paymentAccountId!),
+                  eq(transactions.toAccountId, card.id),
+                  gte(transactions.date, dayStart),
+                  lte(transactions.date, dayEnd),
+                  inArray(transactions.status, ["pending", "cleared", "reconciled"])
+                )
               )
-            )
-            .limit(1);
-          return rows.length > 0;
+              .limit(1);
+
+            if (existing.length > 0) return false;
+
+            await tx.insert(transactions).values({
+              budgetId: card.budgetId,
+              type: "transfer",
+              amount: billTotal,
+              accountId: card.paymentAccountId!,
+              toAccountId: card.id,
+              description: `Fatura ${card.name}`,
+              date: dueDate,
+              status: "pending",
+            });
+            return true;
+          });
         });
 
-        if (existing) {
+        if (!inserted) {
           details.push(`${card.name}: pending transfer already exists — skipped`);
           skipped++;
           continue;
         }
-
-        await step.run(`create-${card.id}`, async () => {
-          await db.insert(transactions).values({
-            budgetId: card.budgetId,
-            type: "transfer",
-            amount: billTotal,
-            accountId: card.paymentAccountId!,
-            toAccountId: card.id,
-            description: `Fatura ${card.name}`,
-            date: dueDate,
-            status: "pending",
-          });
-        });
 
         created++;
         details.push(

@@ -3,6 +3,7 @@ import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import { transactions, financialAccounts, categories, chatLogs } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { z } from "zod";
 import {
   successResponse,
@@ -695,11 +696,7 @@ async function confirmExpense(data: Record<string, unknown>, memberId: string, b
       const installmentAmount = Math.round(amount / totalInstallments);
       const isCreditCard = sourceAccount.type === "credit_card";
 
-      const installmentDates = Array.from({ length: totalInstallments }, (_, i) => {
-        const d = new Date(transactionDate);
-        d.setMonth(d.getMonth() + i);
-        return d;
-      });
+      const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
 
       const [parentTransaction] = await db.transaction(async (tx) => {
         const [parent] = await tx

@@ -25,6 +25,11 @@ export const autoPayCreditCards = inngest.createFunction(
   async ({ step }) => {
     const now = new Date();
     const todayDay = now.getDate();
+    const lastDayOfThisMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0
+    ).getDate();
 
     // Fetch credit cards with auto-pay enabled
     const autoPayCards = await step.run("fetch-auto-pay-cards", async () => {
@@ -50,8 +55,10 @@ export const autoPayCreditCards = inngest.createFunction(
         );
     });
 
-    // Filter to cards where today is the due day
-    const dueToday = autoPayCards.filter((cc) => cc.dueDay === todayDay);
+    // Filter to cards where today is the due day (clamped so dueDay=31 fires on Feb 28)
+    const dueToday = autoPayCards.filter(
+      (cc) => Math.min(cc.dueDay!, lastDayOfThisMonth) === todayDay
+    );
 
     if (dueToday.length === 0) {
       return { paid: 0, message: "No credit cards due today" };

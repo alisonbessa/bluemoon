@@ -204,23 +204,3 @@ export function getOpenCycleDates(
   }
 }
 
-export function getFirstInstallmentDate(
-  purchaseDate: Date,
-  closingDay: number
-): Date {
-  const billingMonth = getTransactionBillingMonth(purchaseDate, closingDay);
-
-  // Set the date to the closing day of the billing month
-  // This represents "this installment belongs to this billing cycle"
-  const day = clampDay(billingMonth.year, billingMonth.month, closingDay);
-
-  return new Date(
-    billingMonth.year,
-    billingMonth.month - 1,
-    day,
-    purchaseDate.getHours(),
-    purchaseDate.getMinutes(),
-    0,
-    0
-  );
-}

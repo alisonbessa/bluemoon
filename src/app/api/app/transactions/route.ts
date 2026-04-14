@@ -13,6 +13,7 @@ import {
   errorResponse,
   safePagination,
 } from "@/shared/lib/api/responses";
+import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
 
 // GET - Get transactions for user's budgets
@@ -266,12 +267,7 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
 
     const isCreditCard = sourceAccount.type === "credit_card";
 
-    // Distribute installments +1 month per parcel from the purchase date
-    const installmentDates = Array.from({ length: totalInstallments }, (_, i) => {
-      const d = new Date(transactionDate);
-      d.setMonth(d.getMonth() + i);
-      return d;
-    });
+    const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
 
     // Wrap everything in a transaction for atomicity (fix 1.2)
     const createdTransactions = await db.transaction(async (tx) => {
