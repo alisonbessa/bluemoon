@@ -89,13 +89,14 @@ export const autoPayCreditCards = inngest.createFunction(
           continue;
         }
 
-        // Check if payment already exists today (idempotency - includes pending)
-        const alreadyPaid = await step.run(`check-existing-${card.id}`, async () => {
+        // Look for a pending transfer (created at closing day) for today.
+        // If one exists in cleared/reconciled status, this card was already paid.
+        const existingTransfer = await step.run(`check-existing-${card.id}`, async () => {
           const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
           const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
-          const existing = await db
-            .select({ id: transactions.id })
+          const [row] = await db
+            .select({ id: transactions.id, status: transactions.status, amount: transactions.amount })
             .from(transactions)
             .where(
               and(
@@ -109,10 +110,10 @@ export const autoPayCreditCards = inngest.createFunction(
             )
             .limit(1);
 
-          return existing.length > 0;
+          return row ?? null;
         });
 
-        if (alreadyPaid) {
+        if (existingTransfer && existingTransfer.status !== "pending") {
           details.push(`${card.name}: already paid today - skipped`);
           skipped++;
           continue;
@@ -143,22 +144,29 @@ export const autoPayCreditCards = inngest.createFunction(
           continue;
         }
 
-        // Create transfer and update balances atomically
+        // Clear the pending transfer if it exists, otherwise create a new cleared one.
+        // Either way, update both balances atomically.
         await step.run(`pay-${card.id}`, async () => {
           await db.transaction(async (tx) => {
-            // Create transfer transaction
-            await tx.insert(transactions).values({
-              budgetId: card.budgetId,
-              type: "transfer",
-              amount: closedBill,
-              accountId: card.paymentAccountId!,
-              toAccountId: card.id,
-              description: `Pagamento automatico fatura ${card.name}`,
-              date: now,
-              status: "cleared",
-            });
+            if (existingTransfer) {
+              // Bill total may have changed since closing day — sync amount.
+              await tx
+                .update(transactions)
+                .set({ status: "cleared", amount: closedBill, updatedAt: now })
+                .where(eq(transactions.id, existingTransfer.id));
+            } else {
+              await tx.insert(transactions).values({
+                budgetId: card.budgetId,
+                type: "transfer",
+                amount: closedBill,
+                accountId: card.paymentAccountId!,
+                toAccountId: card.id,
+                description: `Pagamento automatico fatura ${card.name}`,
+                date: now,
+                status: "cleared",
+              });
+            }
 
-            // Atomic balance updates - no read-then-write race condition
             await tx
               .update(financialAccounts)
               .set({
