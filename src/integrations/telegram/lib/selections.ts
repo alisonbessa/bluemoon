@@ -10,6 +10,7 @@ import { eq, and, isNull } from "drizzle-orm";
 import type { TelegramConversationContext } from "@/db/schema/telegram-users";
 import { getUserBudgetInfo, getCategoryBalanceSummary } from "@/integrations/messaging/lib/user-context";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
+import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import {
   sendMessage,
   answerCallbackQuery,
@@ -24,7 +25,6 @@ import {
 import { getTodayNoonUTC } from "./telegram-utils";
 import { formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import { markLogAsConfirmed } from "./ai-logger";
-import { getFirstInstallmentDate, calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
 import { updateTelegramUser } from "./user-management";
 import { matchCategory } from "@/integrations/messaging/lib/gemini";
@@ -410,22 +410,7 @@ export async function handleGroupSelection(chatId: number, groupId: string, call
     const installmentAmount = Math.round(context.pendingExpense.amount / totalInstallments);
     const transactionDate = getTodayNoonUTC();
 
-    // Check if account is a credit card with billing cycle
-    const account = budgetInfo.accounts.find(a => a.id === transactionAccountId);
-    const closingDay = account?.type === "credit_card" ? account.closingDay : null;
-
-    // Calculate installment dates using billing cycle if available
-    let installmentDates: Date[];
-    if (closingDay) {
-      const firstDate = getFirstInstallmentDate(transactionDate, closingDay);
-      installmentDates = calculateInstallmentDates(firstDate, totalInstallments);
-    } else {
-      installmentDates = Array.from({ length: totalInstallments }, (_, i) => {
-        const d = new Date(transactionDate);
-        d.setMonth(d.getMonth() + i);
-        return d;
-      });
-    }
+    const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
 
     // Derive scope from the new category
     const allCategories = [...budgetInfo.categories, newCategory];

@@ -450,6 +450,19 @@ Categorias com comportamento "set aside" carregam o saldo não gasto para o pró
 ### Ciclo de fatura (cartão de crédito)
 O ciclo de uma fatura começa um dia após o fechamento do mês anterior. Ex: fechamento dia 10 → ciclo de 11 a 10 do próximo mês. Compras após o fechamento entram na próxima fatura.
 
+### Como registrar gasto no cartão de crédito
+Registre pela data real da compra. O gasto aparece no mês em que foi feito, não no mês da fatura. Se a compra for parcelada em Nx, cada parcela aparece em meses consecutivos (mês da compra, mês seguinte, e assim por diante), mantendo o dia da compra.
+
+Exemplo: compra de R$ 300 parcelada em 3x no dia 28/01. As parcelas aparecem em 28/01, 28/02 e 28/03 — cada uma no seu mês, sem relação com o dia de fechamento do cartão.
+
+### Pagamento automático da fatura
+Se o cartão tiver uma "conta de pagamento vinculada" configurada, o app cria automaticamente uma transferência **pendente** dessa conta para o cartão no dia do fechamento, datada no próximo vencimento, com o valor total da fatura fechada. Essa transferência fica visível como pendente até ser confirmada.
+
+- Se "Pagamento automático" estiver ligado no cartão: a transferência é confirmada automaticamente no dia do vencimento.
+- Se não estiver ligado: o usuário confirma a transferência manualmente quando efetuar o pagamento.
+
+Transferências entre contas próprias não entram na contabilidade de gastos do mês — elas só movimentam saldos entre contas. Isso evita contar duas vezes o valor (uma como gasto no cartão, outra como pagamento).
+
 ---
 
 ## INTEGRAÇÕES

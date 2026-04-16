@@ -3,10 +3,7 @@ import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import { transactions, financialAccounts, categories, chatLogs } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import {
-  getFirstInstallmentDate,
-  calculateInstallmentDates,
-} from "@/shared/lib/billing-cycle";
+import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { z } from "zod";
 import {
   successResponse,
@@ -685,9 +682,9 @@ async function confirmExpense(data: Record<string, unknown>, memberId: string, b
     const transactionDate = data.date ? new Date(data.date as string) : getTodayNoonUTC();
     const description = (data.description as string) || null;
 
-    // Query account type/closingDay for installment date calculation
+    // Query account type for balance-update decision on credit cards
     const [sourceAccount] = await db
-      .select({ type: financialAccounts.type, closingDay: financialAccounts.closingDay })
+      .select({ type: financialAccounts.type })
       .from(financialAccounts)
       .where(and(eq(financialAccounts.id, accountId), eq(financialAccounts.budgetId, budgetId)));
 
@@ -698,19 +695,8 @@ async function confirmExpense(data: Record<string, unknown>, memberId: string, b
     if (isInstallment && totalInstallments && totalInstallments > 1) {
       const installmentAmount = Math.round(amount / totalInstallments);
       const isCreditCard = sourceAccount.type === "credit_card";
-      const closingDay = sourceAccount.closingDay;
 
-      let installmentDates: Date[];
-      if (isCreditCard && closingDay) {
-        const firstDate = getFirstInstallmentDate(transactionDate, closingDay);
-        installmentDates = calculateInstallmentDates(firstDate, totalInstallments);
-      } else {
-        installmentDates = Array.from({ length: totalInstallments }, (_, i) => {
-          const d = new Date(transactionDate);
-          d.setMonth(d.getMonth() + i);
-          return d;
-        });
-      }
+      const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
 
       const [parentTransaction] = await db.transaction(async (tx) => {
         const [parent] = await tx

@@ -15,11 +15,8 @@ import {
 } from "@/integrations/messaging/lib/user-context";
 import { markLogAsConfirmed } from "@/integrations/messaging/lib/ai-logger";
 import { getTodayNoonUTC, formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
-import {
-  getFirstInstallmentDate,
-  calculateInstallmentDates,
-} from "@/shared/lib/billing-cycle";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
+import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { getAccountIcon, getAccountTypeName, formatAccountDisplay } from "@/integrations/messaging/lib/ai-handlers/account-utils";
@@ -471,30 +468,7 @@ export async function handleGroupSelection(
     );
     const transactionDate = getTodayNoonUTC();
 
-    // Check if account is a credit card with billing cycle
-    const account = budgetInfo.accounts.find(
-      (a) => a.id === transactionAccountId
-    );
-    const closingDay =
-      account?.type === "credit_card" ? account.closingDay : null;
-
-    let installmentDates: Date[];
-    if (closingDay) {
-      const firstDate = getFirstInstallmentDate(transactionDate, closingDay);
-      installmentDates = calculateInstallmentDates(
-        firstDate,
-        totalInstallments
-      );
-    } else {
-      installmentDates = Array.from(
-        { length: totalInstallments },
-        (_, i) => {
-          const d = new Date(transactionDate);
-          d.setMonth(d.getMonth() + i);
-          return d;
-        }
-      );
-    }
+    const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
 
     // Derive scope from the newly created category
     const scopeMemberId = getScopeFromCategory(

@@ -123,7 +123,21 @@ export function TransactionsClient({
     budgets,
     memberId: currentMemberId,
     defaultPaidByMemberId: currentMemberId,
-    onSuccess: async () => {
+    onSuccess: async (submittedDate?: Date) => {
+      // If the submitted transaction lands on a different month than the one being
+      // viewed, jump the period selector so the user sees what they just created.
+      // submittedDate is already a local-TZ date (parsed via parseLocalDate upstream).
+      if (submittedDate) {
+        const submittedYear = submittedDate.getFullYear();
+        const submittedMonth = submittedDate.getMonth() + 1;
+        if (submittedYear !== periodValue.year || submittedMonth !== periodValue.month) {
+          handlePeriodChange({
+            year: submittedYear,
+            month: submittedMonth,
+            week: periodValue.week,
+          });
+        }
+      }
       fetchData();
       triggerWidgetRefresh();
       // Invalidate related caches so other components update
