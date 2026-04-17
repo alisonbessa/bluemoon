@@ -19,6 +19,8 @@ export async function getOrCreateWhatsAppUser(
   phoneNumber: string,
   displayName?: string
 ) {
+  const now = new Date();
+
   const existing = await db
     .select()
     .from(whatsappUsers)
@@ -26,14 +28,19 @@ export async function getOrCreateWhatsAppUser(
     .limit(1);
 
   if (existing.length > 0) {
-    // Update display name if provided and different
+    // Always bump lastInboundAt so we know the 24h free-form window is open.
+    const patch: Partial<typeof whatsappUsers.$inferInsert> = {
+      lastInboundAt: now,
+      updatedAt: now,
+    };
     if (displayName && existing[0].displayName !== displayName) {
-      await db
-        .update(whatsappUsers)
-        .set({ displayName, updatedAt: new Date() })
-        .where(eq(whatsappUsers.phoneNumber, phoneNumber));
+      patch.displayName = displayName;
     }
-    return existing[0];
+    await db
+      .update(whatsappUsers)
+      .set(patch)
+      .where(eq(whatsappUsers.phoneNumber, phoneNumber));
+    return { ...existing[0], ...patch };
   }
 
   const [newUser] = await db
@@ -43,6 +50,7 @@ export async function getOrCreateWhatsAppUser(
       displayName,
       currentStep: "IDLE",
       context: {},
+      lastInboundAt: now,
     })
     .returning();
 

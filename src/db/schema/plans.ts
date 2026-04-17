@@ -10,7 +10,8 @@ import {
 import { z } from "zod";
 
 export const quotaSchema = z.object({
-  maxBudgetMembers: z.number().default(1), // Solo=1, Duo=2
+  maxBudgetMembers: z.number().default(1), // Solo=1, Duo=2 (partners/owners)
+  maxDependents: z.number().default(10), // Children / pets per budget
   premiumSupport: z.boolean().default(false),
   monthlyImages: z.number().default(10),
 });
@@ -19,6 +20,7 @@ export type Quotas = z.infer<typeof quotaSchema>;
 
 export const defaultQuotas: Quotas = {
   maxBudgetMembers: 1,
+  maxDependents: 10,
   premiumSupport: false,
   monthlyImages: 10,
 };

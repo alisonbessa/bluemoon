@@ -8,6 +8,7 @@ import { autoPayCreditCards } from "./auto-pay-credit-cards";
 import { generateClosingDayBills } from "./generate-closing-day-bills";
 import { pruneChatLogs } from "./prune-chat-logs";
 import { runRetentionCampaigns } from "./run-retention-campaigns";
+import { checkBudgetThresholds } from "./check-budget-thresholds";
 
 export type InngestEvents = {
   // Add your events here
@@ -25,4 +26,5 @@ export const functions = [
   generateClosingDayBills,
   pruneChatLogs,
   runRetentionCampaigns,
+  checkBudgetThresholds,
 ];

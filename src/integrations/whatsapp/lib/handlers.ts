@@ -394,6 +394,17 @@ export async function handleWebhook(
         const phoneNumber = message.from;
         const displayName = contactMap.get(message.from);
 
+        // Touch lastInboundAt on every inbound event so outbound jobs can
+        // safely check whether the 24h free-form window is still open.
+        try {
+          await db
+            .update(whatsappUsers)
+            .set({ lastInboundAt: new Date() })
+            .where(eq(whatsappUsers.phoneNumber, phoneNumber));
+        } catch (err) {
+          logger.warn("Failed to touch lastInboundAt", { phoneNumber, err });
+        }
+
         try {
           switch (message.type) {
             case "text":
