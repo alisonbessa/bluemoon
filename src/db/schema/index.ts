@@ -29,7 +29,6 @@ export * from "./whatsapp-pending-connections";
 export * from "./goals";
 export * from "./recurring-bills";
 export * from "./audit-log";
-export * from "./budget-alerts";
 export * from "./feedback";
 export * from "./blog-posts";
 export * from "./chat-logs";
