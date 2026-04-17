@@ -68,6 +68,14 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     return errorResponse("One or both accounts not found in this budget", 400);
   }
 
+  // Prevent overdrafts on non-credit accounts.
+  if (fromAccount.type !== "credit_card" && fromAccount.balance < amount) {
+    return errorResponse(
+      "Saldo insuficiente na conta de origem para este acerto.",
+      422
+    );
+  }
+
   const userMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
   if (!userMemberId) {
     return errorResponse("Could not determine member for this budget", 400);
