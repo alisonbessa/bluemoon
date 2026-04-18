@@ -20,6 +20,7 @@ const DEFAULT_PLANS = [
     yearlyPrice: 13990, // R$ 139,90 in centavos
     quotas: {
       maxBudgetMembers: 1,
+      maxDependents: 10,
       premiumSupport: false,
       monthlyImages: 10,
     },
@@ -35,6 +36,7 @@ const DEFAULT_PLANS = [
     yearlyPrice: 18990, // R$ 189,90 in centavos
     quotas: {
       maxBudgetMembers: 2,
+      maxDependents: 10,
       premiumSupport: false,
       monthlyImages: 10,
     },
@@ -50,6 +52,7 @@ const DEFAULT_PLANS = [
     yearlyPrice: 0,
     quotas: {
       maxBudgetMembers: 1,
+      maxDependents: 2,
       premiumSupport: false,
       monthlyImages: 0,
     },
