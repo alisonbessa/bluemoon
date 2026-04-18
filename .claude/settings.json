@@ -1,5 +1,14 @@
 {
-  "permissions": {},
+  "permissions": {
+    "allow": [
+      "Bash(git reset:*)",
+      "Bash(gh repo *)",
+      "Bash(gh api *)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  },
   "enableAllProjectMcpServers": true,
   "companyAnnouncements": [
     "Welcome to HiveBudget! Review the project documentation in the docs folder."
