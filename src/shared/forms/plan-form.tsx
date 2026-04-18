@@ -64,6 +64,7 @@ export function PlanForm({
       onetimePaypalPlanId: "",
       quotas: {
         maxBudgetMembers: 1,
+        maxDependents: 10,
         premiumSupport: false,
         monthlyImages: 10,
       },

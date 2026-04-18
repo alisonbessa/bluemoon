@@ -86,6 +86,7 @@ export default function CreatePlanPage() {
         onetimePaypalPlanId: null,
         quotas: {
           maxBudgetMembers: data.maxBudgetMembers,
+          maxDependents: 10,
           premiumSupport: false,
           monthlyImages: 10,
         },
