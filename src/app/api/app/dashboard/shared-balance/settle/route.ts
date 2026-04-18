@@ -11,6 +11,7 @@ import {
   errorResponse,
   validationError,
 } from "@/shared/lib/api/responses";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 import { z } from "zod";
 
 const settleSchema = z.object({
@@ -119,6 +120,15 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
       .where(eq(financialAccounts.id, toAccountId));
 
     return created;
+  });
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "transaction.settle",
+    resource: "transaction",
+    resourceId: newTransaction.id,
+    details: { budgetId, fromAccountId, toAccountId, amount, year, month },
+    req,
   });
 
   return successResponse({ transaction: newTransaction }, 201);

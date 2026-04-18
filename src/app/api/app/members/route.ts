@@ -13,6 +13,7 @@ import {
 } from "@/shared/lib/api/responses";
 import { createMemberSchema } from "@/shared/lib/validations";
 import { defaultQuotas } from "@/db/schema/plans";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get members for user's budgets
 export const GET = withAuthRequired(async (req, context) => {
@@ -145,6 +146,15 @@ export const POST = withAuthRequired(async (req, context) => {
       plannedAmount: monthlyPleasureBudget,
     });
   }
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "member.create",
+    resource: "budget_member",
+    resourceId: newMember.id,
+    details: { budgetId, type, name: capitalizedName },
+    req,
+  });
 
   return successResponse({ member: newMember }, 201);
 });

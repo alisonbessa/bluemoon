@@ -11,6 +11,7 @@ import {
   errorResponse,
   successResponse,
 } from "@/shared/lib/api/responses";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 const acceptInviteSchema = z.object({
   token: z.string().uuid(),
@@ -185,6 +186,19 @@ export const POST = withAuthRequired(async (req, context) => {
       updatedAt: new Date(),
     })
     .where(eq(invites.id, invite.id));
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "invite.accept",
+    resource: "invite",
+    resourceId: invite.id,
+    details: {
+      budgetId: invite.budgetId,
+      memberId: newMember.id,
+      invitedByUserId: invite.invitedByUserId,
+    },
+    req,
+  });
 
   return successResponse({
     success: true,
