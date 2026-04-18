@@ -21,16 +21,23 @@ export function useSetupMode() {
     const isSetup = searchParams?.get('setup') === 'true';
     setIsSetupMode(isSetup);
 
-    // Auto-start page spotlight tour when arriving via checklist link
+    // Auto-start page spotlight tour when arriving via checklist link.
+    // Strip ?setup=true from the URL right after firing so that any later
+    // remount (Strict Mode, HMR, SPA navigation back to this route) does NOT
+    // re-trigger the tour.
     if (isSetup && pathname && !tourTriggered.current && !isActive) {
       tourTriggered.current = true;
-      // Small delay to ensure page elements are rendered for spotlight targeting
       const timer = setTimeout(() => {
         startPageTutorial(pathname);
+
+        const params = new URLSearchParams(searchParams?.toString() ?? '');
+        params.delete('setup');
+        const newUrl = params.toString() ? `${pathname}?${params}` : pathname;
+        router.replace(newUrl, { scroll: false });
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [searchParams, pathname, startPageTutorial, isActive]);
+  }, [searchParams, pathname, startPageTutorial, isActive, router]);
 
   // Reset trigger flag when pathname changes
   useEffect(() => {
