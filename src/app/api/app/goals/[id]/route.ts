@@ -10,6 +10,7 @@ import {
   successResponse,
 } from "@/shared/lib/api/responses";
 import { updateGoalSchema } from "@/shared/lib/validations";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // Helper to calculate goal metrics
 function calculateGoalMetrics(goal: typeof goals.$inferSelect) {
@@ -155,6 +156,15 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .from(goalMemberSettings)
     .where(eq(goalMemberSettings.goalId, id));
 
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "goal.update",
+    resource: "goal",
+    resourceId: id,
+    details: { budgetId: updatedGoal.budgetId },
+    req,
+  });
+
   return successResponse({
     goal: {
       ...updatedGoal,
@@ -190,6 +200,15 @@ export const DELETE = withAuthRequired(async (req, context) => {
     .update(goals)
     .set({ isArchived: true, updatedAt: new Date() })
     .where(eq(goals.id, id));
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "goal.delete",
+    resource: "goal",
+    resourceId: id,
+    details: { budgetId: existingGoal.budgetId, name: existingGoal.name },
+    req,
+  });
 
   return successResponse({ success: true });
 });

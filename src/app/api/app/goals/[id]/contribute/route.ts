@@ -10,6 +10,7 @@ import {
   successResponse,
 } from "@/shared/lib/api/responses";
 import { calculateGoalMetrics } from "@/shared/lib/goals/calculate-metrics";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 const contributeSchema = z.object({
   amount: z.number().int().min(1),
@@ -153,6 +154,23 @@ export const POST = withAuthRequired(async (req, context) => {
       updatedGoal,
       isNowCompleted,
     };
+  });
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "goal.contribute",
+    resource: "goal",
+    resourceId: goalId,
+    details: {
+      budgetId: existingGoal.budgetId,
+      amount,
+      year,
+      month,
+      fromAccountId,
+      contributionId: result.contribution.id,
+      transactionId: result.transaction.id,
+    },
+    req,
   });
 
   return successResponse({

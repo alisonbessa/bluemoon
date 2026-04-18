@@ -18,6 +18,7 @@ import {
 import { createAccountSchema } from "@/shared/lib/validations/account.schema";
 import { getBillingCycleDates } from "@/shared/lib/billing-cycle";
 import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get accounts for user's budgets
 // Supports viewMode query param: mine | shared | all
@@ -247,6 +248,15 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
       displayOrder: existingAccounts.length,
     })
     .returning();
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "account.create",
+    resource: "account",
+    resourceId: newAccount.id,
+    details: { budgetId, name: newAccount.name, type: newAccount.type },
+    req,
+  });
 
   return successResponse({ account: newAccount }, 201);
 }), rateLimits.api, "app-accounts-post");

@@ -11,6 +11,7 @@ import {
   errorResponse,
 } from "@/shared/lib/api/responses";
 import { updateIncomeSourceSchema, validateIncomeFrequencyFields } from "@/shared/lib/validations";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get a specific income source
 export const GET = withAuthRequired(async (req, context) => {
@@ -165,6 +166,15 @@ export const PATCH = withAuthRequired(async (req, context) => {
     }
   }
 
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "income_source.update",
+    resource: "income_source",
+    resourceId: updatedSource.id,
+    details: { budgetId: updatedSource.budgetId },
+    req,
+  });
+
   return successResponse({ incomeSource: updatedSource });
 });
 
@@ -238,6 +248,19 @@ export const DELETE = withAuthRequired(async (req, context) => {
         )
       );
   }
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "income_source.delete",
+    resource: "income_source",
+    resourceId: sourceId,
+    details: {
+      budgetId: existingSource.budgetId,
+      name: existingSource.name,
+      permanent: isPermanent,
+    },
+    req,
+  });
 
   return successResponse({ success: true });
 });

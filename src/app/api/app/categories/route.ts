@@ -15,6 +15,7 @@ import {
 } from "@/shared/lib/api/responses";
 import { suggestEmojiForCategory } from "@/shared/lib/category/suggest-emoji";
 import { createCategorySchema } from "@/shared/lib/validations/category.schema";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get categories for user's budgets (with groups)
 export const GET = withAuthRequired(async (req, context) => {
@@ -142,6 +143,20 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
       displayOrder: existingCategories.length,
     })
     .returning();
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "category.create",
+    resource: "category",
+    resourceId: newCategory.id,
+    details: {
+      budgetId,
+      name: newCategory.name,
+      groupId: newCategory.groupId,
+      memberId: newCategory.memberId,
+    },
+    req,
+  });
 
   return successResponse({ category: newCategory }, 201);
 }), rateLimits.api, "app-categories-post");

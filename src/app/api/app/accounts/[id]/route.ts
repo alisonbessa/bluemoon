@@ -12,6 +12,7 @@ import {
   errorResponse,
 } from "@/shared/lib/api/responses";
 import { updateAccountSchema } from "@/shared/lib/validations";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get a specific account
 export const GET = withAuthRequired(async (req, context) => {
@@ -109,6 +110,15 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(eq(financialAccounts.id, accountId))
     .returning();
 
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "account.update",
+    resource: "account",
+    resourceId: accountId,
+    details: { budgetId: existingAccount.budgetId },
+    req,
+  });
+
   return successResponse({ account: updatedAccount });
 });
 
@@ -144,6 +154,19 @@ export const DELETE = withAuthRequired(async (req, context) => {
   }
 
   await db.delete(financialAccounts).where(eq(financialAccounts.id, accountId));
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "account.delete",
+    resource: "account",
+    resourceId: accountId,
+    details: {
+      budgetId: existingAccount.budgetId,
+      name: existingAccount.name,
+      type: existingAccount.type,
+    },
+    req,
+  });
 
   return successResponse({ success: true });
 });

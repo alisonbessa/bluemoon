@@ -10,6 +10,7 @@ import {
   errorResponse,
 } from "@/shared/lib/api/responses";
 import { updateRecurringBillSchema, validateFrequencyFields } from "@/shared/lib/validations";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get a specific recurring bill
 export const GET = withAuthRequired(async (req, context) => {
@@ -91,6 +92,15 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(eq(recurringBills.id, billId))
     .returning();
 
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "recurring_bill.update",
+    resource: "recurring_bill",
+    resourceId: billId,
+    details: { budgetId: updatedBill.budgetId },
+    req,
+  });
+
   return successResponse({ recurringBill: updatedBill });
 });
 
@@ -127,6 +137,15 @@ export const DELETE = withAuthRequired(async (req, context) => {
       updatedAt: new Date(),
     })
     .where(eq(recurringBills.id, billId));
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "recurring_bill.delete",
+    resource: "recurring_bill",
+    resourceId: billId,
+    details: { budgetId: existingBill.budgetId },
+    req,
+  });
 
   return successResponse({ success: true });
 });

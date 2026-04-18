@@ -10,6 +10,7 @@ import {
   successResponse,
 } from "@/shared/lib/api/responses";
 import { z } from "zod";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 const bulkActionSchema = z.object({
   action: z.enum(["updateStatus", "delete"]),
@@ -210,6 +211,24 @@ export const POST = withAuthRequired(async (req, context) => {
         errors.push(`${existing.id}: ${String(err)}`);
       }
     }
+  });
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action:
+      validation.data.action === "delete"
+        ? "transaction.delete"
+        : "transaction.update",
+    resource: "transaction",
+    details: {
+      bulk: true,
+      action: validation.data.action,
+      status: validation.data.status,
+      requestedCount: validation.data.transactionIds.length,
+      successCount,
+      failedCount,
+    },
+    req,
   });
 
   return successResponse({

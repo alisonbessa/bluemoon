@@ -10,6 +10,7 @@ import {
   successResponse,
 } from "@/shared/lib/api/responses";
 import { updateCategorySchema } from "@/shared/lib/validations";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get a specific category
 export const GET = withAuthRequired(async (req, context) => {
@@ -89,6 +90,15 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(eq(categories.id, categoryId))
     .returning();
 
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "category.update",
+    resource: "category",
+    resourceId: categoryId,
+    details: { budgetId: existingCategory.budgetId },
+    req,
+  });
+
   return successResponse({ category: updatedCategory });
 });
 
@@ -125,6 +135,15 @@ export const DELETE = withAuthRequired(async (req, context) => {
       updatedAt: new Date(),
     })
     .where(eq(categories.id, categoryId));
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "category.delete",
+    resource: "category",
+    resourceId: categoryId,
+    details: { budgetId: existingCategory.budgetId, name: existingCategory.name },
+    req,
+  });
 
   return successResponse({ success: true });
 });

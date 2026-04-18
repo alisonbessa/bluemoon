@@ -8,6 +8,7 @@ import {
   forbiddenError,
   successResponse,
 } from "@/shared/lib/api/responses";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 const leaveBudgetSchema = z.object({
   budgetId: z.string().uuid(),
@@ -55,6 +56,15 @@ export const POST = withAuthRequired(async (req, context) => {
 
   // Delete the membership (cascade will handle categories)
   await db.delete(budgetMembers).where(eq(budgetMembers.id, membership.id));
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "member.leave",
+    resource: "budget_member",
+    resourceId: membership.id,
+    details: { budgetId },
+    req,
+  });
 
   return successResponse({
     success: true,

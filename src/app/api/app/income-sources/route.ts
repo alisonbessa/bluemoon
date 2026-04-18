@@ -13,6 +13,7 @@ import {
 } from "@/shared/lib/api/responses";
 import { createIncomeSourceSchema } from "@/shared/lib/validations/income.schema";
 import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get income sources for user's budgets
 export const GET = withAuthRequired(async (req, context) => {
@@ -127,6 +128,15 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
       displayOrder: existingSources.length,
     })
     .returning();
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "income_source.create",
+    resource: "income_source",
+    resourceId: newSource.id,
+    details: { budgetId: newSource.budgetId, name: newSource.name },
+    req,
+  });
 
   return successResponse({ incomeSource: newSource }, 201);
 }), rateLimits.api, "app-income-sources-post");

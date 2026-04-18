@@ -10,6 +10,7 @@ import {
   notFoundError,
   successResponse,
 } from "@/shared/lib/api/responses";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 const updateBudgetSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -93,6 +94,15 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(eq(budgets.id, budgetId))
     .returning();
 
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "budget.update",
+    resource: "budget",
+    resourceId: budgetId,
+    details: { changedFields: Object.keys(validation.data) },
+    req,
+  });
+
   return successResponse({ budget: updatedBudget });
 });
 
@@ -113,6 +123,14 @@ export const DELETE = withAuthRequired(async (req, context) => {
   }
 
   await db.delete(budgets).where(eq(budgets.id, budgetId));
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "budget.delete",
+    resource: "budget",
+    resourceId: budgetId,
+    req,
+  });
 
   return successResponse({ success: true });
 });

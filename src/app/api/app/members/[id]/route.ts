@@ -121,6 +121,15 @@ export const PATCH = withAuthRequired(async (req, context) => {
       .where(eq(categories.memberId, memberId));
   }
 
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "member.update",
+    resource: "budget_member",
+    resourceId: memberId,
+    details: { budgetId: existingMember.budgetId },
+    req,
+  });
+
   return successResponse({ member: updatedMember });
 });
 
