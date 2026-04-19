@@ -31,17 +31,21 @@ export function AnnouncementModal({ open, onOpenChange, announcement }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary mb-2">
-            <Megaphone className="size-5" />
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+              <Megaphone className="size-5" />
+            </div>
+            <DialogTitle className="text-xl line-clamp-2 min-w-0 pr-6">
+              {announcement.title}
+            </DialogTitle>
           </div>
-          <DialogTitle className="text-xl">{announcement.title}</DialogTitle>
         </DialogHeader>
         <div
           className="prose prose-sm dark:prose-invert max-w-none"
           dangerouslySetInnerHTML={{ __html: html }}
         />
         <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Fechar
           </Button>
           {showCta && (
