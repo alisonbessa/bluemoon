@@ -4,16 +4,18 @@ import { db } from "@/db";
 import {
   roadmapItems,
   roadmapVotes,
+  ROADMAP_CATEGORIES,
   ROADMAP_STATUSES,
   type RoadmapCategory,
   type RoadmapStatus,
 } from "@/db/schema/roadmap";
 import { users } from "@/db/schema/user";
-import { and, desc, eq, ilike, inArray, isNull, or, type SQL } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import {
   forbiddenError,
   internalError,
+  structuredError,
   successResponse,
   validationError,
 } from "@/shared/lib/api/responses";
@@ -24,9 +26,12 @@ import {
 } from "@/features/roadmap/server/ai-moderation";
 import { checkSuggestionRateLimit } from "@/features/roadmap/server/rate-limit";
 import { notifyAdminsOfNewSuggestion } from "@/features/roadmap/server/notifications";
-import { ROADMAP_CATEGORIES } from "@/db/schema/roadmap";
 
 const logger = createLogger("api:roadmap");
+
+const DESCRIPTION_PREVIEW_CHARS = 320;
+const MAX_PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZE = 20;
 
 const createSchema = z.object({
   title: z.string().min(4, "Título muito curto").max(120),
@@ -42,6 +47,8 @@ const listQuerySchema = z.object({
   category: z.string().optional(),
   search: z.string().optional(),
   sort: z.enum(["votes", "newest"]).optional().default("votes"),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  pageSize: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).optional().default(DEFAULT_PAGE_SIZE),
 });
 
 export const GET = withAuthRequired(async (req, context) => {
@@ -58,9 +65,11 @@ export const GET = withAuthRequired(async (req, context) => {
       category: searchParams.get("category") ?? undefined,
       search: searchParams.get("search") ?? undefined,
       sort: searchParams.get("sort") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
+      pageSize: searchParams.get("pageSize") ?? undefined,
     });
     if (!parsed.success) return validationError(parsed.error);
-    const { tab, status, category, search, sort } = parsed.data;
+    const { tab, status, category, search, sort, page, pageSize } = parsed.data;
 
     const conditions: SQL[] = [isNull(roadmapItems.mergedIntoId)];
     if (tab === "roadmap") conditions.push(eq(roadmapItems.source, "admin"));
@@ -79,18 +88,22 @@ export const GET = withAuthRequired(async (req, context) => {
         )!
       );
     }
-    const where = conditions.length ? and(...conditions) : undefined;
+    const where = and(...conditions);
 
     const orderBy =
       sort === "newest"
         ? desc(roadmapItems.createdAt)
         : desc(roadmapItems.upvotes);
 
+    const offset = (page - 1) * pageSize;
+
     const rows = await db
       .select({
         id: roadmapItems.id,
         title: roadmapItems.title,
-        description: roadmapItems.description,
+        // Description is truncated in SQL to keep the payload small — detail
+        // view fetches the full text from /api/app/roadmap/[id].
+        descriptionPreview: sql<string>`left(${roadmapItems.description}, ${DESCRIPTION_PREVIEW_CHARS})`,
         status: roadmapItems.status,
         source: roadmapItems.source,
         category: roadmapItems.category,
@@ -107,10 +120,13 @@ export const GET = withAuthRequired(async (req, context) => {
       .leftJoin(users, eq(roadmapItems.userId, users.id))
       .where(where)
       .orderBy(orderBy)
-      .limit(200);
+      .limit(pageSize + 1)
+      .offset(offset);
 
-    // Fetch user's vote for the returned items
-    const ids = rows.map((r) => r.id);
+    const hasMore = rows.length > pageSize;
+    const sliced = hasMore ? rows.slice(0, pageSize) : rows;
+
+    const ids = sliced.map((r) => r.id);
     const userVoteRows = ids.length
       ? await db
           .select({ itemId: roadmapVotes.itemId })
@@ -124,10 +140,10 @@ export const GET = withAuthRequired(async (req, context) => {
       : [];
     const votedSet = new Set(userVoteRows.map((v) => v.itemId));
 
-    const items = rows.map((r) => ({
+    const items = sliced.map((r) => ({
       id: r.id,
       title: r.title,
-      description: r.description,
+      description: r.descriptionPreview,
       status: r.status,
       source: r.source,
       category: r.category,
@@ -142,7 +158,7 @@ export const GET = withAuthRequired(async (req, context) => {
       hasVoted: votedSet.has(r.id),
     }));
 
-    return successResponse({ items });
+    return successResponse({ items, page, pageSize, hasMore });
   } catch (error) {
     logger.error("GET /api/app/roadmap failed", { error: String(error) });
     return internalError("Falha ao carregar roadmap");
@@ -163,16 +179,12 @@ export const POST = withAuthRequired(async (req, context) => {
 
     const rate = await checkSuggestionRateLimit(context.session.user.id);
     if (!rate.allowed) {
-      return successResponse(
-        { error: "rate_limited", reason: rate.message },
-        429
-      );
+      return structuredError({ error: "rate_limited", reason: rate.message }, 429);
     }
 
-    // Moderation
     const moderation = await moderateSubmission({ title, description });
     if (!moderation.ok) {
-      return successResponse(
+      return structuredError(
         {
           error: "moderation_rejected",
           reason: moderation.reason ?? "Conteúdo impróprio detectado.",
@@ -181,12 +193,8 @@ export const POST = withAuthRequired(async (req, context) => {
       );
     }
 
-    const finalTitle = moderation.improvedTitle?.trim() || title;
-    const finalDescription = moderation.improvedDescription?.trim() || description;
-
-    // Similarity check (only for user-generated items, when not skipped)
     if (!skipSimilarity) {
-      const keywords = finalTitle
+      const keywords = title
         .split(/\s+/)
         .filter((w) => w.length > 3)
         .slice(0, 5);
@@ -204,13 +212,13 @@ export const POST = withAuthRequired(async (req, context) => {
               description: roadmapItems.description,
             })
             .from(roadmapItems)
-            .where(or(...textConditions))
+            .where(and(or(...textConditions), isNull(roadmapItems.mergedIntoId)))
             .limit(10)
         : [];
 
       if (candidates.length) {
         const matches = await findSimilarItems(
-          { title: finalTitle, description: finalDescription },
+          { title, description },
           candidates.map((c) => ({
             id: c.id,
             title: c.title,
@@ -227,20 +235,13 @@ export const POST = withAuthRequired(async (req, context) => {
             })
             .from(roadmapItems)
             .where(inArray(roadmapItems.id, matches.map((m) => m.id)));
-          return successResponse(
-            {
-              similarFound: true,
-              matches: matches.map((m) => ({
-                ...m,
-                item: full.find((f) => f.id === m.id) ?? null,
-              })),
-              moderation: {
-                improvedTitle: moderation.improvedTitle,
-                improvedDescription: moderation.improvedDescription,
-              },
-            },
-            200
-          );
+          return successResponse({
+            similarFound: true,
+            matches: matches.map((m) => ({
+              ...m,
+              item: full.find((f) => f.id === m.id) ?? null,
+            })),
+          });
         }
       }
     }
@@ -248,9 +249,9 @@ export const POST = withAuthRequired(async (req, context) => {
     const [created] = await db
       .insert(roadmapItems)
       .values({
-        title: finalTitle,
-        description: finalDescription,
-        category: category || null,
+        title,
+        description,
+        category: category ?? null,
         source: "user",
         status: "voting",
         userId: context.session.user.id,
@@ -260,7 +261,6 @@ export const POST = withAuthRequired(async (req, context) => {
 
     logger.info(`Roadmap request created by ${context.session.user.id}`);
 
-    // Fire-and-forget admin notification
     void notifyAdminsOfNewSuggestion({
       itemId: created.id,
       title: created.title,

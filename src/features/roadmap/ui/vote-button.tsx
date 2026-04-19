@@ -19,6 +19,11 @@ export function VoteButton({ itemId, upvotes, hasVoted, status, onChange }: Vote
 
   const toggle = async () => {
     if (disabled || busy) return;
+    // Optimistic update
+    const nextHasVoted = !hasVoted;
+    const nextUpvotes = hasVoted ? Math.max(upvotes - 1, 0) : upvotes + 1;
+    onChange(nextUpvotes, nextHasVoted);
+
     setBusy(true);
     try {
       const res = await fetch(`/api/app/roadmap/${itemId}/vote`, {
@@ -26,8 +31,14 @@ export function VoteButton({ itemId, upvotes, hasVoted, status, onChange }: Vote
       });
       if (res.ok) {
         const data = await res.json();
-        onChange(data.upvotes ?? upvotes, data.hasVoted ?? !hasVoted);
+        // Reconcile with authoritative server count
+        onChange(data.upvotes ?? nextUpvotes, data.hasVoted ?? nextHasVoted);
+      } else {
+        // Roll back
+        onChange(upvotes, hasVoted);
       }
+    } catch {
+      onChange(upvotes, hasVoted);
     } finally {
       setBusy(false);
     }

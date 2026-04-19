@@ -239,7 +239,7 @@ export function SubmitRequestModal({
               disabled={isSubmitting}
             />
             <p className="text-xs text-muted-foreground">
-              {description.length}/2000 · a IA revisará a gramática e o conteúdo antes de publicar
+              {description.length}/2000 · a IA verifica apenas conteúdo impróprio antes de publicar
             </p>
           </div>
 

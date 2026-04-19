@@ -17,8 +17,6 @@ function getClient() {
 export interface ModerationResult {
   ok: boolean;
   reason?: string;
-  improvedTitle?: string;
-  improvedDescription?: string;
 }
 
 export interface SimilarityCandidate {
@@ -47,8 +45,8 @@ function extractJson<T>(raw: string): T | null {
 }
 
 /**
- * Validates the submission: rejects abusive/inappropriate content and suggests
- * grammar/clarity improvements. Fails open (allows submission) if AI is unavailable.
+ * Approves or rejects the submission. Does NOT rewrite user content.
+ * Fails open (allows submission) if AI is unavailable.
  */
 export async function moderateSubmission(input: {
   title: string;
@@ -59,25 +57,21 @@ export async function moderateSubmission(input: {
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
       generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 512,
+        temperature: 0.1,
+        maxOutputTokens: 256,
         responseMimeType: "application/json",
       },
     });
 
     const prompt = `Você modera sugestões para um roadmap de produto em português.
-Regras:
-- Rejeite linguagem ofensiva, discurso de ódio, spam, promoção, dados pessoais ou conteúdo ilegal.
-- Aceite críticas construtivas mesmo que diretas.
-- Se o texto está bom, responda com ok=true e mantenha os textos originais.
-- Se o texto pode melhorar (clareza, ortografia, concisão), responda ok=true e preencha improvedTitle/improvedDescription com versões corrigidas (sem alterar o sentido).
-- Se for impróprio, responda ok=false e explique em "reason" em português.
+Rejeite apenas se houver: linguagem ofensiva, discurso de ódio, spam, promoção comercial, dados pessoais de terceiros, conteúdo ilegal.
+Críticas construtivas (mesmo diretas) e erros de ortografia são aceitáveis.
 
 Título: ${JSON.stringify(input.title)}
 Descrição: ${JSON.stringify(input.description)}
 
 Responda APENAS JSON no formato:
-{"ok": boolean, "reason"?: string, "improvedTitle"?: string, "improvedDescription"?: string}`;
+{"ok": boolean, "reason"?: string}`;
 
     const result = await model.generateContent(prompt);
     const parsed = extractJson<ModerationResult>(result.response.text());
@@ -85,8 +79,6 @@ Responda APENAS JSON no formato:
     return {
       ok: Boolean(parsed.ok),
       reason: parsed.reason,
-      improvedTitle: parsed.improvedTitle,
-      improvedDescription: parsed.improvedDescription,
     };
   } catch (error) {
     logger.error("moderateSubmission failed, allowing submission", { error: String(error) });

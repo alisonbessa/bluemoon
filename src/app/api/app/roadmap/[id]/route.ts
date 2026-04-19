@@ -39,6 +39,7 @@ export const GET = withAuthRequired(async (_req, context) => {
         createdAt: roadmapItems.createdAt,
         implementedAt: roadmapItems.implementedAt,
         adminNotes: roadmapItems.adminNotes,
+        mergedIntoId: roadmapItems.mergedIntoId,
         authorId: roadmapItems.userId,
         authorName: users.displayName,
         authorImage: users.image,
@@ -48,6 +49,10 @@ export const GET = withAuthRequired(async (_req, context) => {
       .where(eq(roadmapItems.id, id));
 
     if (!row) return notFoundError("Item");
+    // Surface merge as a 301-like signal so the client can redirect
+    if (row.mergedIntoId) {
+      return successResponse({ mergedInto: row.mergedIntoId }, 200);
+    }
 
     const [vote] = await db
       .select({ id: roadmapVotes.id })

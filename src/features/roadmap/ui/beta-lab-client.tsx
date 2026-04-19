@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import useSWR from "swr";
-import { FlaskConical, History, Plus, Search, Sparkles } from "lucide-react";
+import useSWR, { mutate as swrMutate } from "swr";
+import { ChevronRight, FlaskConical, History, Plus, Search, Sparkles } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import {
@@ -31,50 +31,82 @@ import { ContributorsCard } from "./contributors-card";
 
 type Tab = "roadmap" | "requests" | "changelog";
 
+interface ListResponse {
+  items: RoadmapItem[];
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
 export function BetaLabClient() {
-  const [tab, setTab] = useState<Tab>("roadmap");
-  const [status, setStatus] = useState<RoadmapStatus | "all">("all");
-  const [category, setCategory] = useState<RoadmapCategory | "all">("all");
-  const [sort, setSort] = useState<"votes" | "newest">("votes");
-  const [search, setSearch] = useState("");
+  const [tab, setTabRaw] = useState<Tab>("roadmap");
+  const [status, setStatusRaw] = useState<RoadmapStatus | "all">("all");
+  const [category, setCategoryRaw] = useState<RoadmapCategory | "all">("all");
+  const [sort, setSortRaw] = useState<"votes" | "newest">("votes");
+  const [search, setSearchRaw] = useState("");
+  const [page, setPage] = useState(1);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
 
-  // Mark roadmap as seen on mount (and refresh sidebar badge)
+  // Any filter change resets pagination — encapsulated in the setters so the
+  // reset happens atomically with the filter update, not via an effect.
+  const setTab = (v: Tab) => {
+    setTabRaw(v);
+    setPage(1);
+  };
+  const setStatus = (v: RoadmapStatus | "all") => {
+    setStatusRaw(v);
+    setPage(1);
+  };
+  const setCategory = (v: RoadmapCategory | "all") => {
+    setCategoryRaw(v);
+    setPage(1);
+  };
+  const setSort = (v: "votes" | "newest") => {
+    setSortRaw(v);
+    setPage(1);
+  };
+  const setSearch = (v: string) => {
+    setSearchRaw(v);
+    setPage(1);
+  };
+
+  // Mark roadmap as seen on mount (refreshes sidebar badge).
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/app/roadmap/seen", { method: "POST" })
-      .then(() => {
-        if (!cancelled) {
-          import("swr").then(({ mutate }) =>
-            mutate("/api/app/roadmap/seen")
-          );
-        }
-      })
-      .catch(() => {});
+    (async () => {
+      try {
+        const res = await fetch("/api/app/roadmap/seen", { method: "POST" });
+        if (!cancelled && res.ok) swrMutate("/api/app/roadmap/seen");
+      } catch {
+        // ignore — best-effort
+      }
+    })();
     return () => {
       cancelled = true;
     };
   }, []);
 
   const query = useMemo(() => {
-    const p = new URLSearchParams({ sort });
+    const p = new URLSearchParams({ sort, page: String(page) });
     if (tab !== "changelog") p.set("tab", tab);
     if (status !== "all") p.set("status", status);
     if (category !== "all") p.set("category", category);
     if (search) p.set("search", search);
     return p.toString();
-  }, [tab, status, category, sort, search]);
+  }, [tab, status, category, sort, search, page]);
 
   const listKey = tab === "changelog" ? null : `/api/app/roadmap?${query}`;
-  const { data, isLoading, mutate } = useSWR<{ items: RoadmapItem[] }>(listKey);
+  const { data, isLoading, mutate } = useSWR<ListResponse>(listKey);
 
   const items = data?.items ?? [];
+  const hasMore = data?.hasMore ?? false;
 
   const patchItem = (id: string, upvotes: number, hasVoted: boolean) => {
     if (!data) return;
     mutate(
       {
+        ...data,
         items: data.items.map((i) =>
           i.id === id ? { ...i, upvotes, hasVoted } : i
         ),
@@ -189,6 +221,10 @@ export function BetaLabClient() {
               <ListSection
                 items={items}
                 isLoading={isLoading}
+                page={page}
+                hasMore={hasMore}
+                onPrev={() => setPage((p) => Math.max(1, p - 1))}
+                onNext={() => setPage((p) => p + 1)}
                 emptyTitle="Nada por aqui ainda"
                 emptyDescription="A equipe ainda não publicou itens de roadmap. Enquanto isso, envie suas ideias na aba Feature Requests."
                 onItemClick={openItem}
@@ -199,6 +235,10 @@ export function BetaLabClient() {
               <ListSection
                 items={items}
                 isLoading={isLoading}
+                page={page}
+                hasMore={hasMore}
+                onPrev={() => setPage((p) => Math.max(1, p - 1))}
+                onNext={() => setPage((p) => p + 1)}
                 emptyTitle="Nenhuma sugestão ainda"
                 emptyDescription="Seja o primeiro a sugerir uma melhoria. Outros betas poderão votar na sua ideia."
                 actionLabel="Sugerir melhoria"
@@ -232,6 +272,7 @@ export function BetaLabClient() {
         open={!!detailId}
         onOpenChange={(o) => !o && setDetailId(null)}
         onVoteChange={patchItem}
+        onRedirect={(targetId) => setDetailId(targetId)}
       />
     </PageContent>
   );
@@ -240,6 +281,10 @@ export function BetaLabClient() {
 function ListSection({
   items,
   isLoading,
+  page,
+  hasMore,
+  onPrev,
+  onNext,
   emptyTitle,
   emptyDescription,
   actionLabel,
@@ -249,6 +294,10 @@ function ListSection({
 }: {
   items: RoadmapItem[];
   isLoading: boolean;
+  page: number;
+  hasMore: boolean;
+  onPrev: () => void;
+  onNext: () => void;
   emptyTitle: string;
   emptyDescription: string;
   actionLabel?: string;
@@ -264,7 +313,7 @@ function ListSection({
     );
   }
 
-  if (items.length === 0) {
+  if (items.length === 0 && page === 1) {
     return (
       <EmptyState
         icon={<FlaskConical className="size-5 text-muted-foreground" />}
@@ -289,6 +338,29 @@ function ListSection({
           onVoteChange={onVoteChange}
         />
       ))}
+      {(page > 1 || hasMore) && (
+        <div className="flex items-center justify-between pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 1}
+            onClick={onPrev}
+          >
+            <ChevronRight className="size-3.5 rotate-180" />
+            Anterior
+          </Button>
+          <span className="text-xs text-muted-foreground">Página {page}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!hasMore}
+            onClick={onNext}
+          >
+            Próxima
+            <ChevronRight className="size-3.5" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -9,7 +9,6 @@ export const RATE_LIMITS = {
 
 export interface RateLimitCheck {
   allowed: boolean;
-  retryAfterMinutes?: number;
   message?: string;
 }
 
@@ -25,11 +24,9 @@ export async function checkSuggestionRateLimit(userId: string): Promise<RateLimi
         gte(roadmapItems.createdAt, since)
       )
     );
-  const count = Number(row?.count ?? 0);
-  if (count >= RATE_LIMITS.suggestionsPerDay) {
+  if (Number(row?.count ?? 0) >= RATE_LIMITS.suggestionsPerDay) {
     return {
       allowed: false,
-      retryAfterMinutes: 60 * 24,
       message: `Você atingiu o limite de ${RATE_LIMITS.suggestionsPerDay} sugestões em 24h. Tente novamente amanhã.`,
     };
   }
@@ -44,11 +41,9 @@ export async function checkCommentRateLimit(userId: string): Promise<RateLimitCh
     .where(
       and(eq(roadmapComments.userId, userId), gte(roadmapComments.createdAt, since))
     );
-  const count = Number(row?.count ?? 0);
-  if (count >= RATE_LIMITS.commentsPerHour) {
+  if (Number(row?.count ?? 0) >= RATE_LIMITS.commentsPerHour) {
     return {
       allowed: false,
-      retryAfterMinutes: 60,
       message: `Você atingiu o limite de ${RATE_LIMITS.commentsPerHour} comentários por hora.`,
     };
   }

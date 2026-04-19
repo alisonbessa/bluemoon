@@ -7,12 +7,13 @@ import {
   roadmapItems,
 } from "@/db/schema/roadmap";
 import { users } from "@/db/schema/user";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   forbiddenError,
   internalError,
   notFoundError,
+  structuredError,
   successResponse,
   validationError,
 } from "@/shared/lib/api/responses";
@@ -107,24 +108,15 @@ export const POST = withAuthRequired(async (req, context) => {
 
     const rate = await checkCommentRateLimit(context.session.user.id);
     if (!rate.allowed) {
-      return successResponse(
-        { error: "rate_limited", reason: rate.message },
-        429
-      );
+      return structuredError({ error: "rate_limited", reason: rate.message }, 429);
     }
-
-    const [item] = await db
-      .select({ id: roadmapItems.id })
-      .from(roadmapItems)
-      .where(eq(roadmapItems.id, id));
-    if (!item) return notFoundError("Item");
 
     const moderation = await moderateSubmission({
       title: "comentário",
       description: parsed.data.content,
     });
     if (!moderation.ok) {
-      return successResponse(
+      return structuredError(
         {
           error: "moderation_rejected",
           reason: moderation.reason ?? "Conteúdo impróprio detectado.",
@@ -133,28 +125,36 @@ export const POST = withAuthRequired(async (req, context) => {
       );
     }
 
-    const finalContent =
-      moderation.improvedDescription?.trim() || parsed.data.content;
+    const result = await db.transaction(async (tx) => {
+      const [item] = await tx
+        .select({ id: roadmapItems.id })
+        .from(roadmapItems)
+        .where(and(eq(roadmapItems.id, id), isNull(roadmapItems.mergedIntoId)));
+      if (!item) return { kind: "not_found" as const };
 
-    const [comment] = await db
-      .insert(roadmapComments)
-      .values({
-        itemId: id,
-        userId: context.session.user.id,
-        content: finalContent,
-        isAnonymous: parsed.data.isAnonymous,
-      })
-      .returning();
+      const [comment] = await tx
+        .insert(roadmapComments)
+        .values({
+          itemId: id,
+          userId: context.session.user.id,
+          content: parsed.data.content,
+          isAnonymous: parsed.data.isAnonymous,
+        })
+        .returning();
 
-    await db
-      .update(roadmapItems)
-      .set({
-        commentsCount: sql`${roadmapItems.commentsCount} + 1`,
-        updatedAt: new Date(),
-      })
-      .where(eq(roadmapItems.id, id));
+      await tx
+        .update(roadmapItems)
+        .set({
+          commentsCount: sql`${roadmapItems.commentsCount} + 1`,
+          updatedAt: new Date(),
+        })
+        .where(eq(roadmapItems.id, id));
 
-    return successResponse({ comment }, 201);
+      return { kind: "ok" as const, comment };
+    });
+
+    if (result.kind === "not_found") return notFoundError("Item");
+    return successResponse({ comment: result.comment }, 201);
   } catch (error) {
     logger.error("POST comment failed", { error: String(error) });
     return internalError("Falha ao comentar");

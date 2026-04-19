@@ -17,6 +17,7 @@ import {
   validationError,
 } from "@/shared/lib/api/responses";
 import { notifyAuthorOfStatusChange } from "@/features/roadmap/server/notifications";
+import { recordRoadmapAdminAction } from "@/features/roadmap/server/audit";
 
 const logger = createLogger("api:admin:roadmap:item");
 
@@ -71,9 +72,21 @@ export const PATCH = withSuperAdminAuthRequired(async (req, context) => {
       .returning();
     if (!updated) return notFoundError("Item");
 
-    // Notify author if status changed and item is not anonymous
     const statusChanged =
       parsed.data.status && parsed.data.status !== before.status;
+
+    void recordRoadmapAdminAction({
+      userId: context.session.user?.id ?? null,
+      action: statusChanged ? "status_change" : "update",
+      resourceId: id,
+      details: {
+        before: { status: before.status },
+        patch: parsed.data,
+      },
+      req,
+    });
+
+    // Notify author if status changed and item is not anonymous
     if (statusChanged && before.userId && !before.isAnonymous) {
       const [author] = await db
         .select({ email: users.email, name: users.displayName })
@@ -98,7 +111,7 @@ export const PATCH = withSuperAdminAuthRequired(async (req, context) => {
   }
 });
 
-export const DELETE = withSuperAdminAuthRequired(async (_req, context) => {
+export const DELETE = withSuperAdminAuthRequired(async (req, context) => {
   try {
     const params = await context.params;
     const id = params.id as string;
@@ -109,6 +122,13 @@ export const DELETE = withSuperAdminAuthRequired(async (_req, context) => {
       .where(eq(roadmapItems.id, id))
       .returning({ id: roadmapItems.id });
     if (deleted.length === 0) return notFoundError("Item");
+
+    void recordRoadmapAdminAction({
+      userId: context.session.user?.id ?? null,
+      action: "delete",
+      resourceId: id,
+      req,
+    });
 
     return successResponse({ success: true });
   } catch (error) {

@@ -17,6 +17,7 @@ import {
   successResponse,
   validationError,
 } from "@/shared/lib/api/responses";
+import { recordRoadmapAdminAction } from "@/features/roadmap/server/audit";
 
 const logger = createLogger("api:admin:roadmap");
 
@@ -84,7 +85,7 @@ export const GET = withSuperAdminAuthRequired(async (req) => {
   }
 });
 
-export const POST = withSuperAdminAuthRequired(async (req) => {
+export const POST = withSuperAdminAuthRequired(async (req, context) => {
   try {
     const body = await req.json();
     const parsed = createSchema.safeParse(body);
@@ -98,11 +99,19 @@ export const POST = withSuperAdminAuthRequired(async (req) => {
         description,
         status,
         source: "admin",
-        category: category || null,
-        adminNotes: adminNotes || null,
+        category: category ?? null,
+        adminNotes: adminNotes ?? null,
         implementedAt: status === "implemented" ? new Date() : null,
       })
       .returning();
+
+    void recordRoadmapAdminAction({
+      userId: context.session.user?.id ?? null,
+      action: "create",
+      resourceId: created.id,
+      details: { status, category: category ?? null },
+      req,
+    });
 
     return successResponse({ item: created }, 201);
   } catch (error) {

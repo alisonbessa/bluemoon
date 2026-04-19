@@ -249,7 +249,7 @@ export function AppSidebar() {
   const visibleNavItems = showBetaLab ? [...navItems, betaLabItem] : navItems;
   const { data: unseenData } = useSWR<{ unseenCount: number }>(
     showBetaLab ? "/api/app/roadmap/seen" : null,
-    { refreshInterval: 60_000 }
+    { revalidateOnFocus: true, dedupingInterval: 60_000 }
   );
   const unseenCount = unseenData?.unseenCount ?? 0;
 

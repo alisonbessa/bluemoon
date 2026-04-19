@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
 import { Button } from "@/shared/ui/button";
 import { Textarea } from "@/shared/ui/textarea";
@@ -28,6 +28,12 @@ interface ItemDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onVoteChange: (id: string, upvotes: number, hasVoted: boolean) => void;
+  onRedirect?: (targetId: string) => void;
+}
+
+interface DetailResponse {
+  item?: RoadmapItem;
+  mergedInto?: string;
 }
 
 export function ItemDetailModal({
@@ -35,13 +41,14 @@ export function ItemDetailModal({
   open,
   onOpenChange,
   onVoteChange,
+  onRedirect,
 }: ItemDetailModalProps) {
-  const { data, mutate } = useSWR<{ item: RoadmapItem }>(
+  const { data, mutate } = useSWR<DetailResponse>(
     itemId && open ? `/api/app/roadmap/${itemId}` : null
   );
   const { data: commentsData, mutate: mutateComments } = useSWR<{
     comments: RoadmapComment[];
-  }>(itemId && open ? `/api/app/roadmap/${itemId}/comments` : null);
+  }>(itemId && open && data?.item ? `/api/app/roadmap/${itemId}/comments` : null);
 
   const [content, setContent] = useState("");
   const [anonymous, setAnonymous] = useState(false);
@@ -49,6 +56,11 @@ export function ItemDetailModal({
 
   const item = data?.item;
   const comments = commentsData?.comments ?? [];
+
+  // Follow merge redirects transparently
+  useEffect(() => {
+    if (data?.mergedInto && onRedirect) onRedirect(data.mergedInto);
+  }, [data?.mergedInto, onRedirect]);
 
   const handleSubmit = async () => {
     if (!itemId || content.trim().length < 2) {

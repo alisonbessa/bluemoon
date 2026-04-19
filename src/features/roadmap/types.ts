@@ -9,6 +9,10 @@ export interface RoadmapAuthor {
 export interface RoadmapItem {
   id: string;
   title: string;
+  /**
+   * In list responses this is truncated to ~320 chars; the detail endpoint
+   * returns the full description.
+   */
   description: string;
   status: RoadmapStatus;
   source: RoadmapSource;
