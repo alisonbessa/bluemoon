@@ -98,6 +98,19 @@ export function internalError(message: string = "Internal server error") {
 }
 
 /**
+ * Create a structured error response with a custom payload (e.g. for 422/429
+ * responses that carry application-specific error codes like "rate_limited").
+ * Prefer the dedicated helpers (validationError, conflictError, ...) when they
+ * fit — use this only when the payload shape is non-standard.
+ */
+export function structuredError<T extends Record<string, unknown>>(
+  payload: T & { error: string },
+  status: number
+) {
+  return NextResponse.json(payload, { status });
+}
+
+/**
  * Create a success response with data
  */
 export function successResponse<T>(data: T, status: number = 200) {
