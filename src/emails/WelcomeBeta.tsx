@@ -7,7 +7,7 @@ import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 
 interface WelcomeBetaEmailProps {
-  userName: string;
+  userName?: string | null;
   dashboardUrl: string;
 }
 
@@ -18,7 +18,7 @@ export default function WelcomeBeta({ userName, dashboardUrl }: WelcomeBetaEmail
         previewText={`Bem-vindo ao time de beta testers do ${appConfig.projectName}!`}
       >
         <Text>
-          Oi, {userName}! Tudo bem?
+          {userName ? `Oi, ${userName}! Tudo bem?` : "Oi! Tudo bem?"}
         </Text>
 
         <Text>

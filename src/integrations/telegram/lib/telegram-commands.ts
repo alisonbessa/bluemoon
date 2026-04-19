@@ -9,6 +9,7 @@ import { users, transactions } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import type { TelegramConversationContext } from '@/db/schema/telegram-users';
 import { sendMessage, formatCurrency } from './bot';
+import { getFirstName } from '@/shared/lib/string-utils';
 import {
   getOrCreateTelegramUser,
   updateTelegramUser,
@@ -70,12 +71,13 @@ export async function handleConnectionRequest(
   // Connect the accounts
   await connectTelegramUser(chatId, userId, telegramUserId, username, firstName);
 
-  const name = user.displayName || user.name || 'Usuário';
+  const userFirstName = getFirstName(user.displayName) ?? getFirstName(user.name);
+  const greeting = userFirstName ? `Olá, <b>${userFirstName}</b>! ` : '';
 
   await sendMessage(
     chatId,
     `✅ <b>Conta conectada com sucesso!</b>\n\n` +
-      `Olá, <b>${name}</b>! Agora você pode registrar seus gastos enviando mensagens.\n\n` +
+      `${greeting}Agora você pode registrar seus gastos enviando mensagens.\n\n` +
       `<b>Como usar:</b>\n` +
       `• Envie o valor: <code>50</code> ou <code>50,00</code>\n` +
       `• Com descrição: <code>50 mercado</code>\n\n` +
@@ -124,11 +126,12 @@ export async function handleStart(
       .where(eq(users.id, telegramUser.userId))
       .limit(1);
 
-    const name = user[0]?.displayName || user[0]?.name || 'Usuário';
+    const userFirstName = getFirstName(user[0]?.displayName) ?? getFirstName(user[0]?.name);
+    const greeting = userFirstName ? `👋 Olá, <b>${userFirstName}</b>!` : '👋 Olá!';
 
     await sendMessage(
       chatId,
-      `👋 Olá, <b>${name}</b>!\n\n` +
+      `${greeting}\n\n` +
         `Sua conta já está conectada.\n\n` +
         `<b>Como registrar gastos:</b>\n` +
         `• Envie o valor: <code>50</code> ou <code>50,00</code>\n` +

@@ -8,6 +8,7 @@ import { render } from "@react-email/render";
 import TrialReminder7Days from "@/emails/TrialReminder7Days";
 import TrialReminder2Days from "@/emails/TrialReminder2Days";
 import { createLogger } from "@/shared/lib/logger";
+import { getFirstName } from "@/shared/lib/string-utils";
 
 const logger = createLogger("inngest:trial-reminders");
 
@@ -105,7 +106,7 @@ export const sendTrialReminders = inngest.createFunction(
 
         const emailHtml = await render(
           TrialReminder7Days({
-            userName: user.name || "Usuário",
+            userName: getFirstName(user.name),
             trialEndDate,
             settingsUrl: `${baseUrl}/app/settings`,
           })
@@ -156,7 +157,7 @@ export const sendTrialReminders = inngest.createFunction(
 
         const emailHtml = await render(
           TrialReminder2Days({
-            userName: user.name || "Usuário",
+            userName: getFirstName(user.name),
             trialEndDate,
             settingsUrl: `${baseUrl}/app/settings`,
             planName,

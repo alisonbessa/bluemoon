@@ -93,7 +93,7 @@ export function ProfileCard({ user, isUserLoading, mutateUser }: ProfileCardProp
           <>
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16 shrink-0">
-                <AvatarImage src={user?.image || undefined} alt={user?.name || "Usuário"} />
+                <AvatarImage src={user?.image || undefined} alt={user?.name || ""} />
                 <AvatarFallback className="text-2xl font-bold">
                   {getInitials()}
                 </AvatarFallback>

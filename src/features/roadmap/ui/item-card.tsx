@@ -68,7 +68,7 @@ export function ItemCard({ item, onClick, onVoteChange }: ItemCardProps) {
                   {(item.author.name ?? "?").slice(0, 1).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span>{item.author.name ?? "Usuário"}</span>
+              <span>{item.author.name ?? "Anônimo"}</span>
             </div>
           ) : item.source === "user" ? (
             <span className="italic">Anônimo</span>

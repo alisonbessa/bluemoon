@@ -4,7 +4,7 @@ import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 
 interface TrialReminder2DaysProps {
-  userName: string;
+  userName?: string | null;
   trialEndDate: string;
   settingsUrl: string;
   planName: string;
@@ -21,7 +21,7 @@ export default function TrialReminder2Days({
   return (
     <Layout previewText={`Seu trial termina em 2 dias - ${appConfig.projectName}`}>
       <Text className="text-foreground text-[16px] leading-[24px]">
-        Olá, {userName}!
+        {userName ? `Olá, ${userName}!` : "Olá!"}
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">

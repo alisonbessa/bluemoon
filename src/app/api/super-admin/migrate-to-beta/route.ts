@@ -9,6 +9,7 @@ import MigrationToBeta from "@/emails/MigrationToBeta";
 import sendMail from "@/shared/lib/email/sendMail";
 import { appConfig } from "@/shared/lib/config";
 import { createLogger } from "@/shared/lib/logger";
+import { getFirstName } from "@/shared/lib/string-utils";
 
 const logger = createLogger("api:sa:migrate-to-beta");
 
@@ -94,7 +95,7 @@ export const POST = withSuperAdminAuthRequired(async () => {
         try {
           const html = await render(
             MigrationToBeta({
-              userName: user.name || "Usuário",
+              userName: getFirstName(user.name),
               dashboardUrl: `${baseUrl}/app`,
             })
           );

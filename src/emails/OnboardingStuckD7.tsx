@@ -4,7 +4,7 @@ import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 
 interface OnboardingStuckD7Props {
-  userName: string;
+  userName?: string | null;
   replyMailto: string;
   unsubscribeUrl: string;
 }
@@ -16,11 +16,15 @@ export default function OnboardingStuckD7({
 }: OnboardingStuckD7Props) {
   return (
     <Layout
-      previewText={`${userName}, o que te fez parar no ${appConfig.projectName}?`}
+      previewText={
+        userName
+          ? `${userName}, o que te fez parar no ${appConfig.projectName}?`
+          : `O que te fez parar no ${appConfig.projectName}?`
+      }
       unsubscribeUrl={unsubscribeUrl}
     >
       <Text className="text-foreground text-[16px] leading-[24px]">
-        Olá, {userName}.
+        {userName ? `Olá, ${userName}.` : "Olá."}
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">

@@ -6,7 +6,7 @@ import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 
 interface RoadmapStatusUpdateProps {
-  userName: string;
+  userName?: string | null;
   itemTitle: string;
   newStatusLabel: string;
   newStatusDescription: string;
@@ -25,7 +25,7 @@ export default function RoadmapStatusUpdate({
   return (
     <Html>
       <Layout previewText={`Sua sugestão está ${newStatusLabel.toLowerCase()}`}>
-        <Text>Olá, {userName}!</Text>
+        <Text>{userName ? `Olá, ${userName}!` : "Olá!"}</Text>
 
         <Text>
           Temos novidade sobre a sugestão que você enviou no Laboratório Beta do{" "}

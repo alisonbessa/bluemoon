@@ -129,7 +129,7 @@ export function TelegramConnectionCard({ onConnected }: TelegramConnectionCardPr
             <div className="space-y-4">
               <div className="rounded-lg border bg-muted/50 p-4">
                 <p className="text-sm">
-                  Conectado como: <strong>@{status.username || status.firstName || "Usuário"}</strong>
+                  Conectado como: <strong>@{status.username || status.firstName || "—"}</strong>
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
                   Envie valores diretamente no chat do bot para registrar gastos.

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { MeResponse } from "@/app/api/app/me/types";
+import { getFirstName } from "@/shared/lib/string-utils";
 
 interface SupportCardProps {
   user: MeResponse["user"] | undefined;
@@ -67,7 +68,11 @@ export function SupportCard({ user, startTutorial }: SupportCardProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: user?.displayName || user?.name || "Usuário",
+          name:
+            getFirstName(user?.displayName) ??
+            getFirstName(user?.name) ??
+            user?.email?.split("@")[0] ??
+            "",
           email: user?.email || "sem-email@hivebudget.com",
           message: `[${typeLabels[feedbackType as keyof typeof typeLabels]}] ${feedbackMessage}`,
         }),

@@ -6,7 +6,7 @@ import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 
 interface WaitlistConfirmationProps {
-  userName: string;
+  userName?: string | null;
   siteUrl: string;
 }
 
@@ -20,7 +20,7 @@ export default function WaitlistConfirmation({
         previewText={`Você está na lista de espera do ${appConfig.projectName}!`}
       >
         <Text>
-          Olá, {userName}!
+          {userName ? `Olá, ${userName}!` : "Olá!"}
         </Text>
 
         <Text>

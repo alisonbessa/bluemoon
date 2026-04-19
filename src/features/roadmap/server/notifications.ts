@@ -4,6 +4,7 @@ import { createLogger } from "@/shared/lib/logger";
 import RoadmapStatusUpdate from "@/emails/RoadmapStatusUpdate";
 import RoadmapNewSuggestionAdmin from "@/emails/RoadmapNewSuggestionAdmin";
 import type { RoadmapStatus } from "@/db/schema/roadmap";
+import { getFirstName } from "@/shared/lib/string-utils";
 
 const logger = createLogger("roadmap:notifications");
 
@@ -35,7 +36,7 @@ export async function notifyAuthorOfStatusChange(params: StatusChangeParams): Pr
   try {
     const html = await render(
       RoadmapStatusUpdate({
-        userName: params.toName ?? "",
+        userName: getFirstName(params.toName),
         itemTitle: params.itemTitle,
         newStatusLabel: STATUS_LABELS[params.newStatus],
         newStatusDescription: STATUS_DESCRIPTIONS[params.newStatus],

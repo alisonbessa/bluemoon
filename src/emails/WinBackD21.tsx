@@ -4,7 +4,7 @@ import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 
 interface WinBackD21Props {
-  userName: string;
+  userName?: string | null;
   replyMailto: string;
   unsubscribeUrl: string;
 }
@@ -16,11 +16,11 @@ export default function WinBackD21({
 }: WinBackD21Props) {
   return (
     <Layout
-      previewText={`O que faltou, ${userName}?`}
+      previewText={userName ? `O que faltou, ${userName}?` : "O que faltou?"}
       unsubscribeUrl={unsubscribeUrl}
     >
       <Text className="text-foreground text-[16px] leading-[24px]">
-        Olá, {userName}.
+        {userName ? `Olá, ${userName}.` : "Olá."}
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">

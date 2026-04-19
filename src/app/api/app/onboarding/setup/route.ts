@@ -11,7 +11,7 @@ import {
 import { defaultGroups } from "@/db/schema/groups";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { capitalizeWords } from "@/shared/lib/utils";
+import { capitalizeWords, getFirstName } from "@/shared/lib/utils";
 import {
   validationError,
   internalError,
@@ -58,10 +58,12 @@ export const POST = withAuthRequired(async (request, context) => {
       .where(eq(users.id, userId))
       .limit(1);
 
-    const displayName = capitalizeWords(
-      user?.displayName || user?.name || "Usuário"
-    );
-    const firstName = displayName.split(" ")[0];
+    // Fallback to "Eu" matches the convention used by onUserCreate when no
+    // name is available — keeps the budget owner label personal but neutral.
+    const displayName =
+      capitalizeWords(user?.displayName || user?.name || "") || "Eu";
+    const firstName =
+      getFirstName(user?.displayName) ?? getFirstName(user?.name) ?? "Eu";
 
     // Find existing budget (created on signup) or create one for legacy users
     let existingMembership = await db

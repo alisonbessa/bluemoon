@@ -27,6 +27,22 @@ export function capitalizeFirst(str: string | undefined): string | undefined {
 }
 
 /**
+ * Extracts and capitalizes the first name from a full name.
+ * Returns null when the input is empty/whitespace — callers should treat
+ * the absence of a name as "skip greeting" rather than substituting a default.
+ * Example: "joão da silva" -> "João"
+ */
+export function getFirstName(
+  fullName: string | null | undefined
+): string | null {
+  if (!fullName) return null;
+  const trimmed = fullName.trim();
+  if (!trimmed) return null;
+  const first = trimmed.split(/\s+/)[0];
+  return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
+}
+
+/**
  * Truncate text with ellipsis
  */
 export function truncate(str: string, maxLength: number): string {

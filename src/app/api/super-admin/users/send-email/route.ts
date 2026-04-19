@@ -7,6 +7,7 @@ import { render } from "@react-email/render";
 import sendMail from "@/shared/lib/email/sendMail";
 import AdminMessage from "@/emails/AdminMessage";
 import { createLogger } from "@/shared/lib/logger";
+import { getFirstName } from "@/shared/lib/string-utils";
 
 const logger = createLogger("api:admin:send-email");
 
@@ -51,7 +52,7 @@ export const POST = withSuperAdminAuthRequired(async (req: NextRequest) => {
     try {
       const html = await render(
         AdminMessage({
-          userName: user.name || "usuario",
+          userName: getFirstName(user.name),
           subject,
           body,
           ctaText,

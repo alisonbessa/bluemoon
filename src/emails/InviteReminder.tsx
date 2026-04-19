@@ -4,7 +4,7 @@ import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 
 interface InviteReminderProps {
-  userName: string;
+  userName?: string | null;
   partnerEmail: string;
   budgetName: string;
   inviteUrl: string;
@@ -21,7 +21,7 @@ export default function InviteReminder({
   return (
     <Layout previewText={`Seu convite ainda não foi aceito - ${appConfig.projectName}`}>
       <Text className="text-foreground text-[16px] leading-[24px]">
-        Olá, {userName}!
+        {userName ? `Olá, ${userName}!` : "Olá!"}
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">

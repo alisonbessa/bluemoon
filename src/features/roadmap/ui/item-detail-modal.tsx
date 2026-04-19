@@ -144,7 +144,7 @@ export function ItemDetailModal({
               <p className="text-xs text-muted-foreground mb-3">
                 {STATUS_DESCRIPTIONS[item.status]} · criado em{" "}
                 {formatDate(item.createdAt)}
-                {item.author && ` · por ${item.author.name ?? "Usuário"}`}
+                {item.author && ` · por ${item.author.name ?? "Anônimo"}`}
                 {item.source === "user" && !item.author && " · anônimo"}
               </p>
               <div className="whitespace-pre-wrap rounded-lg border bg-muted/30 p-3 text-sm">

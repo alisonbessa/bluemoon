@@ -7,7 +7,7 @@ import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 
 interface MigrationToBetaProps {
-  userName: string;
+  userName?: string | null;
   dashboardUrl: string;
 }
 
@@ -21,7 +21,7 @@ export default function MigrationToBeta({
         previewText={`Novidades sobre sua conta no ${appConfig.projectName}`}
       >
         <Text>
-          Olá, {userName}!
+          {userName ? `Olá, ${userName}!` : "Olá!"}
         </Text>
 
         <Text>

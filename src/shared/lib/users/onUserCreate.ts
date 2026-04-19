@@ -5,7 +5,7 @@ import { budgets, budgetMembers } from "@/db/schema";
 import { render } from "@react-email/components";
 import { eq } from "drizzle-orm";
 import { appConfig } from "../config";
-import { capitalizeWords } from "../utils";
+import { capitalizeWords, getFirstName } from "../utils";
 import Welcome from "@/emails/Welcome";
 import WelcomeBeta from "@/emails/WelcomeBeta";
 import sendMail from "../email/sendMail";
@@ -95,7 +95,7 @@ const onUserCreate = async (newUser: {
 
   // Envia email de boas-vindas
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const userName = newUser.name || "Usuário";
+  const userName = getFirstName(newUser.name);
   const dashboardUrl = `${baseUrl}/app`;
 
   if (appConfig.waitlistMode) {

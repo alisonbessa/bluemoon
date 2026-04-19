@@ -7,6 +7,7 @@ import {
 } from "@/db/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { WhatsAppAdapter } from "./whatsapp-adapter";
+import { getFirstName } from "@/shared/lib/string-utils";
 
 const logger = createLogger("whatsapp:user-management");
 const adapter = new WhatsAppAdapter();
@@ -147,12 +148,13 @@ export async function handleVerificationCode(
     .from(users)
     .where(eq(users.id, pending.userId));
 
-  const userName = user?.displayName || user?.name || "Usuário";
+  const firstName = getFirstName(user?.displayName) ?? getFirstName(user?.name);
+  const greeting = firstName ? `Olá, *${firstName}*! ` : "";
 
   await adapter.sendMessage(
     phoneNumber,
     `*Conta conectada com sucesso!*\n\n` +
-      `Olá, *${userName}*! Agora você pode registrar seus gastos enviando mensagens.\n\n` +
+      `${greeting}Agora você pode registrar seus gastos enviando mensagens.\n\n` +
       `*Exemplos:*\n` +
       `- "gastei 50 no mercado"\n` +
       `- "paguei 200 de luz"\n` +

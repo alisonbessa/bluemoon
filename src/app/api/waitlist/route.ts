@@ -7,6 +7,7 @@ import { render } from "@react-email/components";
 import sendMail from "@/shared/lib/email/sendMail";
 import WaitlistConfirmation from "@/emails/WaitlistConfirmation";
 import { appConfig } from "@/shared/lib/config";
+import { getFirstName } from "@/shared/lib/string-utils";
 
 const waitlistSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
       const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
       const html = await render(
         WaitlistConfirmation({
-          userName: body.name,
+          userName: getFirstName(body.name),
           siteUrl,
         })
       );

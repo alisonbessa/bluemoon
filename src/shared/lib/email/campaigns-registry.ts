@@ -25,7 +25,7 @@ export interface CampaignMeta {
 }
 
 export interface CampaignRenderPayload {
-  userName: string;
+  userName: string | null;
   appUrl: string;
   unsubscribeUrl: string;
   replyMailto: string;

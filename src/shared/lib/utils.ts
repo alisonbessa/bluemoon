@@ -6,4 +6,4 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Re-export string utilities for backward compatibility
-export { capitalizeWords, capitalizeFirst } from "./string-utils";
+export { capitalizeWords, capitalizeFirst, getFirstName } from "./string-utils";
