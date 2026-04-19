@@ -6,10 +6,22 @@ import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
 import { Switch } from "@/shared/ui/switch";
 import { Button } from "@/shared/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui/select";
 import { FormModalWrapper } from "@/shared/molecules/form-modal-wrapper";
 import { AlertTriangle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import {
+  ROADMAP_CATEGORIES,
+  type RoadmapCategory,
+} from "@/db/schema/roadmap";
 import type { RoadmapItem, SimilarityMatchItem } from "../types";
+import { CATEGORY_LABELS } from "../types";
 import { StatusBadge } from "./status-badge";
 
 interface SubmitRequestModalProps {
@@ -27,6 +39,7 @@ export function SubmitRequestModal({
 }: SubmitRequestModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<RoadmapCategory | "">("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [matches, setMatches] = useState<SimilarityMatchItem[] | null>(null);
@@ -35,6 +48,7 @@ export function SubmitRequestModal({
   const reset = () => {
     setTitle("");
     setDescription("");
+    setCategory("");
     setIsAnonymous(false);
     setMatches(null);
     setModerationError(null);
@@ -56,13 +70,23 @@ export function SubmitRequestModal({
       const res = await fetch("/api/app/roadmap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, isAnonymous, skipSimilarity }),
+        body: JSON.stringify({
+          title,
+          description,
+          category: category || undefined,
+          isAnonymous,
+          skipSimilarity,
+        }),
       });
       const data = await res.json();
 
       if (!res.ok) {
         if (res.status === 422 && data?.error === "moderation_rejected") {
           setModerationError(data.reason ?? "Conteúdo impróprio detectado.");
+          return;
+        }
+        if (res.status === 429 && data?.error === "rate_limited") {
+          toast.error(data.reason ?? "Limite de sugestões atingido");
           return;
         }
         toast.error(data?.error || "Falha ao enviar sugestão");
@@ -181,6 +205,26 @@ export function SubmitRequestModal({
               maxLength={120}
               disabled={isSubmitting}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="roadmap-category">Categoria</Label>
+            <Select
+              value={category}
+              onValueChange={(v) => setCategory(v as RoadmapCategory)}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger id="roadmap-category">
+                <SelectValue placeholder="Selecione (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROADMAP_CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {CATEGORY_LABELS[c]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1.5">

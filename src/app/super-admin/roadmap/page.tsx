@@ -10,6 +10,7 @@ import {
   ArrowUpCircle,
   MessageCircle,
   FlaskConical,
+  GitMerge,
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -42,8 +43,13 @@ import {
   AlertDialogTrigger,
 } from "@/shared/ui/alert-dialog";
 import { FormModalWrapper } from "@/shared/molecules/form-modal-wrapper";
-import { ROADMAP_STATUSES, type RoadmapStatus } from "@/db/schema/roadmap";
-import { STATUS_LABELS } from "@/features/roadmap/types";
+import {
+  ROADMAP_CATEGORIES,
+  ROADMAP_STATUSES,
+  type RoadmapCategory,
+  type RoadmapStatus,
+} from "@/db/schema/roadmap";
+import { CATEGORY_LABELS, STATUS_LABELS } from "@/features/roadmap/types";
 import { StatusBadge } from "@/features/roadmap/ui/status-badge";
 
 interface AdminItem {
@@ -52,11 +58,12 @@ interface AdminItem {
   description: string;
   status: RoadmapStatus;
   source: "admin" | "user";
-  category: string | null;
+  category: RoadmapCategory | null;
   upvotes: number;
   commentsCount: number;
   isAnonymous: boolean;
   adminNotes: string | null;
+  mergedIntoId: string | null;
   createdAt: string;
   implementedAt: string | null;
   authorId: string | null;
@@ -80,6 +87,7 @@ export default function AdminRoadmapPage() {
   const [search, setSearch] = useState("");
   const [editItem, setEditItem] = useState<AdminItem | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [mergeSource, setMergeSource] = useState<AdminItem | null>(null);
 
   const params = new URLSearchParams();
   if (source !== "all") params.set("source", source);
@@ -257,13 +265,30 @@ export default function AdminRoadmapPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditItem(item)}
-                      >
-                        Editar
-                      </Button>
+                      {item.mergedIntoId ? (
+                        <span className="text-[10px] uppercase text-muted-foreground px-2">
+                          mesclado
+                        </span>
+                      ) : (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditItem(item)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8"
+                            title="Mesclar em outro item"
+                            onClick={() => setMergeSource(item)}
+                          >
+                            <GitMerge className="size-3.5" />
+                          </Button>
+                        </>
+                      )}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="ghost" size="icon" className="size-8">
@@ -319,6 +344,23 @@ export default function AdminRoadmapPage() {
           if (ok) setEditItem(null);
         }}
       />
+
+      <MergeItemModal
+        source={mergeSource}
+        candidates={items.filter(
+          (i) => !i.mergedIntoId && mergeSource && i.id !== mergeSource.id
+        )}
+        onClose={() => setMergeSource(null)}
+        onMerged={() => {
+          mutate();
+          globalMutate(
+            (key) => typeof key === "string" && key.startsWith("/api/app/roadmap"),
+            undefined,
+            { revalidate: true }
+          );
+          setMergeSource(null);
+        }}
+      />
     </div>
   );
 }
@@ -335,7 +377,7 @@ function CreateItemModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<RoadmapStatus>("planned");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState<RoadmapCategory | "">("");
   const [adminNotes, setAdminNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -418,12 +460,21 @@ function CreateItemModal({
           </div>
           <div className="space-y-1.5">
             <Label>Categoria (opcional)</Label>
-            <Input
+            <Select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              maxLength={60}
-              placeholder="Ex.: Relatórios"
-            />
+              onValueChange={(v) => setCategory(v as RoadmapCategory)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROADMAP_CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {CATEGORY_LABELS[c]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div className="space-y-1.5">
@@ -452,14 +503,14 @@ function EditItemModal({
     title?: string;
     description?: string;
     status?: RoadmapStatus;
-    category?: string | null;
+    category?: RoadmapCategory | null;
     adminNotes?: string | null;
   }) => Promise<void>;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [statusState, setStatusState] = useState<RoadmapStatus>("voting");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState<RoadmapCategory | "">("");
   const [adminNotes, setAdminNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -544,11 +595,21 @@ function EditItemModal({
           </div>
           <div className="space-y-1.5">
             <Label>Categoria</Label>
-            <Input
+            <Select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              maxLength={60}
-            />
+              onValueChange={(v) => setCategory(v as RoadmapCategory)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROADMAP_CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {CATEGORY_LABELS[c]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div className="space-y-1.5">
@@ -560,6 +621,85 @@ function EditItemModal({
             maxLength={2000}
           />
         </div>
+      </div>
+    </FormModalWrapper>
+  );
+}
+
+function MergeItemModal({
+  source,
+  candidates,
+  onClose,
+  onMerged,
+}: {
+  source: AdminItem | null;
+  candidates: AdminItem[];
+  onClose: () => void;
+  onMerged: () => void;
+}) {
+  const [targetId, setTargetId] = useState<string>("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setTargetId("");
+  }, [source]);
+
+  const submit = async () => {
+    if (!source || !targetId) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/super-admin/roadmap/${source.id}/merge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data?.error || "Falha ao mesclar");
+        return;
+      }
+      toast.success(
+        `Mesclado: ${data.movedVotes} votos e ${data.movedComments} comentários migrados`
+      );
+      onMerged();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <FormModalWrapper
+      open={!!source}
+      onOpenChange={(o) => !o && onClose()}
+      title={source ? `Mesclar: ${source.title}` : "Mesclar"}
+      description="Este item será marcado como mesclado e deixará de aparecer aos usuários. Votos e comentários migram para o item destino."
+      isSubmitting={busy}
+      onSubmit={submit}
+      submitDisabled={!targetId}
+      submitLabel="Mesclar"
+      size="lg"
+    >
+      <div className="space-y-3">
+        <Label>Item destino</Label>
+        <Select value={targetId} onValueChange={setTargetId}>
+          <SelectTrigger>
+            <SelectValue placeholder="Escolha o item que mantém os votos" />
+          </SelectTrigger>
+          <SelectContent>
+            {candidates.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                <span className="truncate max-w-[460px] inline-block">
+                  [{c.upvotes} ▲] {c.title}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {candidates.length === 0 && (
+          <p className="text-xs text-muted-foreground">
+            Nenhum outro item disponível como destino.
+          </p>
+        )}
       </div>
     </FormModalWrapper>
   );

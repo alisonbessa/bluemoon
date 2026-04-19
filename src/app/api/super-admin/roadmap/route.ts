@@ -3,6 +3,7 @@ import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import {
   roadmapItems,
+  ROADMAP_CATEGORIES,
   ROADMAP_SOURCES,
   ROADMAP_STATUSES,
   type RoadmapStatus,
@@ -23,7 +24,7 @@ const createSchema = z.object({
   title: z.string().min(3).max(120),
   description: z.string().min(5).max(4000),
   status: z.enum(ROADMAP_STATUSES).optional().default("planned"),
-  category: z.string().max(60).optional(),
+  category: z.enum(ROADMAP_CATEGORIES).optional(),
   adminNotes: z.string().max(2000).optional(),
 });
 
@@ -63,6 +64,7 @@ export const GET = withSuperAdminAuthRequired(async (req) => {
         commentsCount: roadmapItems.commentsCount,
         isAnonymous: roadmapItems.isAnonymous,
         adminNotes: roadmapItems.adminNotes,
+        mergedIntoId: roadmapItems.mergedIntoId,
         createdAt: roadmapItems.createdAt,
         implementedAt: roadmapItems.implementedAt,
         authorId: roadmapItems.userId,

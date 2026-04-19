@@ -1,4 +1,4 @@
-import type { RoadmapSource, RoadmapStatus } from "@/db/schema/roadmap";
+import type { RoadmapCategory, RoadmapSource, RoadmapStatus } from "@/db/schema/roadmap";
 
 export interface RoadmapAuthor {
   id: string;
@@ -12,7 +12,7 @@ export interface RoadmapItem {
   description: string;
   status: RoadmapStatus;
   source: RoadmapSource;
-  category: string | null;
+  category: RoadmapCategory | null;
   upvotes: number;
   commentsCount: number;
   createdAt: string;
@@ -27,7 +27,21 @@ export interface RoadmapComment {
   content: string;
   createdAt: string;
   author: RoadmapAuthor | null;
+  isTeam: boolean;
+  upvotes: number;
+  hasVoted: boolean;
 }
+
+export const CATEGORY_LABELS: Record<RoadmapCategory, string> = {
+  ux: "UX e Design",
+  ai: "IA",
+  reports: "Relatórios",
+  mobile: "Mobile",
+  integrations: "Integrações",
+  performance: "Performance",
+  security: "Segurança",
+  other: "Outros",
+};
 
 export interface SimilarityMatchItem {
   id: string;

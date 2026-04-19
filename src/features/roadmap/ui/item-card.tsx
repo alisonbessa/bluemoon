@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import { StatusBadge } from "./status-badge";
 import { VoteButton } from "./vote-button";
 import type { RoadmapItem } from "../types";
+import { CATEGORY_LABELS } from "../types";
 
 interface ItemCardProps {
   item: RoadmapItem;
@@ -41,7 +42,7 @@ export function ItemCard({ item, onClick, onVoteChange }: ItemCardProps) {
           <StatusBadge status={item.status} />
           {item.category && (
             <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
-              {item.category}
+              {CATEGORY_LABELS[item.category]}
             </span>
           )}
           {item.source === "admin" && (

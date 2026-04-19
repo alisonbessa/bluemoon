@@ -5,10 +5,11 @@ import {
   roadmapItems,
   roadmapVotes,
   ROADMAP_STATUSES,
+  type RoadmapCategory,
   type RoadmapStatus,
 } from "@/db/schema/roadmap";
 import { users } from "@/db/schema/user";
-import { and, desc, eq, ilike, inArray, or, type SQL } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import {
   forbiddenError,
@@ -21,13 +22,16 @@ import {
   findSimilarItems,
   moderateSubmission,
 } from "@/features/roadmap/server/ai-moderation";
+import { checkSuggestionRateLimit } from "@/features/roadmap/server/rate-limit";
+import { notifyAdminsOfNewSuggestion } from "@/features/roadmap/server/notifications";
+import { ROADMAP_CATEGORIES } from "@/db/schema/roadmap";
 
 const logger = createLogger("api:roadmap");
 
 const createSchema = z.object({
   title: z.string().min(4, "Título muito curto").max(120),
   description: z.string().min(10, "Descrição muito curta").max(2000),
-  category: z.string().max(60).optional(),
+  category: z.enum(ROADMAP_CATEGORIES).optional(),
   isAnonymous: z.boolean().optional().default(false),
   skipSimilarity: z.boolean().optional().default(false),
 });
@@ -35,6 +39,7 @@ const createSchema = z.object({
 const listQuerySchema = z.object({
   tab: z.enum(["roadmap", "requests"]).optional(),
   status: z.string().optional(),
+  category: z.string().optional(),
   search: z.string().optional(),
   sort: z.enum(["votes", "newest"]).optional().default("votes"),
 });
@@ -50,17 +55,21 @@ export const GET = withAuthRequired(async (req, context) => {
     const parsed = listQuerySchema.safeParse({
       tab: searchParams.get("tab") ?? undefined,
       status: searchParams.get("status") ?? undefined,
+      category: searchParams.get("category") ?? undefined,
       search: searchParams.get("search") ?? undefined,
       sort: searchParams.get("sort") ?? undefined,
     });
     if (!parsed.success) return validationError(parsed.error);
-    const { tab, status, search, sort } = parsed.data;
+    const { tab, status, category, search, sort } = parsed.data;
 
-    const conditions: SQL[] = [];
+    const conditions: SQL[] = [isNull(roadmapItems.mergedIntoId)];
     if (tab === "roadmap") conditions.push(eq(roadmapItems.source, "admin"));
     if (tab === "requests") conditions.push(eq(roadmapItems.source, "user"));
     if (status && ROADMAP_STATUSES.includes(status as RoadmapStatus)) {
       conditions.push(eq(roadmapItems.status, status as RoadmapStatus));
+    }
+    if (category) {
+      conditions.push(eq(roadmapItems.category, category as RoadmapCategory));
     }
     if (search) {
       conditions.push(
@@ -152,6 +161,14 @@ export const POST = withAuthRequired(async (req, context) => {
     if (!parsed.success) return validationError(parsed.error);
     const { title, description, category, isAnonymous, skipSimilarity } = parsed.data;
 
+    const rate = await checkSuggestionRateLimit(context.session.user.id);
+    if (!rate.allowed) {
+      return successResponse(
+        { error: "rate_limited", reason: rate.message },
+        429
+      );
+    }
+
     // Moderation
     const moderation = await moderateSubmission({ title, description });
     if (!moderation.ok) {
@@ -242,6 +259,15 @@ export const POST = withAuthRequired(async (req, context) => {
       .returning();
 
     logger.info(`Roadmap request created by ${context.session.user.id}`);
+
+    // Fire-and-forget admin notification
+    void notifyAdminsOfNewSuggestion({
+      itemId: created.id,
+      title: created.title,
+      description: created.description,
+      authorEmail: isAnonymous ? null : user?.email ?? null,
+      authorName: isAnonymous ? null : user?.name ?? null,
+    });
 
     return successResponse({ item: created, similarFound: false }, 201);
   } catch (error) {

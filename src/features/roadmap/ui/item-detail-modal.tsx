@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import useSWR, { mutate as globalMutate } from "swr";
-import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
 import { Textarea } from "@/shared/ui/textarea";
 import { Switch } from "@/shared/ui/switch";
@@ -12,8 +11,9 @@ import { MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { StatusBadge } from "./status-badge";
 import { VoteButton } from "./vote-button";
+import { CommentItem } from "./comment-item";
 import type { RoadmapComment, RoadmapItem } from "../types";
-import { STATUS_DESCRIPTIONS } from "../types";
+import { CATEGORY_LABELS, STATUS_DESCRIPTIONS } from "../types";
 
 function formatDate(d: string | Date) {
   return new Date(d).toLocaleDateString("pt-BR", {
@@ -68,6 +68,10 @@ export function ItemDetailModal({
           toast.error(result.reason ?? "Conteúdo impróprio detectado.");
           return;
         }
+        if (res.status === 429 && result?.error === "rate_limited") {
+          toast.error(result.reason ?? "Limite de comentários atingido");
+          return;
+        }
         toast.error(result?.error || "Falha ao comentar");
         return;
       }
@@ -116,7 +120,7 @@ export function ItemDetailModal({
                 <StatusBadge status={item.status} />
                 {item.category && (
                   <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
-                    {item.category}
+                    {CATEGORY_LABELS[item.category]}
                   </span>
                 )}
                 {item.source === "admin" && (
@@ -153,36 +157,32 @@ export function ItemDetailModal({
               </h4>
             </div>
 
-            <div className="space-y-3 max-h-[30vh] overflow-y-auto pr-1">
+            <div className="space-y-1 max-h-[30vh] overflow-y-auto pr-1">
               {comments.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Seja o primeiro a comentar
                 </p>
               ) : (
                 comments.map((c) => (
-                  <div key={c.id} className="flex gap-2.5">
-                    <Avatar className="size-7 shrink-0">
-                      {c.author?.image && <AvatarImage src={c.author.image} />}
-                      <AvatarFallback className="text-[10px]">
-                        {c.author
-                          ? (c.author.name ?? "?").slice(0, 1).toUpperCase()
-                          : "A"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-sm font-medium">
-                          {c.author?.name ?? "Anônimo"}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          {formatDate(c.createdAt)}
-                        </span>
-                      </div>
-                      <p className="text-sm whitespace-pre-wrap break-words">
-                        {c.content}
-                      </p>
-                    </div>
-                  </div>
+                  <CommentItem
+                    key={c.id}
+                    comment={c}
+                    onVoteChange={(commentId, upvotes, hasVoted) => {
+                      mutateComments(
+                        (prev) =>
+                          prev
+                            ? {
+                                comments: prev.comments.map((pc) =>
+                                  pc.id === commentId
+                                    ? { ...pc, upvotes, hasVoted }
+                                    : pc
+                                ),
+                              }
+                            : prev,
+                        false
+                      );
+                    }}
+                  />
                 ))
               )}
             </div>

@@ -3,9 +3,11 @@ import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import {
   roadmapItems,
+  ROADMAP_CATEGORIES,
   ROADMAP_STATUSES,
   type RoadmapStatus,
 } from "@/db/schema/roadmap";
+import { users } from "@/db/schema/user";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -14,6 +16,7 @@ import {
   successResponse,
   validationError,
 } from "@/shared/lib/api/responses";
+import { notifyAuthorOfStatusChange } from "@/features/roadmap/server/notifications";
 
 const logger = createLogger("api:admin:roadmap:item");
 
@@ -22,7 +25,7 @@ const patchSchema = z
     title: z.string().min(3).max(120).optional(),
     description: z.string().min(5).max(4000).optional(),
     status: z.enum(ROADMAP_STATUSES).optional(),
-    category: z.string().max(60).nullable().optional(),
+    category: z.enum(ROADMAP_CATEGORIES).nullable().optional(),
     adminNotes: z.string().max(2000).nullable().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, {
@@ -38,6 +41,17 @@ export const PATCH = withSuperAdminAuthRequired(async (req, context) => {
     const body = await req.json();
     const parsed = patchSchema.safeParse(body);
     if (!parsed.success) return validationError(parsed.error);
+
+    const [before] = await db
+      .select({
+        status: roadmapItems.status,
+        title: roadmapItems.title,
+        userId: roadmapItems.userId,
+        isAnonymous: roadmapItems.isAnonymous,
+      })
+      .from(roadmapItems)
+      .where(eq(roadmapItems.id, id));
+    if (!before) return notFoundError("Item");
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     for (const [k, v] of Object.entries(parsed.data)) {
@@ -56,6 +70,26 @@ export const PATCH = withSuperAdminAuthRequired(async (req, context) => {
       .where(eq(roadmapItems.id, id))
       .returning();
     if (!updated) return notFoundError("Item");
+
+    // Notify author if status changed and item is not anonymous
+    const statusChanged =
+      parsed.data.status && parsed.data.status !== before.status;
+    if (statusChanged && before.userId && !before.isAnonymous) {
+      const [author] = await db
+        .select({ email: users.email, name: users.displayName })
+        .from(users)
+        .where(eq(users.id, before.userId));
+      if (author?.email) {
+        void notifyAuthorOfStatusChange({
+          toEmail: author.email,
+          toName: author.name ?? null,
+          itemId: updated.id,
+          itemTitle: updated.title,
+          newStatus: updated.status,
+          adminNotes: updated.adminNotes,
+        });
+      }
+    }
 
     return successResponse({ item: updated });
   } catch (error) {

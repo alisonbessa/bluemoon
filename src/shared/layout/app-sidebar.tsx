@@ -247,6 +247,11 @@ export function AppSidebar() {
   const { user } = useCurrentUser();
   const showBetaLab = canAccessBetaLab(user?.role);
   const visibleNavItems = showBetaLab ? [...navItems, betaLabItem] : navItems;
+  const { data: unseenData } = useSWR<{ unseenCount: number }>(
+    showBetaLab ? "/api/app/roadmap/seen" : null,
+    { refreshInterval: 60_000 }
+  );
+  const unseenCount = unseenData?.unseenCount ?? 0;
 
   const handleNavClick = () => {
     if (isMobile) {
@@ -316,12 +321,22 @@ export function AppSidebar() {
                         <item.icon className="size-4" />
                         <span>{item.label}</span>
                         {isBetaLab && (
-                          <Badge
-                            variant="secondary"
-                            className="ml-auto h-4 px-1.5 text-[10px] font-semibold uppercase tracking-wider bg-primary/15 text-primary"
-                          >
-                            Beta
-                          </Badge>
+                          <span className="ml-auto flex items-center gap-1">
+                            {unseenCount > 0 && (
+                              <Badge
+                                variant="default"
+                                className="h-4 px-1.5 text-[10px] font-semibold tabular-nums"
+                              >
+                                {unseenCount > 99 ? "99+" : unseenCount}
+                              </Badge>
+                            )}
+                            <Badge
+                              variant="secondary"
+                              className="h-4 px-1.5 text-[10px] font-semibold uppercase tracking-wider bg-primary/15 text-primary"
+                            >
+                              Beta
+                            </Badge>
+                          </span>
                         )}
                       </Link>
                     </SidebarMenuButton>
