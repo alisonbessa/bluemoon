@@ -47,7 +47,7 @@ export function DeleteConfirmDialog({
             className={cn(
               variant === "destructive"
                 ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                : "bg-amber-600 text-white hover:bg-amber-700"
+                : "bg-warning text-warning-foreground hover:bg-warning/90"
             )}
           >
             {confirmLabel}

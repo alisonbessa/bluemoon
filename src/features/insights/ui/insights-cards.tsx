@@ -32,17 +32,17 @@ const healthLabels: Record<BudgetHealth["status"], string> = {
 };
 
 const healthColors: Record<BudgetHealth["status"], string> = {
-  excellent: "text-green-600",
-  good: "text-blue-600",
-  warning: "text-yellow-600",
-  critical: "text-red-600",
+  excellent: "text-success",
+  good: "text-secondary",
+  warning: "text-warning",
+  critical: "text-destructive",
 };
 
 const healthProgressColors: Record<BudgetHealth["status"], string> = {
-  excellent: "[&>div]:bg-green-600",
-  good: "[&>div]:bg-blue-600",
-  warning: "[&>div]:bg-yellow-600",
-  critical: "[&>div]:bg-red-600",
+  excellent: "[&>div]:bg-success",
+  good: "[&>div]:bg-secondary",
+  warning: "[&>div]:bg-warning",
+  critical: "[&>div]:bg-destructive",
 };
 
 export function InsightsCards({
@@ -110,13 +110,13 @@ export function InsightsCards({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">Gasto projetado</p>
-                <p className={`text-lg font-bold ${!projection.isOnTrack ? "text-red-600" : ""}`}>
+                <p className={`text-lg font-bold ${!projection.isOnTrack ? "text-destructive" : ""}`}>
                   {formatCurrency(projection.projectedExpense)}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Economia projetada</p>
-                <p className={`text-lg font-bold ${projection.projectedSavings >= 0 ? "text-green-600" : "text-red-600"}`}>
+                <p className={`text-lg font-bold ${projection.projectedSavings >= 0 ? "text-success" : "text-destructive"}`}>
                   {formatCurrency(projection.projectedSavings)}
                 </p>
               </div>
@@ -149,7 +149,7 @@ export function InsightsCards({
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Economia</p>
-                <p className={`text-lg font-bold ${summary.savings >= 0 ? "text-green-600" : "text-red-600"}`}>
+                <p className={`text-lg font-bold ${summary.savings >= 0 ? "text-success" : "text-destructive"}`}>
                   {formatCurrency(summary.savings)}
                 </p>
               </div>
@@ -181,7 +181,7 @@ export function InsightsCards({
               <p className="text-xs text-muted-foreground">
                 {summary.totalAllocated > 0 ? "Orçamento restante" : "Receita restante"}
               </p>
-              <p className={`text-lg font-bold ${(summary.totalAllocated > 0 ? summary.totalAllocated - summary.expense : summary.income - summary.expense) >= 0 ? "text-green-600" : "text-red-600"}`}>
+              <p className={`text-lg font-bold ${(summary.totalAllocated > 0 ? summary.totalAllocated - summary.expense : summary.income - summary.expense) >= 0 ? "text-success" : "text-destructive"}`}>
                 {formatCurrency(
                   summary.totalAllocated > 0
                     ? summary.totalAllocated - summary.expense
@@ -204,7 +204,7 @@ export function InsightsCards({
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
-            <span className={`text-3xl font-bold ${summary.savings >= 0 ? "text-green-600" : "text-red-600"}`}>
+            <span className={`text-3xl font-bold ${summary.savings >= 0 ? "text-success" : "text-destructive"}`}>
               {summary.income > 0
                 ? `${Math.round((summary.savings / summary.income) * 100)}%`
                 : "—"}
