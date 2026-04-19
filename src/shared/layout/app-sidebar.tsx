@@ -18,7 +18,11 @@ import {
   UsersIcon,
   LayersIcon,
   LockIcon,
+  FlaskConicalIcon,
 } from "lucide-react";
+import { useCurrentUser } from "@/shared/hooks/use-current-user";
+import { canAccessBetaLab } from "@/features/roadmap/constants";
+import { Badge } from "@/shared/ui/badge";
 import {
   Sidebar,
   SidebarContent,
@@ -48,6 +52,13 @@ import {
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
 import { ChevronsUpDownIcon, CheckIcon } from "lucide-react";
+
+const betaLabItem = {
+  href: "/app/beta-lab",
+  label: "Laboratório Beta",
+  icon: FlaskConicalIcon,
+  tutorialId: "nav-beta-lab",
+} as const;
 
 const navItems = [
   {
@@ -233,6 +244,14 @@ export function AppSidebar() {
   const { isMobile, setOpenMobile } = useSidebar();
   const { data: checklist } = useSWR<{ hasAccount: boolean }>("/api/app/onboarding/checklist");
   const hasAccount = checklist?.hasAccount ?? true; // default to true while loading
+  const { user } = useCurrentUser();
+  const showBetaLab = canAccessBetaLab(user?.role);
+  const visibleNavItems = showBetaLab ? [...navItems, betaLabItem] : navItems;
+  const { data: unseenData } = useSWR<{ unseenCount: number }>(
+    showBetaLab ? "/api/app/roadmap/seen" : null,
+    { revalidateOnFocus: true, dedupingInterval: 60_000 }
+  );
+  const unseenCount = unseenData?.unseenCount ?? 0;
 
   const handleNavClick = () => {
     if (isMobile) {
@@ -260,12 +279,14 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => {
+              {visibleNavItems.map((item) => {
                 const isActive =
                   item.href === "/app"
                     ? pathname === "/app"
                     : pathname.startsWith(item.href);
-                const isLocked = item.requiresAccount && !hasAccount;
+                const isLocked =
+                  "requiresAccount" in item && item.requiresAccount && !hasAccount;
+                const isBetaLab = item.href === "/app/beta-lab";
 
                 if (isLocked) {
                   return (
@@ -296,9 +317,32 @@ export function AppSidebar() {
                       isActive={isActive}
                       tooltip={item.label}
                     >
-                      <Link href={item.href} data-tutorial={item.tutorialId} onClick={handleNavClick}>
+                      <Link
+                        href={item.href}
+                        data-tutorial={item.tutorialId}
+                        onClick={handleNavClick}
+                        aria-current={isActive ? "page" : undefined}
+                      >
                         <item.icon className="size-4" />
                         <span>{item.label}</span>
+                        {isBetaLab && (
+                          <span className="ml-auto flex items-center gap-1">
+                            {unseenCount > 0 && (
+                              <Badge
+                                variant="default"
+                                className="h-4 px-1.5 text-[10px] font-semibold tabular-nums"
+                              >
+                                {unseenCount > 99 ? "99+" : unseenCount}
+                              </Badge>
+                            )}
+                            <Badge
+                              variant="secondary"
+                              className="h-4 px-1.5 text-[10px] font-semibold uppercase tracking-wider bg-primary/15 text-primary"
+                            >
+                              Beta
+                            </Badge>
+                          </span>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

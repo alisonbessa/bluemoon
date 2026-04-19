@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSetupMode } from "@/shared/hooks/use-setup-mode";
 import { SetupTip } from "@/shared/components/setup-tip";
 import {
@@ -89,7 +89,8 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
   const setOwnershipFilter = (filter: 'mine' | 'shared') => {
     setViewMode(filter === 'mine' ? 'mine' : 'shared');
   };
-  const { isExpanded, toggleGroup } = useExpandedGroups([], { accordion: true });
+  const { isExpanded, toggleGroup, setExpandedGroups } = useExpandedGroups([], { accordion: true });
+  const hasAutoExpanded = useRef(false);
 
   // Get current user's member id by matching member.userId with current user's id
   const currentUserMemberId = members.find(m => m.userId === user?.id)?.id;
@@ -196,13 +197,22 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
     ([_, accts]) => accts.length > 0
   );
 
+  const firstTypeWithAccounts = typesWithAccounts[0]?.[0];
+
+  useEffect(() => {
+    if (!hasAutoExpanded.current && firstTypeWithAccounts) {
+      setExpandedGroups([firstTypeWithAccounts]);
+      hasAutoExpanded.current = true;
+    }
+  }, [firstTypeWithAccounts, setExpandedGroups]);
+
   if (isLoading) {
     return <LoadingState fullHeight />;
   }
 
   return (
     <PageContent>
-      {isSetupMode && (
+      {isSetupMode && accounts.length === 0 && (
         <SetupTip
           title="Adicione suas contas"
           description="Cadastre sua conta principal, cartão de crédito e outras contas que você usa no dia a dia. Clique em '+ Nova Conta' para começar."

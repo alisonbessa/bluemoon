@@ -8,6 +8,7 @@ import {
 import { eq, and, gt } from "drizzle-orm";
 import type { TelegramConversationStep, TelegramConversationContext } from "@/db/schema/telegram-users";
 import { sendMessage } from "./bot";
+import { getFirstName } from "@/shared/lib/string-utils";
 
 const logger = createLogger("telegram:user-management");
 
@@ -126,12 +127,13 @@ export async function handleConnectionRequest(chatId: number, telegramUserId: nu
     });
   }
 
-  const name = user.displayName || user.name || "Usuário";
+  const userFirstName = getFirstName(user.displayName) ?? getFirstName(user.name);
+  const greeting = userFirstName ? `Olá, <b>${userFirstName}</b>! ` : "";
 
   await sendMessage(
     chatId,
     `✅ <b>Conta conectada com sucesso!</b>\n\n` +
-      `Olá, <b>${name}</b>! Agora você pode registrar seus gastos enviando mensagens.\n\n` +
+      `${greeting}Agora você pode registrar seus gastos enviando mensagens.\n\n` +
       `<b>Como usar:</b>\n` +
       `• Envie o valor: <code>50</code> ou <code>50,00</code>\n` +
       `• Com descrição: <code>50 mercado</code>\n\n` +
@@ -163,11 +165,12 @@ export async function handleStart(chatId: number, telegramUserId: number, userna
       .where(eq(users.id, telegramUser.userId))
       .limit(1);
 
-    const name = user[0]?.displayName || user[0]?.name || "Usuário";
+    const userFirstName = getFirstName(user[0]?.displayName) ?? getFirstName(user[0]?.name);
+    const greeting = userFirstName ? `👋 Olá, <b>${userFirstName}</b>!` : "👋 Olá!";
 
     await sendMessage(
       chatId,
-      `👋 Olá, <b>${name}</b>!\n\n` +
+      `${greeting}\n\n` +
         `Sua conta já está conectada.\n\n` +
         `<b>Como registrar gastos:</b>\n` +
         `• Envie o valor: <code>50</code> ou <code>50,00</code>\n` +
@@ -262,12 +265,13 @@ export async function handleVerificationCodeConnection(
     .from(users)
     .where(eq(users.id, pending.userId));
 
-  const userName = user?.displayName || user?.name || "Usuário";
+  const userFirstName = getFirstName(user?.displayName) ?? getFirstName(user?.name);
+  const greeting = userFirstName ? `Olá, <b>${userFirstName}</b>! ` : "";
 
   await sendMessage(
     chatId,
     `✅ <b>Conta conectada com sucesso!</b>\n\n` +
-      `Olá, <b>${userName}</b>! Agora você pode registrar seus gastos enviando mensagens.\n\n` +
+      `${greeting}Agora você pode registrar seus gastos enviando mensagens.\n\n` +
       `<b>Exemplos:</b>\n` +
       `• <code>50</code> - Registra R$ 50,00\n` +
       `• <code>35,90 almoço</code> - R$ 35,90 com descrição\n\n` +

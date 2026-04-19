@@ -11,6 +11,7 @@ import {
   successResponse,
 } from "@/shared/lib/api/responses";
 import { updateMemberSchema } from "@/shared/lib/validations";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get a specific member
 export const GET = withAuthRequired(async (req, context) => {
@@ -120,6 +121,15 @@ export const PATCH = withAuthRequired(async (req, context) => {
       .where(eq(categories.memberId, memberId));
   }
 
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "member.update",
+    resource: "budget_member",
+    resourceId: memberId,
+    details: { budgetId: existingMember.budgetId },
+    req,
+  });
+
   return successResponse({ member: updatedMember });
 });
 
@@ -163,6 +173,19 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
   // Delete the member (categories will be cascade deleted)
   await db.delete(budgetMembers).where(eq(budgetMembers.id, memberId));
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "member.delete",
+    resource: "budget_member",
+    resourceId: memberId,
+    details: {
+      budgetId: existingMember.budgetId,
+      type: existingMember.type,
+      name: existingMember.name,
+    },
+    req,
+  });
 
   return successResponse({ success: true });
 });

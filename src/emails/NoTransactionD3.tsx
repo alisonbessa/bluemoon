@@ -4,7 +4,7 @@ import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 
 interface NoTransactionD3Props {
-  userName: string;
+  userName?: string | null;
   appUrl: string;
   unsubscribeUrl: string;
 }
@@ -16,11 +16,15 @@ export default function NoTransactionD3({
 }: NoTransactionD3Props) {
   return (
     <Layout
-      previewText={`${userName}, registre seu primeiro gasto em 10 segundos`}
+      previewText={
+        userName
+          ? `${userName}, registre seu primeiro gasto em 10 segundos`
+          : "Registre seu primeiro gasto em 10 segundos"
+      }
       unsubscribeUrl={unsubscribeUrl}
     >
       <Text className="text-foreground text-[16px] leading-[24px]">
-        Olá, {userName}.
+        {userName ? `Olá, ${userName}.` : "Olá."}
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">

@@ -1,5 +1,5 @@
-import { timestamp, pgTable, text, integer, bigint, index } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { timestamp, pgTable, text, integer, bigint, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
 import { budgets } from "./budgets";
 import { users } from "./user";
 import { z } from "zod";
@@ -28,6 +28,11 @@ export const budgetMembers = pgTable("budget_members", {
 }, (table) => [
   index("idx_budget_members_user_id").on(table.userId),
   index("idx_budget_members_budget_id").on(table.budgetId),
+  // Prevent duplicate memberships (race condition when two concurrent
+  // /invites/accept requests hit with the same token).
+  uniqueIndex("uq_budget_members_budget_user")
+    .on(table.budgetId, table.userId)
+    .where(sql`${table.userId} IS NOT NULL`),
 ]);
 
 export const budgetMembersRelations = relations(budgetMembers, ({ one, many }) => ({

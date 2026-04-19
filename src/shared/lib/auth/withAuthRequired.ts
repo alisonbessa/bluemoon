@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
 import { Session } from "next-auth";
@@ -49,6 +49,23 @@ const withAuthRequired = (handler: WithManagerHandler) => {
 
     const userId = session.user.id;
 
+    // Block soft-deleted users from using the API (LGPD compliance).
+    const [activeUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.id, userId), isNull(users.deletedAt)))
+      .limit(1);
+
+    if (!activeUser) {
+      return NextResponse.json(
+        {
+          error: "AccountDeleted",
+          message: "Your account has been deleted or is not active.",
+        },
+        { status: 401 }
+      );
+    }
+
     // Cached user data (lazy, shared across getUser and getCurrentPlan)
     let _user: MeResponse["user"] | undefined;
     const getUser = async () => {
@@ -74,6 +91,8 @@ const withAuthRequired = (handler: WithManagerHandler) => {
             deletionRequestedAt: users.deletionRequestedAt,
             deletionReason: users.deletionReason,
             unsubscribedFromCampaignsAt: users.unsubscribedFromCampaignsAt,
+            lastSeenRoadmapAt: users.lastSeenRoadmapAt,
+            lastSeenAnnouncementAt: users.lastSeenAnnouncementAt,
           })
           .from(users)
           .where(eq(users.id, userId));

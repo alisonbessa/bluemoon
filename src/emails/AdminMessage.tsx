@@ -6,7 +6,7 @@ import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 
 interface AdminMessageEmailProps {
-  userName: string;
+  userName?: string | null;
   subject: string;
   body: string;
   ctaText?: string;
@@ -24,7 +24,7 @@ export default function AdminMessage({
     <Html>
       <Layout previewText={subject}>
         <Text>
-          Ola, {userName}! 👋
+          {userName ? `Ola, ${userName}! 👋` : "Ola! 👋"}
         </Text>
 
         {body.split("\n").map((line, i) => (

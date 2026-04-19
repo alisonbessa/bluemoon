@@ -15,8 +15,8 @@ interface SummaryCardProps {
 
 const valueColorClasses = {
   default: "",
-  positive: "text-green-600",
-  negative: "text-red-600",
+  positive: "text-success",
+  negative: "text-destructive",
 } as const;
 
 export function SummaryCard({

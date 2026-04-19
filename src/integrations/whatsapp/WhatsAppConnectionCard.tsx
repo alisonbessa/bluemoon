@@ -90,7 +90,7 @@ export function WhatsAppConnectionCard({ onConnected }: WhatsAppConnectionCardPr
 
   // Format phone number for display (e.g., 5511999998888 -> +55 11 99999-8888)
   const formatPhone = (phone?: string) => {
-    if (!phone) return "Usuário";
+    if (!phone) return "—";
     if (phone.length === 13) {
       return `+${phone.slice(0, 2)} ${phone.slice(2, 4)} ${phone.slice(4, 9)}-${phone.slice(9)}`;
     }

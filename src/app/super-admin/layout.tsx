@@ -23,6 +23,8 @@ import {
   Sparkles,
   Terminal,
   Mail,
+  FlaskConical,
+  Megaphone,
 } from "lucide-react";
 import { ThemeSwitcher } from "@/shared/theme-switcher";
 import { appConfig } from "@/shared/lib/config";
@@ -35,6 +37,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/shared/ui/accordion";
 
 interface NavItem {
   name: string;
@@ -75,8 +83,10 @@ const navigationGroups: NavGroup[] = [
   {
     label: "Comunicação",
     items: [
+      { name: "Avisos", href: "/super-admin/announcements", icon: Megaphone },
       { name: "Mensagens", href: "/super-admin/messages", icon: MessageSquare },
       { name: "Feedback", href: "/super-admin/feedback", icon: MessageSquarePlus },
+      { name: "Laboratório Beta", href: "/super-admin/roadmap", icon: FlaskConical },
       { name: "Campanhas de E-mail", href: "/super-admin/email-campaigns", icon: Mail },
       { name: "Blog", href: "/super-admin/blog", icon: FileText },
     ],
@@ -106,6 +116,20 @@ function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
     if (href === "/super-admin") return pathname === "/super-admin";
     return pathname.startsWith(href);
   };
+
+  const activeGroupLabel = React.useMemo(() => {
+    const found = navigationGroups.find((g) =>
+      g.items.some((i) => isActive(i.href))
+    );
+    return found?.label ?? navigationGroups[0].label;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  const [openGroup, setOpenGroup] = React.useState<string>(activeGroupLabel);
+
+  React.useEffect(() => {
+    setOpenGroup(activeGroupLabel);
+  }, [activeGroupLabel]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -156,35 +180,49 @@ function SuperAdminLayout({ children }: SuperAdminLayoutProps) {
       <div className="flex h-[calc(100vh-3.5rem)]">
         {/* Side Navigation - Desktop Only (Fixed) */}
         <aside className="hidden md:block w-56 border-r border-border/40 bg-background overflow-y-auto shrink-0">
-          <nav className="p-3 space-y-4">
-            {navigationGroups.map((group) => (
-              <div key={group.label}>
-                <p className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-                  {group.label}
-                </p>
-                <div className="space-y-0.5">
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-                    const active = isActive(item.href);
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className={cn(
-                          "group flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                          active
-                            ? "bg-accent text-accent-foreground"
-                            : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
-                        )}
-                      >
-                        <Icon className="mr-2.5 h-4 w-4" />
-                        {item.name}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+          <nav className="p-3">
+            <Accordion
+              type="single"
+              collapsible
+              value={openGroup}
+              onValueChange={(v) => setOpenGroup(v)}
+              className="w-full"
+            >
+              {navigationGroups.map((group) => (
+                <AccordionItem
+                  key={group.label}
+                  value={group.label}
+                  className="border-b-0"
+                >
+                  <AccordionTrigger className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 hover:no-underline hover:text-muted-foreground">
+                    {group.label}
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-1">
+                    <div className="space-y-0.5">
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        const active = isActive(item.href);
+                        return (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            className={cn(
+                              "group flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                              active
+                                ? "bg-accent text-accent-foreground"
+                                : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
+                            )}
+                          >
+                            <Icon className="mr-2.5 h-4 w-4" />
+                            {item.name}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </nav>
         </aside>
 

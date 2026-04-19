@@ -93,14 +93,19 @@ export default function ContactPage() {
           },
         }}
       />
-      <section className="relative w-full overflow-hidden bg-linear-to-br from-primary via-primary/90 to-primary pt-28 pb-20 text-primary-foreground">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff33_1px,transparent_1px),linear-gradient(to_bottom,#ffffff33_1px,transparent_1px)] bg-size-[14px_14px]" />
+      <section
+        aria-labelledby="contact-hero-title"
+        className="relative w-full overflow-hidden bg-linear-to-br from-primary via-primary/90 to-primary pt-28 pb-20 text-primary-foreground"
+      >
+        <div aria-hidden="true" className="absolute inset-0">
+          <div className="absolute inset-0 bg-grid-lines" />
           <div className="absolute inset-0 bg-linear-to-br from-primary/50 via-transparent to-primary/50" />
         </div>
         <div className="container relative mx-auto px-4">
           <div className="mx-auto max-w-2xl space-y-4 text-center">
-            <h1 className="text-3xl font-bold md:text-5xl">Fale Conosco</h1>
+            <h1 id="contact-hero-title" className="text-3xl font-bold md:text-5xl">
+              Fale Conosco
+            </h1>
             <p className="text-xl text-primary-foreground/90">
               Tem alguma dúvida? Adoraríamos ouvir você. Envie uma mensagem
               e responderemos o mais rápido possível.
@@ -145,7 +150,10 @@ export default function ContactPage() {
                 ].map((item, i) => (
                   <div key={i} className="flex gap-4">
                     <div className="shrink-0">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                      <div
+                        aria-hidden="true"
+                        className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10"
+                      >
                         <item.icon className="h-6 w-6 text-primary" />
                       </div>
                     </div>

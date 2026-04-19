@@ -7,7 +7,7 @@ import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 
 interface WelcomeEmailProps {
-  userName: string;
+  userName?: string | null;
   dashboardUrl: string;
 }
 
@@ -15,10 +15,14 @@ export default function Welcome({ userName, dashboardUrl }: WelcomeEmailProps) {
   return (
     <Html>
       <Layout
-        previewText={`Bem-vindo ao ${appConfig.projectName}, ${userName}! 🎉`}
+        previewText={
+          userName
+            ? `Bem-vindo ao ${appConfig.projectName}, ${userName}! 🎉`
+            : `Bem-vindo ao ${appConfig.projectName}! 🎉`
+        }
       >
         <Text>
-          Olá, {userName}! 👋
+          {userName ? `Olá, ${userName}! 👋` : "Olá! 👋"}
         </Text>
 
         <Text>

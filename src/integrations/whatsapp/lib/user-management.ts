@@ -7,6 +7,7 @@ import {
 } from "@/db/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { WhatsAppAdapter } from "./whatsapp-adapter";
+import { getFirstName } from "@/shared/lib/string-utils";
 
 const logger = createLogger("whatsapp:user-management");
 const adapter = new WhatsAppAdapter();
@@ -19,6 +20,8 @@ export async function getOrCreateWhatsAppUser(
   phoneNumber: string,
   displayName?: string
 ) {
+  const now = new Date();
+
   const existing = await db
     .select()
     .from(whatsappUsers)
@@ -26,14 +29,19 @@ export async function getOrCreateWhatsAppUser(
     .limit(1);
 
   if (existing.length > 0) {
-    // Update display name if provided and different
+    // Always bump lastInboundAt so we know the 24h free-form window is open.
+    const patch: Partial<typeof whatsappUsers.$inferInsert> = {
+      lastInboundAt: now,
+      updatedAt: now,
+    };
     if (displayName && existing[0].displayName !== displayName) {
-      await db
-        .update(whatsappUsers)
-        .set({ displayName, updatedAt: new Date() })
-        .where(eq(whatsappUsers.phoneNumber, phoneNumber));
+      patch.displayName = displayName;
     }
-    return existing[0];
+    await db
+      .update(whatsappUsers)
+      .set(patch)
+      .where(eq(whatsappUsers.phoneNumber, phoneNumber));
+    return { ...existing[0], ...patch };
   }
 
   const [newUser] = await db
@@ -43,6 +51,7 @@ export async function getOrCreateWhatsAppUser(
       displayName,
       currentStep: "IDLE",
       context: {},
+      lastInboundAt: now,
     })
     .returning();
 
@@ -139,12 +148,13 @@ export async function handleVerificationCode(
     .from(users)
     .where(eq(users.id, pending.userId));
 
-  const userName = user?.displayName || user?.name || "Usuário";
+  const firstName = getFirstName(user?.displayName) ?? getFirstName(user?.name);
+  const greeting = firstName ? `Olá, *${firstName}*! ` : "";
 
   await adapter.sendMessage(
     phoneNumber,
     `*Conta conectada com sucesso!*\n\n` +
-      `Olá, *${userName}*! Agora você pode registrar seus gastos enviando mensagens.\n\n` +
+      `${greeting}Agora você pode registrar seus gastos enviando mensagens.\n\n` +
       `*Exemplos:*\n` +
       `- "gastei 50 no mercado"\n` +
       `- "paguei 200 de luz"\n` +

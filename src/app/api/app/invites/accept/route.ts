@@ -11,6 +11,7 @@ import {
   errorResponse,
   successResponse,
 } from "@/shared/lib/api/responses";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 const acceptInviteSchema = z.object({
   token: z.string().uuid(),
@@ -53,17 +54,38 @@ export const POST = withAuthRequired(async (req, context) => {
 
   // If invite has a specific email, check if user's email matches
   if (invite.email && user?.email?.toLowerCase() !== invite.email.toLowerCase()) {
-    return forbiddenError("This invite was sent to a different email address");
+    const [local, domain] = invite.email.split("@");
+    const maskedLocal = local.length <= 2 ? `${local[0]}*` : `${local.slice(0, 2)}***`;
+    const maskedInviteEmail = domain ? `${maskedLocal}@${domain}` : maskedLocal;
+    return forbiddenError(
+      `Este convite foi enviado para ${maskedInviteEmail}. Você está logado como ${user?.email ?? "outra conta"}. Faça login com a conta correta para aceitar.`
+    );
   }
 
   // Check if owner's plan allows partners (Duo plan has maxBudgetMembers >= 2)
   const [owner] = await db
     .select({
       planId: users.planId,
+      stripeSubscriptionId: users.stripeSubscriptionId,
     })
     .from(users)
     .where(eq(users.id, invite.invitedByUserId))
     .limit(1);
+
+  // Check if the invited user already has an active Stripe subscription.
+  // If so, preserve their plan to avoid orphaning the billing relationship.
+  const [invitedUser] = await db
+    .select({
+      planId: users.planId,
+      stripeSubscriptionId: users.stripeSubscriptionId,
+    })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+
+  const invitedUserHasActiveSubscription = Boolean(
+    invitedUser?.stripeSubscriptionId
+  );
 
   if (owner?.planId) {
     const [ownerPlan] = await db
@@ -105,7 +127,9 @@ export const POST = withAuthRequired(async (req, context) => {
     return errorResponse("You are already a member of this budget", 400);
   }
 
-  // Create partner membership
+  // Create partner membership.
+  // onConflictDoNothing guards against duplicate insertions when two concurrent
+  // accept requests race with the same token (requires UNIQUE (budget_id, user_id)).
   const memberName = capitalizeWords(user?.name || invite.name || "Partner");
   const [newMember] = await db
     .insert(budgetMembers)
@@ -115,13 +139,24 @@ export const POST = withAuthRequired(async (req, context) => {
       name: memberName,
       type: "partner",
     })
+    .onConflictDoNothing({
+      target: [budgetMembers.budgetId, budgetMembers.userId],
+    })
     .returning();
 
-  // Assign the owner's plan to the invited user so they share the same features
-  await db
-    .update(users)
-    .set({ planId: owner.planId })
-    .where(eq(users.id, session.user.id));
+  if (!newMember) {
+    return errorResponse("You are already a member of this budget", 400);
+  }
+
+  // Assign the owner's plan to the invited user so they share the same features.
+  // Skip if the invited user already has an active Stripe subscription, otherwise
+  // we'd orphan the Stripe relationship.
+  if (!invitedUserHasActiveSubscription) {
+    await db
+      .update(users)
+      .set({ planId: owner.planId })
+      .where(eq(users.id, session.user.id));
+  }
 
   // Create a "Prazeres" category for the new partner
   const pleasuresGroup = await db
@@ -151,6 +186,19 @@ export const POST = withAuthRequired(async (req, context) => {
       updatedAt: new Date(),
     })
     .where(eq(invites.id, invite.id));
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "invite.accept",
+    resource: "invite",
+    resourceId: invite.id,
+    details: {
+      budgetId: invite.budgetId,
+      memberId: newMember.id,
+      invitedByUserId: invite.invitedByUserId,
+    },
+    req,
+  });
 
   return successResponse({
     success: true,

@@ -181,6 +181,7 @@ async function seedPlans() {
             "yearlyStripePriceId" = COALESCE(${yearlyStripePriceId}, "yearlyStripePriceId"),
             quotas = ${JSON.stringify({
               maxBudgetMembers: plan.maxBudgetMembers,
+              maxDependents: 10,
               premiumSupport: false,
               monthlyImages: 10,
             })}
@@ -218,6 +219,7 @@ async function seedPlans() {
             ${yearlyStripePriceId},
             ${JSON.stringify({
               maxBudgetMembers: plan.maxBudgetMembers,
+              maxDependents: 10,
               premiumSupport: false,
               monthlyImages: 10,
             })}

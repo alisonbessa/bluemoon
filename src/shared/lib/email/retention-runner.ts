@@ -15,6 +15,7 @@ import sendMail from "@/shared/lib/email/sendMail";
 import { createLogger } from "@/shared/lib/logger";
 import { appConfig } from "@/shared/lib/config";
 import { createUnsubscribeToken } from "@/shared/lib/email/unsubscribe-token";
+import { getFirstName } from "@/shared/lib/string-utils";
 import {
   CAMPAIGN_THROTTLE_DAYS,
   recordCampaignSend,
@@ -30,7 +31,7 @@ const replyMailto = `mailto:${supportEmail}`;
 type CampaignCandidate = {
   userId: string;
   email: string;
-  userName: string;
+  userName: string | null;
   campaignKey: CampaignKey;
 };
 
@@ -216,7 +217,7 @@ export async function executeRetentionCampaigns(): Promise<RetentionRunResult> {
         pickedByUser.set(u.id, {
           userId: u.id,
           email: u.email,
-          userName: u.name || "Usuário",
+          userName: getFirstName(u.name),
           campaignKey: key,
         });
       }

@@ -70,10 +70,12 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-xl text-2xl"
-              style={{ backgroundColor: account.color || "#6366f1" + "20" }}
+              className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent text-2xl"
+              style={account.color ? { backgroundColor: account.color } : undefined}
+              role="img"
+              aria-label={config.label}
             >
-              {account.icon || config.defaultIcon}
+              <span aria-hidden="true">{account.icon || config.defaultIcon}</span>
             </div>
             <div>
               <h3 className="font-semibold">{account.name}</h3>
@@ -84,8 +86,9 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                 {account.owner && (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: account.owner.color || "#6366f1" }}
+                      aria-hidden="true"
+                      className="h-2 w-2 rounded-full bg-primary"
+                      style={account.owner.color ? { backgroundColor: account.owner.color } : undefined}
                     />
                     {account.owner.name}
                   </span>
@@ -94,13 +97,14 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             </div>
           </div>
 
-          <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="flex gap-1 md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100">
             {onEdit && (
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => onEdit(account)}
+                aria-label={`Editar conta ${account.name}`}
               >
                 <Pencil className="h-4 w-4" />
               </Button>
@@ -111,6 +115,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                 size="icon"
                 className="h-8 w-8 text-destructive hover:text-destructive"
                 onClick={() => onDelete(account)}
+                aria-label={`Excluir conta ${account.name}`}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -131,7 +136,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                     ? "text-destructive"
                     : "text-foreground"
                   : account.balance >= 0
-                  ? "text-green-600 dark:text-green-400"
+                  ? "text-success"
                   : "text-destructive"
               )}
             >
@@ -159,12 +164,21 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
               </div>
               <div className="flex items-baseline justify-between text-sm">
                 <span className="text-muted-foreground">Disponível</span>
-                <span className="text-green-600 dark:text-green-400">
+                <span className="text-success">
                   {formatCurrency(availableCredit || 0)}
                 </span>
               </div>
               {/* Credit usage bar */}
-              <div className="mt-2">
+              <div
+                className="mt-2"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(
+                  Math.min((account.balance / account.creditLimit) * 100, 100)
+                )}
+                aria-label="Uso do limite de crédito"
+              >
                 <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                   <div
                     className={cn(
@@ -172,8 +186,8 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                       account.balance / account.creditLimit > 0.8
                         ? "bg-destructive"
                         : account.balance / account.creditLimit > 0.5
-                        ? "bg-yellow-500"
-                        : "bg-green-500"
+                        ? "bg-warning"
+                        : "bg-success"
                     )}
                     style={{
                       width: `${Math.min(

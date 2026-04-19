@@ -4,7 +4,7 @@ import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 
 interface AIAssistantDemoD10Props {
-  userName: string;
+  userName?: string | null;
   appUrl: string;
   unsubscribeUrl: string;
 }
@@ -16,11 +16,15 @@ export default function AIAssistantDemoD10({
 }: AIAssistantDemoD10Props) {
   return (
     <Layout
-      previewText={`${userName}, você ainda não testou o assistente de IA`}
+      previewText={
+        userName
+          ? `${userName}, você ainda não testou o assistente de IA`
+          : "Você ainda não testou o assistente de IA"
+      }
       unsubscribeUrl={unsubscribeUrl}
     >
       <Text className="text-foreground text-[16px] leading-[24px]">
-        Olá, {userName}.
+        {userName ? `Olá, ${userName}.` : "Olá."}
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">

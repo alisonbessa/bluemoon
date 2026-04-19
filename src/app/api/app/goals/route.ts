@@ -14,6 +14,7 @@ import {
 import { createGoalSchema } from "@/shared/lib/validations/goal.schema";
 import { calculateGoalMetrics } from "@/shared/lib/goals/calculate-metrics";
 import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get goals for user's budgets
 // Goals are filtered by viewMode via their linked account's ownerId
@@ -204,6 +205,15 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
       },
     });
   }
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "goal.create",
+    resource: "goal",
+    resourceId: newGoal.id,
+    details: { budgetId, name: newGoal.name, targetAmount: newGoal.targetAmount },
+    req,
+  });
 
   return successResponse(
     {

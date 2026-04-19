@@ -6,6 +6,7 @@ const logger = createLogger("api:auth:signup-request");
 import { encryptJson } from "@/shared/lib/encryption/edge-jwt";
 import { render } from "@react-email/components";
 import SignUpEmail from "@/emails/SignUpEmail";
+import { getFirstName } from "@/shared/lib/string-utils";
 import sendMail from "@/shared/lib/email/sendMail";
 import { appConfig } from "@/shared/lib/config";
 import { db } from "@/db";
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     // Send email
     const html = await render(
-      SignUpEmail({ name, url: setPasswordUrl.toString(), expiresAt })
+      SignUpEmail({ name: getFirstName(name), url: setPasswordUrl.toString(), expiresAt })
     );
 
     await sendMail(

@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { usePathname } from "next/navigation";
 
 const CHATBOT_MINIMIZED_KEY = "hivebudget_chatbot_minimized";
+const CHATBOT_OPEN_KEY = "hivebudget_chatbot_open";
 
 // ============================================
 // Types
@@ -67,10 +68,18 @@ export function FloatingChatbot() {
   const sessionIdRef = useRef<string>(crypto.randomUUID());
   const pathname = usePathname();
 
-  // Load minimized state
+  // Load minimized state + open preference.
+  // The panel defaults to open; we only keep it closed when the user
+  // explicitly closed it before (X, click-outside) — minimize is a separate
+  // dimension and wins over the open preference.
   useEffect(() => {
-    const stored = localStorage.getItem(CHATBOT_MINIMIZED_KEY);
-    if (stored === "true") setIsMinimized(true);
+    const minimized = localStorage.getItem(CHATBOT_MINIMIZED_KEY) === "true";
+    if (minimized) {
+      setIsMinimized(true);
+      return;
+    }
+    const storedOpen = localStorage.getItem(CHATBOT_OPEN_KEY);
+    setIsOpen(storedOpen === null ? true : storedOpen === "true");
   }, []);
 
   // Scroll to bottom on new messages
@@ -85,18 +94,27 @@ export function FloatingChatbot() {
     }
   }, [isOpen]);
 
+  const persistOpen = useCallback((open: boolean) => {
+    setIsOpen(open);
+    try {
+      localStorage.setItem(CHATBOT_OPEN_KEY, String(open));
+    } catch {
+      // localStorage may be unavailable (SSR / private mode); ignore.
+    }
+  }, []);
+
   // Close on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        persistOpen(false);
       }
     }
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [isOpen]);
+  }, [isOpen, persistOpen]);
 
   // Initialize welcome message
   useEffect(() => {
@@ -389,6 +407,7 @@ export function FloatingChatbot() {
   const handleRestore = () => {
     setIsMinimized(false);
     localStorage.setItem(CHATBOT_MINIMIZED_KEY, "false");
+    persistOpen(true);
   };
 
   // ============================================
@@ -439,7 +458,7 @@ export function FloatingChatbot() {
                 <Minus className="h-4 w-4" />
               </button>
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={() => persistOpen(false)}
                 className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                 title="Fechar"
               >
@@ -551,7 +570,7 @@ export function FloatingChatbot() {
         <Button
           size="icon"
           className="h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105"
-          onClick={() => setIsOpen(true)}
+          onClick={() => persistOpen(true)}
           title="Abrir assistente"
         >
           <MessageCircle className="h-5 w-5" />

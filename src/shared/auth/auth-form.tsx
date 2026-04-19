@@ -132,10 +132,11 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Button
         variant="outline"
+        size="lg"
         type="button"
         disabled={isLoading}
         onClick={handleGoogleSignIn}
-        className="w-full py-6"
+        className="w-full"
       >
         {isLoading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -185,8 +186,9 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
               autoComplete="email"
               autoCorrect="off"
               disabled={isLoading}
+              size="lg"
               {...register("email")}
-              className="w-full py-6"
+              className="w-full"
             />
             {errors.email && (
               <p className="text-sm text-destructive">{errors.email.message}</p>
@@ -209,15 +211,16 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
               type="password"
               autoComplete="current-password"
               disabled={isLoading}
+              size="lg"
               {...register("password")}
-              className="w-full py-6"
+              className="w-full"
             />
             {errors.password && (
               <p className="text-sm text-destructive">{errors.password.message}</p>
             )}
           </div>
 
-          <Button type="submit" disabled={isLoading} className="w-full py-6">
+          <Button type="submit" size="lg" disabled={isLoading} className="w-full">
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
             Entrar
           </Button>
@@ -234,13 +237,14 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
               autoComplete="email"
               autoCorrect="off"
               disabled={isLoading}
+              size="lg"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full py-6"
+              className="w-full"
             />
           </div>
-          <Button type="submit" disabled={isLoading} className="w-full py-6">
+          <Button type="submit" size="lg" disabled={isLoading} className="w-full">
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
             Continuar com Email
           </Button>

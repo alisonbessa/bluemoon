@@ -17,6 +17,7 @@ import { render } from "@react-email/components";
 import PrivacyChangeRequestEmail from "@/emails/PrivacyChangeRequestEmail";
 import { appConfig } from "@/shared/lib/config";
 import { signPrivacyToken } from "@/app/api/public/budget-privacy/route";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 const logger = createLogger("api:budget:privacy");
 
@@ -99,6 +100,15 @@ export const PATCH = withAuthRequired(async (request, context) => {
         .where(eq(budgets.id, budgetId))
         .returning();
 
+      await recordAuditLog({
+        userId: session.user.id,
+        action: "budget.privacy_update",
+        resource: "budget",
+        resourceId: budgetId,
+        details: { privacyMode: requestedMode, applied: true },
+        req: request,
+      });
+
       return successResponse({ budget: updated, applied: true });
     }
 
@@ -141,6 +151,15 @@ export const PATCH = withAuthRequired(async (request, context) => {
         emailHtml
       );
     }
+
+    await recordAuditLog({
+      userId: session.user.id,
+      action: "budget.privacy_update",
+      resource: "budget",
+      resourceId: budgetId,
+      details: { pendingPrivacyMode: requestedMode, applied: false },
+      req: request,
+    });
 
     return successResponse({
       budget: updated,

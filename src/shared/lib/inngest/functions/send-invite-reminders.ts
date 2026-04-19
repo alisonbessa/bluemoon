@@ -10,6 +10,7 @@ import InviteReminder from "@/emails/InviteReminder";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { createLogger } from "@/shared/lib/logger";
+import { getFirstName } from "@/shared/lib/string-utils";
 
 const logger = createLogger("inngest:invite-reminders");
 
@@ -82,7 +83,7 @@ export const sendInviteReminders = inngest.createFunction(
 
         const emailHtml = await render(
           InviteReminder({
-            userName: invite.invitedByName || "Usuário",
+            userName: getFirstName(invite.invitedByName),
             partnerEmail: invite.inviteEmail || "seu parceiro(a)",
             budgetName: invite.budgetName,
             inviteUrl: `${baseUrl}/app/settings`,

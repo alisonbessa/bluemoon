@@ -11,6 +11,7 @@ import {
   errorResponse,
   validationError,
 } from "@/shared/lib/api/responses";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 import { z } from "zod";
 
 const settleSchema = z.object({
@@ -68,6 +69,14 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     return errorResponse("One or both accounts not found in this budget", 400);
   }
 
+  // Prevent overdrafts on non-credit accounts.
+  if (fromAccount.type !== "credit_card" && fromAccount.balance < amount) {
+    return errorResponse(
+      "Saldo insuficiente na conta de origem para este acerto.",
+      422
+    );
+  }
+
   const userMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
   if (!userMemberId) {
     return errorResponse("Could not determine member for this budget", 400);
@@ -111,6 +120,15 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
       .where(eq(financialAccounts.id, toAccountId));
 
     return created;
+  });
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "transaction.settle",
+    resource: "transaction",
+    resourceId: newTransaction.id,
+    details: { budgetId, fromAccountId, toAccountId, amount, year, month },
+    req,
   });
 
   return successResponse({ transaction: newTransaction }, 201);

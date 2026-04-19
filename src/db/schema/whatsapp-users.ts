@@ -30,6 +30,12 @@ export const whatsappUsers = pgTable("whatsapp_users", {
     .$type<ConversationContext>()
     .default({}),
 
+  // Timestamp of the last message RECEIVED from this user.
+  // Used to determine if we can send free-form (session) WhatsApp messages
+  // (Meta's Customer Service Window is 24h from the last inbound message).
+  // Outside this window only pre-approved template messages work, which are billable.
+  lastInboundAt: timestamp("last_inbound_at", { mode: "date" }),
+
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow(),
 }, (table) => [

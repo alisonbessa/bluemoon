@@ -10,6 +10,7 @@ import {
   errorResponse,
   successResponse,
 } from "@/shared/lib/api/responses";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 import sendMail from "@/shared/lib/email/sendMail";
 import { render } from "@react-email/components";
 import PartnerInviteEmail from "@/emails/PartnerInviteEmail";
@@ -85,6 +86,15 @@ export const DELETE = withAuthRequired(async (req, context) => {
       updatedAt: new Date(),
     })
     .where(eq(invites.id, inviteId));
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "invite.revoke",
+    resource: "invite",
+    resourceId: inviteId,
+    details: { budgetId: existingInvite.budgetId, email: existingInvite.email },
+    req,
+  });
 
   return successResponse({ success: true });
 });

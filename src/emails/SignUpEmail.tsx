@@ -8,7 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface SignUpEmailProps {
-  name: string;
+  name?: string | null;
   url: string;
   expiresAt: Date;
 }
@@ -21,7 +21,7 @@ export default function SignUpEmail({
   return (
     <Html>
       <Layout previewText={`Complete seu cadastro no ${appConfig.projectName} 🚀`}>
-        <Text>Olá, {name}! 👋</Text>
+        <Text>{name ? `Olá, ${name}! 👋` : "Olá! 👋"}</Text>
 
         <Text>
           Bem-vindo ao {appConfig.projectName}! Clique no botão abaixo para definir sua

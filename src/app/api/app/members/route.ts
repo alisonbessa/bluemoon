@@ -1,7 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { budgetMembers, categories, groups } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { budgetMembers, categories, groups, plans, users } from "@/db/schema";
+import { eq, and, inArray, count } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetMemberships } from "@/shared/lib/api/permissions";
 import {
@@ -9,8 +9,11 @@ import {
   forbiddenError,
   notFoundError,
   successResponse,
+  errorResponse,
 } from "@/shared/lib/api/responses";
 import { createMemberSchema } from "@/shared/lib/validations";
+import { defaultQuotas } from "@/db/schema/plans";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get members for user's budgets
 export const GET = withAuthRequired(async (req, context) => {
@@ -70,6 +73,46 @@ export const POST = withAuthRequired(async (req, context) => {
     return forbiddenError("Only owner or partner can add members");
   }
 
+  // Enforce plan quota for dependents (children/pets).
+  const [owner] = await db
+    .select({ planId: users.planId })
+    .from(budgetMembers)
+    .innerJoin(users, eq(budgetMembers.userId, users.id))
+    .where(
+      and(eq(budgetMembers.budgetId, budgetId), eq(budgetMembers.type, "owner"))
+    )
+    .limit(1);
+
+  const ownerPlan = owner?.planId
+    ? (
+        await db
+          .select({ quotas: plans.quotas })
+          .from(plans)
+          .where(eq(plans.id, owner.planId))
+          .limit(1)
+      )[0]
+    : undefined;
+
+  const maxDependents =
+    ownerPlan?.quotas?.maxDependents ?? defaultQuotas.maxDependents;
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(budgetMembers)
+    .where(
+      and(
+        eq(budgetMembers.budgetId, budgetId),
+        inArray(budgetMembers.type, ["child", "pet"])
+      )
+    );
+
+  if (total >= maxDependents) {
+    return errorResponse(
+      `Limite de ${maxDependents} dependentes atingido neste orçamento. Faça upgrade do plano para adicionar mais.`,
+      402
+    );
+  }
+
   const capitalizedName = capitalizeWords(name);
 
   // Create the dependent member (no userId)
@@ -103,6 +146,15 @@ export const POST = withAuthRequired(async (req, context) => {
       plannedAmount: monthlyPleasureBudget,
     });
   }
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "member.create",
+    resource: "budget_member",
+    resourceId: newMember.id,
+    details: { budgetId, type, name: capitalizedName },
+    req,
+  });
 
   return successResponse({ member: newMember }, 201);
 });

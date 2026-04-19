@@ -49,21 +49,27 @@ export function LoadingState({
 }: LoadingStateProps) {
   return (
     <div
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
       className={cn(
         "flex flex-col items-center justify-center gap-2",
-        fullHeight && "h-[60vh]",
+        fullHeight && "min-h-[100dvh]",
         className
       )}
       style={height ? { height } : undefined}
     >
       <Loader2
+        aria-hidden="true"
         className={cn(
           "animate-spin text-muted-foreground",
           sizeClasses[size]
         )}
       />
-      {text && (
+      {text ? (
         <p className="text-sm text-muted-foreground">{text}</p>
+      ) : (
+        <span className="sr-only">Carregando</span>
       )}
     </div>
   );

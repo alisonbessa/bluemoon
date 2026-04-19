@@ -11,6 +11,7 @@ import {
   successResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get a specific transaction
 export const GET = withAuthRequired(async (req, context) => {
@@ -181,6 +182,14 @@ export const PATCH = withAuthRequired(async (req, context) => {
       return updated;
     });
 
+    await recordAuditLog({
+      userId: session.user.id,
+      action: "transaction.update",
+      resource: "transaction",
+      resourceId: transactionId,
+      details: { budgetId: existingTransaction.budgetId, applyToSeries: true },
+      req,
+    });
     return successResponse({ transaction: updatedTransaction });
   }
 
@@ -276,6 +285,15 @@ export const PATCH = withAuthRequired(async (req, context) => {
       .returning();
 
     return updated;
+  });
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "transaction.update",
+    resource: "transaction",
+    resourceId: transactionId,
+    details: { budgetId: existingTransaction.budgetId },
+    req,
   });
 
   return successResponse({ transaction: updatedTransaction });
@@ -502,6 +520,19 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
     // Delete the transaction
     await tx.delete(transactions).where(eq(transactions.id, transactionId));
+  });
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "transaction.delete",
+    resource: "transaction",
+    resourceId: transactionId,
+    details: {
+      budgetId: existingTransaction.budgetId,
+      type: existingTransaction.type,
+      amount: existingTransaction.amount,
+    },
+    req,
   });
 
   return successResponse({ success: true });

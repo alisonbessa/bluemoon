@@ -11,6 +11,7 @@ import {
   successResponse,
 } from "@/shared/lib/api/responses";
 import { createRecurringBillSchema } from "@/shared/lib/validations";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get recurring bills for a category or budget
 export const GET = withAuthRequired(async (req, context) => {
@@ -132,6 +133,15 @@ export const POST = withAuthRequired(async (req, context) => {
       displayOrder: existingBills.length,
     })
     .returning();
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "recurring_bill.create",
+    resource: "recurring_bill",
+    resourceId: newBill.id,
+    details: { budgetId: newBill.budgetId, categoryId: newBill.categoryId },
+    req,
+  });
 
   return successResponse({ recurringBill: newBill }, 201);
 });

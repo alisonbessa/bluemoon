@@ -60,13 +60,15 @@ export function ViewModeProvider({ children }: { children: React.ReactNode }) {
   }, [isDuoPlan, isPlanLoading, viewMode]);
 
   // Force "all" only when privacy is "visible" (tudo compartilhado - no selector)
-  // "unified" allows switching between viewModes via the selector
+  // "unified" allows switching between viewModes via the selector.
+  // Guarded by isDuoPlan to avoid fighting the Solo-reset effect above:
+  // a Solo user doesn't have an "all" mode conceptually, so leave viewMode alone.
   const isVisiblePrivacy = privacyMode === "visible";
   useEffect(() => {
-    if (isVisiblePrivacy && viewMode !== "all") {
+    if (isDuoPlan && isVisiblePrivacy && viewMode !== "all") {
       setViewModeState("all");
     }
-  }, [isVisiblePrivacy, viewMode]);
+  }, [isDuoPlan, isVisiblePrivacy, viewMode]);
 
   // Force "all" when Duo plan has no contribution model (all income is shared)
   useEffect(() => {

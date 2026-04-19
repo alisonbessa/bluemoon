@@ -3,6 +3,7 @@ import withSuperAdminAuthRequired from "@/shared/lib/auth/withSuperAdminAuthRequ
 import { createLogger } from "@/shared/lib/logger";
 import { db } from "@/db";
 import { users } from "@/db/schema/user";
+import { whatsappUsers } from "@/db/schema/whatsapp-users";
 import { eq } from "drizzle-orm";
 import { plans } from "@/db/schema/plans";
 
@@ -36,10 +37,20 @@ export const GET = withSuperAdminAuthRequired(async (req, context) => {
         .limit(1);
     }
 
+    const [whatsapp] = await db
+      .select({
+        phoneNumber: whatsappUsers.phoneNumber,
+        displayName: whatsappUsers.displayName,
+      })
+      .from(whatsappUsers)
+      .where(eq(whatsappUsers.userId, id))
+      .limit(1);
+
     // Return user with related data
     return NextResponse.json({
       ...user,
-      currentPlan
+      currentPlan,
+      whatsapp: whatsapp ?? null,
     });
   } catch (error) {
     logger.error("Error fetching user:", error);

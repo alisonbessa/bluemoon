@@ -48,3 +48,4 @@ next-env.d.ts
 
 # Old code reference (not for production)
 /old/
+.env*.local

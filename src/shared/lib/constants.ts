@@ -12,4 +12,5 @@ export const SUBSCRIPTION_EXEMPT_PATHS: string[] = [
   "/app/partner-welcome",
   "/app/settings",
   "/app/subscribe",
+  "/app/complete-profile",
 ];

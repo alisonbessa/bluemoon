@@ -15,6 +15,7 @@ import {
 } from "@/shared/lib/api/responses";
 import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
+import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 // GET - Get transactions for user's budgets
 export const GET = withAuthRequired(async (req, context) => {
@@ -350,6 +351,21 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
       return [parentTransaction, ...remainingInstallments];
     });
 
+    await recordAuditLog({
+      userId: session.user.id,
+      action: "transaction.create",
+      resource: "transaction",
+      resourceId: createdTransactions[0]?.id,
+      details: {
+        budgetId,
+        type,
+        amount,
+        totalInstallments,
+        isInstallment: true,
+      },
+      req,
+    });
+
     return successResponse({ transactions: createdTransactions }, 201);
   }
 
@@ -399,6 +415,15 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     }
 
     return created;
+  });
+
+  await recordAuditLog({
+    userId: session.user.id,
+    action: "transaction.create",
+    resource: "transaction",
+    resourceId: newTransaction.id,
+    details: { budgetId, type, amount },
+    req,
   });
 
   return successResponse({ transaction: newTransaction }, 201);

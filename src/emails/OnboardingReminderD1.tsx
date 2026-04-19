@@ -4,7 +4,7 @@ import Layout from "./components/Layout";
 import { appConfig } from "@/shared/lib/config";
 
 interface OnboardingReminderD1Props {
-  userName: string;
+  userName?: string | null;
   setupUrl: string;
   unsubscribeUrl: string;
 }
@@ -20,7 +20,7 @@ export default function OnboardingReminderD1({
       unsubscribeUrl={unsubscribeUrl}
     >
       <Text className="text-foreground text-[16px] leading-[24px]">
-        Olá, {userName}.
+        {userName ? `Olá, ${userName}.` : "Olá."}
       </Text>
 
       <Text className="text-foreground text-[14px] leading-[24px]">

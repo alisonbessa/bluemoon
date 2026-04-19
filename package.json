@@ -12,8 +12,6 @@
     "typecheck": "tsc --noEmit",
     "script": "tsx --import './scripts/_bootstrap/index.ts'",
     "postinstall": "fumadocs-mdx",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:reset": "tsx scripts/reset-db.ts",
     "db:studio": "drizzle-kit studio",
