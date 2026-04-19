@@ -9,6 +9,8 @@ import { useCurrentPlan } from "@/shared/hooks/use-current-user";
 import type { PrivacyMode } from "@/db/schema/budgets";
 import { StepPrivacy } from "./_components/step-privacy";
 import { mutate } from "swr";
+import { Button } from "@/shared/ui/button";
+import { Loader2 } from "lucide-react";
 
 export default function SetupPage() {
   const router = useRouter();
@@ -66,17 +68,20 @@ export default function SetupPage() {
             height={48}
             className="rounded-lg mx-auto"
           />
-          <h2 className="text-2xl font-bold">Bem-vindo ao {appConfig.projectName}!</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Bem-vindo ao {appConfig.projectName}!
+          </h2>
           <p className="text-muted-foreground">
             Vamos criar seu orçamento. Você poderá configurar contas, rendas e categorias pelo Dashboard.
           </p>
-          <button
+          <Button
+            size="lg"
             onClick={() => handleSubmit()}
             disabled={isSubmitting}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             {isSubmitting ? "Criando..." : "Começar"}
-          </button>
+          </Button>
         </div>
       </div>
     );

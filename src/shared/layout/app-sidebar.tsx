@@ -317,7 +317,12 @@ export function AppSidebar() {
                       isActive={isActive}
                       tooltip={item.label}
                     >
-                      <Link href={item.href} data-tutorial={item.tutorialId} onClick={handleNavClick}>
+                      <Link
+                        href={item.href}
+                        data-tutorial={item.tutorialId}
+                        onClick={handleNavClick}
+                        aria-current={isActive ? "page" : undefined}
+                      >
                         <item.icon className="size-4" />
                         <span>{item.label}</span>
                         {isBetaLab && (

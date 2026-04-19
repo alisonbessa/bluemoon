@@ -14,6 +14,14 @@ import { MonthSelector } from "@/shared/ui/month-selector";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { ArrowLeftIcon, CreditCardIcon } from "lucide-react";
 import { Button } from "@/shared/ui/button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/shared/ui/breadcrumb";
 
 interface StatementTransaction {
   id: string;
@@ -86,21 +94,39 @@ export function CreditCardStatementClient({
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink asChild>
+              <Link href="/app/insights">Relatórios</Link>
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>
+              {isLoading ? "Fatura" : `Fatura ${data?.account.name ?? ""}`}
+            </BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
+        <Button variant="ghost" size="icon" asChild aria-label="Voltar para relatórios">
           <Link href="/app/insights">
             <ArrowLeftIcon className="h-4 w-4" />
           </Link>
         </Button>
         <div className="flex-1">
           <h1 className="text-xl font-semibold flex items-center gap-2">
-            <CreditCardIcon className="h-5 w-5" />
+            <CreditCardIcon className="h-5 w-5" aria-hidden="true" />
             {isLoading ? (
               <Skeleton className="h-6 w-40" />
             ) : (
               <>
-                {data?.account.icon || "💳"} Fatura {data?.account.name}
+                <span aria-hidden="true">{data?.account.icon || "💳"}</span>{" "}
+                Fatura {data?.account.name}
               </>
             )}
           </h1>
@@ -128,7 +154,7 @@ export function CreditCardStatementClient({
           <Card>
             <CardContent className="pt-4 pb-4">
               <p className="text-sm text-muted-foreground">Total da fatura</p>
-              <p className="text-2xl font-bold text-red-600 tabular-nums">
+              <p className="text-2xl font-bold text-destructive tabular-nums">
                 {formatCurrency(data.total)}
               </p>
             </CardContent>

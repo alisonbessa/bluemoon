@@ -22,6 +22,10 @@
   --accent-foreground: oklch(0.3211 0 0);
   --destructive: oklch(0.6368 0.2078 25.3313);
   --destructive-foreground: oklch(1.0000 0 0);
+  --success: oklch(0.6487 0.1538 150.3071);
+  --success-foreground: oklch(1.0000 0 0);
+  --warning: oklch(0.7686 0.1647 70.0804);
+  --warning-foreground: oklch(0.2300 0 0);
   --border: oklch(0.8699 0 0);
   --input: oklch(0.8699 0 0);
   --ring: oklch(0.6487 0.1538 150.3071);
@@ -78,6 +82,10 @@
   --accent-foreground: oklch(0.9219 0 0);
   --destructive: oklch(0.6368 0.2078 25.3313);
   --destructive-foreground: oklch(1.0000 0 0);
+  --success: oklch(0.7227 0.1920 149.5793);
+  --success-foreground: oklch(0.1500 0 0);
+  --warning: oklch(0.8290 0.1550 84.4290);
+  --warning-foreground: oklch(0.1500 0 0);
   --border: oklch(0.3867 0 0);
   --input: oklch(0.3867 0 0);
   --ring: oklch(0.6487 0.1538 150.3071);
@@ -133,6 +141,10 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -281,6 +293,21 @@
     left: 1rem;
     top: 1rem;
   }
+}
+
+/* Decorative grid overlay used on marketing hero sections */
+.bg-grid-lines {
+  background-image: linear-gradient(
+      to right,
+      oklch(1 0 0 / 0.2) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      oklch(1 0 0 / 0.2) 1px,
+      transparent 1px
+    );
+  background-size: 14px 14px;
 }
 
 /* Respect reduced motion preferences (WCAG 2.1) */
