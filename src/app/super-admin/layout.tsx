@@ -23,6 +23,8 @@ import {
   Sparkles,
   Terminal,
   Mail,
+  FlaskConical,
+  Megaphone,
 } from "lucide-react";
 import { ThemeSwitcher } from "@/shared/theme-switcher";
 import { appConfig } from "@/shared/lib/config";
@@ -75,8 +77,10 @@ const navigationGroups: NavGroup[] = [
   {
     label: "Comunicação",
     items: [
+      { name: "Avisos", href: "/super-admin/announcements", icon: Megaphone },
       { name: "Mensagens", href: "/super-admin/messages", icon: MessageSquare },
       { name: "Feedback", href: "/super-admin/feedback", icon: MessageSquarePlus },
+      { name: "Laboratório Beta", href: "/super-admin/roadmap", icon: FlaskConical },
       { name: "Campanhas de E-mail", href: "/super-admin/email-campaigns", icon: Mail },
       { name: "Blog", href: "/super-admin/blog", icon: FileText },
     ],

@@ -91,6 +91,8 @@ const withAuthRequired = (handler: WithManagerHandler) => {
             deletionRequestedAt: users.deletionRequestedAt,
             deletionReason: users.deletionReason,
             unsubscribedFromCampaignsAt: users.unsubscribedFromCampaignsAt,
+            lastSeenRoadmapAt: users.lastSeenRoadmapAt,
+            lastSeenAnnouncementAt: users.lastSeenAnnouncementAt,
           })
           .from(users)
           .where(eq(users.id, userId));

@@ -60,6 +60,12 @@ export const users = pgTable("app_user", {
   // Global opt-out for marketing / retention email campaigns.
   // Transactional emails (auth, trial reminders, invites) are NOT affected.
   unsubscribedFromCampaignsAt: timestamp("unsubscribed_from_campaigns_at", { mode: "date" }),
+
+  // Last time user visited Laboratório Beta (used for "new items" badge)
+  lastSeenRoadmapAt: timestamp("last_seen_roadmap_at", { mode: "date" }),
+
+  // Last time user dismissed the announcements modal — drives modal visibility
+  lastSeenAnnouncementAt: timestamp("last_seen_announcement_at", { mode: "date" }),
 }, (table) => [
   // PERFORMANCE: Index for Stripe webhook lookups
   index("idx_users_stripe_customer_id").on(table.stripeCustomerId),
