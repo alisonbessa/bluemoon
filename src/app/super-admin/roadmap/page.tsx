@@ -11,6 +11,7 @@ import {
   MessageCircle,
   FlaskConical,
   GitMerge,
+  Rocket,
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -97,6 +98,24 @@ export default function AdminRoadmapPage() {
 
   const { data, isLoading, mutate } = useSWR<{ items: AdminItem[] }>(swrKey);
   const items = data?.items ?? [];
+
+  const handlePromote = async (id: string) => {
+    const res = await fetch(`/api/super-admin/roadmap/${id}/promote`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err?.error || "Falha ao promover");
+      return;
+    }
+    toast.success("Sugestão promovida para o roadmap");
+    await mutate();
+    globalMutate(
+      (key) => typeof key === "string" && key.startsWith("/api/app/roadmap"),
+      undefined,
+      { revalidate: true }
+    );
+  };
 
   const handleDelete = async (id: string) => {
     const res = await fetch(`/api/super-admin/roadmap/${id}`, { method: "DELETE" });
@@ -278,6 +297,17 @@ export default function AdminRoadmapPage() {
                           >
                             Editar
                           </Button>
+                          {item.source === "user" && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              title="Promover para o roadmap (planned)"
+                              onClick={() => handlePromote(item.id)}
+                            >
+                              <Rocket className="size-3.5" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"

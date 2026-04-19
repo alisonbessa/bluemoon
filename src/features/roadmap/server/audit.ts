@@ -7,7 +7,8 @@ type RoadmapAdminAction =
   | "update"
   | "create"
   | "delete"
-  | "merge";
+  | "merge"
+  | "promote";
 
 interface Params {
   userId: string | null;
