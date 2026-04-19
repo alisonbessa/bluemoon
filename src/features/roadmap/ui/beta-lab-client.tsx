@@ -149,7 +149,7 @@ export function BetaLabClient() {
         <div className="min-w-0">
           <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <TabsList className="self-start">
+              <TabsList className="w-full sm:w-fit sm:self-start">
                 <TabsTrigger value="roadmap">
                   <Sparkles className="size-3.5" />
                   Roadmap
