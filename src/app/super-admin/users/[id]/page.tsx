@@ -61,6 +61,10 @@ interface UserDetails {
   currentPlan: typeof plans.$inferSelect | null;
   stripeSubscriptionId: string | null;
   lemonSqueezySubscriptionId: string | null;
+  whatsapp: {
+    phoneNumber: string;
+    displayName: string | null;
+  } | null;
 }
 
 interface Plan {
@@ -587,6 +591,16 @@ export default function UserDetailsPage() {
                 </dt>
                 <dd className="text-sm mt-1">
                   {user?.trialEndsAt ? formatDate(user.trialEndsAt) : "N/A"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">
+                  WhatsApp
+                </dt>
+                <dd className="text-sm font-mono mt-1">
+                  {user?.whatsapp?.phoneNumber
+                    ? `+${user.whatsapp.phoneNumber}`
+                    : "Não conectado"}
                 </dd>
               </div>
             </dl>
