@@ -169,10 +169,10 @@ export function BetaLabClient() {
           <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <TabsList className="w-full sm:w-fit sm:self-start">
-                <TabsTrigger value="requests">Feature Requests</TabsTrigger>
+                <TabsTrigger value="requests">Sugestões</TabsTrigger>
                 <TabsTrigger value="roadmap">
                   <Sparkles className="size-3.5" />
-                  Roadmap
+                  Novidades
                 </TabsTrigger>
               </TabsList>
 
@@ -254,7 +254,7 @@ export function BetaLabClient() {
                 hasMore={hasMore}
                 onPrev={() => setPage((p) => Math.max(1, p - 1))}
                 onNext={() => setPage((p) => p + 1)}
-                emptyTitle="Nenhum item no roadmap ainda"
+                emptyTitle="Nenhuma novidade ainda"
                 emptyDescription="A equipe ainda não publicou itens."
                 onItemClick={openItem}
                 onVoteChange={patchItem}
