@@ -16,6 +16,10 @@ const FloatingChatbot = dynamic(
   () => import("@/shared/components/floating-chatbot").then((mod) => ({ default: mod.FloatingChatbot })),
   { ssr: false }
 );
+const AnnouncementMounter = dynamic(
+  () => import("@/features/announcements/ui/announcement-mounter").then((mod) => ({ default: mod.AnnouncementMounter })),
+  { ssr: false }
+);
 import { useRouter, usePathname } from "next/navigation";
 import { useCurrentUser, useCurrentPlan } from "@/shared/hooks/use-current-user";
 import { useSubscriptionGate } from "@/shared/hooks/use-subscription-gate";
@@ -163,6 +167,7 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
           </main>
         </div>
         <FloatingChatbot />
+        <AnnouncementMounter />
         <TutorialOverlay />
       </div>
     </SidebarProvider>

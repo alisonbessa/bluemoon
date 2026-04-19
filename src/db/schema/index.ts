@@ -33,3 +33,4 @@ export * from "./feedback";
 export * from "./blog-posts";
 export * from "./chat-logs";
 export * from "./email-campaigns";
+export * from "./announcements";
