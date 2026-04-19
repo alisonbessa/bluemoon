@@ -97,7 +97,18 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (pathname?.startsWith("/app/setup") || pathname?.startsWith("/app/choose-plan")) return;
+    if (
+      pathname?.startsWith("/app/setup") ||
+      pathname?.startsWith("/app/choose-plan") ||
+      pathname?.startsWith("/app/complete-profile")
+    )
+      return;
+
+    // Force name capture for users who signed in via magic link (no name captured at signup).
+    if (!user.name && !user.displayName) {
+      router.replace("/app/complete-profile");
+      return;
+    }
 
     // Redirect to choose-plan if no subscription
     if (!SUBSCRIPTION_EXEMPT_PATHS.some((path) => pathname?.startsWith(path))) {
@@ -139,6 +150,17 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   const hasExemptRole = user.role && SUBSCRIPTION_EXEMPT_ROLES.includes(user.role);
   const isOnSetupPage = pathname?.startsWith("/app/setup");
   const isOnChoosePlanPage = pathname === "/app/choose-plan";
+  const isOnCompleteProfilePage = pathname?.startsWith("/app/complete-profile");
+
+  // Render the complete-profile page without the app shell — user hasn't
+  // finished onboarding and shouldn't see the sidebar yet.
+  if (isOnCompleteProfilePage) {
+    return (
+      <div className="min-h-screen bg-background">
+        <main className="flex-1">{children}</main>
+      </div>
+    );
+  }
 
   const needsOnboarding = !user.onboardingCompletedAt
     && (hasActiveSubscription || hasExemptRole || hasPartnerAccess)
