@@ -72,7 +72,7 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
   // Prevent overdrafts on non-credit accounts.
   if (fromAccount.type !== "credit_card" && fromAccount.balance < amount) {
     return errorResponse(
-      "Saldo insuficiente na conta de origem para este acerto.",
+      "Saldo insuficiente na forma de pagamento de origem para este acerto.",
       422
     );
   }

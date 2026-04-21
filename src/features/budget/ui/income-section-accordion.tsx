@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, Plus, Trash2, MoreVertical, DollarSign, RotateCcw, Pencil } from 'lucide-react';
+import { ChevronDown, Plus, Trash2, MoreVertical, RotateCcw, Pencil } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,7 +55,7 @@ function getIncomeDisplayValue(
     default:
       return {
         value: saldo,
-        colorClass: saldo > 0 ? 'text-red-600' : 'text-green-600',
+        colorClass: saldo >= 0 ? 'text-green-600' : 'text-red-600',
       };
   }
 }
@@ -86,11 +86,11 @@ export function IncomeSectionAccordion({
             <span className="text-lg">💰</span>
             <span className="font-bold text-sm text-green-800 dark:text-green-200">RECEITAS</span>
           </div>
-          <div className="hidden sm:block text-sm font-bold tabular-nums text-green-800 dark:text-green-200 text-right pr-2">R$ 0,00</div>
-          <div className="hidden sm:block text-sm font-bold tabular-nums text-right pr-2">R$ 0,00</div>
-          <div className="hidden sm:block text-sm font-bold tabular-nums text-green-600 dark:text-green-400 text-right pr-2">R$ 0,00</div>
-          <div className="hidden sm:block text-sm font-bold tabular-nums text-right pr-2">R$ 0,00</div>
-          <div className="sm:hidden text-xs font-bold tabular-nums pr-2">R$ 0,00</div>
+          <div className="hidden sm:block text-sm font-bold tabular-nums whitespace-nowrap text-green-800 dark:text-green-200 text-right pr-2">R$ 0,00</div>
+          <div className="hidden sm:block text-sm font-bold tabular-nums whitespace-nowrap text-right pr-2">R$ 0,00</div>
+          <div className="hidden sm:block text-sm font-bold tabular-nums whitespace-nowrap text-green-600 dark:text-green-400 text-right pr-2">R$ 0,00</div>
+          <div className="hidden sm:block text-sm font-bold tabular-nums whitespace-nowrap text-right pr-2">R$ 0,00</div>
+          <div className="sm:hidden text-xs font-bold tabular-nums whitespace-nowrap pr-2">R$ 0,00</div>
           <div className="sm:hidden" />
         </div>
         <div className="px-4 py-4 text-center">
@@ -137,23 +137,23 @@ export function IncomeSectionAccordion({
             <Plus className="h-3.5 w-3.5 text-green-700 dark:text-green-300" />
           </button>
         </div>
-        <div className="hidden sm:block text-sm font-bold tabular-nums text-green-800 dark:text-green-200 text-right pr-2">
+        <div className="hidden sm:block text-sm font-bold tabular-nums whitespace-nowrap text-green-800 dark:text-green-200 text-right pr-2">
           {formatCurrency(incomeData.totals.planned)}
         </div>
         <div className={cn(
-          "hidden sm:block text-sm font-bold tabular-nums text-right pr-2",
+          "hidden sm:block text-sm font-bold tabular-nums whitespace-nowrap text-right pr-2",
           incomeData.totals.pending > 0 ? "text-amber-600" : "text-green-800 dark:text-green-200"
         )}>
           {formatCurrency(incomeData.totals.pending)}
         </div>
-        <div className="hidden sm:block text-sm font-bold tabular-nums text-green-600 dark:text-green-400 text-right pr-2">
+        <div className="hidden sm:block text-sm font-bold tabular-nums whitespace-nowrap text-green-600 dark:text-green-400 text-right pr-2">
           {formatCurrency(incomeData.totals.received)}
         </div>
         {/* Desktop: Saldo = planned - pending - received */}
         <div
           className={cn(
-            'hidden sm:block text-sm font-bold tabular-nums text-right pr-2',
-            incomeData.totals.saldo > 0 ? 'text-red-600' : 'text-green-600'
+            'hidden sm:block text-sm font-bold tabular-nums whitespace-nowrap text-right pr-2',
+            incomeData.totals.saldo >= 0 ? 'text-green-600' : 'text-red-600'
           )}
         >
           {formatCurrency(incomeData.totals.saldo)}
@@ -168,7 +168,7 @@ export function IncomeSectionAccordion({
             mobileViewMode
           );
           return (
-            <div className={cn('sm:hidden text-xs font-bold tabular-nums pr-2 whitespace-nowrap', display.colorClass)}>
+            <div className={cn('sm:hidden text-xs font-bold tabular-nums whitespace-nowrap pr-2', display.colorClass)}>
               {formatCurrency(display.value)}
             </div>
           );
@@ -319,22 +319,22 @@ function IncomeMemberSection({
             <Plus className="h-3.5 w-3.5 text-green-700 dark:text-green-300" />
           </button>
         </div>
-        <div className="hidden sm:block text-xs tabular-nums font-bold text-right pr-2">
+        <div className="hidden sm:block text-xs tabular-nums whitespace-nowrap font-bold text-right pr-2">
           {formatCurrency(memberGroup.totals.planned)}
         </div>
         <div className={cn(
-          "hidden sm:block text-xs tabular-nums font-bold text-right pr-2",
+          "hidden sm:block text-xs tabular-nums whitespace-nowrap font-bold text-right pr-2",
           memberGroup.totals.pending > 0 && "text-amber-600"
         )}>
           {formatCurrency(memberGroup.totals.pending)}
         </div>
-        <div className="hidden sm:block text-xs tabular-nums font-bold text-green-600 dark:text-green-400 text-right pr-2">
+        <div className="hidden sm:block text-xs tabular-nums whitespace-nowrap font-bold text-green-600 dark:text-green-400 text-right pr-2">
           {formatCurrency(memberGroup.totals.received)}
         </div>
         <div
           className={cn(
-            'hidden sm:block text-xs tabular-nums font-bold text-right pr-2',
-            memberGroup.totals.saldo > 0 ? 'text-red-600' : 'text-green-600'
+            'hidden sm:block text-xs tabular-nums whitespace-nowrap font-bold text-right pr-2',
+            memberGroup.totals.saldo >= 0 ? 'text-green-600' : 'text-red-600'
           )}
         >
           {formatCurrency(memberGroup.totals.saldo)}
@@ -349,7 +349,7 @@ function IncomeMemberSection({
             mobileViewMode
           );
           return (
-            <div className={cn('sm:hidden text-xs tabular-nums pr-2 font-bold', display.colorClass)}>
+            <div className={cn('sm:hidden text-xs tabular-nums whitespace-nowrap pr-2 font-bold', display.colorClass)}>
               {formatCurrency(display.value)}
             </div>
           );
@@ -422,12 +422,9 @@ function IncomeSourceRow({
   return (
     <div
       className={cn(
-        'group/row grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-1.5 items-center border-b text-sm',
-        isIgnored
-          ? 'opacity-50 hover:opacity-70'
-          : 'hover:bg-green-50/50 dark:hover:bg-green-950/20 cursor-pointer'
+        'group/row grid grid-cols-[16px_1fr_80px_32px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-2.5 sm:py-1.5 items-center border-b text-sm',
+        isIgnored && 'opacity-50 hover:opacity-70'
       )}
-      onClick={isIgnored ? undefined : onEditIncome}
     >
       <div />
       <div className={cn('flex items-center gap-1 sm:gap-1.5 min-w-0', indent ? 'pl-4 sm:pl-6' : 'pl-1 sm:pl-3')}>
@@ -476,22 +473,29 @@ function IncomeSourceRow({
           )}
         </div>
       </div>
-      <div className="hidden sm:block text-xs tabular-nums text-right pr-2">
+      <div
+        className={cn(
+          'hidden sm:block text-xs tabular-nums whitespace-nowrap text-right pr-2',
+          !isIgnored && 'cursor-pointer hover:bg-green-50/50 dark:hover:bg-green-950/20 rounded'
+        )}
+        onClick={isIgnored ? undefined : onEditIncome}
+        title={isIgnored ? undefined : 'Editar valor planejado'}
+      >
         {formatCurrency(item.planned)}
       </div>
       <div className={cn(
-        "hidden sm:block text-xs tabular-nums text-right pr-2",
+        "hidden sm:block text-xs tabular-nums whitespace-nowrap text-right pr-2",
         item.pending > 0 && "text-amber-600"
       )}>
         {formatCurrency(item.pending)}
       </div>
-      <div className="hidden sm:block text-xs tabular-nums text-green-600 dark:text-green-400 text-right pr-2">
+      <div className="hidden sm:block text-xs tabular-nums whitespace-nowrap text-green-600 dark:text-green-400 text-right pr-2">
         {formatCurrency(item.received)}
       </div>
       <div
         className={cn(
-          'hidden sm:block text-xs tabular-nums text-right pr-2',
-          item.saldo > 0 ? 'text-red-600' : 'text-green-600'
+          'hidden sm:block text-xs tabular-nums whitespace-nowrap text-right pr-2',
+          item.saldo >= 0 ? 'text-green-600' : 'text-red-600'
         )}
       >
         {formatCurrency(item.saldo)}
@@ -500,7 +504,14 @@ function IncomeSourceRow({
       {(() => {
         const display = getIncomeDisplayValue(item.planned, item.pending, item.received, item.saldo, mobileViewMode);
         return (
-          <div className={cn('sm:hidden text-xs tabular-nums pr-2', display.colorClass)}>
+          <div
+            className={cn(
+              'sm:hidden text-xs tabular-nums whitespace-nowrap pr-2',
+              display.colorClass,
+              !isIgnored && 'cursor-pointer'
+            )}
+            onClick={isIgnored ? undefined : onEditIncome}
+          >
             {formatCurrency(display.value)}
           </div>
         );
@@ -510,39 +521,41 @@ function IncomeSourceRow({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="p-1 rounded hover:bg-green-200 dark:hover:bg-green-800"
+              className="p-2.5 -m-1 rounded hover:bg-green-200 dark:hover:bg-green-800"
               onClick={(e) => e.stopPropagation()}
+              aria-label="Ações"
             >
-              <MoreVertical className="h-4 w-4 text-muted-foreground" />
+              <MoreVertical className="h-5 w-5 text-muted-foreground" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onEditSource}>
+            <DropdownMenuItem onSelect={onEditSource}>
               <Pencil className="h-4 w-4 mr-2" />
               Editar fonte de renda
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {isIgnored ? (
-              <DropdownMenuItem onClick={onRestore}>
+              <DropdownMenuItem onSelect={onRestore}>
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Restaurar neste mês
               </DropdownMenuItem>
             ) : (
-              <>
-                <DropdownMenuItem onClick={onEditIncome}>
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Editar valor planejado
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={onIgnore}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Ignorar neste mês
-                </DropdownMenuItem>
-              </>
+              <DropdownMenuItem
+                onSelect={onIgnore}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Ignorar neste mês
+              </DropdownMenuItem>
             )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={onDeleteSource}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Excluir fonte de renda
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

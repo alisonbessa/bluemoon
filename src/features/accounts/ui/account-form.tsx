@@ -188,18 +188,18 @@ export function AccountForm({
     if (isCreditCard) {
       return "Quanto já foi gasto no cartão este mês";
     }
-    return "Saldo atual da conta";
+    return "Saldo atual da forma de pagamento";
   };
 
   return (
     <FormModalWrapper
       open={open}
       onOpenChange={onOpenChange}
-      title={mode === "create" ? "Nova Conta" : "Editar Conta"}
+      title={mode === "create" ? "Nova Forma de Pagamento" : "Editar Forma de Pagamento"}
       description={
         mode === "create"
-          ? "Adicione uma nova conta ou cartão ao seu orçamento"
-          : "Atualize os dados da sua conta"
+          ? "Adicione uma nova forma de pagamento ou cartão ao seu orçamento"
+          : "Atualize os dados da sua forma de pagamento"
       }
       isSubmitting={isSubmitting}
       onSubmit={handleSubmit}
@@ -273,7 +273,7 @@ export function AccountForm({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecione o dono da conta" />
+                <SelectValue placeholder="Selecione o dono da forma de pagamento" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="shared">
@@ -301,7 +301,7 @@ export function AccountForm({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Quem é responsável por esta conta
+              Quem é responsável por esta forma de pagamento
             </p>
           </div>
         )}
@@ -415,7 +415,7 @@ export function AccountForm({
         {isCreditCard && availableAccounts.length > 0 && (
           <>
             <div className="grid gap-2">
-              <Label htmlFor="paymentAccount">Conta para pagamento</Label>
+              <Label htmlFor="paymentAccount">Forma de pagamento da fatura</Label>
               <Select
                 value={formData.paymentAccountId || "none"}
                 onValueChange={(value) =>
@@ -427,7 +427,7 @@ export function AccountForm({
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione a conta" />
+                  <SelectValue placeholder="Selecione a forma de pagamento" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Nenhuma</SelectItem>
@@ -439,7 +439,7 @@ export function AccountForm({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Conta usada para pagar a fatura
+                Forma de pagamento usada para pagar a fatura
               </p>
             </div>
 

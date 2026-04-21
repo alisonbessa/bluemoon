@@ -81,7 +81,7 @@ export function GoalsSectionAccordion({
         <div className="hidden sm:block" />
         <div className="hidden sm:block" />
         {/* Total monthly value */}
-        <div className="text-xs sm:text-sm font-bold tabular-nums text-violet-800 dark:text-violet-200 whitespace-nowrap">
+        <div className="text-xs sm:text-sm font-bold tabular-nums whitespace-nowrap text-violet-800 dark:text-violet-200">
           {formatCurrency(totalMonthly)}
         </div>
         {/* Mobile: add button in separate column */}
@@ -142,10 +142,10 @@ export function GoalsSectionAccordion({
                     </div>
                   </Link>
                   {/* Desktop: progress percentage */}
-                  <div className="hidden sm:block text-xs tabular-nums text-violet-600 dark:text-violet-400">
+                  <div className="hidden sm:block text-xs tabular-nums whitespace-nowrap text-violet-600 dark:text-violet-400">
                     {goal.progress}%
                   </div>
-                  <div className="text-xs tabular-nums font-medium">
+                  <div className="text-xs tabular-nums whitespace-nowrap font-medium">
                     {formatCurrency(goal.monthlyTarget)}
                   </div>
                   {/* Action column: confirm button or status */}
@@ -169,7 +169,7 @@ export function GoalsSectionAccordion({
                         <span className="hidden sm:inline">Confirmar</span>
                       </button>
                     ) : (
-                      <div className="hidden sm:block text-xs tabular-nums text-muted-foreground">
+                      <div className="hidden sm:block text-xs tabular-nums whitespace-nowrap text-muted-foreground">
                         {goal.monthsRemaining > 0
                           ? `${goal.monthsRemaining} ${goal.monthsRemaining === 1 ? 'mes' : 'meses'}`
                           : 'Vencida'}

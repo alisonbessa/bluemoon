@@ -25,8 +25,8 @@ export function TransactionSummary({ income, expenses, totalIncome, totalExpense
           icon: <TrendingUp className="h-full w-full text-green-500" />,
           label: "Receitas",
           value: formatCurrency(income),
-          subtitle: hasUnconfirmed && totalIncome !== undefined && totalIncome !== income
-            ? `de ${formatCurrency(totalIncome)}`
+          subtitle: hasUnconfirmed && totalIncome !== undefined && totalIncome > income
+            ? `A receber: ${formatCurrency(totalIncome - income)}`
             : undefined,
           valueColor: "positive",
         },
@@ -35,8 +35,8 @@ export function TransactionSummary({ income, expenses, totalIncome, totalExpense
           icon: <TrendingDown className="h-full w-full text-red-500" />,
           label: "Despesas",
           value: formatCurrency(expenses),
-          subtitle: hasUnconfirmed && totalExpenses !== undefined && totalExpenses !== expenses
-            ? `de ${formatCurrency(totalExpenses)}`
+          subtitle: hasUnconfirmed && totalExpenses !== undefined && totalExpenses > expenses
+            ? `A pagar: ${formatCurrency(totalExpenses - expenses)}`
             : undefined,
           valueColor: "negative",
         },
@@ -46,7 +46,7 @@ export function TransactionSummary({ income, expenses, totalIncome, totalExpense
           label: "Saldo",
           value: formatCurrency(balance),
           subtitle: hasUnconfirmed
-            ? `de ${formatCurrency(totalBalance)}`
+            ? `Previsto: ${formatCurrency(totalBalance)}`
             : undefined,
           valueColor: balance >= 0 ? "positive" : "negative",
         },

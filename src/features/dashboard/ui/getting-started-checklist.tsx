@@ -64,7 +64,7 @@ export function GettingStartedChecklist() {
     ? [
         {
           key: "account",
-          label: "Adicionar suas contas",
+          label: "Adicionar suas formas de pagamento",
           icon: CreditCard,
           done: data.hasAccount,
           href: "/app/accounts?setup=true",
@@ -200,6 +200,8 @@ export function GettingStartedChecklist() {
   };
 
   const handleStartTour = () => {
+    localStorage.setItem(DISMISSED_KEY, "true");
+    setDismissed(true);
     startTutorial("initial-setup");
   };
 
@@ -280,7 +282,7 @@ export function GettingStartedChecklist() {
                   <div>{content}</div>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Adicione uma conta primeiro</p>
+                  <p>Adicione uma forma de pagamento primeiro</p>
                 </TooltipContent>
               </Tooltip>
             );

@@ -85,13 +85,13 @@ export function GoalsSection({ goals }: GoalsSectionProps) {
                   />
                 </div>
               </div>
-              <div className="text-right text-xs tabular-nums text-violet-600 dark:text-violet-400">
+              <div className="text-right text-xs tabular-nums whitespace-nowrap text-violet-600 dark:text-violet-400">
                 {goal.progress}%
               </div>
-              <div className="text-right text-xs tabular-nums font-medium">
+              <div className="text-right text-xs tabular-nums whitespace-nowrap font-medium">
                 {formatCurrency(goal.monthlyTarget)}
               </div>
-              <div className="text-right text-xs tabular-nums text-muted-foreground">
+              <div className="text-right text-xs tabular-nums whitespace-nowrap text-muted-foreground">
                 {goal.monthsRemaining > 0
                   ? `${goal.monthsRemaining} ${goal.monthsRemaining === 1 ? 'mes' : 'meses'}`
                   : 'Vencida'}

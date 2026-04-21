@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
-import { ChevronDown, Plus, Pencil, Trash2, MoreVertical, DollarSign } from 'lucide-react';
+import { ChevronDown, Plus, Pencil, Trash2, MoreVertical } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -211,7 +211,11 @@ export function CategoryWithBills({
   };
 
   const handleCategoryClick = () => {
-    onEditAllocation(item.category, item.allocated);
+    if (isExpandable) {
+      handleToggleExpand();
+    } else {
+      onEditAllocation(item.category, item.allocated);
+    }
   };
 
   return (
@@ -219,7 +223,7 @@ export function CategoryWithBills({
       {/* Category Row */}
       <div
         className={cn(
-          'group/row grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-1.5 items-center border-b hover:bg-muted/20 text-sm cursor-pointer'
+          'group/row grid grid-cols-[16px_1fr_80px_32px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-2.5 sm:py-1.5 items-center border-b hover:bg-muted/20 text-sm cursor-pointer'
         )}
         onClick={handleCategoryClick}
         data-tutorial="category-row"
@@ -292,24 +296,24 @@ export function CategoryWithBills({
         </div>
 
         {/* Desktop: Planejado */}
-        <div className="hidden sm:block text-xs tabular-nums text-right pr-2">
+        <div className="hidden sm:block text-xs tabular-nums whitespace-nowrap text-right pr-2">
           {formatCurrency(item.allocated)}
         </div>
         {/* Desktop: Pendente */}
         <div className={cn(
-          "hidden sm:block text-xs tabular-nums text-right pr-2",
+          "hidden sm:block text-xs tabular-nums whitespace-nowrap text-right pr-2",
           item.pending > 0 && "text-amber-600"
         )}>
           {formatCurrency(item.pending)}
         </div>
         {/* Desktop: Realizado */}
-        <div className="hidden sm:block text-xs tabular-nums text-right pr-2">
+        <div className="hidden sm:block text-xs tabular-nums whitespace-nowrap text-right pr-2">
           {formatCurrency(item.confirmed)}
         </div>
         {/* Desktop: Saldo */}
         <div
           className={cn(
-            'hidden sm:block text-xs tabular-nums font-medium text-right pr-2',
+            'hidden sm:block text-xs tabular-nums whitespace-nowrap font-medium text-right pr-2',
             item.saldo > 0
               ? 'text-green-600'
               : item.saldo < 0
@@ -330,7 +334,7 @@ export function CategoryWithBills({
             mobileViewMode
           );
           return (
-            <div className={cn('sm:hidden text-xs tabular-nums font-medium pr-2', display.colorClass)}>
+            <div className={cn('sm:hidden text-xs tabular-nums whitespace-nowrap font-medium pr-2', display.colorClass)}>
               {formatCurrency(display.value)}
             </div>
           );
@@ -341,19 +345,14 @@ export function CategoryWithBills({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="p-2 -m-1 rounded hover:bg-muted"
+                className="p-2.5 -m-1 rounded hover:bg-muted"
                 onClick={(e) => e.stopPropagation()}
+                aria-label="Ações"
               >
-                <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                <MoreVertical className="h-5 w-5 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onSelect={() => setTimeout(() => onEditAllocation(item.category, item.allocated), 0)}
-              >
-                <DollarSign className="h-4 w-4 mr-2" />
-                Editar alocação
-              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setTimeout(() => handleAddBill(), 0)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Adicionar despesa fixa
@@ -393,6 +392,7 @@ export function CategoryWithBills({
                   ))}
                   <button
                     onClick={handleAddBill}
+                    data-tutorial="add-recurring-bill-button"
                     className="flex items-center gap-2 py-1.5 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md w-full transition-colors"
                   >
                     <Plus className="h-3 w-3" />

@@ -361,18 +361,13 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
   }, [currentFlow, currentStep, pathname]);
 
   // Called when user completes a required action
+  // Does NOT auto-advance — user controls progression via the floating "Próxima Etapa" button.
   const notifyActionCompleted = useCallback(
-    (validationKey: TutorialValidationKey) => {
-      if (!currentFlow || !currentStep) return;
-
-      // Check if this matches the current step's validation key
-      if (currentStep.validationKey === validationKey && isWaitingForAction) {
-        // Action completed! Advance to next step (may be same or different page)
-        setIsWaitingForAction(false);
-        nextStep();
-      }
+    (_validationKey: TutorialValidationKey) => {
+      // Intentionally a no-op: we no longer auto-advance the tutorial when the user
+      // completes an action. The user may want to add multiple items before moving on.
     },
-    [currentFlow, currentStep, isWaitingForAction, nextStep]
+    []
   );
 
   // Resume tutorial after user interaction

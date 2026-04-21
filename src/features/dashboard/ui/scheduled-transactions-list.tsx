@@ -107,7 +107,7 @@ export function ScheduledTransactionsList({
   // Confirm a scheduled transaction
   const handleConfirm = async (item: ScheduledTransaction) => {
     if (accounts.length === 0) {
-      toast.error("Nenhuma conta encontrada. Crie uma conta primeiro.");
+      toast.error("Nenhuma forma de pagamento encontrada. Crie uma primeiro.");
       return;
     }
 

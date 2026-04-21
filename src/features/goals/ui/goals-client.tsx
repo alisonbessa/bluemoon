@@ -110,7 +110,7 @@ export function GoalsClient() {
     }
 
     if (!contributeFromAccountId) {
-      toast.error("Selecione a conta de origem");
+      toast.error("Selecione a forma de pagamento de origem");
       return;
     }
 

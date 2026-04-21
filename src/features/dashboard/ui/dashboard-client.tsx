@@ -177,9 +177,9 @@ export function DashboardClient({
             label: viewMode === "shared" && hasContributionModel ? "Contribuição do Mês" : "Receitas do Mês",
             value: formatCurrency(effectiveIncomeReceived),
             valueColor: "positive",
-            subtitle: effectiveIncomeReceived === effectiveIncomePlanned
-              ? "Meta atingida!"
-              : `Faltam ${formatCurrency(Math.max(0, effectiveIncomePlanned - effectiveIncomeReceived))}`,
+            subtitle: effectiveIncomeReceived >= effectiveIncomePlanned
+              ? "Tudo recebido!"
+              : `A receber: ${formatCurrency(effectiveIncomePlanned - effectiveIncomeReceived)}`,
           },
           {
             id: "expenses",
@@ -188,9 +188,9 @@ export function DashboardClient({
             value: formatCurrency(monthSummary?.expenses.spent ?? 0),
             valueColor: "negative",
             subtitle: (monthSummary?.expenses.spentPending ?? 0) > 0
-              ? `Pendentes ${formatCurrency(monthSummary?.expenses.spentPending ?? 0)}`
+              ? `A pagar: ${formatCurrency(monthSummary?.expenses.spentPending ?? 0)}`
               : (monthSummary?.expenses.spent ?? 0) <= (monthSummary?.expenses.allocated ?? 0)
-                ? `Restam ${formatCurrency((monthSummary?.expenses.allocated ?? 0) - (monthSummary?.expenses.spent ?? 0))}`
+                ? `Restam ${formatCurrency((monthSummary?.expenses.allocated ?? 0) - (monthSummary?.expenses.spent ?? 0))} do orçamento`
                 : `Excedido em ${formatCurrency((monthSummary?.expenses.spent ?? 0) - (monthSummary?.expenses.allocated ?? 0))}`,
           },
           {
@@ -199,7 +199,7 @@ export function DashboardClient({
             label: viewMode === "shared" && hasContributionModel ? "Saldo Compartilhado" : "Saldo do Mês",
             value: formatCurrency(effectiveIncomeReceived - (monthSummary?.expenses.spent ?? 0)),
             valueColor: (effectiveIncomeReceived - (monthSummary?.expenses.spent ?? 0)) >= 0 ? "positive" : "negative",
-            subtitle: `Planejado ${formatCurrency(effectiveIncomePlanned - (monthSummary?.expenses.allocated ?? 0))}`,
+            subtitle: `Previsto: ${formatCurrency(effectiveIncomePlanned - (monthSummary?.expenses.allocated ?? 0))}`,
           },
         ]}
         className="grid-cols-1 sm:grid-cols-3"

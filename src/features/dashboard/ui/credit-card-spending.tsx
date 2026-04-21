@@ -345,10 +345,10 @@ export function CreditCardSpending({
               )}
             </div>
             <div className="grid gap-2">
-              <Label>Pagar com qual conta?</Label>
+              <Label>Pagar com qual forma de pagamento?</Label>
               <Select value={fromAccountId} onValueChange={setFromAccountId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione a conta" />
+                  <SelectValue placeholder="Selecione a forma de pagamento" />
                 </SelectTrigger>
                 <SelectContent>
                   {paymentAccounts.map((account) => (
