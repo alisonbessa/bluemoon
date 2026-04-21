@@ -46,13 +46,13 @@ BEGIN
   END IF;
 
   -- For each unique (budget_id, member_id) that has a personal category in pleasures
+  -- Include archived categories too — otherwise they would be orphaned after the group is deleted
   FOR rec IN
     SELECT DISTINCT c.budget_id, c.member_id, bm.name AS member_name
     FROM categories c
     JOIN budget_members bm ON bm.id = c.member_id
     WHERE c.group_id = pleasures_group_id
       AND c.member_id IS NOT NULL
-      AND c.is_archived = false
   LOOP
     -- Extract first name (everything before the first space)
     member_first_name := split_part(rec.member_name, ' ', 1);

@@ -59,30 +59,33 @@ export const GET = withAuthRequired(async (req, context) => {
     )
     .orderBy(groups.displayOrder);
 
-  // Apply privacy filtering per budget
+  // Apply privacy filtering per budget — batch fetch to avoid N+1
   // In "private" mode, each member only sees their own personal group
+  const budgetPrivacies = await db
+    .select({ id: budgets.id, privacyMode: budgets.privacyMode })
+    .from(budgets)
+    .where(inArray(budgets.id, targetBudgetIds));
+  const privacyMap = new Map(budgetPrivacies.map((b) => [b.id, b.privacyMode]));
+
+  // Batch-resolve current member IDs for budgets where privacy = "private"
+  const privateBudgetIds = budgetPrivacies
+    .filter((b) => b.privacyMode === "private")
+    .map((b) => b.id);
+
+  const memberIdMap = new Map<string, string | null>();
+  for (const budId of privateBudgetIds) {
+    memberIdMap.set(budId, await getUserMemberIdInBudget(session.user.id, budId));
+  }
+
   const visiblePersonalGroupIds = new Set<string>();
-
-  for (const budId of targetBudgetIds) {
-    const [budget] = await db
-      .select({ privacyMode: budgets.privacyMode })
-      .from(budgets)
-      .where(eq(budgets.id, budId))
-      .limit(1);
-
-    const budgetPersonalGroups = personalGroups.filter((g) => g.group.budgetId === budId);
-
-    if (budget?.privacyMode === "private") {
-      const currentMemberId = await getUserMemberIdInBudget(session.user.id, budId);
-      for (const g of budgetPersonalGroups) {
-        if (g.group.memberId === currentMemberId) {
-          visiblePersonalGroupIds.add(g.group.id);
-        }
-      }
-    } else {
-      for (const g of budgetPersonalGroups) {
+  for (const g of personalGroups) {
+    const budId = g.group.budgetId!;
+    if (privacyMap.get(budId) === "private") {
+      if (g.group.memberId === memberIdMap.get(budId)) {
         visiblePersonalGroupIds.add(g.group.id);
       }
+    } else {
+      visiblePersonalGroupIds.add(g.group.id);
     }
   }
 

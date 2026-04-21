@@ -27,11 +27,11 @@ export async function createPersonalGroupForMember(
 ): Promise<{ groupId: string }> {
   const firstName = getFirstName(memberName) ?? memberName;
 
-  // Idempotent: return existing group if already created
+  // Idempotent: return existing group if already created FOR THIS BUDGET+MEMBER pair
   const [existing] = await dbOrTx
     .select({ id: groups.id })
     .from(groups)
-    .where(eq(groups.memberId, memberId))
+    .where(and(eq(groups.budgetId, budgetId), eq(groups.memberId, memberId)))
     .limit(1);
 
   if (existing) {
