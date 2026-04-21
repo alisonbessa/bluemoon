@@ -9,14 +9,13 @@ import {
   categories,
 } from "@/db/schema";
 import { defaultGroups } from "@/db/schema/groups";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { capitalizeWords, getFirstName } from "@/shared/lib/utils";
 import {
   validationError,
   internalError,
   successResponse,
-  errorResponse,
 } from "@/shared/lib/api/responses";
 import { getDefaultTemplateForPlan } from "@/shared/lib/budget-templates";
 
@@ -126,9 +125,13 @@ export const POST = withAuthRequired(async (request, context) => {
         .set({ name: displayName })
         .where(eq(budgetMembers.id, ownerMemberId));
 
-      // Ensure groups exist
-      const existingGroups = await tx.select().from(groups);
-      if (existingGroups.length === 0) {
+      // Ensure global groups exist (seeded once globally)
+      const existingGlobalGroups = await tx
+        .select()
+        .from(groups)
+        .where(isNull(groups.budgetId));
+
+      if (existingGlobalGroups.length === 0) {
         await tx.insert(groups).values(
           defaultGroups.map((g) => ({
             code: g.code,
@@ -139,7 +142,36 @@ export const POST = withAuthRequired(async (request, context) => {
           }))
         );
       }
-      const allGroups = await tx.select().from(groups);
+      const allGlobalGroups = await tx
+        .select()
+        .from(groups)
+        .where(isNull(groups.budgetId));
+
+      // Create personal group for the owner member (if it doesn't exist yet)
+      const existingPersonalGroup = await tx
+        .select({ id: groups.id })
+        .from(groups)
+        .where(eq(groups.memberId, ownerMemberId))
+        .limit(1);
+
+      let ownerPersonalGroupId: string;
+      if (existingPersonalGroup.length > 0) {
+        ownerPersonalGroupId = existingPersonalGroup[0].id;
+      } else {
+        const [personalGroup] = await tx
+          .insert(groups)
+          .values({
+            budgetId,
+            memberId: ownerMemberId,
+            code: null,
+            name: `Gastos de ${firstName}`,
+            description: `Gastos pessoais de ${firstName}`,
+            icon: "✨",
+            displayOrder: 10, // after global groups (1–4)
+          })
+          .returning();
+        ownerPersonalGroupId = personalGroup.id;
+      }
 
       // Check if categories already exist (avoid duplicates on re-setup)
       const existingCategories = await tx
@@ -149,32 +181,31 @@ export const POST = withAuthRequired(async (request, context) => {
         .limit(1);
 
       if (existingCategories.length === 0) {
-        // Create categories from default template (all with plannedAmount = 0)
+        // Create shared categories from default template
         for (const cat of template.categories) {
-          const group = allGroups.find((g) => g.code === cat.groupCode);
+          const group = allGlobalGroups.find((g) => g.code === cat.groupCode);
           if (!group) continue;
 
-          if (cat.isPersonal) {
-            await tx.insert(categories).values({
-              budgetId,
-              groupId: group.id,
-              memberId: ownerMemberId,
-              name: `${cat.name} - ${firstName}`,
-              icon: cat.icon,
-              behavior: cat.behavior,
-              plannedAmount: 0,
-            });
-          } else {
-            await tx.insert(categories).values({
-              budgetId,
-              groupId: group.id,
-              name: cat.name,
-              icon: cat.icon,
-              behavior: cat.behavior,
-              plannedAmount: 0,
-            });
-          }
+          await tx.insert(categories).values({
+            budgetId,
+            groupId: group.id,
+            name: cat.name,
+            icon: cat.icon,
+            behavior: cat.behavior,
+            plannedAmount: 0,
+          });
         }
+
+        // Create a default category inside the owner's personal group
+        await tx.insert(categories).values({
+          budgetId,
+          groupId: ownerPersonalGroupId,
+          memberId: ownerMemberId,
+          name: `Gastos de ${firstName}`,
+          icon: "✨",
+          behavior: "refill_up",
+          plannedAmount: 0,
+        });
       }
 
       return { budgetId };

@@ -66,13 +66,12 @@ interface UseCategoryFormReturn {
   isDeleting: boolean;
 }
 
-// Default behaviors by group code
+// Default behaviors by group code (personal groups with code=null use 'refill_up')
 const GROUP_DEFAULT_BEHAVIORS: Record<string, CategoryBehavior> = {
   essential: 'refill_up',
-  lifestyle: 'set_aside',
-  pleasures: 'set_aside',
-  goals: 'set_aside',
+  lifestyle: 'refill_up',
   investments: 'set_aside',
+  goals: 'set_aside',
 };
 
 /**

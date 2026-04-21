@@ -4,9 +4,12 @@
  * Pre-configured budget templates for the onboarding wizard.
  * Each template defines categories with percentage-based allocations
  * that are applied to the user's total income.
+ *
+ * Personal expense groups are created separately per member during onboarding —
+ * they are NOT defined here.
  */
 
-export type GroupCode = "essential" | "lifestyle" | "pleasures" | "investments" | "goals";
+export type GroupCode = "essential" | "lifestyle" | "investments" | "goals";
 export type CategoryBehavior = "refill_up" | "set_aside";
 
 export interface TemplateCategory {
@@ -15,7 +18,6 @@ export interface TemplateCategory {
   percentage: number; // fraction of income (0.30 = 30%)
   behavior: CategoryBehavior;
   icon: string;
-  isPersonal?: boolean; // creates one per member with memberId
 }
 
 export interface BudgetTemplate {
@@ -40,13 +42,11 @@ const TEMPLATES: BudgetTemplate[] = [
       { name: "Mercado", groupCode: "essential", percentage: 0.10, behavior: "refill_up", icon: "🛒" },
       { name: "Transporte", groupCode: "essential", percentage: 0.08, behavior: "refill_up", icon: "🚗" },
       { name: "Saúde", groupCode: "essential", percentage: 0.03, behavior: "refill_up", icon: "🏥" },
-      // Lifestyle (16%)
+      // Lifestyle (21%) — absorbs the former ~5% personal allocation
       { name: "Alimentação Fora", groupCode: "lifestyle", percentage: 0.06, behavior: "refill_up", icon: "🍔" },
-      { name: "Lazer", groupCode: "lifestyle", percentage: 0.05, behavior: "refill_up", icon: "🎬" },
-      { name: "Vestuário e Beleza", groupCode: "lifestyle", percentage: 0.03, behavior: "refill_up", icon: "👕" },
-      { name: "Assinaturas", groupCode: "lifestyle", percentage: 0.02, behavior: "refill_up", icon: "📱" },
-      // Personal (5%)
-      { name: "Gastos Pessoais", groupCode: "pleasures", percentage: 0.05, behavior: "refill_up", icon: "✨", isPersonal: true },
+      { name: "Lazer", groupCode: "lifestyle", percentage: 0.07, behavior: "refill_up", icon: "🎬" },
+      { name: "Vestuário e Beleza", groupCode: "lifestyle", percentage: 0.05, behavior: "refill_up", icon: "👕" },
+      { name: "Assinaturas", groupCode: "lifestyle", percentage: 0.03, behavior: "refill_up", icon: "📱" },
       // Investments (15%)
       { name: "Reserva de Emergência", groupCode: "investments", percentage: 0.10, behavior: "set_aside", icon: "🛡️" },
       { name: "Investimentos", groupCode: "investments", percentage: 0.05, behavior: "set_aside", icon: "📈" },
@@ -62,12 +62,10 @@ const TEMPLATES: BudgetTemplate[] = [
       { name: "Moradia", groupCode: "essential", percentage: 0.35, behavior: "refill_up", icon: "🏠" },
       { name: "Mercado", groupCode: "essential", percentage: 0.15, behavior: "refill_up", icon: "🛒" },
       { name: "Transporte", groupCode: "essential", percentage: 0.10, behavior: "refill_up", icon: "🚌" },
-      // Lifestyle (20%)
+      // Lifestyle (25%)
       { name: "Alimentação Fora", groupCode: "lifestyle", percentage: 0.08, behavior: "refill_up", icon: "🍔" },
-      { name: "Lazer", groupCode: "lifestyle", percentage: 0.07, behavior: "refill_up", icon: "🎬" },
-      { name: "Materiais e Educação", groupCode: "lifestyle", percentage: 0.05, behavior: "refill_up", icon: "📚" },
-      // Personal (5%)
-      { name: "Gastos Pessoais", groupCode: "pleasures", percentage: 0.05, behavior: "refill_up", icon: "✨", isPersonal: true },
+      { name: "Lazer", groupCode: "lifestyle", percentage: 0.09, behavior: "refill_up", icon: "🎬" },
+      { name: "Materiais e Educação", groupCode: "lifestyle", percentage: 0.08, behavior: "refill_up", icon: "📚" },
       // Investments (10%)
       { name: "Reserva de Emergência", groupCode: "investments", percentage: 0.10, behavior: "set_aside", icon: "🛡️" },
     ],
@@ -86,13 +84,11 @@ const TEMPLATES: BudgetTemplate[] = [
       { name: "Mercado", groupCode: "essential", percentage: 0.12, behavior: "refill_up", icon: "🛒" },
       { name: "Transporte", groupCode: "essential", percentage: 0.08, behavior: "refill_up", icon: "🚗" },
       { name: "Saúde", groupCode: "essential", percentage: 0.03, behavior: "refill_up", icon: "🏥" },
-      // Lifestyle (14%)
+      // Lifestyle (17%) — includes former per-person personal allocation
       { name: "Alimentação Fora", groupCode: "lifestyle", percentage: 0.05, behavior: "refill_up", icon: "🍔" },
-      { name: "Lazer", groupCode: "lifestyle", percentage: 0.04, behavior: "refill_up", icon: "🎬" },
-      { name: "Vestuário e Beleza", groupCode: "lifestyle", percentage: 0.03, behavior: "refill_up", icon: "👕" },
-      { name: "Assinaturas", groupCode: "lifestyle", percentage: 0.02, behavior: "refill_up", icon: "📱" },
-      // Personal (6% - 3% each)
-      { name: "Gastos Pessoais", groupCode: "pleasures", percentage: 0.03, behavior: "refill_up", icon: "✨", isPersonal: true },
+      { name: "Lazer", groupCode: "lifestyle", percentage: 0.05, behavior: "refill_up", icon: "🎬" },
+      { name: "Vestuário e Beleza", groupCode: "lifestyle", percentage: 0.04, behavior: "refill_up", icon: "👕" },
+      { name: "Assinaturas", groupCode: "lifestyle", percentage: 0.03, behavior: "refill_up", icon: "📱" },
       // Investments (15%)
       { name: "Reserva de Emergência", groupCode: "investments", percentage: 0.10, behavior: "set_aside", icon: "🛡️" },
       { name: "Investimentos", groupCode: "investments", percentage: 0.05, behavior: "set_aside", icon: "📈" },
@@ -111,15 +107,13 @@ const TEMPLATES: BudgetTemplate[] = [
       { name: "Transporte", groupCode: "essential", percentage: 0.08, behavior: "refill_up", icon: "🚗" },
       { name: "Saúde", groupCode: "essential", percentage: 0.03, behavior: "refill_up", icon: "🏥" },
       { name: "Escola / Creche", groupCode: "essential", percentage: 0.10, behavior: "refill_up", icon: "🎓" },
-      // Lifestyle (14%)
+      // Lifestyle (16%)
       { name: "Alimentação Fora", groupCode: "lifestyle", percentage: 0.04, behavior: "refill_up", icon: "🍔" },
-      { name: "Lazer", groupCode: "lifestyle", percentage: 0.02, behavior: "refill_up", icon: "🎬" },
+      { name: "Lazer", groupCode: "lifestyle", percentage: 0.04, behavior: "refill_up", icon: "🎬" },
       { name: "Vestuário", groupCode: "lifestyle", percentage: 0.02, behavior: "refill_up", icon: "👕" },
       { name: "Assinaturas", groupCode: "lifestyle", percentage: 0.02, behavior: "refill_up", icon: "📱" },
       { name: "Atividades Infantis", groupCode: "lifestyle", percentage: 0.02, behavior: "refill_up", icon: "🎨" },
       { name: "Roupas e Material Escolar", groupCode: "lifestyle", percentage: 0.02, behavior: "refill_up", icon: "🎒" },
-      // Personal (4% - 2% each)
-      { name: "Gastos Pessoais", groupCode: "pleasures", percentage: 0.02, behavior: "refill_up", icon: "✨", isPersonal: true },
       // Investments (8%)
       { name: "Reserva de Emergência", groupCode: "investments", percentage: 0.05, behavior: "set_aside", icon: "🛡️" },
       { name: "Investimentos", groupCode: "investments", percentage: 0.03, behavior: "set_aside", icon: "📈" },
