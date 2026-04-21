@@ -144,7 +144,7 @@ export default function ChoosePlanPage() {
 
   if (isLoading || isRedirecting) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="min-h-dvh w-full overflow-x-hidden flex items-center justify-center px-4">
         <div className="w-full max-w-4xl py-10">
           {isRedirecting ? (
             <div className="text-center">
@@ -172,11 +172,11 @@ export default function ChoosePlanPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-dvh w-full overflow-x-hidden flex items-center justify-center px-4">
       <div className="w-full max-w-4xl py-10">
         {/* Header */}
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">
             {isBetaUser
               ? "Como você quer usar o HiveBudget?"
               : isReturningUser

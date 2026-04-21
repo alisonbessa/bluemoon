@@ -69,9 +69,8 @@ export function FloatingChatbot() {
   const pathname = usePathname();
 
   // Load minimized state + open preference.
-  // The panel defaults to open; we only keep it closed when the user
-  // explicitly closed it before (X, click-outside) — minimize is a separate
-  // dimension and wins over the open preference.
+  // The panel defaults to CLOSED — users open it explicitly when they want
+  // support/feedback. Minimize is a separate dimension and wins over open.
   useEffect(() => {
     const minimized = localStorage.getItem(CHATBOT_MINIMIZED_KEY) === "true";
     if (minimized) {
@@ -79,7 +78,7 @@ export function FloatingChatbot() {
       return;
     }
     const storedOpen = localStorage.getItem(CHATBOT_OPEN_KEY);
-    setIsOpen(storedOpen === null ? true : storedOpen === "true");
+    setIsOpen(storedOpen === "true");
   }, []);
 
   // Scroll to bottom on new messages

@@ -8,9 +8,9 @@ import {
   PageContent,
   EmptyState,
   DeleteConfirmDialog,
-  LoadingState,
   ResponsiveButton,
 } from "@/shared/molecules";
+import { Skeleton } from "@/shared/ui/skeleton";
 import { SummaryCardGrid } from "@/shared/organisms";
 import {
   COMPACT_TABLE_STYLES,
@@ -207,7 +207,24 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
   }, [firstTypeWithAccounts, setExpandedGroups]);
 
   if (isLoading) {
-    return <LoadingState fullHeight />;
+    return (
+      <PageContent>
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-9 w-44" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+        </div>
+        <div className="flex flex-col gap-2">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </PageContent>
+    );
   }
 
   return (

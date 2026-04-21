@@ -82,9 +82,18 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
     }
   }, [currentPlan, setCondition]);
 
-  // Reset scroll position on route change
+  // Reset scroll position on route change. Run twice via rAF so we beat
+  // layout shifts from data loading / skeletons that would otherwise leave
+  // the page slightly scrolled on initial mount.
   useEffect(() => {
-    document.getElementById("main-content")?.scrollTo(0, 0);
+    const scrollReset = () => document.getElementById("main-content")?.scrollTo(0, 0);
+    scrollReset();
+    const raf1 = requestAnimationFrame(() => {
+      scrollReset();
+      const raf2 = requestAnimationFrame(scrollReset);
+      return () => cancelAnimationFrame(raf2);
+    });
+    return () => cancelAnimationFrame(raf1);
   }, [pathname]);
 
   // Consolidated redirect logic: auth check, subscription gate, onboarding

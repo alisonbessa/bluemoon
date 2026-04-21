@@ -52,7 +52,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/assets/logo.png" sizes="32x32" />
         <link rel="apple-touch-icon" href="/assets/logo.png" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#8b5cf6" />
         <link rel="preconnect" href="https://api.dicebear.com" />
       </head>

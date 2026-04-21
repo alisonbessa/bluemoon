@@ -211,11 +211,7 @@ export function CategoryWithBills({
   };
 
   const handleCategoryClick = () => {
-    if (isExpandable) {
-      handleToggleExpand();
-    } else {
-      onEditAllocation(item.category, item.allocated);
-    }
+    if (isExpandable) handleToggleExpand();
   };
 
   return (
@@ -296,7 +292,14 @@ export function CategoryWithBills({
         </div>
 
         {/* Desktop: Planejado */}
-        <div className="hidden sm:block text-xs tabular-nums whitespace-nowrap text-right pr-2">
+        <div
+          className="hidden sm:block text-xs tabular-nums whitespace-nowrap text-right pr-2 cursor-pointer hover:underline"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEditAllocation(item.category, item.allocated);
+          }}
+          title="Editar alocação"
+        >
           {formatCurrency(item.allocated)}
         </div>
         {/* Desktop: Pendente */}
@@ -334,7 +337,13 @@ export function CategoryWithBills({
             mobileViewMode
           );
           return (
-            <div className={cn('sm:hidden text-xs tabular-nums whitespace-nowrap font-medium pr-2', display.colorClass)}>
+            <div
+              className={cn('sm:hidden text-xs tabular-nums whitespace-nowrap font-medium pr-2 cursor-pointer', display.colorClass)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditAllocation(item.category, item.allocated);
+              }}
+            >
               {formatCurrency(display.value)}
             </div>
           );
