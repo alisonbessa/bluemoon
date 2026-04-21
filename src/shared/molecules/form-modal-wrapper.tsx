@@ -136,9 +136,13 @@ export function FormModalWrapper({
           variant={submitVariant}
           onClick={onSubmit}
           disabled={isSubmitting || submitDisabled}
+          className="min-w-[96px]"
         >
-          {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {submitLabel}
+          {isSubmitting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            submitLabel
+          )}
         </Button>
       </DialogFooter>
     );

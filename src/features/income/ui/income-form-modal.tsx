@@ -181,15 +181,15 @@ export function IncomeFormModal({
               value={formData.accountId}
               onChange={(value) => setFormData({ ...formData, accountId: value })}
               accounts={filteredAccounts}
-              label="Conta de Destino"
+              label="Forma de Pagamento de Destino"
               allowNone
               noneLabel="Selecione (opcional)"
             />
             <p className="text-xs text-muted-foreground">
               {formData.type === 'benefit'
-                ? 'Apenas contas de benefício'
+                ? 'Apenas benefícios'
                 : formData.type === 'other'
-                  ? 'Todas as contas disponíveis'
+                  ? 'Todas as formas de pagamento disponíveis'
                   : 'Contas correntes e poupança'}
             </p>
           </div>

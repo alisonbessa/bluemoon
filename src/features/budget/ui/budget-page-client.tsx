@@ -5,7 +5,8 @@ import { useSetupMode } from '@/shared/hooks/use-setup-mode';
 import { SetupTip } from '@/shared/components/setup-tip';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/shared/ui/button';
-import { Loader2, PiggyBank, User } from 'lucide-react';
+import { PiggyBank, User } from 'lucide-react';
+import { Skeleton } from '@/shared/ui/skeleton';
 import { GoalFormModal } from '@/features/goals';
 import { useTutorial } from '@/shared/tutorial/tutorial-provider';
 import { PageHeader } from '@/shared/molecules';
@@ -291,11 +292,20 @@ export function BudgetPageClient({
     }
   };
 
-  // Loading state
+  // Loading state — match the real layout so there's no visual jump.
   if (isLoading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex flex-col gap-4 px-3 sm:px-4 pt-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-9 w-32" />
+        </div>
+        <Skeleton className="h-24 w-full rounded-lg" />
+        <div className="flex flex-col gap-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </div>
       </div>
     );
   }

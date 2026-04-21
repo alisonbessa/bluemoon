@@ -38,17 +38,17 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "accounts-intro",
         route: "/app/accounts",
-        title: "Suas Contas",
+        title: "Suas Formas de Pagamento",
         content:
-          "Vamos começar cadastrando onde seu dinheiro está. Adicione suas contas bancárias, cartões de crédito e benefícios.",
+          "Vamos começar cadastrando onde seu dinheiro está. Adicione suas formas de pagamento: conta corrente, cartões de crédito e benefícios.",
         placement: "center",
       },
       {
         id: "accounts-add",
         route: "/app/accounts",
-        title: "Adicionar Conta",
+        title: "Adicionar Forma de Pagamento",
         content:
-          "Clique aqui para adicionar sua primeira conta. Pode ser conta corrente, poupança, cartão de crédito ou benefício (VR/VA).",
+          "Clique aqui para adicionar sua primeira forma de pagamento. Pode ser conta corrente, poupança, cartão de crédito ou benefício (VR/VA).",
         targetSelector: '[data-tutorial="add-account-button"]',
         placement: "bottom",
       },
@@ -57,7 +57,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/accounts",
         title: "Agora é sua vez!",
         content:
-          "Adicione pelo menos uma conta para continuar. Quando terminar, clique em \"Próxima Etapa\" para configurar suas rendas.",
+          "Adicione suas formas de pagamento. Pode cadastrar quantas quiser. Quando terminar, clique em \"Próxima Etapa\" para configurar suas rendas.",
         placement: "center",
         requiresAction: true,
         validationKey: "hasAccounts",
@@ -86,7 +86,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/income",
         title: "Dica: Benefícios",
         content:
-          "Para VR e VA, adicione como tipo \"Benefício\" e selecione a conta correspondente. Assim o sistema sabe quando e quanto você recebe.",
+          "Para VR e VA, adicione como tipo \"Benefício\" e selecione a forma de pagamento correspondente. Assim o sistema sabe quando e quanto você recebe.",
         placement: "center",
       },
       {
@@ -94,7 +94,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/income",
         title: "Agora é sua vez!",
         content:
-          "Adicione pelo menos uma fonte de renda. Quando terminar, vamos ver as categorias.",
+          "Adicione suas fontes de renda. Cadastre quantas precisar. Quando terminar, clique em \"Próxima Etapa\" para ver as categorias.",
         placement: "center",
         requiresAction: true,
         validationKey: "hasIncome",
@@ -132,7 +132,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/categories",
         title: "Agora é sua vez!",
         content:
-          "Crie ou edite uma categoria para personalizar seu orçamento. Quando terminar, vamos definir suas metas!",
+          "Personalize as categorias como preferir. Quando terminar, clique em \"Próxima Etapa\" para definir suas metas.",
         placement: "center",
         requiresAction: true,
         validationKey: "hasEditedCategory",
@@ -152,24 +152,16 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/goals",
         title: "Criar uma Meta",
         content:
-          "Clique aqui para criar sua primeira meta. Defina o valor total e a data alvo.",
+          "Clique aqui para criar sua primeira meta. Defina o valor total e a data alvo. Suas metas aparecerão no orçamento como categorias.",
         targetSelector: '[data-tutorial="add-goal-button"]',
         placement: "bottom",
-      },
-      {
-        id: "goals-tip",
-        route: "/app/goals",
-        title: "Dica: Metas no Orçamento",
-        content:
-          "Suas metas aparecerão no orçamento como categorias. Assim você reserva dinheiro todo mês para alcançá-las!",
-        placement: "center",
       },
       {
         id: "goals-action",
         route: "/app/goals",
         title: "Agora é sua vez!",
         content:
-          "Crie pelo menos uma meta financeira. Pode ser uma reserva de emergência, viagem dos sonhos ou qualquer objetivo!",
+          "Crie suas metas financeiras. Pode ser reserva de emergência, viagem ou qualquer objetivo. Cadastre quantas quiser e clique em \"Próxima Etapa\" quando terminar.",
         placement: "center",
         requiresAction: true,
         validationKey: "hasGoals",
@@ -198,8 +190,17 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/budget",
         title: "Alocando nas Categorias",
         content:
-          "Clique em uma categoria para definir quanto quer reservar. Comece pelas despesas fixas como moradia e contas.",
+          "Clique em uma categoria para expandir. Na coluna do valor planejado você define quanto quer reservar. Comece pelas despesas fixas como moradia e contas.",
         targetSelector: '[data-tutorial="category-row"]',
+        placement: "right",
+      },
+      {
+        id: "budget-recurring-bill",
+        route: "/app/budget",
+        title: "Despesas Recorrentes",
+        content:
+          "Dentro de uma categoria expandida, use \"Adicionar despesa fixa\" para cadastrar contas que se repetem (aluguel, internet, assinaturas). O HiveBudget reserva o valor automaticamente todo mês.",
+        targetSelector: '[data-tutorial="add-recurring-bill-button"]',
         placement: "right",
       },
       {
@@ -216,7 +217,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/budget",
         title: "Distribua seu dinheiro!",
         content:
-          "Aloque valores nas categorias até zerar o \"Disponível\". Você pode ajustar a qualquer momento.",
+          "Aloque valores nas categorias até zerar o \"Disponível\". Quando terminar, clique em \"Próxima Etapa\" para registrar transações.",
         placement: "center",
         requiresAction: true,
         validationKey: "hasAllocations",
@@ -253,13 +254,32 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/transactions",
         title: "Agora é sua vez!",
         content:
-          "Registre pelo menos uma transação para praticar. Quando terminar, vamos ver o painel geral!",
+          "Registre suas transações. Cadastre quantas quiser e clique em \"Próxima Etapa\" quando terminar.",
         placement: "center",
         requiresAction: true,
         validationKey: "hasTransactions",
       },
 
-      // ===== 7. SETTINGS - PARTNER INVITE (Duo plan only) =====
+      // ===== 7. SETTINGS - MESSAGING (WhatsApp / Telegram) =====
+      {
+        id: "settings-messaging-intro",
+        route: "/app/settings",
+        title: "Conecte WhatsApp ou Telegram",
+        content:
+          "Registrar gastos fica muito mais fácil enviando uma mensagem. Nossa IA entende e lança a transação automaticamente.",
+        placement: "center",
+      },
+      {
+        id: "settings-messaging-card",
+        route: "/app/settings",
+        title: "Ativar mensagens",
+        content:
+          "Abra este card para conectar seu WhatsApp ou Telegram. A partir daí é só mandar mensagem que seus gastos aparecem no app.",
+        targetSelector: '[data-tutorial="messaging-card"]',
+        placement: "bottom",
+      },
+
+      // ===== 8. SETTINGS - PARTNER INVITE (Duo plan only) =====
       {
         id: "settings-partner-intro",
         route: "/app/settings",
@@ -294,26 +314,26 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "accounts-welcome",
         route: "/app/accounts/setup",
-        title: "Bem-vindo às Contas!",
+        title: "Bem-vindo às Formas de Pagamento!",
         content:
-          "Aqui você gerencia todas as suas contas bancárias, cartões de crédito e investimentos. Vamos conhecer a página!",
+          "Aqui você gerencia todas as suas formas de pagamento: contas bancárias, cartões de crédito e investimentos. Vamos conhecer a página!",
         placement: "center",
       },
       {
         id: "accounts-add-button",
         route: "/app/accounts/setup",
-        title: "Adicionar Nova Conta",
+        title: "Adicionar Nova Forma de Pagamento",
         content:
-          "Use este botão para adicionar novas contas. Você pode ter quantas contas precisar!",
+          "Use este botão para adicionar novas formas de pagamento. Você pode ter quantas precisar!",
         targetSelector: '[data-tutorial="add-account-button"]',
         placement: "bottom",
       },
       {
         id: "accounts-item",
         route: "/app/accounts/setup",
-        title: "Suas Contas",
+        title: "Suas Formas de Pagamento",
         content:
-          "Cada conta aparece aqui. Clique em uma conta para editar o nome, ícone ou saldo inicial.",
+          "Cada forma de pagamento aparece aqui. Clique em uma para editar o nome, ícone ou saldo inicial.",
         targetSelector: '[data-tutorial="account-item"]',
         placement: "bottom",
       },
@@ -322,7 +342,7 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
         route: "/app/accounts/setup",
         title: "Agora é sua vez!",
         content:
-          "Personalize suas contas: edite nomes, ajuste saldos e adicione novas se precisar. Quando terminar, vá para a página de Rendas no menu.",
+          "Personalize suas formas de pagamento: edite nomes, ajuste saldos e adicione novas se precisar. Quando terminar, vá para a página de Rendas no menu.",
         placement: "center",
       },
 
@@ -464,9 +484,9 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "nav-accounts",
         route: "/app",
-        title: "Contas",
+        title: "Formas de Pagamento",
         content:
-          "Veja saldos, adicione transações e gerencie todas as suas contas aqui.",
+          "Veja saldos, adicione transações e gerencie todas as suas formas de pagamento aqui.",
         targetSelector: '[data-tutorial="nav-accounts"]',
         placement: "bottom",
       },
@@ -487,12 +507,12 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
   // =====================================================
   "page-accounts": {
     id: "page-accounts",
-    name: "Contas",
+    name: "Formas de Pagamento",
     steps: [
       {
         id: "accounts-intro",
         route: "/app/accounts",
-        title: "Suas Contas",
+        title: "Suas Formas de Pagamento",
         content:
           "Aqui você cadastra onde seu dinheiro está: contas bancárias, cartões de crédito e benefícios (VR/VA).",
         placement: "center",
@@ -500,9 +520,9 @@ export const TUTORIAL_FLOWS: Record<string, TutorialFlow> = {
       {
         id: "accounts-add",
         route: "/app/accounts",
-        title: "Adicionar Conta",
+        title: "Adicionar Forma de Pagamento",
         content:
-          "Clique aqui para adicionar sua primeira conta. Pode ser conta corrente, poupança, cartão de crédito ou benefício.",
+          "Clique aqui para adicionar sua primeira forma de pagamento. Pode ser conta corrente, poupança, cartão de crédito ou benefício.",
         targetSelector: '[data-tutorial="add-account-button"]',
         placement: "bottom",
       },

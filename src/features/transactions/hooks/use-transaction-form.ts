@@ -94,7 +94,7 @@ export function useTransactionForm(
     }
 
     if (formData.type === "transfer" && !formData.toAccountId) {
-      toast.error("Selecione a conta de destino para transferências");
+      toast.error("Selecione a forma de pagamento de destino para transferências");
       return;
     }
 

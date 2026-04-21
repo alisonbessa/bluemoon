@@ -235,6 +235,7 @@ async function fetchAllocations(opts: {
       .where(and(
         eq(transactions.budgetId, budgetId),
         eq(transactions.type, "income"),
+        isNotNull(transactions.incomeSourceId),
         gte(transactions.date, startDate),
         lte(transactions.date, endDate),
         inArray(transactions.status, ["cleared", "reconciled"])

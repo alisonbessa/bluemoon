@@ -74,11 +74,11 @@ export function AccountSelector({
   accounts,
   disabled = false,
   showLabel = true,
-  label = 'Conta',
+  label = 'Forma de Pagamento',
   placeholder = 'Selecione...',
   hasError = false,
   allowNone = true,
-  noneLabel = 'Nenhuma conta específica',
+  noneLabel = 'Nenhuma forma de pagamento específica',
   className,
 }: AccountSelectorProps) {
   const handleChange = (val: string) => {

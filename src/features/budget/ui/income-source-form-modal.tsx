@@ -313,7 +313,7 @@ export function IncomeSourceFormModal({
             value={formData.accountId}
             onChange={(val) => onFieldChange('accountId', val)}
             accounts={filteredAccounts}
-            label="Conta de Destino"
+            label="Forma de Pagamento de Destino"
           />
         )}
 

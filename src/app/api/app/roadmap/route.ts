@@ -10,7 +10,7 @@ import {
   type RoadmapStatus,
 } from "@/db/schema/roadmap";
 import { users } from "@/db/schema/user";
-import { and, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import {
   forbiddenError,
@@ -72,8 +72,24 @@ export const GET = withAuthRequired(async (req, context) => {
     const { tab, status, category, search, sort, page, pageSize } = parsed.data;
 
     const conditions: SQL[] = [isNull(roadmapItems.mergedIntoId)];
-    if (tab === "roadmap") conditions.push(eq(roadmapItems.source, "admin"));
-    if (tab === "requests") conditions.push(eq(roadmapItems.source, "user"));
+    // Items still in "voting" status always live in Sugestões (requests),
+    // even when created by the team — they're open for community input.
+    if (tab === "roadmap") {
+      conditions.push(
+        and(
+          eq(roadmapItems.source, "admin"),
+          ne(roadmapItems.status, "voting"),
+        )!,
+      );
+    }
+    if (tab === "requests") {
+      conditions.push(
+        or(
+          eq(roadmapItems.source, "user"),
+          eq(roadmapItems.status, "voting"),
+        )!,
+      );
+    }
     if (status && ROADMAP_STATUSES.includes(status as RoadmapStatus)) {
       conditions.push(eq(roadmapItems.status, status as RoadmapStatus));
     }

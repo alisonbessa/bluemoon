@@ -356,10 +356,10 @@ export function SharedExpensesBalance({
 
             {/* From account selector */}
             <div className="grid gap-2">
-              <Label>Conta de {settlement?.fromName} (origem)</Label>
+              <Label>Forma de pagamento de {settlement?.fromName} (origem)</Label>
               <Select value={fromAccountId} onValueChange={setFromAccountId}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione a conta" />
+                  <SelectValue placeholder="Selecione a forma de pagamento" />
                 </SelectTrigger>
                 <SelectContent>
                   {fromMemberAccounts.map((account) => (
@@ -373,10 +373,10 @@ export function SharedExpensesBalance({
 
             {/* To account selector */}
             <div className="grid gap-2">
-              <Label>Conta de {settlement?.toName} (destino)</Label>
+              <Label>Forma de pagamento de {settlement?.toName} (destino)</Label>
               <Select value={toAccountId} onValueChange={setToAccountId}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione a conta" />
+                  <SelectValue placeholder="Selecione a forma de pagamento" />
                 </SelectTrigger>
                 <SelectContent>
                   {toMemberAccounts.map((account) => (

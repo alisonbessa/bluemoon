@@ -403,7 +403,7 @@ export function TransactionsClient({
       dueDate: string;
     }) => {
       if (accounts.length === 0) {
-        toast.error("Nenhuma conta encontrada");
+        toast.error("Nenhuma forma de pagamento encontrada");
         return;
       }
 

@@ -240,15 +240,15 @@ export function IncomeSourcePageFormModal({
               value={formData.accountId}
               onChange={(value) => onUpdateField('accountId', value)}
               accounts={filteredAccounts}
-              label="Conta de Destino"
+              label="Forma de Pagamento de Destino"
               allowNone
-              noneLabel="Nenhuma conta específica"
+              noneLabel="Nenhuma forma de pagamento específica"
             />
             <p className="text-xs text-muted-foreground">
               {formData.type === 'benefit'
-                ? 'Apenas contas de benefício'
+                ? 'Apenas benefícios'
                 : formData.type === 'other'
-                  ? 'Todas as contas disponíveis'
+                  ? 'Todas as formas de pagamento disponíveis'
                   : 'Contas correntes e poupança'}
             </p>
           </div>

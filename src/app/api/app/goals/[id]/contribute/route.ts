@@ -60,7 +60,7 @@ export const POST = withAuthRequired(async (req, context) => {
     );
 
   if (!fromAccount) {
-    return notFoundError("Conta de origem");
+    return notFoundError("Forma de pagamento de origem");
   }
 
   // Get user's member ID for paidByMemberId

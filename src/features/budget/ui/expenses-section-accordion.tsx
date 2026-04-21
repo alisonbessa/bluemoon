@@ -153,21 +153,21 @@ export function ExpensesSectionAccordion({
             {sectionTitle ?? 'DESPESAS'}
           </span>
         </div>
-        <div className="hidden sm:block text-sm font-bold tabular-nums text-red-800 dark:text-red-200 text-right pr-2">
+        <div className="hidden sm:block text-sm font-bold tabular-nums whitespace-nowrap text-red-800 dark:text-red-200 text-right pr-2">
           {formatCurrency(totals.allocated)}
         </div>
         <div className={cn(
-          "hidden sm:block text-sm font-bold tabular-nums text-right pr-2",
+          "hidden sm:block text-sm font-bold tabular-nums whitespace-nowrap text-right pr-2",
           totals.pending > 0 ? "text-amber-600" : "text-red-800 dark:text-red-200"
         )}>
           {formatCurrency(totals.pending)}
         </div>
-        <div className="hidden sm:block text-sm font-bold tabular-nums text-red-600 dark:text-red-400 text-right pr-2">
+        <div className="hidden sm:block text-sm font-bold tabular-nums whitespace-nowrap text-red-600 dark:text-red-400 text-right pr-2">
           {formatCurrency(totals.confirmed)}
         </div>
         <div
           className={cn(
-            'hidden sm:block text-sm font-bold tabular-nums text-right pr-2',
+            'hidden sm:block text-sm font-bold tabular-nums whitespace-nowrap text-right pr-2',
             totals.saldo >= 0 ? 'text-green-600' : 'text-red-600'
           )}
         >
@@ -177,7 +177,7 @@ export function ExpensesSectionAccordion({
         {(() => {
           const display = getExpenseDisplayValue(totals.allocated, totals.pending, totals.confirmed, totals.saldo, mobileViewMode);
           return (
-            <div className={cn('sm:hidden text-xs font-bold tabular-nums pr-2 whitespace-nowrap', display.colorClass)}>
+            <div className={cn('sm:hidden text-xs font-bold tabular-nums whitespace-nowrap pr-2', display.colorClass)}>
               {formatCurrency(display.value)}
             </div>
           );
@@ -221,10 +221,7 @@ export function ExpensesSectionAccordion({
               {/* Group Row */}
               <div
                 className="group grid grid-cols-[16px_1fr_80px_24px] sm:grid-cols-[24px_1fr_105px_105px_105px_110px] px-3 sm:px-4 py-1.5 items-center bg-muted/40 border-b cursor-pointer hover:bg-muted/60 text-sm"
-                onClick={() => {
-                  // Clicking the row always ensures the group is expanded
-                  if (!isGroupExpanded) onToggleGroup(group.id);
-                }}
+                onClick={() => onToggleGroup(group.id)}
               >
                 <button
                   onClick={(e) => {
@@ -273,7 +270,7 @@ export function ExpensesSectionAccordion({
                   </div>
                 </div>
                 <div
-                  className="hidden sm:block text-xs tabular-nums font-bold cursor-pointer hover:underline text-right pr-2"
+                  className="hidden sm:block text-xs tabular-nums whitespace-nowrap font-bold cursor-pointer hover:underline text-right pr-2"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleEditGroupAllocation(group, groupAllocated ?? null);
@@ -285,17 +282,17 @@ export function ExpensesSectionAccordion({
                     : formatCurrency(groupTotals.allocated)}
                 </div>
                 <div className={cn(
-                  "hidden sm:block text-xs tabular-nums font-bold text-right pr-2",
+                  "hidden sm:block text-xs tabular-nums whitespace-nowrap font-bold text-right pr-2",
                   groupTotals.pending > 0 && "text-amber-600"
                 )}>
                   {formatCurrency(groupTotals.pending)}
                 </div>
-                <div className="hidden sm:block text-xs tabular-nums font-bold text-right pr-2">
+                <div className="hidden sm:block text-xs tabular-nums whitespace-nowrap font-bold text-right pr-2">
                   {formatCurrency(groupTotals.confirmed)}
                 </div>
                 <div
                   className={cn(
-                    'hidden sm:block text-xs tabular-nums font-bold text-right pr-2',
+                    'hidden sm:block text-xs tabular-nums whitespace-nowrap font-bold text-right pr-2',
                     groupTotals.saldo >= 0 ? 'text-green-600' : 'text-red-600'
                   )}
                 >
@@ -305,7 +302,7 @@ export function ExpensesSectionAccordion({
                 {(() => {
                   const display = getExpenseDisplayValue(groupTotals.allocated, groupTotals.pending, groupTotals.confirmed, groupTotals.saldo, mobileViewMode);
                   return (
-                    <div className={cn('sm:hidden text-xs tabular-nums font-bold pr-2', display.colorClass)}>
+                    <div className={cn('sm:hidden text-xs tabular-nums whitespace-nowrap font-bold pr-2', display.colorClass)}>
                       {formatCurrency(display.value)}
                     </div>
                   );
@@ -358,21 +355,21 @@ export function ExpensesSectionAccordion({
                           <span className="shrink-0">{item.category.icon || '📌'}</span>
                           <span className="truncate">{item.category.name}</span>
                         </div>
-                        <div className="hidden sm:block text-xs tabular-nums text-right pr-2">
+                        <div className="hidden sm:block text-xs tabular-nums whitespace-nowrap text-right pr-2">
                           {formatCurrency(item.allocated)}
                         </div>
                         <div className={cn(
-                          "hidden sm:block text-xs tabular-nums text-right pr-2",
+                          "hidden sm:block text-xs tabular-nums whitespace-nowrap text-right pr-2",
                           item.pending > 0 && "text-amber-600"
                         )}>
                           {formatCurrency(item.pending)}
                         </div>
-                        <div className="hidden sm:block text-xs tabular-nums text-right pr-2">
+                        <div className="hidden sm:block text-xs tabular-nums whitespace-nowrap text-right pr-2">
                           {formatCurrency(item.confirmed)}
                         </div>
                         <div
                           className={cn(
-                            'hidden sm:block text-xs tabular-nums font-medium text-right pr-2',
+                            'hidden sm:block text-xs tabular-nums whitespace-nowrap font-medium text-right pr-2',
                             item.saldo > 0
                               ? 'text-green-600'
                               : item.saldo < 0
@@ -386,7 +383,7 @@ export function ExpensesSectionAccordion({
                         {(() => {
                           const display = getExpenseDisplayValue(item.allocated, item.pending, item.confirmed, item.saldo, mobileViewMode);
                           return (
-                            <div className={cn('sm:hidden text-xs tabular-nums font-medium pr-2', display.colorClass)}>
+                            <div className={cn('sm:hidden text-xs tabular-nums whitespace-nowrap font-medium pr-2', display.colorClass)}>
                               {formatCurrency(display.value)}
                             </div>
                           );

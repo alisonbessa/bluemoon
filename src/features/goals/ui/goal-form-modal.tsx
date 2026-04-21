@@ -197,7 +197,7 @@ export function GoalFormModal({
       return;
     }
     if (!formData.accountId) {
-      toast.error("Selecione a conta destino");
+      toast.error("Selecione a forma de pagamento destino");
       return;
     }
 
@@ -362,7 +362,7 @@ export function GoalFormModal({
               value={formData.accountId}
               onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
               accounts={accounts}
-              label="Conta destino"
+              label="Forma de pagamento destino"
               allowNone={false}
               placeholder="Onde guardar"
             />
@@ -384,9 +384,9 @@ export function GoalFormModal({
                         value={setting?.fromAccountId ?? ''}
                         onChange={(value) => updateMemberSetting(member.id, 'fromAccountId', value || '')}
                         accounts={accounts}
-                        label="Conta origem"
+                        label="Forma de pagamento origem"
                         allowNone={true}
-                        placeholder="Conta do membro"
+                        placeholder="Forma do membro"
                       />
                       <div className="grid gap-2">
                         <Label className="text-xs">Valor mensal</Label>
@@ -409,7 +409,7 @@ export function GoalFormModal({
               value={formData.fromAccountId}
               onChange={(value) => setFormData({ ...formData, fromAccountId: value || '' })}
               accounts={accounts}
-              label="Conta origem"
+              label="Forma de pagamento origem"
               allowNone={true}
               placeholder="De onde sai o dinheiro"
             />
@@ -417,7 +417,7 @@ export function GoalFormModal({
               value={formData.accountId}
               onChange={(value) => setFormData({ ...formData, accountId: value || '' })}
               accounts={accounts}
-              label="Conta destino"
+              label="Forma de pagamento destino"
               allowNone={false}
               placeholder="Onde guardar"
             />

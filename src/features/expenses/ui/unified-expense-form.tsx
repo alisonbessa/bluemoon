@@ -443,7 +443,7 @@ export function UnifiedExpenseForm({
                 <strong>Opcional.</strong> Deixe em branco para a despesa aparecer em todos os meses.
                 Use apenas se a despesa tem data de início ou fim específica (ex: parcelamento).
               </p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="expense-startDate" className="text-xs">
                     Primeiro mês (opcional)

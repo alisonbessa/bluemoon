@@ -47,10 +47,10 @@ export function ContributeModal({
     >
       <div className="grid gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="contributeFromAccount">Conta de origem</Label>
+          <Label htmlFor="contributeFromAccount">Forma de pagamento de origem</Label>
           <Select value={accountId} onValueChange={onAccountChange}>
             <SelectTrigger id="contributeFromAccount">
-              <SelectValue placeholder="Selecione a conta" />
+              <SelectValue placeholder="Selecione a forma de pagamento" />
             </SelectTrigger>
             <SelectContent>
               {accounts.map((account) => (

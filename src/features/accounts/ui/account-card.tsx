@@ -104,7 +104,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => onEdit(account)}
-                aria-label={`Editar conta ${account.name}`}
+                aria-label={`Editar forma de pagamento ${account.name}`}
               >
                 <Pencil className="h-4 w-4" />
               </Button>
@@ -115,7 +115,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                 size="icon"
                 className="h-8 w-8 text-destructive hover:text-destructive"
                 onClick={() => onDelete(account)}
-                aria-label={`Excluir conta ${account.name}`}
+                aria-label={`Excluir forma de pagamento ${account.name}`}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>

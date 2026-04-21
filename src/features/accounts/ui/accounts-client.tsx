@@ -8,9 +8,9 @@ import {
   PageContent,
   EmptyState,
   DeleteConfirmDialog,
-  LoadingState,
   ResponsiveButton,
 } from "@/shared/molecules";
+import { Skeleton } from "@/shared/ui/skeleton";
 import { SummaryCardGrid } from "@/shared/organisms";
 import {
   COMPACT_TABLE_STYLES,
@@ -207,22 +207,39 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
   }, [firstTypeWithAccounts, setExpandedGroups]);
 
   if (isLoading) {
-    return <LoadingState fullHeight />;
+    return (
+      <PageContent>
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-9 w-44" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+          <Skeleton className="h-20" />
+        </div>
+        <div className="flex flex-col gap-2">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </PageContent>
+    );
   }
 
   return (
     <PageContent>
       {isSetupMode && accounts.length === 0 && (
         <SetupTip
-          title="Adicione suas contas"
-          description="Cadastre sua conta principal, cartão de crédito e outras contas que você usa no dia a dia. Clique em '+ Nova Conta' para começar."
+          title="Adicione suas formas de pagamento"
+          description="Cadastre sua conta principal, cartão de crédito e outras formas de pagamento que você usa no dia a dia. Clique em '+ Nova Forma de Pagamento' para começar."
           onDismiss={dismissSetup}
         />
       )}
 
       {/* Header */}
       <PageHeader
-        title="Contas"
+        title="Formas de Pagamento"
         description="Gerencie suas contas bancárias, cartões e investimentos"
         actions={
           <ResponsiveButton
@@ -231,7 +248,7 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
             icon={<Plus />}
             data-tutorial="add-account-button"
           >
-            Nova Conta
+            Nova Forma de Pagamento
           </ResponsiveButton>
         }
       />
@@ -327,7 +344,7 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
             style={{ gridTemplateColumns: GRID_COLS }}
           >
             <div></div>
-            <div>Conta</div>
+            <div>Forma de Pagamento</div>
             <div>Proprietário</div>
             <div className="text-right">Limite</div>
             <div className="text-right">Saldo</div>
@@ -396,8 +413,8 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
                             <HoverActions
                               onEdit={() => setEditingAccount(account)}
                               onDelete={() => setDeletingAccount(account)}
-                              editTitle="Editar conta"
-                              deleteTitle="Excluir conta"
+                              editTitle="Editar forma de pagamento"
+                              deleteTitle="Excluir forma de pagamento"
                             />
                           </div>
                           <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -520,10 +537,10 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
       ) : (
         <EmptyState
           icon={<Wallet className="h-6 w-6 text-muted-foreground" />}
-          title="Nenhuma conta cadastrada"
+          title="Nenhuma forma de pagamento cadastrada"
           description="Adicione suas contas bancárias e cartões para começar"
           action={{
-            label: "Adicionar Conta",
+            label: "Adicionar Forma de Pagamento",
             onClick: () => setIsFormOpen(true),
             icon: <Plus className="h-4 w-4" />,
           }}
@@ -579,8 +596,8 @@ export function AccountsClient({ initialData }: AccountsClientProps) {
         open={!!deletingAccount}
         onOpenChange={(open) => !open && setDeletingAccount(null)}
         onConfirm={handleDeleteAccount}
-        title="Excluir conta?"
-        description={`Tem certeza que deseja excluir a conta "${deletingAccount?.name}"? Esta ação não pode ser desfeita.`}
+        title="Excluir forma de pagamento?"
+        description={`Tem certeza que deseja excluir a forma de pagamento "${deletingAccount?.name}"? Esta ação não pode ser desfeita.`}
       />
     </PageContent>
   );

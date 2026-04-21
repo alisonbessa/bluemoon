@@ -57,7 +57,7 @@ export const POST = withAuthRequired(async (req, context) => {
   const result = await ensurePendingTransactionsForMonth(budgetId, year, month);
 
   if (result.noAccount) {
-    return errorResponse("Nenhuma conta encontrada. Crie uma conta primeiro.", 400);
+    return errorResponse("Nenhuma forma de pagamento encontrada. Crie uma primeiro.", 400);
   }
 
   // Update or create month status
