@@ -104,14 +104,7 @@ export function GoalFormModal({
     if (open) {
       fetch("/api/app/accounts")
         .then((res) => res.json())
-        .then((data) =>
-          setAccounts(
-            (data.accounts || []).filter(
-              (a: Account) =>
-              a.type !== "credit_card" && a.type !== "benefit"
-            )
-          )
-        )
+        .then((data) => setAccounts(data.accounts || []))
         .catch(console.error);
     }
   }, [open]);
