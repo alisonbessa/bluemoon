@@ -12,11 +12,23 @@ import {
 
 const logger = createLogger("api:admin:announcements");
 
+// CTA URL aceita tanto URL absoluta (https://...) quanto path interno (/app/...),
+// já que o modal é renderizado dentro do app e o domínio varia entre ambientes.
+const ctaUrlSchema = z
+  .string()
+  .max(500)
+  .refine(
+    (v) => /^https?:\/\//.test(v) || v.startsWith("/"),
+    { message: "Use uma URL completa (https://...) ou um caminho interno começando com /" }
+  )
+  .optional()
+  .nullable();
+
 const createSchema = z.object({
   title: z.string().min(2).max(120),
   body: z.string().min(2).max(8000),
   ctaLabel: z.string().max(60).optional().nullable(),
-  ctaUrl: z.string().url().max(500).optional().nullable(),
+  ctaUrl: ctaUrlSchema,
   publish: z.boolean().optional().default(false),
 });
 

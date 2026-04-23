@@ -351,7 +351,7 @@ function CreateOrEditModal({
                 value={ctaUrl}
                 onChange={(e) => setCtaUrl(e.target.value)}
                 maxLength={500}
-                placeholder="https://..."
+                placeholder="https://... ou /app/..."
               />
             </div>
           </div>
