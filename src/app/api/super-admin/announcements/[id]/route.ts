@@ -13,12 +13,23 @@ import {
 
 const logger = createLogger("api:admin:announcements:item");
 
+// CTA URL aceita tanto URL absoluta (https://...) quanto path interno (/app/...).
+const ctaUrlSchema = z
+  .string()
+  .max(500)
+  .refine(
+    (v) => /^https?:\/\//.test(v) || v.startsWith("/"),
+    { message: "Use uma URL completa (https://...) ou um caminho interno começando com /" }
+  )
+  .nullable()
+  .optional();
+
 const patchSchema = z
   .object({
     title: z.string().min(2).max(120).optional(),
     body: z.string().min(2).max(8000).optional(),
     ctaLabel: z.string().max(60).nullable().optional(),
-    ctaUrl: z.string().url().max(500).nullable().optional(),
+    ctaUrl: ctaUrlSchema,
     // null = unpublish, ISO string or "now" = publish at that time, undefined = no change
     publish: z.boolean().optional(),
   })
