@@ -18,8 +18,12 @@ import {
 import { markTransactionAsPaid } from "@/integrations/messaging/lib/transaction-matcher";
 import { getTodayNoonUTC, formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
-import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { getScopeFromCategory, getScopeFromIncomeSource } from "@/shared/lib/transactions/scope";
+import {
+  distributeInstallmentAmounts,
+  createInstallmentTransactions,
+  applyTransactionBalanceChange,
+} from "@/shared/lib/transactions/installments";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { formatAccountDisplay, formatAccountWithIcon } from "@/integrations/messaging/lib/ai-handlers/account-utils";
 
@@ -170,12 +174,11 @@ export async function handleExpenseConfirmation(
     context.pendingExpense.totalInstallments > 1
   ) {
     const totalInstallments = context.pendingExpense.totalInstallments;
-    const installmentAmount = Math.round(
-      context.pendingExpense.amount / totalInstallments
+    const installmentAmounts = distributeInstallmentAmounts(
+      context.pendingExpense.amount,
+      totalInstallments
     );
     const transactionDate = getTodayNoonUTC();
-
-    const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
 
     // Derive scope from the category
     const scopeMemberId = getScopeFromCategory(
@@ -184,52 +187,27 @@ export async function handleExpenseConfirmation(
       budgetInfo.member.id,
     );
 
-    // Create parent transaction (first installment)
-    const [parentTransaction] = await db
-      .insert(transactions)
-      .values({
-        budgetId: budgetInfo.budget.id,
-        accountId: transactionAccountId,
-        categoryId: context.pendingExpense.categoryId,
-        memberId: scopeMemberId,
-        paidByMemberId: budgetInfo.member.id,
-        type: "expense",
-        status: "cleared",
-        amount: installmentAmount,
-        description: capitalizedDescription,
-        date: installmentDates[0],
-        isInstallment: true,
-        installmentNumber: 1,
-        totalInstallments,
-        source: "whatsapp",
-      })
-      .returning();
+    const accountType = budgetInfo.accounts.find(a => a.id === transactionAccountId)?.type
+      ?? budgetInfo.defaultAccount.type;
 
-    // Batch insert remaining installments
-    const installmentValues = Array.from(
-      { length: totalInstallments - 1 },
-      (_, i) => ({
+    const [parentTransaction] = await db.transaction(async (tx) =>
+      createInstallmentTransactions({
+        tx,
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
+        accountType,
         categoryId: context.pendingExpense!.categoryId,
         memberId: scopeMemberId,
         paidByMemberId: budgetInfo.member.id,
-        type: "expense" as const,
-        status: "cleared" as const,
-        amount: installmentAmount,
-        description: capitalizedDescription,
-        date: installmentDates[i + 1],
-        isInstallment: true,
-        installmentNumber: i + 2,
+        type: "expense",
+        totalAmount: context.pendingExpense!.amount,
         totalInstallments,
-        parentTransactionId: parentTransaction.id,
-        source: "whatsapp" as const,
+        description: capitalizedDescription,
+        firstDate: transactionDate,
+        source: "whatsapp",
+        status: "cleared",
       })
     );
-
-    if (installmentValues.length > 0) {
-      await db.insert(transactions).values(installmentValues);
-    }
 
     transactionId = parentTransaction.id;
 
@@ -249,7 +227,7 @@ export async function handleExpenseConfirmation(
       phoneNumber,
       `*Compra parcelada registrada!*\n\n` +
         `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
-        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(totalInstallments)}\n` +
+        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmounts[0])} ${formatInstallmentMonths(totalInstallments)}\n` +
         `Categoria: ${context.pendingExpense.categoryName}\n` +
         (context.pendingExpense.accountName
           ? `${formatAccountDisplay(context.pendingExpense.accountName, context.pendingExpense.accountType)}\n`
@@ -269,22 +247,32 @@ export async function handleExpenseConfirmation(
     );
 
     // Non-installment transaction
-    const [newTransaction] = await db
-      .insert(transactions)
-      .values({
-        budgetId: budgetInfo.budget.id,
-        accountId: transactionAccountId,
-        categoryId: context.pendingExpense.categoryId,
-        memberId: nonInstallScopeMemberId,
-        paidByMemberId: budgetInfo.member.id,
+    const newTransaction = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(transactions)
+        .values({
+          budgetId: budgetInfo.budget.id,
+          accountId: transactionAccountId,
+          categoryId: context.pendingExpense!.categoryId,
+          memberId: nonInstallScopeMemberId,
+          paidByMemberId: budgetInfo.member.id,
+          type: "expense",
+          status: "cleared",
+          amount: context.pendingExpense!.amount,
+          description: capitalizedDescription,
+          date: getTodayNoonUTC(),
+          source: "whatsapp",
+        })
+        .returning();
+
+      await applyTransactionBalanceChange(tx, {
+        accountId: created.accountId,
         type: "expense",
-        status: "cleared",
-        amount: context.pendingExpense.amount,
-        description: capitalizedDescription,
-        date: getTodayNoonUTC(),
-        source: "whatsapp",
-      })
-      .returning();
+        amount: created.amount,
+      });
+
+      return created;
+    });
 
     transactionId = newTransaction.id;
 
@@ -403,23 +391,33 @@ export async function handleIncomeConfirmation(
       budgetInfo.member.id,
     );
 
-    const [newTransaction] = await db
-      .insert(transactions)
-      .values({
-        budgetId: budgetInfo.budget.id,
-        accountId: incomeAccountId,
-        incomeSourceId: context.pendingIncome.incomeSourceId,
-        memberId: incomeScopeMemberId,
-        paidByMemberId: budgetInfo.member.id,
+    const newTransaction = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(transactions)
+        .values({
+          budgetId: budgetInfo.budget.id,
+          accountId: incomeAccountId,
+          incomeSourceId: context.pendingIncome!.incomeSourceId,
+          memberId: incomeScopeMemberId,
+          paidByMemberId: budgetInfo.member.id,
+          type: "income",
+          status: "cleared",
+          amount: context.pendingIncome!.amount,
+          description:
+            capitalizedDescription || context.pendingIncome!.incomeSourceName,
+          date: getTodayNoonUTC(),
+          source: "whatsapp",
+        })
+        .returning();
+
+      await applyTransactionBalanceChange(tx, {
+        accountId: created.accountId,
         type: "income",
-        status: "cleared",
-        amount: context.pendingIncome.amount,
-        description:
-          capitalizedDescription || context.pendingIncome.incomeSourceName,
-        date: getTodayNoonUTC(),
-        source: "whatsapp",
-      })
-      .returning();
+        amount: created.amount,
+      });
+
+      return created;
+    });
 
     transactionId = newTransaction.id;
 

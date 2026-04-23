@@ -232,12 +232,12 @@ O ícone de lixeira no Planejamento não exclui a fonte — apenas "ignora" ela 
 
 ## CATEGORIAS
 
-As categorias organizam as despesas em 5 grupos fixos:
+As categorias organizam as despesas em 4 grupos globais fixos + grupos pessoais por membro:
 - Essencial (essential) — gastos fixos obrigatórios: moradia, contas, alimentação, transporte, saúde, educação
-- Estilo de vida (lifestyle) — gastos variáveis de qualidade de vida: restaurantes, roupas, streaming, academia
-- Prazeres (pleasures) — gastos pessoais de cada membro (independente, privado se quiser)
+- Estilo de vida (lifestyle) — gastos variáveis de qualidade de vida: restaurantes, roupas, streaming, academia, lazer, hobbies
 - Reservas (investments) — poupança e investimentos: fundo de emergência, previdência, reservas
 - Sonhos (goals) — objetivos com prazo: viagem, carro, casa, casamento
+- Gastos de [Nome] — grupo pessoal de cada membro (ex: "Gastos da Alison", "Gastos do Bruno"). Cada membro tem o seu próprio grupo com categorias independentes.
 
 ### Comportamento das categorias
 - Refill up (completar) — a cada mês, o valor volta ao planejado do zero. Ideal para gastos contínuos como alimentação.

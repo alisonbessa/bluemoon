@@ -21,7 +21,8 @@ import {
   plans,
   monthlyBudgetStatus,
 } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
+import { createPersonalGroupForMember } from "@/shared/lib/budget/personal-group";
 import { z } from "zod";
 
 const requestSchema = z.object({
@@ -116,19 +117,19 @@ export const POST = withSuperAdminAuthRequired(async (req, { session }) => {
       })
       .where(eq(users.id, user.id));
 
-    // Get all groups, seed if empty
-    let allGroups = await db.select().from(groups);
+    // Get global groups, seed if empty
+    let allGroups = await db.select().from(groups).where(isNull(groups.budgetId));
 
     if (allGroups.length === 0) {
       logger.info("[mock-data] Seeding groups...");
       for (const group of defaultGroups) {
         await db.insert(groups).values(group);
       }
-      allGroups = await db.select().from(groups);
+      allGroups = await db.select().from(groups).where(isNull(groups.budgetId));
       logger.info("Groups seeded", { count: allGroups.length });
     }
 
-    const groupMap = Object.fromEntries(allGroups.map((g) => [g.code, g.id]));
+    const groupMap = Object.fromEntries(allGroups.filter((g) => g.code).map((g) => [g.code!, g.id]));
     logger.info("Group map loaded", { groups: Object.keys(groupMap) });
 
     // Create budget
@@ -229,10 +230,6 @@ export const POST = withSuperAdminAuthRequired(async (req, { session }) => {
       { name: "Vestuário", icon: "👕", groupCode: "lifestyle", plannedAmount: 20000, behavior: "set_aside" as const },
       { name: "Pets", icon: "🐕", groupCode: "lifestyle", plannedAmount: 25000, behavior: "refill_up" as const },
 
-      // Personal expenses (one category per member)
-      { name: "Alison", icon: "🎮", groupCode: "pleasures", plannedAmount: 50000, behavior: "set_aside" as const, memberId: owner.id },
-      { name: "Parceiro(a)", icon: "💅", groupCode: "pleasures", plannedAmount: 50000, behavior: "set_aside" as const, memberId: partner.id },
-
       // Investments
       { name: "Reserva de Emergência", icon: "🛡️", groupCode: "investments", plannedAmount: 100000, behavior: "set_aside" as const },
       { name: "Aposentadoria", icon: "👴", groupCode: "investments", plannedAmount: 50000, behavior: "set_aside" as const },
@@ -250,11 +247,14 @@ export const POST = withSuperAdminAuthRequired(async (req, { session }) => {
           icon: cat.icon,
           plannedAmount: cat.plannedAmount,
           behavior: cat.behavior,
-          memberId: cat.memberId || null,
         })
         .returning();
       createdCategories[cat.name] = category.id;
     }
+
+    // Create personal groups for owner and partner
+    await createPersonalGroupForMember(db, { budgetId: budget.id, memberId: owner.id, memberName: owner.name, displayOrder: 10 });
+    await createPersonalGroupForMember(db, { budgetId: budget.id, memberId: partner.id, memberName: partner.name, displayOrder: 11 });
 
     // Create goals
     const goalsData = [

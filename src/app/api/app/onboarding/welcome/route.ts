@@ -5,7 +5,8 @@ import { db } from "@/db";
 const logger = createLogger("api:onboarding:welcome");
 import { users, budgets, budgetMembers, groups, categories, incomeSources, financialAccounts } from "@/db/schema";
 import { defaultGroups } from "@/db/schema/groups";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
+import { createPersonalGroupForMember } from "@/shared/lib/budget/personal-group";
 import { z } from "zod";
 import { capitalizeWords } from "@/shared/lib/utils";
 import {
@@ -111,10 +112,10 @@ export const POST = withAuthRequired(async (request, context) => {
         })
         .returning();
 
-      // Ensure groups exist (seed if needed) - groups are global, not per-budget
-      const existingGroups = await tx.select().from(groups);
+      // Ensure global groups exist (seeded once globally)
+      const existingGlobalGroups = await tx.select().from(groups).where(isNull(groups.budgetId));
 
-      if (existingGroups.length === 0) {
+      if (existingGlobalGroups.length === 0) {
         await tx.insert(groups).values(
           defaultGroups.map((g) => ({
             code: g.code,
@@ -126,10 +127,9 @@ export const POST = withAuthRequired(async (request, context) => {
         );
       }
 
-      // Get all groups for creating default categories
-      const allGroups = await tx.select().from(groups);
+      const allGlobalGroups = await tx.select().from(groups).where(isNull(groups.budgetId));
 
-      // Create default categories for the budget
+      // Create shared categories for the budget
       const categoryInserts: Array<{
         budgetId: string;
         groupId: string;
@@ -138,7 +138,7 @@ export const POST = withAuthRequired(async (request, context) => {
         behavior: "refill_up";
         plannedAmount: number;
       }> = DEFAULT_CATEGORIES.map((cat) => {
-        const group = allGroups.find((g) => g.code === cat.groupCode);
+        const group = allGlobalGroups.find((g) => g.code === cat.groupCode);
         return {
           budgetId: newBudget.id,
           groupId: group!.id,
@@ -149,23 +149,9 @@ export const POST = withAuthRequired(async (request, context) => {
         };
       });
 
-      // Add personal spending category in "Prazeres" group
-      const pleasuresGroup = allGroups.find((g) => g.code === "pleasures");
-      if (pleasuresGroup) {
-        const firstName = getFirstName(formattedName);
-        categoryInserts.push({
-          budgetId: newBudget.id,
-          groupId: pleasuresGroup.id,
-          name: `Gastos - ${firstName}`,
-          icon: "🎉",
-          behavior: "refill_up" as const,
-          plannedAmount: 0,
-        });
-      }
-
       await tx.insert(categories).values(categoryInserts);
 
-      // Create owner member (the user themselves)
+      // Create owner member first (needed for personal group creation)
       const [ownerMember] = await tx.insert(budgetMembers).values({
         budgetId: newBudget.id,
         userId: userId,
@@ -173,6 +159,13 @@ export const POST = withAuthRequired(async (request, context) => {
         type: "owner",
         color: MEMBER_COLORS[0],
       }).returning();
+
+      // Create personal group for the owner
+      await createPersonalGroupForMember(tx, {
+        budgetId: newBudget.id,
+        memberId: ownerMember.id,
+        memberName: formattedName,
+      });
 
       // Create default income sources
       await tx.insert(incomeSources).values([
@@ -237,12 +230,22 @@ export const POST = withAuthRequired(async (request, context) => {
               break;
           }
 
-          await tx.insert(budgetMembers).values({
+          const [householdMember] = await tx.insert(budgetMembers).values({
             budgetId: newBudget.id,
             name,
             type,
             color: MEMBER_COLORS[colorIndex % MEMBER_COLORS.length],
-          });
+          }).returning();
+
+          // Create personal group for members that can have personal expenses (not pets)
+          if (type !== "pet") {
+            await createPersonalGroupForMember(tx, {
+              budgetId: newBudget.id,
+              memberId: householdMember.id,
+              memberName: name,
+              displayOrder: 10 + colorIndex,
+            });
+          }
 
           colorIndex++;
         }

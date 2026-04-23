@@ -14,6 +14,7 @@ import type {
 import { matchIncomeSource, CONFIDENCE_THRESHOLDS } from "../gemini";
 import { markLogAsConfirmed } from "../ai-logger";
 import { getScopeFromIncomeSource } from "@/shared/lib/transactions/scope";
+import { applyTransactionBalanceChange } from "@/shared/lib/transactions/installments";
 import {
   findMatchingScheduledIncome,
   findScheduledIncomeByHint,
@@ -133,22 +134,32 @@ export async function handleIncomeIntent(
     const incomeScopeMemberId = getScopeFromIncomeSource(incomeSourceId, incomeSources, memberId);
 
     // Create new income transaction
-    const [newTransaction] = await db
-      .insert(transactions)
-      .values({
-        budgetId,
-        accountId,
-        incomeSourceId,
-        memberId: incomeScopeMemberId,
-        paidByMemberId: memberId,
+    const newTransaction = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(transactions)
+        .values({
+          budgetId,
+          accountId,
+          incomeSourceId,
+          memberId: incomeScopeMemberId,
+          paidByMemberId: memberId,
+          type: "income",
+          status: "cleared",
+          amount: data.amount,
+          description: capitalizedDescription || incomeSourceName,
+          date: data.date || getTodayNoonUTC(),
+          source: adapter.platform,
+        })
+        .returning();
+
+      await applyTransactionBalanceChange(tx, {
+        accountId: created.accountId,
         type: "income",
-        status: "cleared",
-        amount: data.amount,
-        description: capitalizedDescription || incomeSourceName,
-        date: data.date || getTodayNoonUTC(),
-        source: adapter.platform,
-      })
-      .returning();
+        amount: created.amount,
+      });
+
+      return created;
+    });
 
     await adapter.updateState(chatId, "IDLE", {
       lastTransactionId: newTransaction.id,

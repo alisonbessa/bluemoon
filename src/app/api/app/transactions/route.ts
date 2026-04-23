@@ -13,7 +13,7 @@ import {
   errorResponse,
   safePagination,
 } from "@/shared/lib/api/responses";
-import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
+import { createInstallmentTransactions } from "@/shared/lib/transactions/installments";
 import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
 import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
@@ -264,92 +264,26 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
 
   // Handle installments — all inside a single db.transaction() for atomicity (fix 1.2)
   if (isInstallment && totalInstallments && totalInstallments > 1) {
-    const installmentAmount = Math.round(amount / totalInstallments);
-
-    const isCreditCard = sourceAccount.type === "credit_card";
-
-    const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
-
-    // Wrap everything in a transaction for atomicity (fix 1.2)
-    const createdTransactions = await db.transaction(async (tx) => {
-      // Create parent transaction (first installment)
-      const [parentTransaction] = await tx
-        .insert(transactions)
-        .values({
-          budgetId,
-          accountId,
-          categoryId: type === "expense" ? categoryId : undefined,
-          incomeSourceId: type === "income" ? incomeSourceId : undefined,
-          toAccountId: type === "transfer" ? toAccountId : undefined,
-          memberId: scopeMemberId,
-          paidByMemberId,
-          type,
-          amount: installmentAmount,
-          description,
-          notes,
-          date: installmentDates[0],
-          isInstallment: true,
-          installmentNumber: 1,
-          totalInstallments,
-          source: "web",
-        })
-        .returning();
-
-      // PERFORMANCE: Batch insert remaining installments
-      const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => ({
+    const createdTransactions = await db.transaction(async (tx) =>
+      createInstallmentTransactions({
+        tx,
         budgetId,
         accountId,
-        categoryId: type === "expense" ? categoryId : undefined,
-        incomeSourceId: type === "income" ? incomeSourceId : undefined,
-        toAccountId: type === "transfer" ? toAccountId : undefined,
+        accountType: sourceAccount.type,
+        categoryId,
+        incomeSourceId,
+        toAccountId,
         memberId: scopeMemberId,
         paidByMemberId,
         type,
-        amount: installmentAmount,
+        totalAmount: amount,
+        totalInstallments,
         description,
         notes,
-        date: installmentDates[i + 1],
-        isInstallment: true,
-        installmentNumber: i + 2,
-        totalInstallments,
-        parentTransactionId: parentTransaction.id,
-        source: "web" as const,
-      }));
-
-      const remainingInstallments = installmentValues.length > 0
-        ? await tx.insert(transactions).values(installmentValues).returning()
-        : [];
-
-      // Atomic balance update — no read-then-write race (fix 1.1)
-      // Credit cards: debit total amount (all installments affect the credit limit)
-      // Other accounts: only the first installment affects balance now
-      const balanceAmount = isCreditCard ? amount : installmentAmount;
-      const balanceChange = type === "income" ? balanceAmount : -Math.abs(balanceAmount);
-
-      await tx
-        .update(financialAccounts)
-        .set({
-          balance: sql`${financialAccounts.balance} + ${balanceChange}`,
-          updatedAt: new Date(),
-        })
-        .where(eq(financialAccounts.id, accountId));
-
-      // Handle transfers in installments (fix 2.5)
-      if (type === "transfer" && toAccountId) {
-        // Credit cards: full amount credited to destination
-        // Other accounts: only first installment credited to destination
-        const destAmount = isCreditCard ? Math.abs(amount) : Math.abs(installmentAmount);
-        await tx
-          .update(financialAccounts)
-          .set({
-            balance: sql`${financialAccounts.balance} + ${destAmount}`,
-            updatedAt: new Date(),
-          })
-          .where(eq(financialAccounts.id, toAccountId));
-      }
-
-      return [parentTransaction, ...remainingInstallments];
-    });
+        firstDate: transactionDate,
+        source: "web",
+      })
+    );
 
     await recordAuditLog({
       userId: session.user.id,

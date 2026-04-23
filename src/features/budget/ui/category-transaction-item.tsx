@@ -20,6 +20,9 @@ export interface CategoryTransaction {
   status: 'pending' | 'cleared' | 'reconciled';
   date: string;
   account?: { id: string; name: string; icon?: string | null } | null;
+  isInstallment?: boolean | null;
+  installmentNumber?: number | null;
+  totalInstallments?: number | null;
 }
 
 interface CategoryTransactionItemProps {
@@ -48,6 +51,11 @@ export function CategoryTransactionItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="truncate">{tx.description || 'Sem descrição'}</span>
+          {tx.isInstallment && tx.installmentNumber && tx.totalInstallments && (
+            <span className="shrink-0 text-[10px] text-muted-foreground bg-muted px-1 py-0.5 rounded">
+              {tx.installmentNumber}/{tx.totalInstallments}
+            </span>
+          )}
           {isPending && (
             <span className="shrink-0 px-1 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 rounded uppercase tracking-wide">
               Pendente

@@ -12,6 +12,7 @@ import {
   errorResponse,
 } from "@/shared/lib/api/responses";
 import { recordAuditLog } from "@/shared/lib/security/audit-log";
+import { matureInstallmentsForCreditCardCycle } from "@/shared/lib/transactions/installments";
 
 // GET - Get a specific transaction
 export const GET = withAuthRequired(async (req, context) => {
@@ -77,6 +78,21 @@ export const PATCH = withAuthRequired(async (req, context) => {
   const validation = updateTransactionSchema.safeParse(body);
   if (!validation.success) {
     return validationError(validation.error);
+  }
+
+  // Editing the amount of a single installment (without applyToSeries) would
+  // leave the series total inconsistent with the account balance. Force the
+  // caller to update the whole series instead.
+  if (
+    !applyToSeries &&
+    existingTransaction.isInstallment &&
+    validation.data.amount !== undefined &&
+    validation.data.amount !== existingTransaction.amount
+  ) {
+    return errorResponse(
+      "Cannot change the amount of a single installment. Use applyToSeries=true to update all installments.",
+      400
+    );
   }
 
   // When categoryId changes, derive the new scope (memberId) from the category
@@ -275,6 +291,28 @@ export const PATCH = withAuthRequired(async (req, context) => {
             updatedAt: new Date(),
           })
           .where(eq(financialAccounts.id, existingTransaction.accountId));
+      }
+
+      // When a transfer to a credit card is confirmed, mature the card's
+      // pending installments in the closed cycle — same logic as auto-pay.
+      if (
+        !oldIsConfirmed &&
+        newIsConfirmed &&
+        existingTransaction.type === "transfer" &&
+        existingTransaction.toAccountId
+      ) {
+        const [destAccount] = await tx
+          .select({ type: financialAccounts.type, closingDay: financialAccounts.closingDay })
+          .from(financialAccounts)
+          .where(eq(financialAccounts.id, existingTransaction.toAccountId));
+
+        if (destAccount?.type === "credit_card" && destAccount.closingDay) {
+          await matureInstallmentsForCreditCardCycle(tx, {
+            creditCardAccountId: existingTransaction.toAccountId,
+            closingDay: destAccount.closingDay,
+            referenceDate: existingTransaction.date,
+          });
+        }
       }
     }
 

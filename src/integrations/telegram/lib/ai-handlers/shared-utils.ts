@@ -53,7 +53,8 @@ export function suggestGroupForCategory(hint: string): GroupCode {
     "seguro", "impostos", "banco", "tarifa",
   ];
 
-  // Lifestyle: dining out, clothing, subscriptions, gym, personal care
+  // Lifestyle: dining out, clothing, subscriptions, gym, personal care,
+  // entertainment and hobbies (formerly "pleasures")
   const lifestyleKeywords = [
     "restaurante", "almoco", "janta", "lanche", "delivery", "ifood", "uber eats",
     "roupa", "vestuario", "calcado", "sapato", "tenis",
@@ -61,10 +62,6 @@ export function suggestGroupForCategory(hint: string): GroupCode {
     "academia", "fitness", "esporte",
     "cabelo", "salao", "barbearia", "estetica", "cosmetico",
     "pet", "cachorro", "gato", "veterinario",
-  ];
-
-  // Pleasures: entertainment, hobbies, fun
-  const pleasuresKeywords = [
     "cinema", "teatro", "show", "evento", "festa",
     "bar", "cerveja", "bebida", "balada",
     "jogo", "game", "playstation", "xbox",
@@ -85,9 +82,6 @@ export function suggestGroupForCategory(hint: string): GroupCode {
   }
   if (lifestyleKeywords.some((kw) => normalized.includes(kw))) {
     return "lifestyle";
-  }
-  if (pleasuresKeywords.some((kw) => normalized.includes(kw))) {
-    return "pleasures";
   }
   if (investmentKeywords.some((kw) => normalized.includes(kw))) {
     return "investments";

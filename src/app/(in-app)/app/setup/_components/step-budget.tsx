@@ -24,7 +24,6 @@ interface StepBudgetProps {
 const GROUP_LABELS: Record<string, { label: string; color: string }> = {
   essential: { label: "Essencial", color: "bg-red-500" },
   lifestyle: { label: "Estilo de Vida", color: "bg-orange-500" },
-  pleasures: { label: "Gastos Pessoais", color: "bg-yellow-500" },
   investments: { label: "Investimentos", color: "bg-green-500" },
   goals: { label: "Metas", color: "bg-violet-500" },
 };
@@ -81,7 +80,7 @@ export function StepBudget({
     {} as Record<string, (CategoryWithAmount & { originalIndex: number })[]>
   );
 
-  const groupOrder = ["essential", "lifestyle", "pleasures", "investments", "goals"];
+  const groupOrder = ["essential", "lifestyle", "investments", "goals"];
 
   return (
     <div className="space-y-6">

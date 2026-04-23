@@ -9,7 +9,8 @@ import {
   financialAccounts,
   defaultGroups,
 } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
+import { createPersonalGroupForMember } from "@/shared/lib/budget/personal-group";
 import { z } from "zod";
 import { capitalizeWords } from "@/shared/lib/utils";
 import {
@@ -250,8 +251,8 @@ export const POST = withAuthRequired(async (req, context) => {
 
   const allMembers = [ownerMember, ...createdMembers];
 
-  // 4. Ensure groups exist
-  const existingGroups = await db.select().from(groups);
+  // 4. Ensure global groups exist
+  const existingGroups = await db.select().from(groups).where(isNull(groups.budgetId));
   if (existingGroups.length === 0) {
     await db.insert(groups).values(
       defaultGroups.map((g) => ({
@@ -264,7 +265,20 @@ export const POST = withAuthRequired(async (req, context) => {
     );
   }
 
-  const allGroups = await db.select().from(groups);
+  // Create personal groups for each human member
+  let personalGroupOrder = 10;
+  for (const member of allMembers) {
+    if (member.type !== "pet") {
+      await createPersonalGroupForMember(db, {
+        budgetId: newBudget.id,
+        memberId: member.id,
+        memberName: member.name,
+        displayOrder: personalGroupOrder++,
+      });
+    }
+  }
+
+  const allGroups = await db.select().from(groups).where(isNull(groups.budgetId));
   if (allGroups.length === 0) {
     return internalError("Grupos não encontrados. Por favor, execute o seed do banco de dados.");
   }
@@ -425,23 +439,6 @@ export const POST = withAuthRequired(async (req, context) => {
         groupId: groupByCode.essential.id,
         name: cat.name,
         icon: cat.icon,
-        behavior: "refill_up",
-        plannedAmount: 0,
-        displayOrder: displayOrder++,
-      });
-    }
-  }
-
-  // Personal spending categories - one per member (each person as a group)
-  for (const member of allMembers) {
-    if (member.type !== "pet") {
-      const firstName = member.name.split(" ")[0];
-      categoryInserts.push({
-        budgetId: newBudget.id,
-        groupId: groupByCode.pleasures.id,
-        memberId: member.id,
-        name: `Gastos - ${firstName}`,
-        icon: "🎉",
         behavior: "refill_up",
         plannedAmount: 0,
         displayOrder: displayOrder++,

@@ -2,10 +2,10 @@ import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
-import { categories, groups } from "@/db/schema";
-import { eq, and, inArray, isNull } from "drizzle-orm";
+import { categories, groups, budgets, budgetMembers } from "@/db/schema";
+import { eq, and, inArray, isNull, isNotNull } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
-import { getUserBudgetIds } from "@/shared/lib/api/permissions";
+import { getUserBudgetIds, getUserMemberIdInBudget } from "@/shared/lib/api/permissions";
 import {
   validationError,
   errorResponse,
@@ -28,10 +28,80 @@ export const GET = withAuthRequired(async (req, context) => {
     return successResponse({ categories: [], groups: [] });
   }
 
-  // Get all groups
-  const allGroups = await db.select().from(groups).orderBy(groups.displayOrder);
+  const targetBudgetIds = budgetId ? [budgetId] : budgetIds;
 
-  // Get categories with group info
+  // Validate access if specific budgetId requested
+  if (budgetId && !budgetIds.includes(budgetId)) {
+    return forbiddenError("Budget not found or access denied");
+  }
+
+  // Fetch global groups (shared across all budgets)
+  const globalGroups = await db
+    .select()
+    .from(groups)
+    .where(isNull(groups.budgetId))
+    .orderBy(groups.displayOrder);
+
+  // Fetch personal groups for the target budgets
+  const personalGroups = await db
+    .select({
+      group: groups,
+      memberName: budgetMembers.name,
+      memberColor: budgetMembers.color,
+    })
+    .from(groups)
+    .innerJoin(budgetMembers, eq(groups.memberId, budgetMembers.id))
+    .where(
+      and(
+        inArray(groups.budgetId, targetBudgetIds),
+        isNotNull(groups.memberId)
+      )
+    )
+    .orderBy(groups.displayOrder);
+
+  // Apply privacy filtering per budget — batch fetch to avoid N+1
+  // In "private" mode, each member only sees their own personal group
+  const budgetPrivacies = await db
+    .select({ id: budgets.id, privacyMode: budgets.privacyMode })
+    .from(budgets)
+    .where(inArray(budgets.id, targetBudgetIds));
+  const privacyMap = new Map(budgetPrivacies.map((b) => [b.id, b.privacyMode]));
+
+  // Batch-resolve current member IDs for budgets where privacy = "private"
+  const privateBudgetIds = budgetPrivacies
+    .filter((b) => b.privacyMode === "private")
+    .map((b) => b.id);
+
+  const memberIdMap = new Map<string, string | null>();
+  for (const budId of privateBudgetIds) {
+    memberIdMap.set(budId, await getUserMemberIdInBudget(session.user.id, budId));
+  }
+
+  const visiblePersonalGroupIds = new Set<string>();
+  for (const g of personalGroups) {
+    const budId = g.group.budgetId!;
+    if (privacyMap.get(budId) === "private") {
+      if (g.group.memberId === memberIdMap.get(budId)) {
+        visiblePersonalGroupIds.add(g.group.id);
+      }
+    } else {
+      visiblePersonalGroupIds.add(g.group.id);
+    }
+  }
+
+  const visiblePersonalGroups = personalGroups.filter((g) =>
+    visiblePersonalGroupIds.has(g.group.id)
+  );
+
+  // Build combined group list ordered by displayOrder
+  const allGroupsOrdered = [
+    ...globalGroups.map((g) => ({ ...g, memberName: null, memberColor: null })),
+    ...visiblePersonalGroups.map((g) => ({ ...g.group, memberName: g.memberName, memberColor: g.memberColor })),
+  ].sort((a, b) => a.displayOrder - b.displayOrder);
+
+  const allGroupIds = allGroupsOrdered.map((g) => g.id);
+
+  // Fetch categories belonging to visible groups
   const userCategories = await db
     .select({
       category: categories,
@@ -40,21 +110,16 @@ export const GET = withAuthRequired(async (req, context) => {
     .from(categories)
     .innerJoin(groups, eq(categories.groupId, groups.id))
     .where(
-      budgetId
-        ? and(
-            eq(categories.budgetId, budgetId),
-            inArray(categories.budgetId, budgetIds),
-            eq(categories.isArchived, false)
-          )
-        : and(
-            inArray(categories.budgetId, budgetIds),
-            eq(categories.isArchived, false)
-          )
+      and(
+        inArray(categories.budgetId, targetBudgetIds),
+        inArray(categories.groupId, allGroupIds),
+        eq(categories.isArchived, false)
+      )
     )
     .orderBy(groups.displayOrder, categories.displayOrder);
 
   // Group categories by group
-  const categoriesByGroup = allGroups.map((group) => ({
+  const categoriesByGroup = allGroupsOrdered.map((group) => ({
     ...group,
     categories: userCategories
       .filter((c) => c.group.id === group.id)
@@ -93,6 +158,20 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     return forbiddenError("Budget not found or access denied");
   }
 
+  // If creating in a personal group, inherit memberId from the group
+  const [targetGroup] = await db
+    .select({ memberId: groups.memberId, budgetId: groups.budgetId })
+    .from(groups)
+    .where(eq(groups.id, categoryData.groupId))
+    .limit(1);
+
+  if (!targetGroup) {
+    return errorResponse("Grupo não encontrado", 400, { code: ErrorCodes.VALIDATION_ERROR });
+  }
+
+  // Personal group: memberId is inherited from the group, not the request
+  const resolvedMemberId = targetGroup.memberId ?? categoryData.memberId ?? null;
+
   // Determine icon: use provided, or suggest if requested, or default
   let finalIcon = categoryData.icon;
   if (!finalIcon && suggestIcon) {
@@ -106,8 +185,8 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     .where(
       and(
         eq(categories.budgetId, budgetId),
-        categoryData.memberId
-          ? eq(categories.memberId, categoryData.memberId)
+        resolvedMemberId
+          ? eq(categories.memberId, resolvedMemberId)
           : isNull(categories.memberId),
         eq(categories.name, capitalizeWords(categoryData.name)),
         eq(categories.isArchived, false)
@@ -136,6 +215,7 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     .insert(categories)
     .values({
       ...categoryData,
+      memberId: resolvedMemberId,
       name: capitalizeWords(categoryData.name),
       icon: finalIcon,
       budgetId,

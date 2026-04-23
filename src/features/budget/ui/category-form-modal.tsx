@@ -7,7 +7,7 @@ import { IconPicker } from '@/shared/ui/icon-color-picker';
 
 interface Group {
   id: string;
-  code: string;
+  code: string | null;
   name: string;
   icon?: string | null;
 }

@@ -65,6 +65,23 @@ export function AuthForm({ className, callbackUrl, ...props }: AuthFormProps) {
     }
   }, [searchParams, handleImpersonation]);
 
+  // Surface Auth.js errors appended to the URL (e.g. ?error=OAuthAccountNotLinked)
+  // so users understand why a sign-in attempt bounced them back here.
+  React.useEffect(() => {
+    const authError = searchParams?.get("error");
+    if (!authError) return;
+    const messages: Record<string, string> = {
+      OAuthAccountNotLinked:
+        "Este email já está cadastrado com outro método de login. Entre pelo método original para vincular novas contas.",
+      AccessDenied: "Acesso negado. Verifique se o cadastro está habilitado.",
+      Verification: "O link de login expirou ou já foi usado. Solicite um novo abaixo.",
+      Configuration: "Erro de configuração de autenticação. Tente novamente em alguns minutos.",
+      CredentialsSignin: "Email ou senha inválidos.",
+      unauthorized: "Você não tem permissão para acessar essa área.",
+    };
+    toast.error(messages[authError] ?? "Falha ao entrar. Tente novamente.");
+  }, [searchParams]);
+
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {

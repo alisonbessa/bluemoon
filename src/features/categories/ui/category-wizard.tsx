@@ -62,16 +62,9 @@ const CATEGORY_SUGGESTIONS: GroupSuggestions[] = [
       { name: "Vestuário", icon: "👕", groupCode: "lifestyle", behavior: "refill_up" },
       { name: "Beleza", icon: "💅", groupCode: "lifestyle", behavior: "refill_up" },
       { name: "Pet", icon: "🐕", groupCode: "lifestyle", behavior: "refill_up" },
-    ],
-  },
-  {
-    code: "pleasures",
-    name: "Prazeres",
-    icon: "🎉",
-    categories: [
-      { name: "Lazer", icon: "🎬", groupCode: "pleasures", behavior: "refill_up" },
-      { name: "Hobbies", icon: "🎮", groupCode: "pleasures", behavior: "refill_up" },
-      { name: "Presentes", icon: "🎁", groupCode: "pleasures", behavior: "refill_up" },
+      { name: "Lazer", icon: "🎬", groupCode: "lifestyle", behavior: "refill_up" },
+      { name: "Hobbies", icon: "🎮", groupCode: "lifestyle", behavior: "refill_up" },
+      { name: "Presentes", icon: "🎁", groupCode: "lifestyle", behavior: "refill_up" },
     ],
   },
   {
@@ -91,7 +84,7 @@ interface CategoryWizardProps {
   onClose: () => void;
   onComplete: () => void;
   existingCategories?: string[]; // Names of existing categories to pre-check
-  groups: Array<{ id: string; code: string }>;
+  groups: Array<{ id: string; code: string | null }>;
   budgetId: string;
 }
 

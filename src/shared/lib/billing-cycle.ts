@@ -139,14 +139,6 @@ export function calculateInstallmentDates(
 }
 
 /**
- * Get the first installment date for a credit card purchase,
- * taking the billing cycle into account.
- *
- * @param purchaseDate - When the purchase was made
- * @param closingDay - Credit card closing day
- * @returns The date to assign to the first installment
- */
-/**
  * Get the date range for the closed bill (fatura fechada) — the one ready to pay.
  *
  * If today > closingDay: the current month's cycle already closed.

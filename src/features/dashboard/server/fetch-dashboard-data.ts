@@ -48,7 +48,7 @@ export interface DashboardDataResult {
     icon: string | null;
     targetDate: string;
     allocated: number;
-    group: { id: string; name: string; code: string };
+    group: { id: string; name: string; code: string | null };
   }>;
   goals: DashboardGoal[];
   stats: {

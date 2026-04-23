@@ -1,7 +1,8 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { invites, budgetMembers, groups, categories, users, plans } from "@/db/schema";
+import { invites, budgetMembers, users, plans } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { createPersonalGroupForMember } from "@/shared/lib/budget/personal-group";
 import { z } from "zod";
 import { capitalizeWords } from "@/shared/lib/utils";
 import {
@@ -158,24 +159,12 @@ export const POST = withAuthRequired(async (req, context) => {
       .where(eq(users.id, session.user.id));
   }
 
-  // Create a "Prazeres" category for the new partner
-  const pleasuresGroup = await db
-    .select()
-    .from(groups)
-    .where(eq(groups.code, "pleasures"))
-    .limit(1);
-
-  if (pleasuresGroup.length > 0) {
-    await db.insert(categories).values({
-      budgetId: invite.budgetId,
-      groupId: pleasuresGroup[0].id,
-      memberId: newMember.id,
-      name: `Prazeres - ${newMember.name}`,
-      icon: "🎉",
-      behavior: "refill_up",
-      plannedAmount: 0,
-    });
-  }
+  // Create a personal group (and starter category) for the new partner
+  await createPersonalGroupForMember(db, {
+    budgetId: invite.budgetId,
+    memberId: newMember.id,
+    memberName: newMember.name,
+  });
 
   // Update invite status
   await db

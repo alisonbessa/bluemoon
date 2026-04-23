@@ -16,8 +16,12 @@ import {
 import { markLogAsConfirmed } from "@/integrations/messaging/lib/ai-logger";
 import { getTodayNoonUTC, formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
-import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
+import {
+  distributeInstallmentAmounts,
+  createInstallmentTransactions,
+  applyTransactionBalanceChange,
+} from "@/shared/lib/transactions/installments";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { getAccountIcon, getAccountTypeName, formatAccountDisplay } from "@/integrations/messaging/lib/ai-handlers/account-utils";
 import { matchCategory } from "@/integrations/messaging/lib/gemini";
@@ -65,9 +69,10 @@ export async function handleCategorySelection(
     context.pendingExpense.totalInstallments &&
     context.pendingExpense.totalInstallments > 1
   ) {
-    const installmentAmount = Math.round(
-      context.pendingExpense.amount / context.pendingExpense.totalInstallments
-    );
+    const installmentAmount = distributeInstallmentAmounts(
+      context.pendingExpense.amount,
+      context.pendingExpense.totalInstallments
+    )[0];
     message += `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n`;
     message += `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(context.pendingExpense.totalInstallments)}\n`;
   } else {
@@ -143,9 +148,10 @@ export async function handleAccountSelection(
     context.pendingExpense.totalInstallments &&
     context.pendingExpense.totalInstallments > 1
   ) {
-    const installmentAmount = Math.round(
-      context.pendingExpense.amount / context.pendingExpense.totalInstallments
-    );
+    const installmentAmount = distributeInstallmentAmounts(
+      context.pendingExpense.amount,
+      context.pendingExpense.totalInstallments
+    )[0];
     valueText =
       `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
       `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(context.pendingExpense.totalInstallments)}\n`;
@@ -463,12 +469,11 @@ export async function handleGroupSelection(
     context.pendingExpense.totalInstallments > 1
   ) {
     const totalInstallments = context.pendingExpense.totalInstallments;
-    const installmentAmount = Math.round(
-      context.pendingExpense.amount / totalInstallments
+    const installmentAmounts = distributeInstallmentAmounts(
+      context.pendingExpense.amount,
+      totalInstallments
     );
     const transactionDate = getTodayNoonUTC();
-
-    const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
 
     // Derive scope from the newly created category
     const scopeMemberId = getScopeFromCategory(
@@ -477,52 +482,27 @@ export async function handleGroupSelection(
       budgetInfo.member.id,
     );
 
-    // Create parent transaction (first installment)
-    const [parentTransaction] = await db
-      .insert(transactions)
-      .values({
+    const accountType = budgetInfo.accounts.find(a => a.id === transactionAccountId)?.type
+      ?? budgetInfo.defaultAccount!.type;
+
+    const [parentTransaction] = await db.transaction(async (tx) =>
+      createInstallmentTransactions({
+        tx,
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
+        accountType,
         categoryId: newCategory.id,
         memberId: scopeMemberId,
         paidByMemberId: budgetInfo.member.id,
         type: "expense",
-        status: "cleared",
-        amount: installmentAmount,
-        description: capitalizedDescription,
-        date: installmentDates[0],
-        isInstallment: true,
-        installmentNumber: 1,
+        totalAmount: context.pendingExpense!.amount,
         totalInstallments,
+        description: capitalizedDescription,
+        firstDate: transactionDate,
         source: "whatsapp",
-      })
-      .returning();
-
-    // Batch insert remaining installments
-    const installmentValues = Array.from(
-      { length: totalInstallments - 1 },
-      (_, i) => ({
-        budgetId: budgetInfo.budget.id,
-        accountId: transactionAccountId,
-        categoryId: newCategory.id,
-        memberId: scopeMemberId,
-        paidByMemberId: budgetInfo.member.id,
-        type: "expense" as const,
-        status: "cleared" as const,
-        amount: installmentAmount,
-        description: capitalizedDescription,
-        date: installmentDates[i + 1],
-        isInstallment: true,
-        installmentNumber: i + 2,
-        totalInstallments,
-        parentTransactionId: parentTransaction.id,
-        source: "whatsapp" as const,
+        status: "cleared",
       })
     );
-
-    if (installmentValues.length > 0) {
-      await db.insert(transactions).values(installmentValues);
-    }
 
     transactionId = parentTransaction.id;
 
@@ -550,7 +530,7 @@ export async function handleGroupSelection(
         `Nova categoria: *${categoryName}*\n` +
         `Grupo: ${group?.name || "---"}\n\n` +
         `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
-        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
+        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmounts[0])}\n` +
         (context.pendingExpense.accountName
           ? `${formatAccountDisplay(context.pendingExpense.accountName, context.pendingExpense.accountType)}\n`
           : "") +
@@ -569,22 +549,32 @@ export async function handleGroupSelection(
     );
 
     // Non-installment transaction
-    const [newTransaction] = await db
-      .insert(transactions)
-      .values({
-        budgetId: budgetInfo.budget.id,
-        accountId: transactionAccountId,
-        categoryId: newCategory.id,
-        memberId: nonInstallScopeMemberId,
-        paidByMemberId: budgetInfo.member.id,
+    const newTransaction = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(transactions)
+        .values({
+          budgetId: budgetInfo.budget.id,
+          accountId: transactionAccountId,
+          categoryId: newCategory.id,
+          memberId: nonInstallScopeMemberId,
+          paidByMemberId: budgetInfo.member.id,
+          type: "expense",
+          status: "cleared",
+          amount: context.pendingExpense!.amount,
+          description: capitalizedDescription,
+          date: getTodayNoonUTC(),
+          source: "whatsapp",
+        })
+        .returning();
+
+      await applyTransactionBalanceChange(tx, {
+        accountId: created.accountId,
         type: "expense",
-        status: "cleared",
-        amount: context.pendingExpense.amount,
-        description: capitalizedDescription,
-        date: getTodayNoonUTC(),
-        source: "whatsapp",
-      })
-      .returning();
+        amount: created.amount,
+      });
+
+      return created;
+    });
 
     transactionId = newTransaction.id;
 

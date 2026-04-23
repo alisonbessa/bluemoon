@@ -24,9 +24,13 @@ import {
 import { getTodayNoonUTC, formatInstallmentMonths, getUndoHint } from "../utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { formatCurrency } from "@/shared/lib/formatters";
-import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { getVisibleCategories, formatCategoryName, suggestGroupForCategory } from "./category-utils";
 import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
+import {
+  distributeInstallmentAmounts,
+  createInstallmentTransactions,
+  applyTransactionBalanceChange,
+} from "@/shared/lib/transactions/installments";
 import {
   matchAccount,
   filterAccountsByHint,
@@ -197,54 +201,29 @@ export async function handleExpenseIntent(
 
     // Handle installments
     if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
-      const installmentAmount = Math.round(data.amount / data.totalInstallments);
+      const installmentAmounts = distributeInstallmentAmounts(data.amount, data.totalInstallments);
       const transactionDate = data.date || getTodayNoonUTC();
 
-      const installmentDates = calculateInstallmentDates(transactionDate, data.totalInstallments);
+      const resolvedAccountType = accountType ?? accounts.find(a => a.id === accountId)?.type ?? "checking";
 
-      // Create parent transaction (first installment)
-      const [parentTransaction] = await db
-        .insert(transactions)
-        .values({
+      const [parentTransaction] = await db.transaction(async (tx) =>
+        createInstallmentTransactions({
+          tx,
           budgetId,
           accountId,
+          accountType: resolvedAccountType,
           categoryId,
           memberId: scopeMemberId,
           paidByMemberId: memberId,
           type: "expense",
-          status: "cleared",
-          amount: installmentAmount,
+          totalAmount: data.amount,
+          totalInstallments: data.totalInstallments!,
           description: capitalizedDescription,
-          date: installmentDates[0],
-          isInstallment: true,
-          installmentNumber: 1,
-          totalInstallments: data.totalInstallments,
+          firstDate: transactionDate,
           source: adapter.platform,
+          status: "cleared",
         })
-        .returning();
-
-      // Batch insert remaining installments
-      const installmentValues = Array.from({ length: data.totalInstallments - 1 }, (_, i) => ({
-        budgetId,
-        accountId,
-        categoryId,
-        memberId: scopeMemberId,
-        paidByMemberId: memberId,
-        type: "expense" as const,
-        status: "cleared" as const,
-        amount: installmentAmount,
-        description: capitalizedDescription,
-        date: installmentDates[i + 1],
-        isInstallment: true,
-        installmentNumber: i + 2,
-        totalInstallments: data.totalInstallments,
-        parentTransactionId: parentTransaction.id,
-        source: adapter.platform as "telegram" | "whatsapp",
-      }));
-
-      if (installmentValues.length > 0) {
-        await db.insert(transactions).values(installmentValues);
-      }
+      );
 
       await adapter.updateState(chatId, "IDLE", {
         lastTransactionId: parentTransaction.id,
@@ -257,7 +236,7 @@ export async function handleExpenseIntent(
         `✅ <b>Compra parcelada registrada!</b>\n\n` +
           `${categoryIcon || "📁"} ${categoryName}\n` +
           `Valor total: ${formatCurrency(data.amount)}\n` +
-          `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
+          `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmounts[0])}\n` +
           (accountName ? `${formatAccountDisplay(accountName, accountType)}\n` : "") +
           (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
           `${getUndoHint(adapter.platform)}`
@@ -266,22 +245,32 @@ export async function handleExpenseIntent(
     }
 
     // Create new transaction (non-installment)
-    const [newTransaction] = await db
-      .insert(transactions)
-      .values({
-        budgetId,
-        accountId,
-        categoryId,
-        memberId: scopeMemberId,
-        paidByMemberId: memberId,
+    const newTransaction = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(transactions)
+        .values({
+          budgetId,
+          accountId,
+          categoryId,
+          memberId: scopeMemberId,
+          paidByMemberId: memberId,
+          type: "expense",
+          status: "cleared",
+          amount: data.amount,
+          description: capitalizedDescription,
+          date: data.date || getTodayNoonUTC(),
+          source: adapter.platform,
+        })
+        .returning();
+
+      await applyTransactionBalanceChange(tx, {
+        accountId: created.accountId,
         type: "expense",
-        status: "cleared",
-        amount: data.amount,
-        description: capitalizedDescription,
-        date: data.date || getTodayNoonUTC(),
-        source: adapter.platform,
-      })
-      .returning();
+        amount: created.amount,
+      });
+
+      return created;
+    });
 
     await adapter.updateState(chatId, "IDLE", {
       lastTransactionId: newTransaction.id,
@@ -309,7 +298,7 @@ export async function handleExpenseIntent(
 
     // Show installment info if applicable
     if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
-      const installmentAmount = Math.round(data.amount / data.totalInstallments);
+      const installmentAmount = distributeInstallmentAmounts(data.amount, data.totalInstallments)[0];
       const monthsText = formatInstallmentMonths(data.totalInstallments);
       message += `Valor total: ${formatCurrency(data.amount)}\n`;
       message += `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)} ${monthsText}\n`;
@@ -363,7 +352,7 @@ export async function handleExpenseIntent(
 
     let valueText = `Valor: ${formatCurrency(data.amount)}\n`;
     if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
-      const installmentAmount = Math.round(data.amount / data.totalInstallments);
+      const installmentAmount = distributeInstallmentAmounts(data.amount, data.totalInstallments)[0];
       valueText = `Valor total: ${formatCurrency(data.amount)}\n` +
         `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
     }
@@ -402,7 +391,7 @@ export async function handleExpenseIntent(
   // LOW CONFIDENCE or no category: Ask for account first (if not specified), then category
   let valueText = `Valor: ${formatCurrency(data.amount)}\n`;
   if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
-    const installmentAmount = Math.round(data.amount / data.totalInstallments);
+    const installmentAmount = distributeInstallmentAmounts(data.amount, data.totalInstallments)[0];
     const monthsText = formatInstallmentMonths(data.totalInstallments);
     valueText = `Valor total: ${formatCurrency(data.amount)}\n` +
       `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)} ${monthsText}\n`;

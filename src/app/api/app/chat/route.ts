@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { transactions, financialAccounts, categories, chatLogs } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
+import { distributeInstallmentAmounts } from "@/shared/lib/transactions/installments";
 import { z } from "zod";
 import {
   successResponse,
@@ -693,7 +694,7 @@ async function confirmExpense(data: Record<string, unknown>, memberId: string, b
     }
 
     if (isInstallment && totalInstallments && totalInstallments > 1) {
-      const installmentAmount = Math.round(amount / totalInstallments);
+      const installmentAmounts = distributeInstallmentAmounts(amount, totalInstallments);
       const isCreditCard = sourceAccount.type === "credit_card";
 
       const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
@@ -708,7 +709,7 @@ async function confirmExpense(data: Record<string, unknown>, memberId: string, b
             memberId,
             type: "expense",
             status: "cleared",
-            amount: installmentAmount,
+            amount: installmentAmounts[0],
             description,
             date: installmentDates[0],
             isInstallment: true,
@@ -719,14 +720,14 @@ async function confirmExpense(data: Record<string, unknown>, memberId: string, b
           })
           .returning();
 
-        const children = Array.from({ length: totalInstallments - 1 }, (_, i) => ({
+        const children = installmentAmounts.slice(1).map((childAmount, i) => ({
           budgetId,
           accountId,
           categoryId,
           memberId,
           type: "expense" as const,
           status: "pending" as const,
-          amount: installmentAmount,
+          amount: childAmount,
           description,
           date: installmentDates[i + 1],
           isInstallment: true,
@@ -742,7 +743,7 @@ async function confirmExpense(data: Record<string, unknown>, memberId: string, b
         }
 
         // Credit cards: deduct full amount from limit; others: deduct only first installment
-        const balanceAmount = isCreditCard ? amount : installmentAmount;
+        const balanceAmount = isCreditCard ? amount : installmentAmounts[0];
         await tx
           .update(financialAccounts)
           .set({ balance: sql`${financialAccounts.balance} - ${balanceAmount}`, updatedAt: new Date() })
@@ -756,7 +757,7 @@ async function confirmExpense(data: Record<string, unknown>, memberId: string, b
       return successResponse({
         messages: [{
           content: `Gasto parcelado registrado!\n\n` +
-            `Valor: ${formatCurrency(installmentAmount)}/mês (${totalInstallments}x)\n` +
+            `Valor: ${formatCurrency(installmentAmounts[0])}/mês (${totalInstallments}x)\n` +
             (data.description ? `Descrição: ${data.description}\n` : "") +
             (data.categoryName ? `Categoria: ${data.categoryName}\n` : "") +
             (data.accountName ? `Conta: ${data.accountName}` : ""),

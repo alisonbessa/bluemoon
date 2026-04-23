@@ -24,7 +24,7 @@ interface UseCategoryFormReturn {
   // Create mode
   isCreateOpen: boolean;
   createGroupId: string | null;
-  openCreate: (groupId: string, groupCode: string) => void;
+  openCreate: (groupId: string, groupCode: string | null) => void;
   closeCreate: () => void;
 
   // Edit mode
@@ -66,13 +66,12 @@ interface UseCategoryFormReturn {
   isDeleting: boolean;
 }
 
-// Default behaviors by group code
+// Default behaviors by group code (personal groups with code=null use 'refill_up')
 const GROUP_DEFAULT_BEHAVIORS: Record<string, CategoryBehavior> = {
   essential: 'refill_up',
-  lifestyle: 'set_aside',
-  pleasures: 'set_aside',
-  goals: 'set_aside',
+  lifestyle: 'refill_up',
   investments: 'set_aside',
+  goals: 'set_aside',
 };
 
 /**
@@ -107,12 +106,12 @@ export function useCategoryForm({
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Open create modal
-  const openCreate = useCallback((groupId: string, groupCode: string) => {
+  const openCreate = useCallback((groupId: string, groupCode: string | null) => {
     setCreateGroupId(groupId);
     setCreateName('');
     setCreateIcon('');
     setCreateIconMode('recent');
-    const defaultBehavior = GROUP_DEFAULT_BEHAVIORS[groupCode] || 'refill_up';
+    const defaultBehavior = (groupCode ? GROUP_DEFAULT_BEHAVIORS[groupCode] : null) || 'refill_up';
     setCreateBehavior(defaultBehavior);
   }, []);
 

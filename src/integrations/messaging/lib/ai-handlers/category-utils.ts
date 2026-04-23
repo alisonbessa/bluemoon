@@ -6,7 +6,8 @@ import type { UserContext } from "../types";
 import type { GroupCode } from "@/db/schema/groups";
 
 /**
- * Get categories visible to this user (filters out other member's personal categories when private)
+ * Get categories visible to this user.
+ * In "private" mode, hides other members' personal categories AND personal groups.
  */
 export function getVisibleCategories(userContext: UserContext): UserContext["categories"] {
   const { privacyMode, memberId, categories } = userContext;
@@ -28,13 +29,19 @@ export function formatCategoryName(hint: string): string {
 }
 
 /**
- * Suggest a group code based on the category hint
+ * Suggest a group code based on the category hint.
+ * Personal groups no longer have a fixed code — they are selected by the AI
+ * handler using the member's personal group ID directly.
+ * This function only returns global group codes.
+ *
+ * Preference order (per product decision): lifestyle > essential > investments
+ * Entertainment/fun keywords previously mapped to "pleasures" now map to "lifestyle".
  */
 export function suggestGroupForCategory(hint: string): GroupCode {
   const normalized = hint
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replace(/[̀-ͯ]/g, "");
 
   // Essential: bills, housing, groceries, health, education, transport
   const essentialKeywords = [
@@ -47,18 +54,21 @@ export function suggestGroupForCategory(hint: string): GroupCode {
     "seguro", "impostos", "banco", "tarifa",
   ];
 
-  // Lifestyle: dining out, clothing, subscriptions, gym, personal care
+  // Lifestyle: dining out, clothing, subscriptions, gym, personal care,
+  // entertainment and hobbies (formerly "pleasures")
   const lifestyleKeywords = [
+    // dining & food out
     "restaurante", "almoco", "janta", "lanche", "delivery", "ifood", "uber eats",
+    // clothing & beauty
     "roupa", "vestuario", "calcado", "sapato", "tenis",
-    "netflix", "spotify", "streaming", "assinatura", "amazon",
-    "academia", "fitness", "esporte",
     "cabelo", "salao", "barbearia", "estetica", "cosmetico",
+    // subscriptions & streaming
+    "netflix", "spotify", "streaming", "assinatura", "amazon",
+    // fitness
+    "academia", "fitness", "esporte",
+    // pets
     "pet", "cachorro", "gato", "veterinario",
-  ];
-
-  // Pleasures: entertainment, hobbies, fun
-  const pleasuresKeywords = [
+    // entertainment & hobbies (formerly pleasures)
     "cinema", "teatro", "show", "evento", "festa",
     "bar", "cerveja", "bebida", "balada",
     "jogo", "game", "playstation", "xbox",
@@ -73,15 +83,11 @@ export function suggestGroupForCategory(hint: string): GroupCode {
     "cdb", "lci", "lca", "fundo",
   ];
 
-  // Check each group
   if (essentialKeywords.some((kw) => normalized.includes(kw))) {
     return "essential";
   }
   if (lifestyleKeywords.some((kw) => normalized.includes(kw))) {
     return "lifestyle";
-  }
-  if (pleasuresKeywords.some((kw) => normalized.includes(kw))) {
-    return "pleasures";
   }
   if (investmentKeywords.some((kw) => normalized.includes(kw))) {
     return "investments";

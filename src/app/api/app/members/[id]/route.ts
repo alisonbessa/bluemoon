@@ -1,7 +1,8 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { budgetMembers, categories } from "@/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { budgetMembers, groups } from "@/db/schema";
+import { eq, and, inArray, isNotNull } from "drizzle-orm";
+import { getFirstName } from "@/shared/lib/utils";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetMemberships } from "@/shared/lib/api/permissions";
 import {
@@ -99,26 +100,18 @@ export const PATCH = withAuthRequired(async (req, context) => {
     .where(eq(budgetMembers.id, memberId))
     .returning();
 
-  // Update the related "Prazeres" category if monthlyPleasureBudget changed
-  if (validation.data.monthlyPleasureBudget !== undefined) {
-    await db
-      .update(categories)
-      .set({
-        plannedAmount: validation.data.monthlyPleasureBudget,
-        updatedAt: new Date(),
-      })
-      .where(eq(categories.memberId, memberId));
-  }
-
-  // Update category name if member name changed
+  // When member name changes, keep the personal group name in sync
   if (capitalizedName) {
+    const firstName = getFirstName(capitalizedName) ?? capitalizedName;
     await db
-      .update(categories)
-      .set({
-        name: `Prazeres - ${capitalizedName}`,
-        updatedAt: new Date(),
-      })
-      .where(eq(categories.memberId, memberId));
+      .update(groups)
+      .set({ name: `Gastos de ${firstName}` })
+      .where(
+        and(
+          eq(groups.memberId, memberId),
+          isNotNull(groups.budgetId)
+        )
+      );
   }
 
   await recordAuditLog({

@@ -74,7 +74,7 @@ export type { Goal } from '@/features/goals';
 export const GROUP_COLORS: Record<string, string> = {
   essential: '#ef4444', // red-500
   lifestyle: '#f97316', // orange-500
-  pleasures: '#eab308', // yellow-500
-  goals: '#8b5cf6', // violet-500
   investments: '#22c55e', // green-500
+  goals: '#8b5cf6', // violet-500
+  // Personal groups (code=null) use the member's color instead
 };
