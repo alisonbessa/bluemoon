@@ -6,7 +6,7 @@ import { Toaster } from "sonner";
 import { Suspense } from "react";
 import { Next13ProgressBar } from "next13-progressbar";
 import { SWRConfig } from "swr";
-import { fetcher } from "@/shared/lib/swr/fetcher";
+import { fetcher, isFetchError } from "@/shared/lib/swr/fetcher";
 import { ThemeProvider } from "next-themes";
 
 function Providers({ children }: { children: React.ReactNode }) {
@@ -28,6 +28,13 @@ function Providers({ children }: { children: React.ReactNode }) {
               keepPreviousData: true, // mantem dados anteriores durante revalidacao (evita flash de loading)
               errorRetryCount: 3,
               shouldRetryOnError: true,
+              onErrorRetry: (error, _key, config, revalidate, { retryCount }) => {
+                // Auth/permission errors won't recover by retrying — stop immediately
+                // so the UI (e.g. AppShell) reacts without extra delay.
+                if (isFetchError(error) && [401, 403, 404].includes(error.status)) return;
+                if (retryCount >= (config.errorRetryCount ?? 3)) return;
+                setTimeout(() => revalidate({ retryCount }), 5000);
+              },
             }}
           >
             <Next13ProgressBar

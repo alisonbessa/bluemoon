@@ -44,6 +44,10 @@ const emailProvider: EmailConfig = {
   id: "email",
   type: "email",
   name: "Email",
+  // Shorter than the 24h default: narrows the window where email clients with
+  // link prefetching (Outlook SafeLinks, antivirus, etc.) can silently consume
+  // the token before the user clicks.
+  maxAge: 30 * 60,
   async sendVerificationRequest(params) {
     if (process.env.NODE_ENV === "development") {
       logger.debug(
@@ -73,6 +77,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   pages: {
     signIn: "/sign-in",
     signOut: "/sign-out",
+    // Route Auth.js errors (incl. expired/reused magic links) back to /sign-in,
+    // where AuthForm translates the ?error=... query into a user-facing toast.
+    error: "/sign-in",
   },
   session: {
     strategy: "jwt",
