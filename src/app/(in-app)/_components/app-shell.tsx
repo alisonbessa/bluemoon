@@ -174,7 +174,8 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   }
 
   const needsOnboarding = !user.onboardingCompletedAt
-    && (hasActiveSubscription || hasExemptRole || hasPartnerAccess)
+    && !hasPartnerAccess
+    && (hasActiveSubscription || hasExemptRole)
     && !isOnSetupPage && !isOnChoosePlanPage;
   if (needsOnboarding) {
     return <DashboardSkeleton />;
