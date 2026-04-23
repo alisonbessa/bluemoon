@@ -21,6 +21,7 @@ const AnnouncementMounter = dynamic(
   { ssr: false }
 );
 import { useRouter, usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useCurrentUser, useCurrentPlan } from "@/shared/hooks/use-current-user";
 import { useSubscriptionGate } from "@/shared/hooks/use-subscription-gate";
 import { SubscriptionExpiredBanner } from "@/shared/layout/subscription-expired-banner";
@@ -100,9 +101,10 @@ function AppShellContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    // Not authenticated — redirect to home (safety net, proxy.ts handles at edge)
+    // JWT can outlive the DB record (e.g. user deleted after a deploy/migration).
+    // Clear the stale cookie so the next /sign-in visit isn't auto-redirected back here.
     if (!user || error) {
-      router.replace("/");
+      signOut({ callbackUrl: "/" });
       return;
     }
 

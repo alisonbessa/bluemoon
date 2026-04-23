@@ -146,8 +146,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            // SECURITY: Disabled to prevent account takeover via email linking
-            allowDangerousEmailAccountLinking: false,
+            // Google always returns verified emails, so linking to an existing
+            // user (e.g. one that signed up via magic link) is safe here and
+            // avoids the OAuthAccountNotLinked dead-end.
+            allowDangerousEmailAccountLinking: true,
           }),
         ]
       : []),
