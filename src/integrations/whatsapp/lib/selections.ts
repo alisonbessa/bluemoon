@@ -18,6 +18,7 @@ import { getTodayNoonUTC, formatInstallmentMonths } from "@/integrations/messagi
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
+import { distributeInstallmentAmounts } from "@/shared/lib/transactions/installments";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { getAccountIcon, getAccountTypeName, formatAccountDisplay } from "@/integrations/messaging/lib/ai-handlers/account-utils";
 import { matchCategory } from "@/integrations/messaging/lib/gemini";
@@ -65,9 +66,10 @@ export async function handleCategorySelection(
     context.pendingExpense.totalInstallments &&
     context.pendingExpense.totalInstallments > 1
   ) {
-    const installmentAmount = Math.round(
-      context.pendingExpense.amount / context.pendingExpense.totalInstallments
-    );
+    const installmentAmount = distributeInstallmentAmounts(
+      context.pendingExpense.amount,
+      context.pendingExpense.totalInstallments
+    )[0];
     message += `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n`;
     message += `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(context.pendingExpense.totalInstallments)}\n`;
   } else {
@@ -143,9 +145,10 @@ export async function handleAccountSelection(
     context.pendingExpense.totalInstallments &&
     context.pendingExpense.totalInstallments > 1
   ) {
-    const installmentAmount = Math.round(
-      context.pendingExpense.amount / context.pendingExpense.totalInstallments
-    );
+    const installmentAmount = distributeInstallmentAmounts(
+      context.pendingExpense.amount,
+      context.pendingExpense.totalInstallments
+    )[0];
     valueText =
       `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
       `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(context.pendingExpense.totalInstallments)}\n`;
@@ -463,8 +466,9 @@ export async function handleGroupSelection(
     context.pendingExpense.totalInstallments > 1
   ) {
     const totalInstallments = context.pendingExpense.totalInstallments;
-    const installmentAmount = Math.round(
-      context.pendingExpense.amount / totalInstallments
+    const installmentAmounts = distributeInstallmentAmounts(
+      context.pendingExpense.amount,
+      totalInstallments
     );
     const transactionDate = getTodayNoonUTC();
 
@@ -488,7 +492,7 @@ export async function handleGroupSelection(
         paidByMemberId: budgetInfo.member.id,
         type: "expense",
         status: "cleared",
-        amount: installmentAmount,
+        amount: installmentAmounts[0],
         description: capitalizedDescription,
         date: installmentDates[0],
         isInstallment: true,
@@ -499,26 +503,23 @@ export async function handleGroupSelection(
       .returning();
 
     // Batch insert remaining installments
-    const installmentValues = Array.from(
-      { length: totalInstallments - 1 },
-      (_, i) => ({
-        budgetId: budgetInfo.budget.id,
-        accountId: transactionAccountId,
-        categoryId: newCategory.id,
-        memberId: scopeMemberId,
-        paidByMemberId: budgetInfo.member.id,
-        type: "expense" as const,
-        status: "cleared" as const,
-        amount: installmentAmount,
-        description: capitalizedDescription,
-        date: installmentDates[i + 1],
-        isInstallment: true,
-        installmentNumber: i + 2,
-        totalInstallments,
-        parentTransactionId: parentTransaction.id,
-        source: "whatsapp" as const,
-      })
-    );
+    const installmentValues = installmentAmounts.slice(1).map((amount, i) => ({
+      budgetId: budgetInfo.budget.id,
+      accountId: transactionAccountId,
+      categoryId: newCategory.id,
+      memberId: scopeMemberId,
+      paidByMemberId: budgetInfo.member.id,
+      type: "expense" as const,
+      status: "cleared" as const,
+      amount,
+      description: capitalizedDescription,
+      date: installmentDates[i + 1],
+      isInstallment: true,
+      installmentNumber: i + 2,
+      totalInstallments,
+      parentTransactionId: parentTransaction.id,
+      source: "whatsapp" as const,
+    }));
 
     if (installmentValues.length > 0) {
       await db.insert(transactions).values(installmentValues);
@@ -550,7 +551,7 @@ export async function handleGroupSelection(
         `Nova categoria: *${categoryName}*\n` +
         `Grupo: ${group?.name || "---"}\n\n` +
         `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
-        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
+        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmounts[0])}\n` +
         (context.pendingExpense.accountName
           ? `${formatAccountDisplay(context.pendingExpense.accountName, context.pendingExpense.accountType)}\n`
           : "") +

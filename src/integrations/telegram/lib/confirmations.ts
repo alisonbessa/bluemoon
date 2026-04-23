@@ -20,6 +20,7 @@ import { getTodayNoonUTC } from "./telegram-utils";
 import { formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import { markLogAsConfirmed, markLogAsCancelled } from "./ai-logger";
 import { getScopeFromCategory, getScopeFromIncomeSource } from "@/shared/lib/transactions/scope";
+import { distributeInstallmentAmounts } from "@/shared/lib/transactions/installments";
 import { updateTelegramUser } from "./user-management";
 
 // Handle confirmation callback
@@ -101,7 +102,10 @@ export async function handleConfirmation(chatId: number, confirmed: boolean, cal
     // Handle installments
     if (context.pendingExpense.isInstallment && context.pendingExpense.totalInstallments && context.pendingExpense.totalInstallments > 1) {
       const totalInstallments = context.pendingExpense.totalInstallments;
-      const installmentAmount = Math.round(context.pendingExpense.amount / totalInstallments);
+      const installmentAmounts = distributeInstallmentAmounts(
+        context.pendingExpense.amount,
+        totalInstallments
+      );
       const transactionDate = getTodayNoonUTC();
 
       const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
@@ -124,7 +128,7 @@ export async function handleConfirmation(chatId: number, confirmed: boolean, cal
           paidByMemberId: budgetInfo.member.id,
           type: "expense",
           status: "cleared",
-          amount: installmentAmount,
+          amount: installmentAmounts[0],
           description: capitalizedDescription,
           date: installmentDates[0],
           isInstallment: true,
@@ -135,7 +139,7 @@ export async function handleConfirmation(chatId: number, confirmed: boolean, cal
         .returning();
 
       // Batch insert remaining installments
-      const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => ({
+      const installmentValues = installmentAmounts.slice(1).map((amount, i) => ({
         budgetId: budgetInfo.budget.id,
         accountId: transactionAccountId,
         categoryId: context.pendingExpense!.categoryId,
@@ -143,7 +147,7 @@ export async function handleConfirmation(chatId: number, confirmed: boolean, cal
         paidByMemberId: budgetInfo.member.id,
         type: "expense" as const,
         status: "cleared" as const,
-        amount: installmentAmount,
+        amount,
         description: capitalizedDescription,
         date: installmentDates[i + 1],
         isInstallment: true,
@@ -175,7 +179,7 @@ export async function handleConfirmation(chatId: number, confirmed: boolean, cal
         chatId,
         `✅ <b>Compra parcelada registrada!</b>\n\n` +
           `Valor total: <b>${formatCurrency(context.pendingExpense.amount)}</b>\n` +
-          `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(totalInstallments)}\n` +
+          `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmounts[0])} ${formatInstallmentMonths(totalInstallments)}\n` +
           `Categoria: ${context.pendingExpense.categoryName}\n` +
           (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
           (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n` : "") +

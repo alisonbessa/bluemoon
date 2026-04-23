@@ -20,6 +20,7 @@ import { getTodayNoonUTC, formatInstallmentMonths } from "@/integrations/messagi
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import { getScopeFromCategory, getScopeFromIncomeSource } from "@/shared/lib/transactions/scope";
+import { distributeInstallmentAmounts } from "@/shared/lib/transactions/installments";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { formatAccountDisplay, formatAccountWithIcon } from "@/integrations/messaging/lib/ai-handlers/account-utils";
 
@@ -170,8 +171,9 @@ export async function handleExpenseConfirmation(
     context.pendingExpense.totalInstallments > 1
   ) {
     const totalInstallments = context.pendingExpense.totalInstallments;
-    const installmentAmount = Math.round(
-      context.pendingExpense.amount / totalInstallments
+    const installmentAmounts = distributeInstallmentAmounts(
+      context.pendingExpense.amount,
+      totalInstallments
     );
     const transactionDate = getTodayNoonUTC();
 
@@ -195,7 +197,7 @@ export async function handleExpenseConfirmation(
         paidByMemberId: budgetInfo.member.id,
         type: "expense",
         status: "cleared",
-        amount: installmentAmount,
+        amount: installmentAmounts[0],
         description: capitalizedDescription,
         date: installmentDates[0],
         isInstallment: true,
@@ -206,26 +208,23 @@ export async function handleExpenseConfirmation(
       .returning();
 
     // Batch insert remaining installments
-    const installmentValues = Array.from(
-      { length: totalInstallments - 1 },
-      (_, i) => ({
-        budgetId: budgetInfo.budget.id,
-        accountId: transactionAccountId,
-        categoryId: context.pendingExpense!.categoryId,
-        memberId: scopeMemberId,
-        paidByMemberId: budgetInfo.member.id,
-        type: "expense" as const,
-        status: "cleared" as const,
-        amount: installmentAmount,
-        description: capitalizedDescription,
-        date: installmentDates[i + 1],
-        isInstallment: true,
-        installmentNumber: i + 2,
-        totalInstallments,
-        parentTransactionId: parentTransaction.id,
-        source: "whatsapp" as const,
-      })
-    );
+    const installmentValues = installmentAmounts.slice(1).map((amount, i) => ({
+      budgetId: budgetInfo.budget.id,
+      accountId: transactionAccountId,
+      categoryId: context.pendingExpense!.categoryId,
+      memberId: scopeMemberId,
+      paidByMemberId: budgetInfo.member.id,
+      type: "expense" as const,
+      status: "cleared" as const,
+      amount,
+      description: capitalizedDescription,
+      date: installmentDates[i + 1],
+      isInstallment: true,
+      installmentNumber: i + 2,
+      totalInstallments,
+      parentTransactionId: parentTransaction.id,
+      source: "whatsapp" as const,
+    }));
 
     if (installmentValues.length > 0) {
       await db.insert(transactions).values(installmentValues);
@@ -249,7 +248,7 @@ export async function handleExpenseConfirmation(
       phoneNumber,
       `*Compra parcelada registrada!*\n\n` +
         `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
-        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(totalInstallments)}\n` +
+        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmounts[0])} ${formatInstallmentMonths(totalInstallments)}\n` +
         `Categoria: ${context.pendingExpense.categoryName}\n` +
         (context.pendingExpense.accountName
           ? `${formatAccountDisplay(context.pendingExpense.accountName, context.pendingExpense.accountType)}\n`

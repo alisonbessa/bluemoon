@@ -21,6 +21,7 @@ import {
 } from "../bot";
 import { updateTelegramContext, matchAccount, formatCategoryName, suggestGroupForCategory } from "./shared-utils";
 import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
+import { distributeInstallmentAmounts } from "@/shared/lib/transactions/installments";
 
 /**
  * Handle expense intent - register or update an expense
@@ -134,7 +135,7 @@ export async function handleExpenseIntent(
 
     // Handle installments
     if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
-      const installmentAmount = Math.round(data.amount / data.totalInstallments);
+      const installmentAmounts = distributeInstallmentAmounts(data.amount, data.totalInstallments);
       const transactionDate = data.date || getTodayNoonUTC();
 
       const installmentDates = calculateInstallmentDates(transactionDate, data.totalInstallments);
@@ -150,7 +151,7 @@ export async function handleExpenseIntent(
           paidByMemberId: memberId,
           type: "expense",
           status: "cleared",
-          amount: installmentAmount,
+          amount: installmentAmounts[0],
           description: capitalizedDescription,
           date: installmentDates[0],
           isInstallment: true,
@@ -161,7 +162,7 @@ export async function handleExpenseIntent(
         .returning();
 
       // Batch insert remaining installments
-      const installmentValues = Array.from({ length: data.totalInstallments - 1 }, (_, i) => ({
+      const installmentValues = installmentAmounts.slice(1).map((amount, i) => ({
         budgetId,
         accountId,
         categoryId,
@@ -169,7 +170,7 @@ export async function handleExpenseIntent(
         paidByMemberId: memberId,
         type: "expense" as const,
         status: "cleared" as const,
-        amount: installmentAmount,
+        amount,
         description: capitalizedDescription,
         date: installmentDates[i + 1],
         isInstallment: true,
@@ -194,7 +195,7 @@ export async function handleExpenseIntent(
         `✅ <b>Compra parcelada registrada!</b>\n\n` +
           `${categoryIcon || "📁"} ${categoryName}\n` +
           `Valor total: ${formatCurrency(data.amount)}\n` +
-          `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
+          `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmounts[0])}\n` +
           (accountName ? `Conta: ${accountName}\n` : "") +
           (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n\n` : "\n") +
           `Use /desfazer para remover.`
@@ -245,7 +246,7 @@ export async function handleExpenseIntent(
 
     // Show installment info if applicable
     if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
-      const installmentAmount = Math.round(data.amount / data.totalInstallments);
+      const installmentAmount = distributeInstallmentAmounts(data.amount, data.totalInstallments)[0];
       message += `Valor total: ${formatCurrency(data.amount)}\n`;
       message += `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
     } else {
@@ -298,7 +299,7 @@ export async function handleExpenseIntent(
 
     let valueText = `Valor: ${formatCurrency(data.amount)}\n`;
     if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
-      const installmentAmount = Math.round(data.amount / data.totalInstallments);
+      const installmentAmount = distributeInstallmentAmounts(data.amount, data.totalInstallments)[0];
       valueText = `Valor total: ${formatCurrency(data.amount)}\n` +
         `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
     }
@@ -337,7 +338,7 @@ export async function handleExpenseIntent(
   // LOW CONFIDENCE or no category: Ask for account first (if not specified), then category
   let valueText = `Valor: ${formatCurrency(data.amount)}\n`;
   if (data.isInstallment && data.totalInstallments && data.totalInstallments > 1) {
-    const installmentAmount = Math.round(data.amount / data.totalInstallments);
+    const installmentAmount = distributeInstallmentAmounts(data.amount, data.totalInstallments)[0];
     valueText = `Valor total: ${formatCurrency(data.amount)}\n` +
       `Parcelas: ${data.totalInstallments}x de ${formatCurrency(installmentAmount)}\n`;
   }

@@ -26,6 +26,7 @@ import { getTodayNoonUTC } from "./telegram-utils";
 import { formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import { markLogAsConfirmed } from "./ai-logger";
 import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
+import { distributeInstallmentAmounts } from "@/shared/lib/transactions/installments";
 import { updateTelegramUser } from "./user-management";
 import { matchCategory } from "@/integrations/messaging/lib/gemini";
 import { formatCategoryName, suggestGroupForCategory } from "@/integrations/messaging/lib/ai-handlers/category-utils";
@@ -128,7 +129,10 @@ export async function handleAccountSelection(chatId: number, accountId: string, 
   // Build value text
   let valueText = `Valor: ${formatCurrency(context.pendingExpense.amount)}\n`;
   if (context.pendingExpense.isInstallment && context.pendingExpense.totalInstallments && context.pendingExpense.totalInstallments > 1) {
-    const installmentAmount = Math.round(context.pendingExpense.amount / context.pendingExpense.totalInstallments);
+    const installmentAmount = distributeInstallmentAmounts(
+      context.pendingExpense.amount,
+      context.pendingExpense.totalInstallments
+    )[0];
     valueText = `Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
       `Parcelas: ${context.pendingExpense.totalInstallments}x de ${formatCurrency(installmentAmount)} ${formatInstallmentMonths(context.pendingExpense.totalInstallments)}\n`;
   }
@@ -407,7 +411,10 @@ export async function handleGroupSelection(chatId: number, groupId: string, call
   // Handle installments
   if (context.pendingExpense.isInstallment && context.pendingExpense.totalInstallments && context.pendingExpense.totalInstallments > 1) {
     const totalInstallments = context.pendingExpense.totalInstallments;
-    const installmentAmount = Math.round(context.pendingExpense.amount / totalInstallments);
+    const installmentAmounts = distributeInstallmentAmounts(
+      context.pendingExpense.amount,
+      totalInstallments
+    );
     const transactionDate = getTodayNoonUTC();
 
     const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
@@ -427,7 +434,7 @@ export async function handleGroupSelection(chatId: number, groupId: string, call
         paidByMemberId: budgetInfo.member.id,
         type: "expense",
         status: "cleared",
-        amount: installmentAmount,
+        amount: installmentAmounts[0],
         description: capitalizedDescription,
         date: installmentDates[0],
         isInstallment: true,
@@ -438,7 +445,7 @@ export async function handleGroupSelection(chatId: number, groupId: string, call
       .returning();
 
     // Batch insert remaining installments
-    const installmentValues = Array.from({ length: totalInstallments - 1 }, (_, i) => ({
+    const installmentValues = installmentAmounts.slice(1).map((amount, i) => ({
       budgetId: budgetInfo.budget.id,
       accountId: transactionAccountId,
       categoryId: newCategory.id,
@@ -446,7 +453,7 @@ export async function handleGroupSelection(chatId: number, groupId: string, call
       paidByMemberId: budgetInfo.member.id,
       type: "expense" as const,
       status: "cleared" as const,
-      amount: installmentAmount,
+      amount,
       description: capitalizedDescription,
       date: installmentDates[i + 1],
       isInstallment: true,
@@ -480,7 +487,7 @@ export async function handleGroupSelection(chatId: number, groupId: string, call
         `📁 Nova categoria: <b>${categoryName}</b>\n` +
         `📂 Grupo: ${group?.name || "—"}\n\n` +
         `💰 Valor total: ${formatCurrency(context.pendingExpense.amount)}\n` +
-        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmount)}\n` +
+        `Parcelas: ${totalInstallments}x de ${formatCurrency(installmentAmounts[0])}\n` +
         (context.pendingExpense.accountName ? `Conta: ${context.pendingExpense.accountName}\n` : "") +
         (capitalizedDescription ? `Descrição: ${capitalizedDescription}\n` : "") +
         `\n${tgNewCatInstBalance}\n\n` +
