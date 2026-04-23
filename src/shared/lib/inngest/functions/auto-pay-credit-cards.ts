@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { financialAccounts, transactions } from "@/db/schema";
 import { eq, and, gte, lte, inArray, isNotNull, sql } from "drizzle-orm";
 import { getClosedBillDates } from "@/shared/lib/billing-cycle";
+import { matureInstallmentsForCreditCardCycle } from "@/shared/lib/transactions/installments";
 
 /**
  * Auto-pays credit card bills on the due day.
@@ -152,7 +153,9 @@ export const autoPayCreditCards = inngest.createFunction(
         }
 
         // Clear the pending transfer if it exists, otherwise create a new cleared one.
-        // Either way, update both balances atomically.
+        // Either way, update both balances atomically. Also mark all pending
+        // installments in the closed billing cycle as `cleared` — paying the bill
+        // is what "confirms" each installment on a credit card.
         await step.run(`pay-${card.id}`, async () => {
           await db.transaction(async (tx) => {
             if (existingTransfer) {
@@ -189,6 +192,12 @@ export const autoPayCreditCards = inngest.createFunction(
                 updatedAt: now,
               })
               .where(eq(financialAccounts.id, card.id));
+
+            await matureInstallmentsForCreditCardCycle(tx, {
+              creditCardAccountId: card.id,
+              closingDay: card.closingDay!,
+              referenceDate: now,
+            });
           });
         });
 

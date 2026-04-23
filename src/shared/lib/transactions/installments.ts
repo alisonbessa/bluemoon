@@ -5,10 +5,10 @@
  * messaging integrations (WhatsApp / Telegram) stay in sync.
  */
 
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and, gte, lte } from "drizzle-orm";
 import type { db as database } from "@/db";
 import { financialAccounts, transactions } from "@/db/schema";
-import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
+import { calculateInstallmentDates, getClosedBillDates } from "@/shared/lib/billing-cycle";
 
 /**
  * Distribute a total amount into `n` installments with NO cent loss.
@@ -203,4 +203,33 @@ export async function createInstallmentTransactions(params: CreateInstallmentsPa
   }
 
   return [parent, ...children];
+}
+
+/**
+ * Mark pending installments as `cleared` for the closed billing cycle of a
+ * credit card — used when the corresponding bill is paid (either by the
+ * auto-pay job or by a manual transfer confirmation).
+ *
+ * MUST be called from inside a `db.transaction(...)` block — pass the inner
+ * `tx`. `referenceDate` should be the payment date (used to resolve which
+ * cycle is currently closed).
+ */
+export async function matureInstallmentsForCreditCardCycle(
+  tx: DbOrTx,
+  params: { creditCardAccountId: string; closingDay: number; referenceDate: Date }
+) {
+  const cycle = getClosedBillDates(params.closingDay, params.referenceDate);
+
+  await tx
+    .update(transactions)
+    .set({ status: "cleared", updatedAt: new Date() })
+    .where(
+      and(
+        eq(transactions.accountId, params.creditCardAccountId),
+        eq(transactions.isInstallment, true),
+        eq(transactions.status, "pending"),
+        gte(transactions.date, cycle.start),
+        lte(transactions.date, cycle.end),
+      )
+    );
 }
