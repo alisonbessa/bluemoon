@@ -102,7 +102,7 @@ export function GoalFormModal({
   // Fetch accounts when modal opens
   useEffect(() => {
     if (open) {
-      fetch("/api/app/accounts")
+      fetch("/api/app/accounts?viewMode=all")
         .then((res) => res.json())
         .then((data) => setAccounts(data.accounts || []))
         .catch(console.error);
