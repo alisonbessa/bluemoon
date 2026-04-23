@@ -98,8 +98,6 @@ export const GROUP_DEFAULT_BEHAVIORS: Record<string, CategoryBehavior> = {
   lifestyle: 'refill_up',
   investments: 'set_aside',
   goals: 'set_aside',
-  // Personal groups (no code) default to refill_up
-  personal: 'refill_up',
 };
 
 export const MONTH_NAMES_PT: string[] = [

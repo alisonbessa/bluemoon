@@ -9,7 +9,7 @@ import {
   categories,
 } from "@/db/schema";
 import { defaultGroups } from "@/db/schema/groups";
-import { eq, isNull } from "drizzle-orm";
+import { eq, isNull, and } from "drizzle-orm";
 import { z } from "zod";
 import { capitalizeWords, getFirstName } from "@/shared/lib/utils";
 import {
@@ -151,7 +151,7 @@ export const POST = withAuthRequired(async (request, context) => {
       const existingPersonalGroup = await tx
         .select({ id: groups.id })
         .from(groups)
-        .where(eq(groups.memberId, ownerMemberId))
+        .where(and(eq(groups.budgetId, budgetId), eq(groups.memberId, ownerMemberId)))
         .limit(1);
 
       let ownerPersonalGroupId: string;
