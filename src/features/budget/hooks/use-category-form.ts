@@ -24,7 +24,7 @@ interface UseCategoryFormReturn {
   // Create mode
   isCreateOpen: boolean;
   createGroupId: string | null;
-  openCreate: (groupId: string, groupCode: string) => void;
+  openCreate: (groupId: string, groupCode: string | null) => void;
   closeCreate: () => void;
 
   // Edit mode
@@ -106,7 +106,7 @@ export function useCategoryForm({
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Open create modal
-  const openCreate = useCallback((groupId: string, groupCode: string) => {
+  const openCreate = useCallback((groupId: string, groupCode: string | null) => {
     setCreateGroupId(groupId);
     setCreateName('');
     setCreateIcon('');
