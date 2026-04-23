@@ -111,7 +111,7 @@ export function useCategoryForm({
     setCreateName('');
     setCreateIcon('');
     setCreateIconMode('recent');
-    const defaultBehavior = GROUP_DEFAULT_BEHAVIORS[groupCode] || 'refill_up';
+    const defaultBehavior = (groupCode ? GROUP_DEFAULT_BEHAVIORS[groupCode] : null) || 'refill_up';
     setCreateBehavior(defaultBehavior);
   }, []);
 
