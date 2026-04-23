@@ -61,10 +61,14 @@ export interface CategoryAllocation {
 
 export interface Group {
   id: string;
-  code: string;
+  code: string | null; // null for personal groups
   name: string;
   icon?: string | null;
   displayOrder: number;
+  budgetId?: string | null;
+  memberId?: string | null; // set for personal groups
+  memberName?: string | null; // display name of the member (personal groups only)
+  memberColor?: string | null; // color for the member badge
 }
 
 // Group with categories for category management pages
@@ -91,10 +95,9 @@ export type FilterType = 'all' | 'underfunded' | 'overfunded' | 'money_available
 
 export const GROUP_DEFAULT_BEHAVIORS: Record<string, CategoryBehavior> = {
   essential: 'refill_up',
-  lifestyle: 'set_aside',
-  pleasures: 'set_aside',
-  goals: 'set_aside',
+  lifestyle: 'refill_up',
   investments: 'set_aside',
+  goals: 'set_aside',
 };
 
 export const MONTH_NAMES_PT: string[] = [

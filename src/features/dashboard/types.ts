@@ -11,7 +11,7 @@ export interface Commitment {
   group: {
     id: string;
     name: string;
-    code: string;
+    code: string | null;
   };
 }
 

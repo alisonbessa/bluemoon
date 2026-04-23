@@ -1,6 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { budgetMembers, categories, groups, plans, users } from "@/db/schema";
+import { budgetMembers, plans, users } from "@/db/schema";
+import { createPersonalGroupForMember } from "@/shared/lib/budget/personal-group";
 import { eq, and, inArray, count } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetMemberships } from "@/shared/lib/api/permissions";
@@ -128,22 +129,12 @@ export const POST = withAuthRequired(async (req, context) => {
     })
     .returning();
 
-  // Create a "Prazeres" category for this member
-  const pleasuresGroup = await db
-    .select()
-    .from(groups)
-    .where(eq(groups.code, "pleasures"))
-    .limit(1);
-
-  if (pleasuresGroup.length > 0) {
-    await db.insert(categories).values({
+  // Create a personal group (and starter category) for this member (skip pets)
+  if (type !== "pet") {
+    await createPersonalGroupForMember(db, {
       budgetId,
-      groupId: pleasuresGroup[0].id,
       memberId: newMember.id,
-      name: `Prazeres - ${capitalizedName}`,
-      icon: type === "pet" ? "🐾" : "🎮",
-      behavior: "refill_up",
-      plannedAmount: monthlyPleasureBudget,
+      memberName: capitalizedName,
     });
   }
 

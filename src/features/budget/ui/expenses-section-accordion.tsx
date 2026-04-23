@@ -36,7 +36,7 @@ interface ExpensesSectionAccordionProps {
   onEditAllocation: (category: Category, allocated: number) => void;
   onEditCategory: (category: Category) => void;
   onDeleteCategory: (category: Category) => void;
-  onAddCategory: (groupId: string, groupCode: string) => void;
+  onAddCategory: (groupId: string, groupCode: string | null) => void;
   onBillsChange: () => void;
   mobileViewMode?: MobileViewMode;
   /** Optional section title override (e.g. "Planejamento Compartilhado") */

@@ -141,7 +141,7 @@ export function BudgetComparison({
             const allocatedWidth = (groupTotals.allocated / maxValue) * 100;
             const spentWidth = (groupTotals.spent / maxValue) * 100;
             const overBudget = groupTotals.spent > groupTotals.allocated;
-            const color = GROUP_COLORS[group.code] || '#6b7280';
+            const color = (group.code ? GROUP_COLORS[group.code] : null) || '#6b7280';
 
             return (
               <div key={group.id} className="space-y-1.5">
