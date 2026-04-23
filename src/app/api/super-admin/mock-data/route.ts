@@ -247,7 +247,6 @@ export const POST = withSuperAdminAuthRequired(async (req, { session }) => {
           icon: cat.icon,
           plannedAmount: cat.plannedAmount,
           behavior: cat.behavior,
-          memberId: cat.memberId || null,
         })
         .returning();
       createdCategories[cat.name] = category.id;
