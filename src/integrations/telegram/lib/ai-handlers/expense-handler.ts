@@ -9,7 +9,6 @@ import {
 } from "../transaction-matcher";
 import { getTodayNoonUTC } from "../telegram-utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
-import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import {
   sendMessage,
   formatCurrency,
@@ -21,7 +20,11 @@ import {
 } from "../bot";
 import { updateTelegramContext, matchAccount, formatCategoryName, suggestGroupForCategory } from "./shared-utils";
 import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
-import { distributeInstallmentAmounts } from "@/shared/lib/transactions/installments";
+import {
+  distributeInstallmentAmounts,
+  createInstallmentTransactions,
+  applyTransactionBalanceChange,
+} from "@/shared/lib/transactions/installments";
 
 /**
  * Handle expense intent - register or update an expense
@@ -138,51 +141,26 @@ export async function handleExpenseIntent(
       const installmentAmounts = distributeInstallmentAmounts(data.amount, data.totalInstallments);
       const transactionDate = data.date || getTodayNoonUTC();
 
-      const installmentDates = calculateInstallmentDates(transactionDate, data.totalInstallments);
+      const accountType = accounts.find(a => a.id === accountId)?.type ?? "checking";
 
-      // Create parent transaction (first installment)
-      const [parentTransaction] = await db
-        .insert(transactions)
-        .values({
+      const [parentTransaction] = await db.transaction(async (tx) =>
+        createInstallmentTransactions({
+          tx,
           budgetId,
           accountId,
+          accountType,
           categoryId,
           memberId: scopeMemberId,
           paidByMemberId: memberId,
           type: "expense",
-          status: "cleared",
-          amount: installmentAmounts[0],
+          totalAmount: data.amount,
+          totalInstallments: data.totalInstallments!,
           description: capitalizedDescription,
-          date: installmentDates[0],
-          isInstallment: true,
-          installmentNumber: 1,
-          totalInstallments: data.totalInstallments,
+          firstDate: transactionDate,
           source: "telegram",
+          status: "cleared",
         })
-        .returning();
-
-      // Batch insert remaining installments
-      const installmentValues = installmentAmounts.slice(1).map((amount, i) => ({
-        budgetId,
-        accountId,
-        categoryId,
-        memberId: scopeMemberId,
-        paidByMemberId: memberId,
-        type: "expense" as const,
-        status: "cleared" as const,
-        amount,
-        description: capitalizedDescription,
-        date: installmentDates[i + 1],
-        isInstallment: true,
-        installmentNumber: i + 2,
-        totalInstallments: data.totalInstallments,
-        parentTransactionId: parentTransaction.id,
-        source: "telegram" as const,
-      }));
-
-      if (installmentValues.length > 0) {
-        await db.insert(transactions).values(installmentValues);
-      }
+      );
 
       await updateTelegramContext(chatId, "IDLE", {
         lastTransactionId: parentTransaction.id,
@@ -204,22 +182,32 @@ export async function handleExpenseIntent(
     }
 
     // Create new transaction (non-installment)
-    const [newTransaction] = await db
-      .insert(transactions)
-      .values({
-        budgetId,
-        accountId,
-        categoryId,
-        memberId: scopeMemberId,
-        paidByMemberId: memberId,
+    const newTransaction = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(transactions)
+        .values({
+          budgetId,
+          accountId,
+          categoryId,
+          memberId: scopeMemberId,
+          paidByMemberId: memberId,
+          type: "expense",
+          status: "cleared",
+          amount: data.amount,
+          description: capitalizedDescription,
+          date: data.date || getTodayNoonUTC(),
+          source: "telegram",
+        })
+        .returning();
+
+      await applyTransactionBalanceChange(tx, {
+        accountId: created.accountId,
         type: "expense",
-        status: "cleared",
-        amount: data.amount,
-        description: capitalizedDescription,
-        date: data.date || getTodayNoonUTC(),
-        source: "telegram",
-      })
-      .returning();
+        amount: created.amount,
+      });
+
+      return created;
+    });
 
     await updateTelegramContext(chatId, "IDLE", {
       lastTransactionId: newTransaction.id,

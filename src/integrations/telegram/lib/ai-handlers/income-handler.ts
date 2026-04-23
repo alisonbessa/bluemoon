@@ -16,6 +16,7 @@ import {
   deleteMessages,
 } from "../bot";
 import { updateTelegramContext, matchAccount } from "./shared-utils";
+import { applyTransactionBalanceChange } from "@/shared/lib/transactions/installments";
 
 /**
  * Handle income intent - register or update income
@@ -124,22 +125,32 @@ export async function handleIncomeIntent(
     const capitalizedDescription = capitalizeFirst(data.description);
 
     // Create new income transaction
-    const [newTransaction] = await db
-      .insert(transactions)
-      .values({
-        budgetId,
-        accountId,
-        incomeSourceId,
-        memberId,
-        paidByMemberId: memberId,
+    const newTransaction = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(transactions)
+        .values({
+          budgetId,
+          accountId,
+          incomeSourceId,
+          memberId,
+          paidByMemberId: memberId,
+          type: "income",
+          status: "cleared",
+          amount: data.amount,
+          description: capitalizedDescription || incomeSourceName,
+          date: data.date || getTodayNoonUTC(),
+          source: "telegram",
+        })
+        .returning();
+
+      await applyTransactionBalanceChange(tx, {
+        accountId: created.accountId,
         type: "income",
-        status: "cleared",
-        amount: data.amount,
-        description: capitalizedDescription || incomeSourceName,
-        date: data.date || getTodayNoonUTC(),
-        source: "telegram",
-      })
-      .returning();
+        amount: created.amount,
+      });
+
+      return created;
+    });
 
     await updateTelegramContext(chatId, "IDLE", {
       lastTransactionId: newTransaction.id,

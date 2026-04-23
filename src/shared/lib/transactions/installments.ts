@@ -41,6 +41,47 @@ export function distributeInstallmentAmounts(total: number, n: number): number[]
 
 type DbOrTx = typeof database | Parameters<Parameters<typeof database.transaction>[0]>[0];
 
+interface BalanceChangeParams {
+  accountId: string;
+  type: "income" | "expense" | "transfer";
+  amount: number;
+  toAccountId?: string | null;
+}
+
+/**
+ * Apply the balance change for a newly-inserted or newly-deleted transaction.
+ *
+ * - income: credit the account by +amount
+ * - expense: debit the account by -|amount|
+ * - transfer: debit source + credit destination
+ *
+ * MUST be called from inside a `db.transaction(...)` block — pass the inner `tx`.
+ * For transfers, the destination account is also credited.
+ */
+export async function applyTransactionBalanceChange(tx: DbOrTx, params: BalanceChangeParams) {
+  const { accountId, type, amount, toAccountId } = params;
+
+  const balanceChange = type === "income" ? amount : -Math.abs(amount);
+
+  await tx
+    .update(financialAccounts)
+    .set({
+      balance: sql`${financialAccounts.balance} + ${balanceChange}`,
+      updatedAt: new Date(),
+    })
+    .where(eq(financialAccounts.id, accountId));
+
+  if (type === "transfer" && toAccountId) {
+    await tx
+      .update(financialAccounts)
+      .set({
+        balance: sql`${financialAccounts.balance} + ${Math.abs(amount)}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(financialAccounts.id, toAccountId));
+  }
+}
+
 interface CreateInstallmentsParams {
   tx: DbOrTx;
   budgetId: string;
@@ -58,6 +99,7 @@ interface CreateInstallmentsParams {
   notes?: string | null;
   firstDate: Date;
   source?: string;
+  status?: "pending" | "cleared" | "reconciled";
 }
 
 /**
@@ -91,6 +133,7 @@ export async function createInstallmentTransactions(params: CreateInstallmentsPa
     notes,
     firstDate,
     source = "web",
+    status,
   } = params;
 
   const isCreditCard = accountType === "credit_card";
@@ -111,6 +154,7 @@ export async function createInstallmentTransactions(params: CreateInstallmentsPa
     isInstallment: true,
     totalInstallments,
     source,
+    ...(status ? { status } : {}),
   };
 
   const [parent] = await tx

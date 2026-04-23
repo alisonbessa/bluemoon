@@ -8,7 +8,6 @@ import { eq, sql } from "drizzle-orm";
 import type { TelegramConversationContext } from "@/db/schema/telegram-users";
 import { getUserBudgetInfo, getCategoryBalanceSummary } from "@/integrations/messaging/lib/user-context";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
-import { calculateInstallmentDates } from "@/shared/lib/billing-cycle";
 import {
   sendMessage,
   answerCallbackQuery,
@@ -20,7 +19,11 @@ import { getTodayNoonUTC } from "./telegram-utils";
 import { formatInstallmentMonths } from "@/integrations/messaging/lib/utils";
 import { markLogAsConfirmed, markLogAsCancelled } from "./ai-logger";
 import { getScopeFromCategory, getScopeFromIncomeSource } from "@/shared/lib/transactions/scope";
-import { distributeInstallmentAmounts } from "@/shared/lib/transactions/installments";
+import {
+  distributeInstallmentAmounts,
+  createInstallmentTransactions,
+  applyTransactionBalanceChange,
+} from "@/shared/lib/transactions/installments";
 import { updateTelegramUser } from "./user-management";
 
 // Handle confirmation callback
@@ -108,8 +111,6 @@ export async function handleConfirmation(chatId: number, confirmed: boolean, cal
       );
       const transactionDate = getTodayNoonUTC();
 
-      const installmentDates = calculateInstallmentDates(transactionDate, totalInstallments);
-
       // Derive scope from category
       const installmentScope = getScopeFromCategory(
         context.pendingExpense.categoryId,
@@ -117,49 +118,27 @@ export async function handleConfirmation(chatId: number, confirmed: boolean, cal
         budgetInfo.member.id,
       );
 
-      // Create parent transaction (first installment)
-      const [parentTransaction] = await db
-        .insert(transactions)
-        .values({
+      const accountType = budgetInfo.accounts.find(a => a.id === transactionAccountId)?.type
+        ?? budgetInfo.defaultAccount.type;
+
+      const [parentTransaction] = await db.transaction(async (tx) =>
+        createInstallmentTransactions({
+          tx,
           budgetId: budgetInfo.budget.id,
           accountId: transactionAccountId,
-          categoryId: context.pendingExpense.categoryId,
+          accountType,
+          categoryId: context.pendingExpense!.categoryId,
           memberId: installmentScope,
           paidByMemberId: budgetInfo.member.id,
           type: "expense",
-          status: "cleared",
-          amount: installmentAmounts[0],
-          description: capitalizedDescription,
-          date: installmentDates[0],
-          isInstallment: true,
-          installmentNumber: 1,
+          totalAmount: context.pendingExpense!.amount,
           totalInstallments,
+          description: capitalizedDescription,
+          firstDate: transactionDate,
           source: "telegram",
+          status: "cleared",
         })
-        .returning();
-
-      // Batch insert remaining installments
-      const installmentValues = installmentAmounts.slice(1).map((amount, i) => ({
-        budgetId: budgetInfo.budget.id,
-        accountId: transactionAccountId,
-        categoryId: context.pendingExpense!.categoryId,
-        memberId: installmentScope,
-        paidByMemberId: budgetInfo.member.id,
-        type: "expense" as const,
-        status: "cleared" as const,
-        amount,
-        description: capitalizedDescription,
-        date: installmentDates[i + 1],
-        isInstallment: true,
-        installmentNumber: i + 2,
-        totalInstallments,
-        parentTransactionId: parentTransaction.id,
-        source: "telegram" as const,
-      }));
-
-      if (installmentValues.length > 0) {
-        await db.insert(transactions).values(installmentValues);
-      }
+      );
 
       transactionId = parentTransaction.id;
 
@@ -194,22 +173,32 @@ export async function handleConfirmation(chatId: number, confirmed: boolean, cal
         budgetInfo.member.id,
       );
 
-      const [newTransaction] = await db
-        .insert(transactions)
-        .values({
-          budgetId: budgetInfo.budget.id,
-          accountId: transactionAccountId,
-          categoryId: context.pendingExpense.categoryId,
-          memberId: expenseScope,
-          paidByMemberId: budgetInfo.member.id,
+      const newTransaction = await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(transactions)
+          .values({
+            budgetId: budgetInfo.budget.id,
+            accountId: transactionAccountId,
+            categoryId: context.pendingExpense!.categoryId,
+            memberId: expenseScope,
+            paidByMemberId: budgetInfo.member.id,
+            type: "expense",
+            status: "cleared",
+            amount: context.pendingExpense!.amount,
+            description: capitalizedDescription,
+            date: getTodayNoonUTC(),
+            source: "telegram",
+          })
+          .returning();
+
+        await applyTransactionBalanceChange(tx, {
+          accountId: created.accountId,
           type: "expense",
-          status: "cleared",
-          amount: context.pendingExpense.amount,
-          description: capitalizedDescription,
-          date: getTodayNoonUTC(),
-          source: "telegram",
-        })
-        .returning();
+          amount: created.amount,
+        });
+
+        return created;
+      });
 
       transactionId = newTransaction.id;
 
@@ -319,22 +308,32 @@ export async function handleIncomeConfirmation(chatId: number, confirmed: boolea
       budgetInfo.member.id,
     );
 
-    const [newTransaction] = await db
-      .insert(transactions)
-      .values({
-        budgetId: budgetInfo.budget.id,
-        accountId: incomeAccountId,
-        incomeSourceId: context.pendingIncome.incomeSourceId,
-        memberId: incomeScopeMemberId,
-        paidByMemberId: budgetInfo.member.id,
+    const newTransaction = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(transactions)
+        .values({
+          budgetId: budgetInfo.budget.id,
+          accountId: incomeAccountId,
+          incomeSourceId: context.pendingIncome!.incomeSourceId,
+          memberId: incomeScopeMemberId,
+          paidByMemberId: budgetInfo.member.id,
+          type: "income",
+          status: "cleared",
+          amount: context.pendingIncome!.amount,
+          description: capitalizedDescription || context.pendingIncome!.incomeSourceName,
+          date: getTodayNoonUTC(),
+          source: "telegram",
+        })
+        .returning();
+
+      await applyTransactionBalanceChange(tx, {
+        accountId: created.accountId,
         type: "income",
-        status: "cleared",
-        amount: context.pendingIncome.amount,
-        description: capitalizedDescription || context.pendingIncome.incomeSourceName,
-        date: getTodayNoonUTC(),
-        source: "telegram",
-      })
-      .returning();
+        amount: created.amount,
+      });
+
+      return created;
+    });
 
     transactionId = newTransaction.id;
 

@@ -79,6 +79,21 @@ export const PATCH = withAuthRequired(async (req, context) => {
     return validationError(validation.error);
   }
 
+  // Editing the amount of a single installment (without applyToSeries) would
+  // leave the series total inconsistent with the account balance. Force the
+  // caller to update the whole series instead.
+  if (
+    !applyToSeries &&
+    existingTransaction.isInstallment &&
+    validation.data.amount !== undefined &&
+    validation.data.amount !== existingTransaction.amount
+  ) {
+    return errorResponse(
+      "Cannot change the amount of a single installment. Use applyToSeries=true to update all installments.",
+      400
+    );
+  }
+
   // When categoryId changes, derive the new scope (memberId) from the category
   let derivedScopeMemberId: string | null | undefined;
   if (validation.data.categoryId !== undefined) {
