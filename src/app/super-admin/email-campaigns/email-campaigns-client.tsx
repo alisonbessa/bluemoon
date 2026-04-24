@@ -36,12 +36,23 @@ interface CampaignRow {
   subjectOverride: string | null;
   effectiveSubject: string;
   updatedAt: string | null;
+  manualDispatch: boolean;
   stats: {
     total: number;
     sent: number;
     failed: number;
     lastSentAt: string | null;
   };
+}
+
+interface DispatchResult {
+  cohortSize: number;
+  eligible: number;
+  alreadySent: number;
+  unsubscribed: number;
+  sent: number;
+  failed: number;
+  errors: string[];
 }
 
 interface RunResult {
@@ -65,6 +76,7 @@ export function EmailCampaignsClient() {
   const [sendsKey, setSendsKey] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [lastRun, setLastRun] = useState<RunResult | null>(null);
+  const [dispatchCampaign, setDispatchCampaign] = useState<CampaignRow | null>(null);
 
   async function runNow() {
     if (isRunning) return;
@@ -249,6 +261,17 @@ export function EmailCampaignsClient() {
                     />
                   </TableCell>
                   <TableCell className="text-right space-x-1">
+                    {c.manualDispatch && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDispatchCampaign(c)}
+                        title="Ver destinatários e disparar"
+                        disabled={!c.enabled}
+                      >
+                        <Play className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -305,6 +328,15 @@ export function EmailCampaignsClient() {
             data?.campaigns.find((c) => c.key === sendsKey)?.name ?? sendsKey
           }
           onClose={() => setSendsKey(null)}
+        />
+      ) : null}
+
+      {dispatchCampaign ? (
+        <DispatchDialog
+          key={dispatchCampaign.key}
+          campaign={dispatchCampaign}
+          onClose={() => setDispatchCampaign(null)}
+          onDispatched={() => mutate(LIST_URL)}
         />
       ) : null}
     </div>
@@ -600,5 +632,210 @@ function SendsDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+interface RecipientRow {
+  id: string;
+  email: string;
+  name: string | null;
+  status: "will_send" | "already_sent" | "unsubscribed";
+}
+
+function DispatchDialog({
+  campaign,
+  onClose,
+  onDispatched,
+}: {
+  campaign: CampaignRow;
+  onClose: () => void;
+  onDispatched: () => void;
+}) {
+  const { data, isLoading, error } = useSWR<{
+    recipients: RecipientRow[];
+    summary: { total: number; willSend: number; alreadySent: number; unsubscribed: number };
+  }>(`/api/super-admin/email-campaigns/${campaign.key}/recipients`);
+
+  const [isDispatching, setIsDispatching] = useState(false);
+  const [filter, setFilter] = useState<"all" | "will_send" | "already_sent" | "unsubscribed">("will_send");
+
+  const filtered = data?.recipients.filter((r) =>
+    filter === "all" ? true : r.status === filter
+  ) ?? [];
+
+  async function confirmDispatch() {
+    if (isDispatching) return;
+    const proceed = confirm(
+      `Disparar agora para ${data?.summary.willSend ?? 0} usuário(s)?\n\nOs demais (já enviados ou opt-out) serão ignorados automaticamente.`
+    );
+    if (!proceed) return;
+
+    setIsDispatching(true);
+    try {
+      const res = await fetch(
+        `/api/super-admin/email-campaigns/${campaign.key}/run`,
+        { method: "POST" }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.message || "Falha no disparo");
+      const r = json.result as DispatchResult;
+      const parts = [
+        `${r.sent} enviado${r.sent === 1 ? "" : "s"}`,
+        r.failed > 0 ? `${r.failed} falha${r.failed === 1 ? "" : "s"}` : null,
+      ].filter(Boolean);
+      toast.success(`Disparo concluído: ${parts.join(" · ")}`);
+      onDispatched();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro inesperado");
+    } finally {
+      setIsDispatching(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Disparar · {campaign.name}</DialogTitle>
+          <DialogDescription>
+            Revise quem vai receber antes de disparar. O envio é idempotente — clicar de novo depois não reenvia pra ninguém que já recebeu.
+          </DialogDescription>
+        </DialogHeader>
+
+        {isLoading && (
+          <p className="text-sm text-muted-foreground py-4">Carregando destinatários...</p>
+        )}
+
+        {error && (
+          <p className="text-sm text-destructive py-4">
+            Erro ao carregar destinatários: {String(error)}
+          </p>
+        )}
+
+        {data && (
+          <>
+            <div className="grid grid-cols-4 gap-2 text-sm">
+              <FilterChip
+                active={filter === "all"}
+                onClick={() => setFilter("all")}
+                label="Todos"
+                count={data.summary.total}
+              />
+              <FilterChip
+                active={filter === "will_send"}
+                onClick={() => setFilter("will_send")}
+                label="Serão enviados"
+                count={data.summary.willSend}
+                tone="primary"
+              />
+              <FilterChip
+                active={filter === "already_sent"}
+                onClick={() => setFilter("already_sent")}
+                label="Já receberam"
+                count={data.summary.alreadySent}
+              />
+              <FilterChip
+                active={filter === "unsubscribed"}
+                onClick={() => setFilter("unsubscribed")}
+                label="Opt-out"
+                count={data.summary.unsubscribed}
+              />
+            </div>
+
+            <div className="flex-1 overflow-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead className="w-[160px]">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center text-muted-foreground py-6">
+                        Nenhum usuário neste filtro.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {filtered.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell>
+                        <div className="text-sm font-medium">{r.name || "—"}</div>
+                        <div className="text-xs text-muted-foreground">{r.email}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            r.status === "will_send"
+                              ? "default"
+                              : r.status === "already_sent"
+                              ? "secondary"
+                              : "outline"
+                          }
+                        >
+                          {r.status === "will_send"
+                            ? "Será enviado"
+                            : r.status === "already_sent"
+                            ? "Já recebeu"
+                            : "Opt-out"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={isDispatching}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={confirmDispatch}
+            disabled={isDispatching || !data || data.summary.willSend === 0}
+          >
+            <Play className="h-4 w-4 mr-1.5" />
+            {isDispatching
+              ? "Disparando..."
+              : `Disparar para ${data?.summary.willSend ?? 0}`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function FilterChip({
+  active,
+  onClick,
+  label,
+  count,
+  tone = "default",
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+  tone?: "default" | "primary";
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-md border px-3 py-2 text-left transition-colors ${
+        active
+          ? tone === "primary"
+            ? "border-primary bg-primary/10"
+            : "border-foreground bg-muted"
+          : "border-border hover:bg-muted/50"
+      }`}
+    >
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-lg font-semibold">{count}</div>
+    </button>
   );
 }
