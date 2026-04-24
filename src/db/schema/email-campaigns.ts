@@ -15,7 +15,8 @@ export type CampaignKey =
   | "no_whatsapp_d7"
   | "no_ai_d10"
   | "power_user_feedback"
-  | "winback_d21";
+  | "winback_d21"
+  | "partner_invite_retry_incident";
 
 /**
  * Tracks every retention email we send to a user.
