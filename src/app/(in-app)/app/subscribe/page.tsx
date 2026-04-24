@@ -156,12 +156,12 @@ async function SubscribePage({
       if (!stripeCheckoutSession.url) {
         throw new Error("Checkout session URL not found");
       }
-      await track("checkout_started", {
+      track("checkout_started", {
         provider,
         planCodename: codename,
         planType: type,
         hasTrial: Boolean(trialPeriodDays),
-      });
+      }).catch(() => {});
       return redirect(stripeCheckoutSession.url);
 
     default:
