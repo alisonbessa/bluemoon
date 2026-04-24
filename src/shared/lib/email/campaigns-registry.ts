@@ -9,6 +9,7 @@ import WhatsAppInviteD7 from "@/emails/WhatsAppInviteD7";
 import AIAssistantDemoD10 from "@/emails/AIAssistantDemoD10";
 import PowerUserFeedback from "@/emails/PowerUserFeedback";
 import WinBackD21 from "@/emails/WinBackD21";
+import PartnerInviteRetryIncident from "@/emails/PartnerInviteRetryIncident";
 
 export interface CampaignMeta {
   key: CampaignKey;
@@ -209,6 +210,31 @@ export const CAMPAIGNS_REGISTRY: Record<CampaignKey, CampaignMeta> = {
         WinBackD21({
           userName: p.userName,
           replyMailto: p.replyMailto,
+          unsubscribeUrl: p.unsubscribeUrl,
+        })
+      );
+    },
+  },
+  partner_invite_retry_incident: {
+    key: "partner_invite_retry_incident",
+    name: "Incidente: retry do convite de parceiro",
+    description:
+      "One-off: enviado aos donos que têm convite de parceiro pendente após o fix do bug 42P10, que impedia a aceitação. Cada dono recebe no máximo uma vez (unique user+campaign).",
+    defaultSubject: "Corrigimos um problema no convite do seu parceiro(a)",
+    render: async (p) =>
+      render(
+        PartnerInviteRetryIncident({
+          userName: p.userName,
+          appUrl: p.appUrl,
+          unsubscribeUrl: p.unsubscribeUrl,
+        })
+      ),
+    renderPreview: async () => {
+      const p = mockPayload();
+      return render(
+        PartnerInviteRetryIncident({
+          userName: p.userName,
+          appUrl: p.appUrl,
           unsubscribeUrl: p.unsubscribeUrl,
         })
       );

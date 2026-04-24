@@ -129,8 +129,11 @@ export const POST = withAuthRequired(async (req, context) => {
   }
 
   // Create partner membership.
-  // onConflictDoNothing guards against duplicate insertions when two concurrent
-  // accept requests race with the same token (requires UNIQUE (budget_id, user_id)).
+  // onConflictDoNothing guards against a race when two concurrent accept
+  // requests hit with the same token. The uniqueness is enforced by a *partial*
+  // unique index (budget_id, user_id) WHERE user_id IS NOT NULL — so we must
+  // call onConflictDoNothing() without a target, otherwise Postgres can't
+  // match the inference to a partial index and throws 42P10.
   const memberName = capitalizeWords(user?.name || invite.name || "Partner");
   const [newMember] = await db
     .insert(budgetMembers)
@@ -140,9 +143,7 @@ export const POST = withAuthRequired(async (req, context) => {
       name: memberName,
       type: "partner",
     })
-    .onConflictDoNothing({
-      target: [budgetMembers.budgetId, budgetMembers.userId],
-    })
+    .onConflictDoNothing()
     .returning();
 
   if (!newMember) {
