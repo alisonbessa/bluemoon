@@ -1,7 +1,8 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
 import { budgets, budgetMembers, groups, categories, defaultGroups } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { track } from "@vercel/analytics/server";
 import { capitalizeWords } from "@/shared/lib/utils";
 import {
   validationError,
@@ -121,6 +122,22 @@ export const POST = withAuthRequired(async (req, context) => {
     resourceId: newBudget.id,
     req,
   });
+
+  // Fire-and-forget analytics: count user's budgets to detect activation moment.
+  (async () => {
+    try {
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(budgetMembers)
+        .where(eq(budgetMembers.userId, session.user.id));
+      await track("budget_created", { currency: currency ?? null });
+      if (count === 1) {
+        await track("first_budget_created", { currency: currency ?? null });
+      }
+    } catch {
+      /* non-blocking */
+    }
+  })();
 
   return successResponse({ budget: newBudget }, 201);
 });

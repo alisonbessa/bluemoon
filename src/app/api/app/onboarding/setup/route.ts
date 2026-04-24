@@ -1,5 +1,6 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { createLogger } from "@/shared/lib/logger";
+import { track } from "@vercel/analytics/server";
 import { db } from "@/db";
 import {
   users,
@@ -214,6 +215,11 @@ export const POST = withAuthRequired(async (request, context) => {
     logger.info(`Setup completed for user ${session.user.email}`, {
       budgetId: result.budgetId,
     });
+
+    track("onboarding_completed", {
+      hasPrivacyMode: Boolean(data.privacyMode),
+      privacyMode: data.privacyMode ?? null,
+    }).catch(() => {});
 
     return successResponse({
       success: true,

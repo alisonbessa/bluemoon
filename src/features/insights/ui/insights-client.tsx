@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { track } from "@vercel/analytics";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { Alert, AlertDescription } from "@/shared/ui/alert";
 import { MonthSelector } from "@/shared/ui/month-selector";
@@ -43,6 +44,10 @@ export function InsightsClient() {
   const today = new Date();
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1);
+
+  useEffect(() => {
+    track("report_viewed", { report: "insights" });
+  }, []);
 
   const { data: budgetsData, isLoading: budgetsLoading } =
     useSWR<BudgetsResponse>("/api/app/budgets");

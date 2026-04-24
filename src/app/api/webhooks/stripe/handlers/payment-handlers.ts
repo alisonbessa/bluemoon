@@ -3,13 +3,14 @@ import stripe from "@/integrations/stripe";
 import { users } from "@/db/schema/user";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
+import { track } from "@vercel/analytics/server";
 import getOrCreateUser from "@/shared/lib/users/getOrCreateUser";
 import updatePlan from "@/shared/lib/plans/updatePlan";
 import { addCredits } from "@/shared/lib/credits/recalculate";
 import { type CreditType } from "@/shared/lib/credits/credits";
 import { creditTypeSchema } from "@/shared/lib/credits/config";
 import { allocatePlanCredits } from "@/shared/lib/credits/allocatePlanCredits";
-import { getPlanFromStripePriceId, getStripeCustomer, APIError } from "./helpers";
+import { getPlanFromStripePriceId, getStripeCustomer, APIError, logger } from "./helpers";
 
 async function handleOutsidePlanManagementProductInvoicePaid() {
   // Handle non-plan products here (e.g., credits, one-time purchases)
@@ -129,6 +130,23 @@ export async function onInvoicePaid(data: Stripe.Event.Data) {
     }
   } else {
     await handleOutsidePlanManagementProductInvoicePaid();
+  }
+}
+
+export async function onInvoicePaymentFailed(data: Stripe.Event.Data) {
+  const object = data.object as Stripe.Invoice;
+  logger.info("onInvoicePaymentFailed", { invoiceId: object.id });
+
+  try {
+    await track("payment_failed", {
+      billingReason: object.billing_reason ?? null,
+      attemptCount: object.attempt_count ?? null,
+      amountDue: object.amount_due ?? null,
+      currency: object.currency ?? null,
+      hasSubscription: Boolean(object.subscription),
+    });
+  } catch (err) {
+    logger.error("Failed to track payment_failed", { error: String(err) });
   }
 }
 

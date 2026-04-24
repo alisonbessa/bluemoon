@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { track } from "@vercel/analytics";
 import { Button } from "@/shared/ui/button";
 import {
   Card,
@@ -75,6 +76,10 @@ export function DashboardClient({
 
   // View mode: "shared" shows contribution-based saldo, "complete" shows full income
   const [viewMode, setViewMode] = useState<DashboardViewMode>("shared");
+
+  useEffect(() => {
+    track("dashboard_viewed", { hasBudget: Boolean(primaryBudgetId) });
+  }, [primaryBudgetId]);
 
   // Dashboard data via SWR (single consolidated request)
   // Uses initialData as fallback for the initial month to avoid loading state
