@@ -5,6 +5,8 @@
 import type { UserContext } from "../types";
 import type { GroupCode } from "@/db/schema/groups";
 
+type CategoryLike = UserContext["categories"][number];
+
 /**
  * Get categories visible to this user.
  * In "private" mode, hides other members' personal categories AND personal groups.
@@ -15,6 +17,31 @@ export function getVisibleCategories(userContext: UserContext): UserContext["cat
     return categories.filter((c) => c.memberId == null || c.memberId === memberId);
   }
   return categories;
+}
+
+function normalize(text: string): string {
+  return text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+}
+
+/**
+ * When the matched category is shared (memberId = null), check whether the
+ * sender has a personal category with the same name and prefer that. Honors
+ * the user's explicit choice of creating a personal variant (e.g. "Vestuário"
+ * inside "Gastos de Alison") to mark individual expenses without needing an
+ * explicit scope hint in the message.
+ */
+export function preferSenderPersonalCategory(
+  matched: CategoryLike,
+  categories: CategoryLike[],
+  senderMemberId: string,
+): CategoryLike {
+  if (matched.memberId != null) return matched;
+
+  const target = normalize(matched.name);
+  const personal = categories.find(
+    (c) => c.memberId === senderMemberId && normalize(c.name) === target,
+  );
+  return personal ?? matched;
 }
 
 /**
