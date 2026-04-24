@@ -16,7 +16,7 @@ import sendMail from "@/shared/lib/email/sendMail";
 import { render } from "@react-email/components";
 import PrivacyChangeRequestEmail from "@/emails/PrivacyChangeRequestEmail";
 import { appConfig } from "@/shared/lib/config";
-import { signPrivacyToken } from "@/app/api/public/budget-privacy/route";
+import { signPrivacyToken } from "@/shared/lib/privacy-tokens";
 import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
 const logger = createLogger("api:budget:privacy");

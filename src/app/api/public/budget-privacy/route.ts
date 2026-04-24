@@ -3,25 +3,9 @@ import { db } from "@/db";
 import { budgets, budgetMembers } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { errorResponse, internalError } from "@/shared/lib/api/responses";
-import { SignJWT, jwtVerify } from "jose";
+import { verifyPrivacyToken } from "@/shared/lib/privacy-tokens";
 
 const logger = createLogger("api:public:budget-privacy");
-
-const PRIVACY_TOKEN_SECRET = new TextEncoder().encode(
-  process.env.AUTH_SECRET || "fallback-secret"
-);
-
-export async function signPrivacyToken(payload: { budgetId: string; membershipId: string }) {
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("7d")
-    .sign(PRIVACY_TOKEN_SECRET);
-}
-
-async function verifyPrivacyToken(token: string) {
-  const { payload } = await jwtVerify(token, PRIVACY_TOKEN_SECRET);
-  return payload as { budgetId: string; membershipId: string };
-}
 
 // GET - Confirm or reject privacy change (via signed email link, no login required)
 export async function GET(request: Request) {
