@@ -9,6 +9,7 @@ import {
 import { max, sql } from "drizzle-orm";
 import { CAMPAIGNS_REGISTRY, CAMPAIGN_KEYS } from "@/shared/lib/email/campaigns-registry";
 import { seedMissingConfigs } from "@/shared/lib/email/retention-runner";
+import { isManualDispatchable } from "@/shared/lib/email/manual-dispatch";
 
 export const GET = withSuperAdminAuthRequired(async () => {
   // Auto-seed config rows that the code knows about but the DB is missing.
@@ -48,6 +49,7 @@ export const GET = withSuperAdminAuthRequired(async () => {
       subjectOverride: config?.subjectOverride ?? null,
       effectiveSubject: config?.subjectOverride?.trim() || meta.defaultSubject,
       updatedAt: config?.updatedAt ?? null,
+      manualDispatch: isManualDispatchable(key),
       stats: {
         total: stats?.total ?? 0,
         sent: stats?.sent ?? 0,

@@ -48,6 +48,10 @@ export const CAMPAIGN_PRIORITY: Record<CampaignKey, number> = {
   no_whatsapp_d7: 60,
   no_ai_d10: 50,
   power_user_feedback: 40,
+  // Incident/manual-dispatch campaigns are not picked by the daily cron.
+  // Priority is still set so the type is satisfied and manual dispatch can
+  // reuse the same pickedByUser flow if ever wired into a runner.
+  partner_invite_retry_incident: 0,
 };
 
 export interface RetentionRunResult {
