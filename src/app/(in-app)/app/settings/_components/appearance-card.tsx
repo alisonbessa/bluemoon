@@ -5,9 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Label } from "@/shared/ui/label";
 import { Palette, Moon, Sun, Monitor } from "lucide-react";
 import { useTheme } from "next-themes";
+import { track } from "@vercel/analytics";
+
+type ThemeOption = "light" | "dark" | "system";
 
 export function AppearanceCard() {
   const { theme, setTheme } = useTheme();
+
+  const handleThemeChange = (next: ThemeOption) => {
+    setTheme(next);
+    track("theme_changed", { theme: next, source: "settings" });
+  };
 
   return (
     <Card>
@@ -27,7 +35,7 @@ export function AppearanceCard() {
             <Button
               variant={theme === "light" ? "default" : "outline"}
               className="w-full"
-              onClick={() => setTheme("light")}
+              onClick={() => handleThemeChange("light")}
             >
               <Sun className="h-4 w-4" />
               <span className="hidden sm:inline">Claro</span>
@@ -35,7 +43,7 @@ export function AppearanceCard() {
             <Button
               variant={theme === "dark" ? "default" : "outline"}
               className="w-full"
-              onClick={() => setTheme("dark")}
+              onClick={() => handleThemeChange("dark")}
             >
               <Moon className="h-4 w-4" />
               <span className="hidden sm:inline">Escuro</span>
@@ -43,7 +51,7 @@ export function AppearanceCard() {
             <Button
               variant={theme === "system" ? "default" : "outline"}
               className="w-full"
-              onClick={() => setTheme("system")}
+              onClick={() => handleThemeChange("system")}
             >
               <Monitor className="h-4 w-4" />
               <span className="hidden sm:inline">Sistema</span>

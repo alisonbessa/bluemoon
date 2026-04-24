@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { track } from "@vercel/analytics/server";
 import { users } from "@/db/schema/user";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
@@ -73,6 +74,17 @@ export async function onSubscriptionCreated(data: Stripe.Event.Data) {
     }
   });
   logger.info("onSubscriptionCreated completed successfully");
+
+  try {
+    await track("subscription_created", {
+      planCodename: dbPlan.codename,
+      planName: dbPlan.name,
+      status: object.status,
+      isTrial: object.status === "trialing",
+    });
+  } catch (err) {
+    logger.error("Failed to track subscription_created", { error: String(err) });
+  }
 }
 
 export async function onSubscriptionUpdated(data: Stripe.Event.Data) {

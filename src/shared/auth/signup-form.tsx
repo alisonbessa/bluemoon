@@ -9,6 +9,7 @@ import { Label } from "@/shared/ui/label";
 import { cn } from "@/shared/lib/utils";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { track } from "@vercel/analytics";
 import { signUpRequestSchema, type SignUpRequestInput } from "@/shared/lib/validations/auth.schema";
 
 export function SignUpForm({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
@@ -41,6 +42,7 @@ export function SignUpForm({ className, ...props }: React.HTMLAttributes<HTMLDiv
         return;
       }
 
+      track("signup_requested");
       toast.success("Verifique seu email para completar a configuração da conta!");
     } catch (error) {
       console.error("Signup error:", error);

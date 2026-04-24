@@ -9,6 +9,7 @@ import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { track } from "@vercel/analytics";
 import { setPasswordSchema, type SetPasswordInput } from "@/shared/lib/validations/auth.schema";
 import { appConfig } from "@/shared/lib/config";
 
@@ -61,6 +62,7 @@ export default function SetPasswordPage() {
         return;
       }
 
+      track("signup_completed");
       toast.success("Conta criada com sucesso! Faça login.");
       router.push("/sign-in");
     } catch (error) {
