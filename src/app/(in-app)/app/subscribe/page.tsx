@@ -10,6 +10,7 @@ import {
   SubscribeParams,
 } from "@/shared/lib/plans/getSubscribeUrl";
 import stripe from "@/integrations/stripe";
+import { track } from "@vercel/analytics/server";
 import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import React from "react";
@@ -155,6 +156,12 @@ async function SubscribePage({
       if (!stripeCheckoutSession.url) {
         throw new Error("Checkout session URL not found");
       }
+      track("checkout_started", {
+        provider,
+        planCodename: codename,
+        planType: type,
+        hasTrial: Boolean(trialPeriodDays),
+      }).catch(() => {});
       return redirect(stripeCheckoutSession.url);
 
     default:

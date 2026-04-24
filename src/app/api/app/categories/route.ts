@@ -4,6 +4,7 @@ import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
 import { categories, groups, budgets, budgetMembers } from "@/db/schema";
 import { eq, and, inArray, isNull, isNotNull } from "drizzle-orm";
+import { track } from "@vercel/analytics/server";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds, getUserMemberIdInBudget } from "@/shared/lib/api/permissions";
 import {
@@ -237,6 +238,11 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     },
     req,
   });
+
+  track("category_created", {
+    behavior: newCategory.behavior ?? null,
+    hasMember: Boolean(newCategory.memberId),
+  }).catch(() => {});
 
   return successResponse({ category: newCategory }, 201);
 }), rateLimits.api, "app-categories-post");

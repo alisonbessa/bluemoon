@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useTheme } from "next-themes";
+import { track } from "@vercel/analytics";
 import { Button } from "@/shared/ui/button";
 import {
   DropdownMenu,
@@ -11,8 +12,15 @@ import {
 } from "@/shared/ui/dropdown-menu";
 import { Moon, Sun, Laptop } from "lucide-react";
 
+type ThemeOption = "light" | "dark" | "system";
+
 export function ThemeSwitcher() {
   const { setTheme } = useTheme();
+
+  const handleThemeChange = (theme: ThemeOption) => {
+    setTheme(theme);
+    track("theme_changed", { theme, source: "switcher" });
+  };
 
   return (
     <DropdownMenu>
@@ -24,15 +32,15 @@ export function ThemeSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
+        <DropdownMenuItem onClick={() => handleThemeChange("light")}>
           <Sun className="h-4 w-4" />
           <span>Claro</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        <DropdownMenuItem onClick={() => handleThemeChange("dark")}>
           <Moon className="h-4 w-4" />
           <span>Escuro</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
+        <DropdownMenuItem onClick={() => handleThemeChange("system")}>
           <Laptop className="h-4 w-4" />
           <span>Sistema</span>
         </DropdownMenuItem>

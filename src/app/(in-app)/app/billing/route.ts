@@ -1,5 +1,6 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import stripe from "@/integrations/stripe";
+import { track } from "@vercel/analytics/server";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 
@@ -14,6 +15,7 @@ export const GET = withAuthRequired(async (req, context) => {
       customer: stripeCustomerId,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/app`,
     });
+    track("billing_portal_opened").catch(() => {});
     return redirect(portalSession.url);
   }
 

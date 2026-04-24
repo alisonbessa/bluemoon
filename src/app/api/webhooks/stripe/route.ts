@@ -12,6 +12,7 @@ import {
 } from "./handlers/subscription-handlers";
 import {
   onInvoicePaid,
+  onInvoicePaymentFailed,
   onCheckoutSessionCompleted,
 } from "./handlers/payment-handlers";
 import { onCustomerCreated } from "./handlers/customer-handlers";
@@ -54,6 +55,9 @@ async function handler(req: NextRequest) {
       switch (eventType) {
         case "invoice.paid":
           await onInvoicePaid(data);
+          break;
+        case "invoice.payment_failed":
+          await onInvoicePaymentFailed(data);
           break;
         case "checkout.session.completed":
           await onCheckoutSessionCompleted(data);

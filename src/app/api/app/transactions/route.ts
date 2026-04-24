@@ -4,6 +4,7 @@ import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
 import { transactions, financialAccounts, categories, incomeSources, budgetMembers } from "@/db/schema";
 import { eq, and, inArray, desc, gte, lte, sql } from "drizzle-orm";
+import { track } from "@vercel/analytics/server";
 import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import { createTransactionSchema } from "@/shared/lib/validations/transaction.schema";
 import {
@@ -300,6 +301,8 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
       req,
     });
 
+    trackTransactionCreated(budgetId, type, true, totalInstallments);
+
     return successResponse({ transactions: createdTransactions }, 201);
   }
 
@@ -360,5 +363,34 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     req,
   });
 
+  trackTransactionCreated(budgetId, type, false, null);
+
   return successResponse({ transaction: newTransaction }, 201);
 }), rateLimits.api, "app-transactions-post");
+
+// Fire-and-forget: detects first transaction in a budget for activation metrics.
+function trackTransactionCreated(
+  budgetId: string,
+  type: string,
+  isInstallment: boolean,
+  totalInstallments: number | null,
+) {
+  void (async () => {
+    try {
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(transactions)
+        .where(eq(transactions.budgetId, budgetId));
+      await track("transaction_created", {
+        type,
+        isInstallment,
+        totalInstallments: totalInstallments ?? null,
+      });
+      if (count <= (isInstallment && totalInstallments ? totalInstallments : 1)) {
+        await track("first_transaction_created", { type });
+      }
+    } catch {
+      /* non-blocking */
+    }
+  })();
+}

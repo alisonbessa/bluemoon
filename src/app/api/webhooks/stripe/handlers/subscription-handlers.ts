@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { track } from "@vercel/analytics/server";
 import { users } from "@/db/schema/user";
 import { db } from "@/db";
 import { eq } from "drizzle-orm";
@@ -73,6 +74,17 @@ export async function onSubscriptionCreated(data: Stripe.Event.Data) {
     }
   });
   logger.info("onSubscriptionCreated completed successfully");
+
+  try {
+    await track("subscription_created", {
+      planCodename: dbPlan.codename,
+      planName: dbPlan.name,
+      status: object.status,
+      isTrial: object.status === "trialing",
+    });
+  } catch (err) {
+    logger.error("Failed to track subscription_created", { error: String(err) });
+  }
 }
 
 export async function onSubscriptionUpdated(data: Stripe.Event.Data) {
@@ -102,6 +114,15 @@ export async function onSubscriptionUpdated(data: Stripe.Event.Data) {
       .set({ trialEndsAt: null })
       .where(eq(users.id, user[0].id));
     await downgradeToDefaultPlan({ userId: user[0].id });
+
+    try {
+      await track("subscription_canceled", {
+        status: object.status,
+        cancelAtPeriodEnd: Boolean(object.cancel_at_period_end),
+      });
+    } catch (err) {
+      logger.error("Failed to track subscription_canceled", { error: String(err) });
+    }
     return;
   }
 
@@ -136,6 +157,17 @@ export async function onSubscriptionUpdated(data: Stripe.Event.Data) {
       status: object.status,
     }
   });
+
+  try {
+    await track("subscription_updated", {
+      planCodename: dbPlan.codename,
+      planName: dbPlan.name,
+      status: object.status,
+      isTrial: object.status === "trialing",
+    });
+  } catch (err) {
+    logger.error("Failed to track subscription_updated", { error: String(err) });
+  }
 }
 
 export async function onSubscriptionDeleted(data: Stripe.Event.Data) {
@@ -151,6 +183,14 @@ export async function onSubscriptionDeleted(data: Stripe.Event.Data) {
     return;
   }
   await downgradeToDefaultPlan({ userId: user[0].id });
+
+  try {
+    await track("subscription_deleted", {
+      status: object.status,
+    });
+  } catch (err) {
+    logger.error("Failed to track subscription_deleted", { error: String(err) });
+  }
 }
 
 /**
