@@ -24,7 +24,7 @@ import {
 import { getTodayNoonUTC, formatInstallmentMonths, getUndoHint } from "../utils";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
 import { formatCurrency } from "@/shared/lib/formatters";
-import { getVisibleCategories, formatCategoryName, suggestGroupForCategory } from "./category-utils";
+import { getVisibleCategories, formatCategoryName, suggestGroupForCategory, preferSenderPersonalCategory } from "./category-utils";
 import { getScopeFromCategory } from "@/shared/lib/transactions/scope";
 import {
   distributeInstallmentAmounts,
@@ -109,9 +109,18 @@ export async function handleExpenseIntent(
 
   // Try to match category (using privacy-filtered list)
   const categoryMatch = matchCategory(data?.categoryHint, categories);
-  const categoryId = categoryMatch?.category.id;
-  const categoryName = categoryMatch?.category.name;
-  const categoryIcon = categoryMatch?.category.icon;
+  // If the match is shared but the sender has a same-named personal category,
+  // prefer the personal one so individual purchases (chinelo, roupa, cabelo)
+  // don't get attributed to the couple by default.
+  const matchedFull = categoryMatch
+    ? categories.find((c) => c.id === categoryMatch.category.id)
+    : undefined;
+  const resolvedCategory = matchedFull
+    ? preferSenderPersonalCategory(matchedFull, categories, memberId)
+    : undefined;
+  const categoryId = resolvedCategory?.id;
+  const categoryName = resolvedCategory?.name;
+  const categoryIcon = resolvedCategory?.icon;
 
   // Derive scope from category (NULL = shared, set = personal to category owner)
   const scopeMemberId = getScopeFromCategory(categoryId, categories, memberId);
