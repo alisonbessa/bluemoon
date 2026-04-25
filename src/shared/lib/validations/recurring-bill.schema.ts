@@ -20,7 +20,7 @@ export const createRecurringBillSchema = z
       .string()
       .min(1, "Bill name is required")
       .max(100, "Bill name must be less than 100 characters"),
-    amount: z.number().int().min(0).max(MAX_CENTS),
+    amount: z.number().int().min(1, "Valor deve ser maior que zero").max(MAX_CENTS),
     frequency: recurringBillFrequencyEnum.default("monthly"),
     dueDay: z.number().int().min(0).max(31).optional().nullable(),
     dueMonth: z.number().int().min(1).max(12).optional().nullable(),
@@ -100,7 +100,7 @@ export const updateRecurringBillSchema = z.object({
     .min(1, "Bill name is required")
     .max(100, "Bill name must be less than 100 characters")
     .optional(),
-  amount: z.number().int().min(0).max(MAX_CENTS).optional(),
+  amount: z.number().int().min(1, "Valor deve ser maior que zero").max(MAX_CENTS).optional(),
   frequency: recurringBillFrequencyEnum.optional(),
   dueDay: z.number().int().min(0).max(31).optional().nullable(),
   dueMonth: z.number().int().min(1).max(12).optional().nullable(),

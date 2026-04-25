@@ -168,6 +168,11 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     return errorResponse("Transfer requires toAccountId", 400);
   }
 
+  // Source and destination accounts must differ for transfers
+  if (type === "transfer" && toAccountId === accountId) {
+    return errorResponse("Source and destination accounts must be different", 400);
+  }
+
   // Validate accountId belongs to the budget (fix 5.1)
   const [sourceAccount] = await db
     .select()
@@ -198,7 +203,9 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     }
   }
 
-  // Validate categoryId belongs to the budget and get its scope (memberId)
+  // Validate categoryId belongs to the budget and get its scope (memberId).
+  // A category that belongs to another member must not be usable by the
+  // current user — categories with NULL memberId are shared and allowed.
   let categoryScopeMemberId: string | null = null;
   if (categoryId) {
     const [cat] = await db
@@ -213,19 +220,28 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     if (!cat) {
       return errorResponse("Category does not belong to this budget", 400);
     }
+    if (cat.memberId !== null && cat.memberId !== userMemberIdInBudget) {
+      return forbiddenError("Category belongs to another member");
+    }
     categoryScopeMemberId = cat.memberId;
   }
 
-  // Validate incomeSourceId and get its scope (memberId)
+  // Validate incomeSourceId belongs to the same budget and get its scope (memberId)
   let incomeSourceScopeMemberId: string | null = null;
   if (incomeSourceId) {
     const [source] = await db
       .select({ id: incomeSources.id, memberId: incomeSources.memberId })
       .from(incomeSources)
-      .where(eq(incomeSources.id, incomeSourceId));
-    if (source) {
-      incomeSourceScopeMemberId = source.memberId;
+      .where(
+        and(
+          eq(incomeSources.id, incomeSourceId),
+          eq(incomeSources.budgetId, budgetId)
+        )
+      );
+    if (!source) {
+      return errorResponse("Income source does not belong to this budget", 400);
     }
+    incomeSourceScopeMemberId = source.memberId;
   }
 
   // Derive scope memberId based on transaction type:

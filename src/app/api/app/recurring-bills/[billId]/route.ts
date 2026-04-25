@@ -1,6 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
-import { recurringBills } from "@/db/schema";
+import { recurringBills, categories, financialAccounts } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
@@ -43,6 +44,10 @@ export const GET = withAuthRequired(async (req, context) => {
 // PATCH - Update a recurring bill
 export const PATCH = withAuthRequired(async (req, context) => {
   const { session } = context;
+
+  const subscriptionError = await requireActiveSubscription(session.user.id);
+  if (subscriptionError) return subscriptionError;
+
   const params = await context.params;
   const billId = params.billId as string;
   const body = await req.json();
@@ -81,6 +86,37 @@ export const PATCH = withAuthRequired(async (req, context) => {
     return errorResponse(frequencyValidation.error!, 400);
   }
 
+  // If the user is moving the bill to a different category or account, those
+  // FKs must still belong to the same budget — otherwise we'd cross budgets.
+  if (validation.data.categoryId && validation.data.categoryId !== existingBill.categoryId) {
+    const [cat] = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(
+        and(
+          eq(categories.id, validation.data.categoryId),
+          eq(categories.budgetId, existingBill.budgetId)
+        )
+      );
+    if (!cat) {
+      return errorResponse("Category does not belong to this budget", 400);
+    }
+  }
+  if (validation.data.accountId && validation.data.accountId !== existingBill.accountId) {
+    const [acc] = await db
+      .select({ id: financialAccounts.id })
+      .from(financialAccounts)
+      .where(
+        and(
+          eq(financialAccounts.id, validation.data.accountId),
+          eq(financialAccounts.budgetId, existingBill.budgetId)
+        )
+      );
+    if (!acc) {
+      return errorResponse("Account does not belong to this budget", 400);
+    }
+  }
+
   const updateData = {
     ...validation.data,
     updatedAt: new Date(),
@@ -107,6 +143,10 @@ export const PATCH = withAuthRequired(async (req, context) => {
 // DELETE - Delete a recurring bill (soft delete by deactivating)
 export const DELETE = withAuthRequired(async (req, context) => {
   const { session } = context;
+
+  const subscriptionError = await requireActiveSubscription(session.user.id);
+  if (subscriptionError) return subscriptionError;
+
   const params = await context.params;
   const billId = params.billId as string;
 
