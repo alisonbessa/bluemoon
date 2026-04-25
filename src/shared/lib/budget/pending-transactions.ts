@@ -7,7 +7,7 @@ import {
   categories,
   monthlyBudgetStatus,
 } from "@/db/schema";
-import { eq, and, gte, lte, isNotNull, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, isNotNull, inArray, ne, or, isNull } from "drizzle-orm";
 import { getScopeFromCategory, getScopeFromIncomeSource } from "@/shared/lib/transactions/scope";
 
 interface EnsureResult {
@@ -118,18 +118,29 @@ export async function ensurePendingTransactionsForMonth(
     existingIncomeDates.get(key)!.add(dateStr);
   });
 
-  // Get all active recurring bills
-  const activeBills = await db
-    .select()
+  // Get all active recurring bills whose category and account are still
+  // available (not archived). Joining filters them out at the SQL level so
+  // archived setups stop generating new pending rows.
+  const activeBillsRows = await db
+    .select({
+      bill: recurringBills,
+      categoryArchived: categories.isArchived,
+      accountArchived: financialAccounts.isArchived,
+    })
     .from(recurringBills)
+    .leftJoin(categories, eq(recurringBills.categoryId, categories.id))
+    .leftJoin(financialAccounts, eq(recurringBills.accountId, financialAccounts.id))
     .where(
       and(
         eq(recurringBills.budgetId, budgetId),
-        eq(recurringBills.isActive, true)
+        eq(recurringBills.isActive, true),
+        or(isNull(categories.isArchived), eq(categories.isArchived, false)),
+        or(isNull(financialAccounts.isArchived), eq(financialAccounts.isArchived, false))
       )
     );
+  const activeBills = activeBillsRows.map((r) => r.bill);
 
-  // Get income sources with dayOfMonth
+  // Get income sources with dayOfMonth (skip archived destination accounts)
   const incomeSourcesWithDay = await db
     .select({
       incomeSource: incomeSources,
@@ -141,15 +152,23 @@ export async function ensurePendingTransactionsForMonth(
       and(
         eq(incomeSources.budgetId, budgetId),
         eq(incomeSources.isActive, true),
-        isNotNull(incomeSources.dayOfMonth)
+        isNotNull(incomeSources.dayOfMonth),
+        or(isNull(financialAccounts.isArchived), eq(financialAccounts.isArchived, false))
       )
     );
 
-  // Get default account for income transactions without specific account
+  // Get default account for income transactions without specific account.
+  // Must NOT be a credit card or archived — those would corrupt projections.
   const defaultAccount = await db
     .select()
     .from(financialAccounts)
-    .where(eq(financialAccounts.budgetId, budgetId))
+    .where(
+      and(
+        eq(financialAccounts.budgetId, budgetId),
+        eq(financialAccounts.isArchived, false),
+        ne(financialAccounts.type, "credit_card")
+      )
+    )
     .limit(1);
 
   if (defaultAccount.length === 0) {
@@ -187,9 +206,18 @@ export async function ensurePendingTransactionsForMonth(
     memberId: incomeSource.memberId,
   }));
 
-  // Create expense transactions from recurring bills
-  // Bills with isAutoDebit=true and due date <= today are created as "cleared" (auto-confirmed)
-  const today = new Date();
+  // Create expense transactions from recurring bills.
+  // Bills with isAutoDebit=true and due date <= today are created as "cleared" (auto-confirmed).
+  // We compute "today" as the end of the current UTC day so that auto-debit
+  // doesn't fire one day early in negative-offset timezones (where local
+  // midnight precedes UTC noon used in dueDate construction).
+  const nowUtc = new Date();
+  const today = new Date(Date.UTC(
+    nowUtc.getUTCFullYear(),
+    nowUtc.getUTCMonth(),
+    nowUtc.getUTCDate(),
+    23, 59, 59, 999,
+  ));
   const expenseTransactions = [];
   for (const bill of activeBills) {
     if (bill.amount <= 0) continue;
