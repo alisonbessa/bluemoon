@@ -204,6 +204,7 @@ export async function handleExpenseIntent(
         accountId: created.accountId,
         type: "expense",
         amount: created.amount,
+        status: created.status,
       });
 
       return created;

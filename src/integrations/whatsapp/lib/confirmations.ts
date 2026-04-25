@@ -2,9 +2,8 @@ import { db } from "@/db";
 import {
   whatsappUsers,
   transactions,
-  financialAccounts,
 } from "@/db/schema";
-import { eq, and, gte, lte, sql } from "drizzle-orm";
+import { eq, and, gte, lte } from "drizzle-orm";
 import type { ConversationContext } from "@/integrations/messaging/lib/types";
 import { WhatsAppAdapter } from "./whatsapp-adapter";
 import {
@@ -26,6 +25,11 @@ import {
 } from "@/shared/lib/transactions/installments";
 import { formatCurrency } from "@/shared/lib/formatters";
 import { formatAccountDisplay, formatAccountWithIcon } from "@/integrations/messaging/lib/ai-handlers/account-utils";
+import {
+  validateExpenseInputs,
+  validateIncomeInputs,
+  validateTransferInputs,
+} from "@/integrations/messaging/lib/budget-validation";
 
 const adapter = new WhatsAppAdapter();
 
@@ -70,6 +74,19 @@ export async function handleExpenseConfirmation(
       phoneNumber,
       "Erro ao salvar. Configure seu orçamento no app."
     );
+    await adapter.updateState(phoneNumber, "IDLE", {});
+    return;
+  }
+
+  // Conversation context can be tampered with (or stale across budget changes).
+  // Re-check that the chosen category and account still belong to the user's
+  // budget before persisting anything.
+  const expenseCheck = validateExpenseInputs(budgetInfo, {
+    categoryId: context.pendingExpense.categoryId,
+    accountId: context.pendingExpense.accountId,
+  });
+  if (!expenseCheck.ok) {
+    await adapter.sendMessage(phoneNumber, expenseCheck.error!);
     await adapter.updateState(phoneNumber, "IDLE", {});
     return;
   }
@@ -269,6 +286,7 @@ export async function handleExpenseConfirmation(
         accountId: created.accountId,
         type: "expense",
         amount: created.amount,
+        status: created.status,
       });
 
       return created;
@@ -347,6 +365,16 @@ export async function handleIncomeConfirmation(
     return;
   }
 
+  const incomeCheck = validateIncomeInputs(budgetInfo, {
+    incomeSourceId: context.pendingIncome.incomeSourceId,
+    accountId: context.pendingIncome.accountId,
+  });
+  if (!incomeCheck.ok) {
+    await adapter.sendMessage(phoneNumber, incomeCheck.error!);
+    await adapter.updateState(phoneNumber, "IDLE", {});
+    return;
+  }
+
   let transactionId: string;
 
   // Check if we should update an existing scheduled transaction
@@ -414,6 +442,7 @@ export async function handleIncomeConfirmation(
         accountId: created.accountId,
         type: "income",
         amount: created.amount,
+        status: created.status,
       });
 
       return created;
@@ -488,7 +517,18 @@ export async function handleTransferConfirmation(
     return;
   }
 
-  // Create transfer transaction and update balances atomically
+  const transferCheck = validateTransferInputs(budgetInfo, {
+    fromAccountId: context.pendingTransfer.fromAccountId,
+    toAccountId: context.pendingTransfer.toAccountId,
+  });
+  if (!transferCheck.ok) {
+    await adapter.sendMessage(phoneNumber, transferCheck.error!);
+    await adapter.updateState(phoneNumber, "IDLE", {});
+    return;
+  }
+
+  // Create transfer transaction and update balances atomically.
+  // applyTransactionBalanceChange mirrors clearedBalance because status="cleared".
   const [newTransaction] = await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(transactions)
@@ -508,16 +548,13 @@ export async function handleTransferConfirmation(
       })
       .returning();
 
-    // Update account balances: subtract from source, add to destination
-    await tx
-      .update(financialAccounts)
-      .set({ balance: sql`${financialAccounts.balance} - ${context.pendingTransfer!.amount}` })
-      .where(eq(financialAccounts.id, context.pendingTransfer!.fromAccountId!));
-
-    await tx
-      .update(financialAccounts)
-      .set({ balance: sql`${financialAccounts.balance} + ${context.pendingTransfer!.amount}` })
-      .where(eq(financialAccounts.id, context.pendingTransfer!.toAccountId!));
+    await applyTransactionBalanceChange(tx, {
+      accountId: created.accountId,
+      type: "transfer",
+      amount: created.amount,
+      toAccountId: created.toAccountId,
+      status: created.status,
+    });
 
     return [created];
   });
