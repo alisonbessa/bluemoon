@@ -28,6 +28,19 @@ import {
 } from "@/shared/lib/api/view-mode-filter";
 
 /**
+ * Count occurrences of a weekday (0=Sun..6=Sat) in a calendar month.
+ * Mirrors the helper in /api/app/allocations to keep SSR and CSR aligned.
+ */
+function countWeekdayOccurrences(year: number, month: number, weekday: number): number {
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  let count = 0;
+  for (let day = 1; day <= lastDay; day++) {
+    if (new Date(Date.UTC(year, month - 1, day)).getUTCDay() === weekday) count++;
+  }
+  return count;
+}
+
+/**
  * Shape returned by fetchBudgetAllocationsData.
  * Matches the SWR AllocationsResponse in use-budget-page-data.ts.
  */
@@ -164,13 +177,16 @@ export async function fetchBudgetAllocationsData(opts: {
       })
     : undefined;
 
-  // Build transaction visibility condition for spending queries
+  // Build transaction visibility condition for spending queries.
+  // Pass paidByField so per-category totals stay consistent with the
+  // transaction list (which already passes it).
   const txViewCondition = userMemberId
     ? getViewModeCondition({
         viewMode,
         userMemberId,
         ownerField: transactions.memberId,
         partnerPrivacy,
+        paidByField: transactions.paidByMemberId,
       })
     : undefined;
 
@@ -363,28 +379,41 @@ export async function fetchBudgetAllocationsData(opts: {
       }
     }
 
-    // Batch updates in parallel, batch inserts in one call
-    const batchPromises: Promise<unknown>[] = [];
-    if (carryOverUpdates.length > 0) {
-      batchPromises.push(
-        Promise.all(carryOverUpdates.map(u =>
-          db.update(monthlyAllocations)
-            .set({ carriedOver: u.carriedOver, updatedAt: new Date() })
-            .where(eq(monthlyAllocations.id, u.id))
-        ))
-      );
+    // Run carry-over updates and inserts atomically. Concurrent SSR/CSR loads
+    // could otherwise violate unique_allocation when two requests insert the
+    // same (budget, category, year, month) tuple, so the insert uses
+    // ON CONFLICT DO NOTHING.
+    if (carryOverUpdates.length > 0 || carryOverInserts.length > 0) {
+      await db.transaction(async (tx) => {
+        if (carryOverUpdates.length > 0) {
+          await Promise.all(
+            carryOverUpdates.map((u) =>
+              tx
+                .update(monthlyAllocations)
+                .set({ carriedOver: u.carriedOver, updatedAt: new Date() })
+                .where(eq(monthlyAllocations.id, u.id))
+            )
+          );
+        }
+        if (carryOverInserts.length > 0) {
+          const inserted = await tx
+            .insert(monthlyAllocations)
+            .values(carryOverInserts)
+            .onConflictDoNothing({
+              target: [
+                monthlyAllocations.budgetId,
+                monthlyAllocations.categoryId,
+                monthlyAllocations.year,
+                monthlyAllocations.month,
+              ],
+            })
+            .returning();
+          for (const newAlloc of inserted) {
+            allocationsMap.set(newAlloc.categoryId, newAlloc);
+          }
+        }
+      });
     }
-    if (carryOverInserts.length > 0) {
-      batchPromises.push(
-        db.insert(monthlyAllocations).values(carryOverInserts).returning()
-          .then(newAllocs => {
-            for (const newAlloc of newAllocs) {
-              allocationsMap.set(newAlloc.categoryId, newAlloc);
-            }
-          })
-      );
-    }
-    await Promise.all(batchPromises);
   }
 
   // Group allocation ceilings by groupId
@@ -453,8 +482,10 @@ export async function fetchBudgetAllocationsData(opts: {
     const categoryBills = billsMap.get(category.id) || [];
 
     const billsTotal = categoryBills.reduce((sum, bill) => sum + bill.amount, 0);
-    const manualAlloc = allocation?.allocated ?? 0;
-    const allocated = manualAlloc > 0 ? manualAlloc : billsTotal;
+    // An existing allocation row (even with 0) counts as an explicit user
+    // intent. Falling back to billsTotal only when no row exists preserves
+    // "this category was zeroed on purpose this month".
+    const allocated = allocation ? allocation.allocated : billsTotal;
     const carriedOver = allocation?.carriedOver || 0;
     const spendSplit = spendingMap.get(category.id) ?? { pending: 0, confirmed: 0 };
     const pending = spendSplit.pending;
@@ -506,10 +537,12 @@ export async function fetchBudgetAllocationsData(opts: {
   const groupedResult = Array.from(groupedData.values())
     .sort((a, b) => a.group.displayOrder - b.group.displayOrder)
     .map((g) => {
-      // Apply group ceiling: if user set a ceiling, use it as allocated
+      // Apply group ceiling: if user set a ceiling, use it as allocated.
+      // Carry-over from previous months is additive and must not be discarded.
       if (g.groupAllocated != null && g.groupAllocated > 0) {
-        g.totals.allocated = g.groupAllocated;
-        g.totals.saldo = g.groupAllocated - g.totals.pending - g.totals.confirmed;
+        const groupCarriedOver = g.categories.reduce((sum, c) => sum + c.carriedOver, 0);
+        g.totals.allocated = g.groupAllocated + groupCarriedOver;
+        g.totals.saldo = g.totals.allocated - g.totals.pending - g.totals.confirmed;
         g.totals.available = g.totals.saldo;
       }
       overallTotals.allocated += g.totals.allocated;
@@ -650,16 +683,17 @@ export async function fetchBudgetAllocationsData(opts: {
         continue;
       }
     }
-    // Skip if at or after end date (exclusive)
+    // Skip strictly AFTER the end month — the end month itself is included.
     if (incomeSource.endYear && incomeSource.endMonth) {
-      if (year > incomeSource.endYear || (year === incomeSource.endYear && month >= incomeSource.endMonth)) {
+      if (year > incomeSource.endYear || (year === incomeSource.endYear && month > incomeSource.endMonth)) {
         continue;
       }
     }
 
+    // Weekly: count actual weekday occurrences in the month (4 or 5).
     const frequencyMultiplier =
       incomeSource.frequency === "weekly"
-        ? 4
+        ? countWeekdayOccurrences(year, month, incomeSource.dayOfMonth ?? 5)
         : incomeSource.frequency === "biweekly"
           ? 2
           : 1;

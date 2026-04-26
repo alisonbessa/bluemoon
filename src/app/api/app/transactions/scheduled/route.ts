@@ -214,14 +214,18 @@ export const GET = withAuthRequired(async (req, context) => {
         )
       ),
 
-    // Get existing goal contributions for this month
+    // Get existing goal contributions for this month.
+    // Use the resolved filterYear/filterMonth so this matches the date range
+    // used by every other query in this handler (the legacy year/month
+    // params default to "now" and would mismatch when startDate/endDate
+    // points at a different month).
     db
       .select()
       .from(goalContributions)
       .where(
         and(
-          eq(goalContributions.year, year),
-          eq(goalContributions.month, month)
+          eq(goalContributions.year, filterYear),
+          eq(goalContributions.month, filterMonth)
         )
       ),
   ]);
@@ -411,6 +415,49 @@ export const GET = withAuthRequired(async (req, context) => {
           });
         }
       }
+    } else if (frequency === "annual") {
+      // Annual income: only show in the month-of-year configured for this source.
+      if (source.monthOfYear !== filterMonth) continue;
+
+      const dueDay = Math.min(source.dayOfMonth ?? 1, lastDayOfMonth);
+      const dueDate = new Date(Date.UTC(filterYear, filterMonth - 1, dueDay, 12, 0, 0));
+
+      scheduledTransactions.push({
+        id: `income-${source.id}-${filterYear}-${filterMonth}`,
+        type: "income",
+        name: source.name,
+        icon: incomeIcon,
+        amount: source.amount,
+        dueDay,
+        dueDate: dueDate.toISOString(),
+        isPaid: paidIncomeSources.has(source.id),
+        sourceType: "income_source",
+        sourceId: source.id,
+        incomeSourceId: source.id,
+        accountId: source.accountId ?? undefined,
+      });
+    } else if (frequency === "once") {
+      // One-time income: only show in the specific month/year configured.
+      if (source.monthOfYear !== filterMonth) continue;
+      if (source.yearOfPayment && source.yearOfPayment !== filterYear) continue;
+
+      const dueDay = Math.min(source.dayOfMonth ?? 1, lastDayOfMonth);
+      const dueDate = new Date(Date.UTC(filterYear, filterMonth - 1, dueDay, 12, 0, 0));
+
+      scheduledTransactions.push({
+        id: `income-${source.id}-${filterYear}-${filterMonth}`,
+        type: "income",
+        name: source.name,
+        icon: incomeIcon,
+        amount: source.amount,
+        dueDay,
+        dueDate: dueDate.toISOString(),
+        isPaid: paidIncomeSources.has(source.id),
+        sourceType: "income_source",
+        sourceId: source.id,
+        incomeSourceId: source.id,
+        accountId: source.accountId ?? undefined,
+      });
     } else if (frequency === "biweekly") {
       // Biweekly income: generate 2 times per month (around day X and day X+14)
       const baseDayOfMonth = source.dayOfMonth ?? 15;

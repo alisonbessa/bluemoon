@@ -147,6 +147,7 @@ export async function handleIncomeIntent(
         accountId: created.accountId,
         type: "income",
         amount: created.amount,
+        status: created.status,
       });
 
       return created;

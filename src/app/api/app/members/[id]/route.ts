@@ -1,7 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { db } from "@/db";
-import { budgetMembers, groups } from "@/db/schema";
-import { eq, and, inArray, isNotNull } from "drizzle-orm";
+import { budgetMembers, groups, transactions } from "@/db/schema";
+import { eq, and, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { getFirstName } from "@/shared/lib/utils";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetMemberships } from "@/shared/lib/api/permissions";
@@ -10,6 +10,7 @@ import {
   forbiddenError,
   notFoundError,
   successResponse,
+  errorResponse,
 } from "@/shared/lib/api/responses";
 import { updateMemberSchema } from "@/shared/lib/validations";
 import { recordAuditLog } from "@/shared/lib/security/audit-log";
@@ -162,6 +163,27 @@ export const DELETE = withAuthRequired(async (req, context) => {
   // Can't delete owner
   if (existingMember.type === "owner") {
     return forbiddenError("Cannot remove the budget owner");
+  }
+
+  // Hard delete cascades into the member's personal categories AND deletes
+  // every transaction paid by this member (paidByMemberId has ON DELETE
+  // CASCADE) — silently destroying their balance contribution. Refuse the
+  // delete when transactions exist.
+  const [{ refCount }] = await db
+    .select({ refCount: sql<number>`COUNT(*)::int` })
+    .from(transactions)
+    .where(
+      or(
+        eq(transactions.paidByMemberId, memberId),
+        eq(transactions.memberId, memberId)
+      )!
+    );
+
+  if (refCount > 0) {
+    return errorResponse(
+      "Este membro possui transações registradas. Reaponte as transações antes de remover.",
+      400
+    );
   }
 
   // Delete the member (categories will be cascade deleted)

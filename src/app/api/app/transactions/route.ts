@@ -3,7 +3,7 @@ import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionReq
 import { withRateLimit, rateLimits } from "@/shared/lib/security/rate-limit";
 import { db } from "@/db";
 import { transactions, financialAccounts, categories, incomeSources, budgetMembers } from "@/db/schema";
-import { eq, and, inArray, desc, gte, lte, sql } from "drizzle-orm";
+import { eq, and, inArray, desc, gte, lte } from "drizzle-orm";
 import { getUserBudgetIds, getUserMemberIdInBudget, getPartnerPrivacyLevel } from "@/shared/lib/api/permissions";
 import { createTransactionSchema } from "@/shared/lib/validations/transaction.schema";
 import {
@@ -13,7 +13,7 @@ import {
   errorResponse,
   safePagination,
 } from "@/shared/lib/api/responses";
-import { createInstallmentTransactions } from "@/shared/lib/transactions/installments";
+import { createInstallmentTransactions, applyTransactionBalanceChange } from "@/shared/lib/transactions/installments";
 import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
 import { recordAuditLog } from "@/shared/lib/security/audit-log";
 
@@ -168,6 +168,11 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     return errorResponse("Transfer requires toAccountId", 400);
   }
 
+  // Source and destination accounts must differ for transfers
+  if (type === "transfer" && toAccountId === accountId) {
+    return errorResponse("Source and destination accounts must be different", 400);
+  }
+
   // Validate accountId belongs to the budget (fix 5.1)
   const [sourceAccount] = await db
     .select()
@@ -198,7 +203,9 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     }
   }
 
-  // Validate categoryId belongs to the budget and get its scope (memberId)
+  // Validate categoryId belongs to the budget and get its scope (memberId).
+  // A category that belongs to another member must not be usable by the
+  // current user — categories with NULL memberId are shared and allowed.
   let categoryScopeMemberId: string | null = null;
   if (categoryId) {
     const [cat] = await db
@@ -213,19 +220,28 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     if (!cat) {
       return errorResponse("Category does not belong to this budget", 400);
     }
+    if (cat.memberId !== null && cat.memberId !== userMemberIdInBudget) {
+      return forbiddenError("Category belongs to another member");
+    }
     categoryScopeMemberId = cat.memberId;
   }
 
-  // Validate incomeSourceId and get its scope (memberId)
+  // Validate incomeSourceId belongs to the same budget and get its scope (memberId)
   let incomeSourceScopeMemberId: string | null = null;
   if (incomeSourceId) {
     const [source] = await db
       .select({ id: incomeSources.id, memberId: incomeSources.memberId })
       .from(incomeSources)
-      .where(eq(incomeSources.id, incomeSourceId));
-    if (source) {
-      incomeSourceScopeMemberId = source.memberId;
+      .where(
+        and(
+          eq(incomeSources.id, incomeSourceId),
+          eq(incomeSources.budgetId, budgetId)
+        )
+      );
+    if (!source) {
+      return errorResponse("Income source does not belong to this budget", 400);
     }
+    incomeSourceScopeMemberId = source.memberId;
   }
 
   // Derive scope memberId based on transaction type:
@@ -303,7 +319,10 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
     return successResponse({ transactions: createdTransactions }, 201);
   }
 
-  // Create single transaction and update balances atomically
+  // Create single transaction and update balances atomically.
+  // applyTransactionBalanceChange handles both balance and clearedBalance
+  // (mirrored when the transaction is created already confirmed).
+  const effectiveStatus = status || "pending";
   const newTransaction = await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(transactions)
@@ -317,7 +336,7 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
         paidByMemberId,
         toAccountId,
         type,
-        status: status || "pending",
+        status: effectiveStatus,
         amount,
         description,
         notes,
@@ -326,27 +345,13 @@ export const POST = withRateLimit(withAuthRequired(async (req, context) => {
       })
       .returning();
 
-    // Atomic balance update (fix 1.1) — no read-then-write race condition
-    const balanceChange = type === "income" ? amount : -Math.abs(amount);
-
-    await tx
-      .update(financialAccounts)
-      .set({
-        balance: sql`${financialAccounts.balance} + ${balanceChange}`,
-        updatedAt: new Date(),
-      })
-      .where(eq(financialAccounts.id, accountId));
-
-    // For transfers, update destination account atomically
-    if (type === "transfer" && toAccountId) {
-      await tx
-        .update(financialAccounts)
-        .set({
-          balance: sql`${financialAccounts.balance} + ${Math.abs(amount)}`,
-          updatedAt: new Date(),
-        })
-        .where(eq(financialAccounts.id, toAccountId));
-    }
+    await applyTransactionBalanceChange(tx, {
+      accountId,
+      type,
+      amount,
+      toAccountId,
+      status: effectiveStatus,
+    });
 
     return created;
   });

@@ -144,8 +144,9 @@ export function useAllocationForm({
   const save = useCallback(async () => {
     if (!editingCategory || !budgetId) return;
 
-    const cleanValue = inputValue.replace(/[^\d,-]/g, '').replace(',', '.');
-    const newValue = Math.round(parseFloat(cleanValue || '0') * 100);
+    // Use the frequency-aware monthly value (e.g. weekly value × occurrences in month)
+    // so what the user sees in the UI is what gets persisted.
+    const newValue = getMonthlyValue().value;
 
     setIsSaving(true);
     try {
@@ -190,7 +191,7 @@ export function useAllocationForm({
     } finally {
       setIsSaving(false);
     }
-  }, [editingCategory, budgetId, year, month, inputValue, behavior, onSuccess, onTutorialAction]);
+  }, [editingCategory, budgetId, year, month, getMonthlyValue, behavior, onSuccess, onTutorialAction]);
 
   return {
     // Modal state

@@ -571,6 +571,7 @@ export async function handleGroupSelection(
         accountId: created.accountId,
         type: "expense",
         amount: created.amount,
+        status: created.status,
       });
 
       return created;

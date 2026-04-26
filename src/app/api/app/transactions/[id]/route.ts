@@ -95,22 +95,46 @@ export const PATCH = withAuthRequired(async (req, context) => {
     );
   }
 
-  // When categoryId changes, derive the new scope (memberId) from the category
+  // When categoryId or incomeSourceId changes, derive the new scope (memberId)
+  // from the new category or income source.
   let derivedScopeMemberId: string | null | undefined;
   if (validation.data.categoryId !== undefined) {
     if (validation.data.categoryId === null) {
       // Category removed: scope falls back to paidByMemberId (personal to whoever paid)
       derivedScopeMemberId = existingTransaction.paidByMemberId;
     } else {
-      // Category changed: inherit scope from new category
+      // Category changed: must belong to the same budget; inherit scope.
       const [cat] = await db
         .select({ id: categories.id, memberId: categories.memberId })
         .from(categories)
-        .where(eq(categories.id, validation.data.categoryId));
+        .where(
+          and(
+            eq(categories.id, validation.data.categoryId),
+            eq(categories.budgetId, existingTransaction.budgetId)
+          )
+        );
       if (!cat) {
-        return errorResponse("Category not found", 400);
+        return errorResponse("Category does not belong to this budget", 400);
       }
       derivedScopeMemberId = cat.memberId;
+    }
+  } else if (validation.data.incomeSourceId !== undefined) {
+    if (validation.data.incomeSourceId === null) {
+      derivedScopeMemberId = existingTransaction.paidByMemberId;
+    } else {
+      const [source] = await db
+        .select({ id: incomeSources.id, memberId: incomeSources.memberId })
+        .from(incomeSources)
+        .where(
+          and(
+            eq(incomeSources.id, validation.data.incomeSourceId),
+            eq(incomeSources.budgetId, existingTransaction.budgetId)
+          )
+        );
+      if (!source) {
+        return errorResponse("Income source does not belong to this budget", 400);
+      }
+      derivedScopeMemberId = source.memberId;
     }
   }
 
@@ -153,12 +177,13 @@ export const PATCH = withAuthRequired(async (req, context) => {
           )
         );
 
-      // Handle amount change across all installments
+      // Handle amount change across all installments.
+      // We compute the diff against the actual sum of the existing series so
+      // that distribution remainders (e.g. [3334, 3333, 3333]) do not introduce
+      // off-by-N errors when the user edits the series.
       if (validation.data.amount !== undefined && validation.data.amount !== existingTransaction.amount) {
         const newAmount = validation.data.amount;
-        const oldAmount = existingTransaction.amount;
 
-        // Check account type to determine balance impact
         const [account] = await tx
           .select()
           .from(financialAccounts)
@@ -166,18 +191,41 @@ export const PATCH = withAuthRequired(async (req, context) => {
 
         if (account) {
           const isCreditCard = account.type === "credit_card";
-          const multiplier = isCreditCard ? seriesTransactions.length : 1;
-          const totalDiff = (newAmount - oldAmount) * multiplier;
-          const balanceChange = existingTransaction.type === "income" ? totalDiff : -totalDiff;
+          const seriesCount = seriesTransactions.length;
+          const oldSeriesSum = seriesTransactions.reduce((sum, t) => sum + t.amount, 0);
+          const newSeriesSum = newAmount * seriesCount;
 
-          // Atomic balance update (fix 1.1)
-          await tx
-            .update(financialAccounts)
-            .set({
-              balance: sql`${financialAccounts.balance} + ${balanceChange}`,
-              updatedAt: new Date(),
-            })
-            .where(eq(financialAccounts.id, existingTransaction.accountId));
+          // Find the parent (installment that originally moved the balance for non-CC).
+          const parentRow =
+            seriesTransactions.find((t) => !t.parentTransactionId) ?? seriesTransactions[0];
+
+          // Credit cards reserve the full series amount on creation;
+          // other accounts only debit the first installment.
+          const balanceDiff = isCreditCard
+            ? newSeriesSum - oldSeriesSum
+            : newAmount - parentRow.amount;
+          const balanceChange = existingTransaction.type === "income" ? balanceDiff : -balanceDiff;
+
+          if (balanceDiff !== 0) {
+            await tx
+              .update(financialAccounts)
+              .set({
+                balance: sql`${financialAccounts.balance} + ${balanceChange}`,
+                updatedAt: new Date(),
+              })
+              .where(eq(financialAccounts.id, existingTransaction.accountId));
+
+            // Mirror destination account for transfers.
+            if (existingTransaction.type === "transfer" && existingTransaction.toAccountId) {
+              await tx
+                .update(financialAccounts)
+                .set({
+                  balance: sql`${financialAccounts.balance} + ${balanceDiff}`,
+                  updatedAt: new Date(),
+                })
+                .where(eq(financialAccounts.id, existingTransaction.toAccountId));
+            }
+          }
         }
 
         seriesUpdateData.amount = newAmount;
@@ -267,11 +315,14 @@ export const PATCH = withAuthRequired(async (req, context) => {
       const oldIsConfirmed = existingTransaction.status === "cleared" || existingTransaction.status === "reconciled";
       const newIsConfirmed = validation.data.status === "cleared" || validation.data.status === "reconciled";
 
+      const isTransfer = existingTransaction.type === "transfer";
+      const absAmount = Math.abs(existingTransaction.amount);
+
       if (!oldIsConfirmed && newIsConfirmed) {
         // Becoming confirmed: add to clearedBalance
         const clearedChange = existingTransaction.type === "income"
           ? existingTransaction.amount
-          : -Math.abs(existingTransaction.amount);
+          : -absAmount;
         await tx
           .update(financialAccounts)
           .set({
@@ -279,11 +330,22 @@ export const PATCH = withAuthRequired(async (req, context) => {
             updatedAt: new Date(),
           })
           .where(eq(financialAccounts.id, existingTransaction.accountId));
+
+        // Transfer: also bump destination clearedBalance by +amount.
+        if (isTransfer && existingTransaction.toAccountId) {
+          await tx
+            .update(financialAccounts)
+            .set({
+              clearedBalance: sql`${financialAccounts.clearedBalance} + ${absAmount}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(financialAccounts.id, existingTransaction.toAccountId));
+        }
       } else if (oldIsConfirmed && !newIsConfirmed) {
         // Becoming unconfirmed: subtract from clearedBalance
         const clearedChange = existingTransaction.type === "income"
           ? -existingTransaction.amount
-          : Math.abs(existingTransaction.amount);
+          : absAmount;
         await tx
           .update(financialAccounts)
           .set({
@@ -291,6 +353,16 @@ export const PATCH = withAuthRequired(async (req, context) => {
             updatedAt: new Date(),
           })
           .where(eq(financialAccounts.id, existingTransaction.accountId));
+
+        if (isTransfer && existingTransaction.toAccountId) {
+          await tx
+            .update(financialAccounts)
+            .set({
+              clearedBalance: sql`${financialAccounts.clearedBalance} - ${absAmount}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(financialAccounts.id, existingTransaction.toAccountId));
+        }
       }
 
       // When a transfer to a credit card is confirmed, mature the card's
@@ -538,15 +610,29 @@ export const DELETE = withAuthRequired(async (req, context) => {
       }
     }
 
-    // For transfers, also reverse the destination account balance (fix 1.1)
+    // For transfers, also reverse the destination account balance.
+    // Mirror clearedBalance when the transaction was confirmed.
     if (existingTransaction.type === "transfer" && existingTransaction.toAccountId) {
+      const destChange = -Math.abs(existingTransaction.amount);
       await tx
         .update(financialAccounts)
         .set({
-          balance: sql`${financialAccounts.balance} - ${Math.abs(existingTransaction.amount)}`,
+          balance: sql`${financialAccounts.balance} + ${destChange}`,
           updatedAt: new Date(),
         })
         .where(eq(financialAccounts.id, existingTransaction.toAccountId));
+
+      const destWasConfirmed =
+        existingTransaction.status === "cleared" ||
+        existingTransaction.status === "reconciled";
+      if (destWasConfirmed) {
+        await tx
+          .update(financialAccounts)
+          .set({
+            clearedBalance: sql`${financialAccounts.clearedBalance} + ${destChange}`,
+          })
+          .where(eq(financialAccounts.id, existingTransaction.toAccountId));
+      }
     }
 
     // If this is a parent installment, delete child installments first
