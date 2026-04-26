@@ -104,19 +104,37 @@ export const POST = withAuthRequired(async (req, context) => {
     return forbiddenError("Budget not found or access denied");
   }
 
-  // Verify category belongs to budget
-  const [category] = await db
-    .select()
-    .from(categories)
-    .where(
-      and(
-        eq(categories.id, billData.categoryId),
-        eq(categories.budgetId, budgetId)
+  // Verify category and account both belong to this budget. Without the
+  // account check, a bill could reference an account from another budget
+  // and silently move money on it once pending generation runs.
+  const [category, account] = await Promise.all([
+    db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(
+        and(
+          eq(categories.id, billData.categoryId),
+          eq(categories.budgetId, budgetId)
+        )
       )
-    );
+      .then((rows) => rows[0]),
+    db
+      .select({ id: financialAccounts.id })
+      .from(financialAccounts)
+      .where(
+        and(
+          eq(financialAccounts.id, billData.accountId),
+          eq(financialAccounts.budgetId, budgetId)
+        )
+      )
+      .then((rows) => rows[0]),
+  ]);
 
   if (!category) {
     return notFoundError("Category");
+  }
+  if (!account) {
+    return notFoundError("Account");
   }
 
   // Get display order

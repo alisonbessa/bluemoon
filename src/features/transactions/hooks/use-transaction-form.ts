@@ -126,6 +126,9 @@ export function useTransactionForm(
           dueMonth: formData.recurringFrequency === "yearly" ? formData.recurringDueMonth ?? null : null,
           isAutoDebit: formData.recurringIsAutoDebit,
           isVariable: false,
+          // Anchor the bill at the chosen date so it does not generate retroactive
+          // pending transactions for months prior to the user's intent.
+          startDate: new Date(formData.date).toISOString(),
         };
 
         const billResponse = await fetch("/api/app/recurring-bills", {
@@ -179,12 +182,15 @@ export function useTransactionForm(
           toast.success("Despesa recorrente criada! Aparecerá como pendente no planejamento.");
         }
 
-        // Invalidate budget/planning caches so the new bill appears immediately
+        // Invalidate budget/planning caches so the new bill appears immediately.
+        // Also invalidate the transactions list since the recurring flow may
+        // have created a real transaction (today/past) that needs to show up.
         mutate((key: unknown) => typeof key === "string" && (
           key.startsWith("/api/app/budget") ||
           key.startsWith("/api/app/allocations") ||
           key.startsWith("/api/app/dashboard") ||
-          key.startsWith("/api/app/recurring-bills")
+          key.startsWith("/api/app/recurring-bills") ||
+          key.startsWith("/api/app/transactions")
         ));
 
         setIsOpen(false);
@@ -265,7 +271,7 @@ export function useTransactionForm(
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, budgets, accounts, editingTransaction, applyToSeries, onSuccess, memberId, defaultPaidByMemberId]);
+  }, [formData, budgets, accounts, editingTransaction, applyToSeries, onSuccess, memberId, defaultPaidByMemberId, mutate]);
 
   return {
     // State

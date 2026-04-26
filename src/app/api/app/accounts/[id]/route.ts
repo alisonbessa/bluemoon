@@ -1,8 +1,8 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
 import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
-import { financialAccounts } from "@/db/schema";
-import { eq, and, inArray, ne } from "drizzle-orm";
+import { financialAccounts, transactions, recurringBills, incomeSources } from "@/db/schema";
+import { eq, and, inArray, ne, or, sql } from "drizzle-orm";
 import { capitalizeWords } from "@/shared/lib/utils";
 import { getUserBudgetIds } from "@/shared/lib/api/permissions";
 import {
@@ -151,6 +151,45 @@ export const DELETE = withAuthRequired(async (req, context) => {
 
   if (!existingAccount) {
     return notFoundError("Account");
+  }
+
+  // Hard-deleting a financial account would cascade-delete every transaction
+  // attached to it (FK cascade) and silently destroy the balance recorded on
+  // counterpart accounts that received transfers from/to it. Refuse the
+  // delete when references exist and ask the user to archive instead.
+  const [{ refCount }] = await db
+    .select({ refCount: sql<number>`COUNT(*)::int` })
+    .from(transactions)
+    .where(
+      or(
+        eq(transactions.accountId, accountId),
+        eq(transactions.toAccountId, accountId)
+      )!
+    );
+
+  if (refCount > 0) {
+    return errorResponse(
+      "Esta conta possui transações registradas. Arquive-a em vez de excluir.",
+      400
+    );
+  }
+
+  // Also block when other entities still depend on this account.
+  const [{ billCount }] = await db
+    .select({ billCount: sql<number>`COUNT(*)::int` })
+    .from(recurringBills)
+    .where(eq(recurringBills.accountId, accountId));
+
+  const [{ incomeCount }] = await db
+    .select({ incomeCount: sql<number>`COUNT(*)::int` })
+    .from(incomeSources)
+    .where(eq(incomeSources.accountId, accountId));
+
+  if (billCount > 0 || incomeCount > 0) {
+    return errorResponse(
+      "Esta conta está em uso por contas recorrentes ou fontes de renda. Reaponte-as antes de excluir.",
+      400
+    );
   }
 
   await db.delete(financialAccounts).where(eq(financialAccounts.id, accountId));

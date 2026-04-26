@@ -177,10 +177,13 @@ export const autoPayCreditCards = inngest.createFunction(
               });
             }
 
+            // The transfer is created/updated as "cleared", so clearedBalance
+            // must move on both sides alongside balance.
             await tx
               .update(financialAccounts)
               .set({
                 balance: sql`${financialAccounts.balance} - ${closedBill}`,
+                clearedBalance: sql`${financialAccounts.clearedBalance} - ${closedBill}`,
                 updatedAt: now,
               })
               .where(eq(financialAccounts.id, card.paymentAccountId!));
@@ -189,6 +192,7 @@ export const autoPayCreditCards = inngest.createFunction(
               .update(financialAccounts)
               .set({
                 balance: sql`${financialAccounts.balance} + ${closedBill}`,
+                clearedBalance: sql`${financialAccounts.clearedBalance} + ${closedBill}`,
                 updatedAt: now,
               })
               .where(eq(financialAccounts.id, card.id));

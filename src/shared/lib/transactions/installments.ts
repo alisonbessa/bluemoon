@@ -46,6 +46,12 @@ interface BalanceChangeParams {
   type: "income" | "expense" | "transfer";
   amount: number;
   toAccountId?: string | null;
+  /**
+   * Transaction status. When "cleared" or "reconciled", `clearedBalance` is
+   * mirrored alongside `balance`. Defaults to "pending" — pending changes only
+   * move `balance` (matching legacy behaviour).
+   */
+  status?: "pending" | "cleared" | "reconciled";
 }
 
 /**
@@ -55,27 +61,40 @@ interface BalanceChangeParams {
  * - expense: debit the account by -|amount|
  * - transfer: debit source + credit destination
  *
+ * When `status` is confirmed (cleared/reconciled), `clearedBalance` is updated
+ * in lockstep with `balance` on every affected account (source + destination
+ * for transfers). This keeps the cleared balance consistent for callers that
+ * insert already-confirmed transactions (web POST, messaging confirmations,
+ * auto-pay job).
+ *
  * MUST be called from inside a `db.transaction(...)` block — pass the inner `tx`.
- * For transfers, the destination account is also credited.
  */
 export async function applyTransactionBalanceChange(tx: DbOrTx, params: BalanceChangeParams) {
-  const { accountId, type, amount, toAccountId } = params;
+  const { accountId, type, amount, toAccountId, status = "pending" } = params;
 
   const balanceChange = type === "income" ? amount : -Math.abs(amount);
+  const isConfirmed = status === "cleared" || status === "reconciled";
 
   await tx
     .update(financialAccounts)
     .set({
       balance: sql`${financialAccounts.balance} + ${balanceChange}`,
+      ...(isConfirmed
+        ? { clearedBalance: sql`${financialAccounts.clearedBalance} + ${balanceChange}` }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(financialAccounts.id, accountId));
 
   if (type === "transfer" && toAccountId) {
+    const destChange = Math.abs(amount);
     await tx
       .update(financialAccounts)
       .set({
-        balance: sql`${financialAccounts.balance} + ${Math.abs(amount)}`,
+        balance: sql`${financialAccounts.balance} + ${destChange}`,
+        ...(isConfirmed
+          ? { clearedBalance: sql`${financialAccounts.clearedBalance} + ${destChange}` }
+          : {}),
         updatedAt: new Date(),
       })
       .where(eq(financialAccounts.id, toAccountId));
@@ -179,14 +198,19 @@ export async function createInstallmentTransactions(params: CreateInstallmentsPa
     ? await tx.insert(transactions).values(childValues).returning()
     : [];
 
-  // Balance updates
+  // Balance updates. Mirror clearedBalance when the series is created already
+  // confirmed (cleared/reconciled) so the cleared totals stay in sync.
   const balanceAmount = isCreditCard ? totalAmount : amounts[0];
   const balanceChange = type === "income" ? balanceAmount : -Math.abs(balanceAmount);
+  const isConfirmed = status === "cleared" || status === "reconciled";
 
   await tx
     .update(financialAccounts)
     .set({
       balance: sql`${financialAccounts.balance} + ${balanceChange}`,
+      ...(isConfirmed
+        ? { clearedBalance: sql`${financialAccounts.clearedBalance} + ${balanceChange}` }
+        : {}),
       updatedAt: new Date(),
     })
     .where(eq(financialAccounts.id, accountId));
@@ -197,6 +221,9 @@ export async function createInstallmentTransactions(params: CreateInstallmentsPa
       .update(financialAccounts)
       .set({
         balance: sql`${financialAccounts.balance} + ${destAmount}`,
+        ...(isConfirmed
+          ? { clearedBalance: sql`${financialAccounts.clearedBalance} + ${destAmount}` }
+          : {}),
         updatedAt: new Date(),
       })
       .where(eq(financialAccounts.id, toAccountId));

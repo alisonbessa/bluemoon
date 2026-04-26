@@ -11,8 +11,21 @@ import {
   successResponse,
   errorResponse,
 } from "@/shared/lib/api/responses";
-import { upsertAllocationSchema } from "@/shared/lib/validations";
+import { upsertAllocationSchema, upsertGroupAllocationSchema } from "@/shared/lib/validations";
 import { parseViewMode, getViewModeCondition } from "@/shared/lib/api/view-mode-filter";
+
+/**
+ * Count how many times a given weekday (0=Sun..6=Sat) occurs in a calendar month.
+ * Used to compute realistic monthly multipliers for weekly income/expenses.
+ */
+function countWeekdayOccurrences(year: number, month: number, weekday: number): number {
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  let count = 0;
+  for (let day = 1; day <= lastDay; day++) {
+    if (new Date(Date.UTC(year, month - 1, day)).getUTCDay() === weekday) count++;
+  }
+  return count;
+}
 
 // GET - Get allocations for a specific month with spending data
 export const GET = withAuthRequired(async (req, context) => {
@@ -62,16 +75,20 @@ export const GET = withAuthRequired(async (req, context) => {
       })
     : undefined;
 
-  // Build transaction visibility condition for spending queries
+  // Build transaction visibility condition for spending queries.
   // Note: NOT using isTransactionFilter here — in unified mode, spending totals
   // per category should include ALL transactions (partner's too) for accurate budgeting.
   // Only the transaction LIST endpoint hides individual partner transactions.
+  // We do pass paidByField so that, in "mine" view with all_visible privacy,
+  // expenses paid by the current user for someone else's category still count
+  // for them — keeping per-category totals consistent with the transaction list.
   const txViewCondition = userMemberId
     ? getViewModeCondition({
         viewMode,
         userMemberId,
         ownerField: transactions.memberId,
         partnerPrivacy,
+        paidByField: transactions.paidByMemberId,
       })
     : undefined;
 
@@ -197,7 +214,10 @@ export const GET = withAuthRequired(async (req, context) => {
     const prevStartDate = new Date(prevYear, prevMonth - 1, 1);
     const prevEndDate = new Date(prevYear, prevMonth, 0, 23, 59, 59);
 
-    // Get spending per category for previous month
+    // Get spending per category for previous month.
+    // We include pending so the carry-over matches the saldo shown on the
+    // previous month's screen (which subtracts both pending and confirmed).
+    // Without this, the SSR initial render and the API refetch could diverge.
     const prevSpending = await db
       .select({
         categoryId: transactions.categoryId,
@@ -209,7 +229,7 @@ export const GET = withAuthRequired(async (req, context) => {
           eq(transactions.budgetId, budgetId),
           gte(transactions.date, prevStartDate),
           lte(transactions.date, prevEndDate),
-          inArray(transactions.status, ["cleared", "reconciled"]) // Only count confirmed expenses
+          inArray(transactions.status, ["pending", "cleared", "reconciled"])
         )
       )
       .groupBy(transactions.categoryId);
@@ -257,28 +277,41 @@ export const GET = withAuthRequired(async (req, context) => {
       }
     }
 
-    // Batch updates in parallel, batch inserts in one call
-    const batchPromises: Promise<unknown>[] = [];
-    if (carryOverUpdates.length > 0) {
-      batchPromises.push(
-        Promise.all(carryOverUpdates.map(u =>
-          db.update(monthlyAllocations)
-            .set({ carriedOver: u.carriedOver, updatedAt: new Date() })
-            .where(eq(monthlyAllocations.id, u.id))
-        ))
-      );
+    // Run carry-over updates and inserts atomically. Concurrent GETs could
+    // otherwise violate unique_allocation when two requests insert the same
+    // (budget, category, year, month) tuple simultaneously, so the insert
+    // uses ON CONFLICT DO NOTHING and we re-read the row afterwards.
+    if (carryOverUpdates.length > 0 || carryOverInserts.length > 0) {
+      await db.transaction(async (tx) => {
+        if (carryOverUpdates.length > 0) {
+          await Promise.all(
+            carryOverUpdates.map((u) =>
+              tx
+                .update(monthlyAllocations)
+                .set({ carriedOver: u.carriedOver, updatedAt: new Date() })
+                .where(eq(monthlyAllocations.id, u.id))
+            )
+          );
+        }
+        if (carryOverInserts.length > 0) {
+          const inserted = await tx
+            .insert(monthlyAllocations)
+            .values(carryOverInserts)
+            .onConflictDoNothing({
+              target: [
+                monthlyAllocations.budgetId,
+                monthlyAllocations.categoryId,
+                monthlyAllocations.year,
+                monthlyAllocations.month,
+              ],
+            })
+            .returning();
+          for (const newAlloc of inserted) {
+            allocationsMap.set(newAlloc.categoryId, newAlloc);
+          }
+        }
+      });
     }
-    if (carryOverInserts.length > 0) {
-      batchPromises.push(
-        db.insert(monthlyAllocations).values(carryOverInserts).returning()
-          .then(newAllocs => {
-            for (const newAlloc of newAllocs) {
-              allocationsMap.set(newAlloc.categoryId, newAlloc);
-            }
-          })
-      );
-    }
-    await Promise.all(batchPromises);
   }
 
   // Group allocation ceilings by groupId
@@ -357,8 +390,10 @@ export const GET = withAuthRequired(async (req, context) => {
     const categoryBills = billsMap.get(category.id) || [];
 
     const billsTotal = categoryBills.reduce((sum, bill) => sum + bill.amount, 0);
-    const manualAlloc = allocation?.allocated ?? 0;
-    const allocated = manualAlloc > 0 ? manualAlloc : billsTotal;
+    // An existing allocation row means the user has explicitly set a value
+    // (including 0). Falling back to billsTotal only when no row exists keeps
+    // the "I intentionally zeroed this category" intent.
+    const allocated = allocation ? allocation.allocated : billsTotal;
     const carriedOver = allocation?.carriedOver || 0;
     const spendSplit = spendingMap.get(category.id) ?? { pending: 0, confirmed: 0 };
     const pending = spendSplit.pending;
@@ -411,8 +446,11 @@ export const GET = withAuthRequired(async (req, context) => {
     .sort((a, b) => a.group.displayOrder - b.group.displayOrder)
     .map((g) => {
       if (g.groupAllocated != null && g.groupAllocated > 0) {
-        g.totals.allocated = g.groupAllocated;
-        g.totals.saldo = g.groupAllocated - g.totals.pending - g.totals.confirmed;
+        // The ceiling caps allocated for the group, but carry-over from
+        // previous months is additive and must not be discarded.
+        const groupCarriedOver = g.categories.reduce((sum, c) => sum + c.carriedOver, 0);
+        g.totals.allocated = g.groupAllocated + groupCarriedOver;
+        g.totals.saldo = g.totals.allocated - g.totals.pending - g.totals.confirmed;
         g.totals.available = g.totals.saldo;
       }
       overallTotals.allocated += g.totals.allocated;
@@ -540,18 +578,24 @@ export const GET = withAuthRequired(async (req, context) => {
         continue;
       }
     }
-    // Skip if at or after end date (exclusive)
+    // Skip strictly AFTER the end date — the end month itself is included,
+    // matching how users typically read "ends in June" (June is the last paid month).
     if (incomeSource.endYear && incomeSource.endMonth) {
-      if (year > incomeSource.endYear || (year === incomeSource.endYear && month >= incomeSource.endMonth)) {
+      if (year > incomeSource.endYear || (year === incomeSource.endYear && month > incomeSource.endMonth)) {
         continue;
       }
     }
 
-    // Calculate monthly amount based on frequency
-    // Weekly = 4x per month, Biweekly = 2x per month, Monthly/Annual = 1x per month
+    // Calculate monthly amount based on frequency.
+    // Weekly: count actual occurrences of dayOfWeek in the month (4 or 5).
+    // Biweekly: 2 per month is a reasonable approximation; months with a 3rd
+    // payday are rare and would require explicit override via monthly allocation.
     const frequencyMultiplier =
-      incomeSource.frequency === "weekly" ? 4 :
-      incomeSource.frequency === "biweekly" ? 2 : 1;
+      incomeSource.frequency === "weekly"
+        ? countWeekdayOccurrences(year, month, incomeSource.dayOfMonth ?? 5)
+        : incomeSource.frequency === "biweekly"
+          ? 2
+          : 1;
     const defaultMonthlyAmount = (incomeSource.amount || 0) * frequencyMultiplier;
     const defaultMonthlyContribution = incomeSource.contributionAmount != null
       ? incomeSource.contributionAmount * frequencyMultiplier
@@ -701,7 +745,9 @@ export const POST = withAuthRequired(async (req, context) => {
     return forbiddenError("Budget not found or access denied");
   }
 
-  // Verify category belongs to budget
+  // Verify category belongs to budget AND that the current user is allowed
+  // to allocate against it (categories of other members are off-limits).
+  const userMemberId = await getUserMemberIdInBudget(session.user.id, budgetId);
   const [category] = await db
     .select()
     .from(categories)
@@ -714,6 +760,10 @@ export const POST = withAuthRequired(async (req, context) => {
 
   if (!category) {
     return errorResponse("Category not found", 404);
+  }
+
+  if (category.memberId !== null && category.memberId !== userMemberId) {
+    return forbiddenError("Category belongs to another member");
   }
 
   // Upsert allocation
@@ -764,15 +814,30 @@ export const PUT = withAuthRequired(async (req, context) => {
   if (subscriptionError) return subscriptionError;
 
   const body = await req.json();
-  const { budgetId, groupId, year, month, allocated } = body;
-
-  if (!budgetId || !groupId || !year || !month || allocated == null) {
-    return errorResponse("Missing required fields", 400);
+  const validation = upsertGroupAllocationSchema.safeParse(body);
+  if (!validation.success) {
+    return validationError(validation.error);
   }
+
+  const { budgetId, groupId, year, month, allocated } = validation.data;
 
   const budgetIds = await getUserBudgetIds(session.user.id);
   if (!budgetIds.includes(budgetId)) {
     return forbiddenError("Budget not found or access denied");
+  }
+
+  // Verify the group belongs to this budget. Global groups (budgetId=null)
+  // are shared across budgets and cannot have a budget-specific ceiling here,
+  // unless they are explicitly associated with the budget.
+  const [groupRow] = await db
+    .select({ id: groups.id, budgetId: groups.budgetId })
+    .from(groups)
+    .where(eq(groups.id, groupId));
+  if (!groupRow) {
+    return errorResponse("Group not found", 404);
+  }
+  if (groupRow.budgetId !== null && groupRow.budgetId !== budgetId) {
+    return forbiddenError("Group belongs to another budget");
   }
 
   // Upsert group allocation

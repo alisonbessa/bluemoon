@@ -87,13 +87,14 @@ export const POST = withAuthRequired(async (req, context) => {
         try {
           // Update clearedBalance if status transitions between confirmed/unconfirmed
           if (oldIsConfirmed !== newIsConfirmed) {
+            const absAmount = Math.abs(existing.amount);
             const clearedChange = newIsConfirmed
               ? existing.type === "income"
                 ? existing.amount
-                : -Math.abs(existing.amount)
+                : -absAmount
               : existing.type === "income"
               ? -existing.amount
-              : Math.abs(existing.amount);
+              : absAmount;
 
             await tx
               .update(financialAccounts)
@@ -102,6 +103,19 @@ export const POST = withAuthRequired(async (req, context) => {
                 updatedAt: new Date(),
               })
               .where(eq(financialAccounts.id, existing.accountId));
+
+            // Transfer: mirror the change on the destination account so that
+            // the cleared balance stays consistent on both sides.
+            if (existing.type === "transfer" && existing.toAccountId) {
+              const destChange = newIsConfirmed ? absAmount : -absAmount;
+              await tx
+                .update(financialAccounts)
+                .set({
+                  clearedBalance: sql`${financialAccounts.clearedBalance} + ${destChange}`,
+                  updatedAt: new Date(),
+                })
+                .where(eq(financialAccounts.id, existing.toAccountId));
+            }
           }
 
           await tx
@@ -125,13 +139,24 @@ export const POST = withAuthRequired(async (req, context) => {
   }
 
   // DELETE action
+  // Pre-fetch all involved accounts in a single query to avoid N+1 inside the loop.
+  const involvedAccountIds = Array.from(
+    new Set(
+      targetTransactions.flatMap((t) => [t.accountId, t.toAccountId].filter(Boolean) as string[])
+    )
+  );
+  const accountsList = involvedAccountIds.length > 0
+    ? await db
+        .select()
+        .from(financialAccounts)
+        .where(inArray(financialAccounts.id, involvedAccountIds))
+    : [];
+  const accountsById = new Map(accountsList.map((a) => [a.id, a]));
+
   await db.transaction(async (tx) => {
     for (const existing of targetTransactions) {
       try {
-        const [account] = await tx
-          .select()
-          .from(financialAccounts)
-          .where(eq(financialAccounts.id, existing.accountId));
+        const account = accountsById.get(existing.accountId);
 
         const isCreditCard = account?.type === "credit_card";
         const isParentInstallment =
@@ -185,15 +210,27 @@ export const POST = withAuthRequired(async (req, context) => {
           }
         }
 
-        // For transfers, reverse destination account
+        // For transfers, reverse destination account (balance + clearedBalance if confirmed).
         if (existing.type === "transfer" && existing.toAccountId) {
+          const destChange = -Math.abs(existing.amount);
           await tx
             .update(financialAccounts)
             .set({
-              balance: sql`${financialAccounts.balance} - ${Math.abs(existing.amount)}`,
+              balance: sql`${financialAccounts.balance} + ${destChange}`,
               updatedAt: new Date(),
             })
             .where(eq(financialAccounts.id, existing.toAccountId));
+
+          const destWasConfirmed =
+            existing.status === "cleared" || existing.status === "reconciled";
+          if (destWasConfirmed) {
+            await tx
+              .update(financialAccounts)
+              .set({
+                clearedBalance: sql`${financialAccounts.clearedBalance} + ${destChange}`,
+              })
+              .where(eq(financialAccounts.id, existing.toAccountId));
+          }
         }
 
         // Cascade delete children for parent installments

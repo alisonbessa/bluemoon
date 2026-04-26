@@ -27,6 +27,17 @@ export const copyAllocationsSchema = z.object({
 });
 
 /**
+ * Schema for upserting a group allocation (ceiling)
+ */
+export const upsertGroupAllocationSchema = z.object({
+  budgetId: z.string().uuid("Invalid budget ID"),
+  groupId: z.string().uuid("Invalid group ID"),
+  year: z.number().int().min(2020).max(2100),
+  month: z.number().int().min(1).max(12),
+  allocated: z.number().int().min(0).max(MAX_CENTS),
+});
+
+/**
  * Schema for upserting an income allocation
  */
 export const upsertIncomeAllocationSchema = z.object({
@@ -41,4 +52,5 @@ export const upsertIncomeAllocationSchema = z.object({
 // Export inferred types
 export type UpsertAllocationInput = z.infer<typeof upsertAllocationSchema>;
 export type CopyAllocationsInput = z.infer<typeof copyAllocationsSchema>;
+export type UpsertGroupAllocationInput = z.infer<typeof upsertGroupAllocationSchema>;
 export type UpsertIncomeAllocationInput = z.infer<typeof upsertIncomeAllocationSchema>;

@@ -2,9 +2,8 @@ import { db } from "@/db";
 import {
   telegramUsers,
   transactions,
-  financialAccounts,
 } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { TelegramConversationContext } from "@/db/schema/telegram-users";
 import { getUserBudgetInfo, getCategoryBalanceSummary } from "@/integrations/messaging/lib/user-context";
 import { capitalizeFirst } from "@/shared/lib/string-utils";
@@ -25,6 +24,11 @@ import {
   applyTransactionBalanceChange,
 } from "@/shared/lib/transactions/installments";
 import { updateTelegramUser } from "./user-management";
+import {
+  validateExpenseInputs,
+  validateIncomeInputs,
+  validateTransferInputs,
+} from "@/integrations/messaging/lib/budget-validation";
 
 // Handle confirmation callback
 export async function handleConfirmation(chatId: number, confirmed: boolean, callbackQueryId: string) {
@@ -67,6 +71,17 @@ export async function handleConfirmation(chatId: number, confirmed: boolean, cal
 
   if (!budgetInfo || !budgetInfo.defaultAccount) {
     await sendMessage(chatId, "❌ Erro ao salvar. Configure seu orçamento no app.");
+    return;
+  }
+
+  // Re-validate FKs against the current budget snapshot before persisting.
+  const expenseCheck = validateExpenseInputs(budgetInfo, {
+    categoryId: context.pendingExpense.categoryId,
+    accountId: context.pendingExpense.accountId,
+  });
+  if (!expenseCheck.ok) {
+    await sendMessage(chatId, `❌ ${expenseCheck.error}`);
+    await updateTelegramUser(chatId, "IDLE", {});
     return;
   }
 
@@ -195,6 +210,7 @@ export async function handleConfirmation(chatId: number, confirmed: boolean, cal
           accountId: created.accountId,
           type: "expense",
           amount: created.amount,
+          status: created.status,
         });
 
         return created;
@@ -269,6 +285,16 @@ export async function handleIncomeConfirmation(chatId: number, confirmed: boolea
     return;
   }
 
+  const incomeCheck = validateIncomeInputs(budgetInfo, {
+    incomeSourceId: context.pendingIncome.incomeSourceId,
+    accountId: context.pendingIncome.accountId,
+  });
+  if (!incomeCheck.ok) {
+    await sendMessage(chatId, `❌ ${incomeCheck.error}`);
+    await updateTelegramUser(chatId, "IDLE", {});
+    return;
+  }
+
   let transactionId: string;
 
   // Check if we should update an existing scheduled transaction
@@ -330,6 +356,7 @@ export async function handleIncomeConfirmation(chatId: number, confirmed: boolea
         accountId: created.accountId,
         type: "income",
         amount: created.amount,
+        status: created.status,
       });
 
       return created;
@@ -395,7 +422,18 @@ export async function handleTransferConfirmation(chatId: number, confirmed: bool
     return;
   }
 
-  // Create transfer transaction and update balances atomically
+  const transferCheck = validateTransferInputs(budgetInfo, {
+    fromAccountId: context.pendingTransfer.fromAccountId,
+    toAccountId: context.pendingTransfer.toAccountId,
+  });
+  if (!transferCheck.ok) {
+    await sendMessage(chatId, `❌ ${transferCheck.error}`);
+    await updateTelegramUser(chatId, "IDLE", {});
+    return;
+  }
+
+  // Create transfer transaction and update balances atomically.
+  // applyTransactionBalanceChange mirrors clearedBalance because status="cleared".
   const [newTransaction] = await db.transaction(async (tx) => {
     const [created] = await tx
       .insert(transactions)
@@ -414,16 +452,13 @@ export async function handleTransferConfirmation(chatId: number, confirmed: bool
       })
       .returning();
 
-    // Update account balances: subtract from source, add to destination
-    await tx
-      .update(financialAccounts)
-      .set({ balance: sql`${financialAccounts.balance} - ${context.pendingTransfer!.amount}` })
-      .where(eq(financialAccounts.id, context.pendingTransfer!.fromAccountId!));
-
-    await tx
-      .update(financialAccounts)
-      .set({ balance: sql`${financialAccounts.balance} + ${context.pendingTransfer!.amount}` })
-      .where(eq(financialAccounts.id, context.pendingTransfer!.toAccountId!));
+    await applyTransactionBalanceChange(tx, {
+      accountId: created.accountId,
+      type: "transfer",
+      amount: created.amount,
+      toAccountId: created.toAccountId,
+      status: created.status,
+    });
 
     return [created];
   });

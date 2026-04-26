@@ -1,6 +1,7 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
-import { transactions, categories, incomeSources } from "@/db/schema";
+import { transactions, categories, incomeSources, financialAccounts } from "@/db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { getUserBudgetIds, getUserMemberIdInBudget } from "@/shared/lib/api/permissions";
 import {
@@ -11,6 +12,7 @@ import {
 } from "@/shared/lib/api/responses";
 import { z } from "zod";
 import { getScopeFromCategory, getScopeFromIncomeSource } from "@/shared/lib/transactions/scope";
+import { applyTransactionBalanceChange } from "@/shared/lib/transactions/installments";
 
 const confirmScheduledSchema = z.object({
   budgetId: z.string().uuid(),
@@ -35,6 +37,10 @@ const confirmScheduledSchema = z.object({
  */
 export const POST = withAuthRequired(async (req, context) => {
   const { session } = context;
+
+  const subscriptionError = await requireActiveSubscription(session.user.id);
+  if (subscriptionError) return subscriptionError;
+
   const body = await req.json();
 
   const validation = confirmScheduledSchema.safeParse(body);
@@ -66,22 +72,57 @@ export const POST = withAuthRequired(async (req, context) => {
     return forbiddenError("Member not found in budget");
   }
 
-  // Derive scope (memberId) from category or income source
+  // Validate accountId belongs to this budget
+  const [accountRow] = await db
+    .select({ id: financialAccounts.id })
+    .from(financialAccounts)
+    .where(
+      and(
+        eq(financialAccounts.id, accountId),
+        eq(financialAccounts.budgetId, budgetId)
+      )
+    );
+  if (!accountRow) {
+    return errorResponse("Account does not belong to this budget", 400);
+  }
+
+  // Derive scope (memberId) from category or income source. Both must belong
+  // to the same budget — silently falling back to currentMemberId when an FK
+  // is bogus would let callers attach transactions to the wrong scope.
   let scopeMemberId: string | null = currentMemberId;
   if (type === "expense" && categoryId) {
     const [cat] = await db
       .select({ id: categories.id, memberId: categories.memberId })
       .from(categories)
-      .where(eq(categories.id, categoryId))
+      .where(
+        and(
+          eq(categories.id, categoryId),
+          eq(categories.budgetId, budgetId)
+        )
+      )
       .limit(1);
-    scopeMemberId = getScopeFromCategory(categoryId, cat ? [cat] : [], currentMemberId);
+    if (!cat) {
+      return errorResponse("Category does not belong to this budget", 400);
+    }
+    if (cat.memberId !== null && cat.memberId !== currentMemberId) {
+      return forbiddenError("Category belongs to another member");
+    }
+    scopeMemberId = getScopeFromCategory(categoryId, [cat], currentMemberId);
   } else if (type === "income" && incomeSourceId) {
     const [source] = await db
       .select({ id: incomeSources.id, memberId: incomeSources.memberId })
       .from(incomeSources)
-      .where(eq(incomeSources.id, incomeSourceId))
+      .where(
+        and(
+          eq(incomeSources.id, incomeSourceId),
+          eq(incomeSources.budgetId, budgetId)
+        )
+      )
       .limit(1);
-    scopeMemberId = getScopeFromIncomeSource(incomeSourceId, source ? [source] : [], currentMemberId);
+    if (!source) {
+      return errorResponse("Income source does not belong to this budget", 400);
+    }
+    scopeMemberId = getScopeFromIncomeSource(incomeSourceId, [source], currentMemberId);
   }
 
   const transactionDate = new Date(date);
@@ -131,20 +172,37 @@ export const POST = withAuthRequired(async (req, context) => {
   }
 
   if (existingPending) {
-    // Update the existing pending transaction to cleared
-    const [updated] = await db
-      .update(transactions)
-      .set({
-        status: "cleared",
-        amount, // Update amount in case it changed
-        description: description || existingPending.description,
+    // Update the existing pending transaction to cleared, atomically applying
+    // the balance delta. Lazy-generated pending transactions intentionally do
+    // not move balance until they are confirmed (see pending-transactions.ts),
+    // so the full amount must be debited/credited here.
+    const updated = await db.transaction(async (tx) => {
+      // Lazy-generated pending rows never moved the account balance, so
+      // confirming applies the full amount on the (possibly new) account.
+      // No reversal is needed on the old account when accountId changes.
+      await applyTransactionBalanceChange(tx, {
         accountId,
-        memberId: scopeMemberId,
-        paidByMemberId: currentMemberId,
-        updatedAt: new Date(),
-      })
-      .where(eq(transactions.id, existingPending.id))
-      .returning();
+        type: existingPending.type as "income" | "expense" | "transfer",
+        amount,
+        status: "cleared",
+      });
+
+      const [row] = await tx
+        .update(transactions)
+        .set({
+          status: "cleared",
+          amount,
+          description: description || existingPending.description,
+          accountId,
+          memberId: scopeMemberId,
+          paidByMemberId: currentMemberId,
+          updatedAt: new Date(),
+        })
+        .where(eq(transactions.id, existingPending.id))
+        .returning();
+
+      return row;
+    });
 
     return successResponse({
       transaction: updated,
@@ -152,25 +210,36 @@ export const POST = withAuthRequired(async (req, context) => {
       message: "Transação pendente atualizada para confirmada",
     });
   } else {
-    // No pending transaction found, create a new one
-    const [created] = await db
-      .insert(transactions)
-      .values({
-        budgetId,
+    // No pending transaction found, create a new cleared one and move balance.
+    const created = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(transactions)
+        .values({
+          budgetId,
+          type,
+          amount,
+          description,
+          accountId,
+          categoryId,
+          incomeSourceId,
+          recurringBillId,
+          date: transactionDate,
+          status: "cleared",
+          source: "manual",
+          memberId: scopeMemberId,
+          paidByMemberId: currentMemberId,
+        })
+        .returning();
+
+      await applyTransactionBalanceChange(tx, {
+        accountId: row.accountId,
         type,
-        amount,
-        description,
-        accountId,
-        categoryId,
-        incomeSourceId,
-        recurringBillId,
-        date: transactionDate,
+        amount: row.amount,
         status: "cleared",
-        source: "manual",
-        memberId: scopeMemberId,
-        paidByMemberId: currentMemberId,
-      })
-      .returning();
+      });
+
+      return row;
+    });
 
     return successResponse(
       {

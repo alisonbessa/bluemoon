@@ -1,4 +1,5 @@
 import withAuthRequired from "@/shared/lib/auth/withAuthRequired";
+import { requireActiveSubscription } from "@/shared/lib/auth/withSubscriptionRequired";
 import { db } from "@/db";
 import { monthlyAllocations, categories } from "@/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
@@ -14,6 +15,10 @@ import { copyAllocationsSchema } from "@/shared/lib/validations";
 // POST - Copy allocations from one month to another
 export const POST = withAuthRequired(async (req, context) => {
   const { session } = context;
+
+  const subscriptionError = await requireActiveSubscription(session.user.id);
+  if (subscriptionError) return subscriptionError;
+
   const body = await req.json();
 
   const validation = copyAllocationsSchema.safeParse(body);
@@ -89,17 +94,19 @@ export const POST = withAuthRequired(async (req, context) => {
 
       if (existingAllocations.length > 0) {
         if (mode === "all") {
-          // Delete existing allocations and copy all
-          await db
-            .delete(monthlyAllocations)
-            .where(
-              and(
-                eq(monthlyAllocations.budgetId, budgetId),
-                eq(monthlyAllocations.year, toYear),
-                eq(monthlyAllocations.month, toMonth)
-              )
-            );
-          await db.insert(monthlyAllocations).values(allocationsToCreate);
+          // Delete existing allocations and copy all (atomically)
+          await db.transaction(async (tx) => {
+            await tx
+              .delete(monthlyAllocations)
+              .where(
+                and(
+                  eq(monthlyAllocations.budgetId, budgetId),
+                  eq(monthlyAllocations.year, toYear),
+                  eq(monthlyAllocations.month, toMonth)
+                )
+              );
+            await tx.insert(monthlyAllocations).values(allocationsToCreate);
+          });
         } else {
           // mode === "empty_only": only copy to categories without allocation
           const existingCategoryIds = existingAllocations.map((a) => a.categoryId);
@@ -152,17 +159,19 @@ export const POST = withAuthRequired(async (req, context) => {
 
   if (existingAllocations.length > 0) {
     if (mode === "all") {
-      // Delete existing allocations and copy all
-      await db
-        .delete(monthlyAllocations)
-        .where(
-          and(
-            eq(monthlyAllocations.budgetId, budgetId),
-            eq(monthlyAllocations.year, toYear),
-            eq(monthlyAllocations.month, toMonth)
-          )
-        );
-      await db.insert(monthlyAllocations).values(allocationsToCreate);
+      // Delete existing allocations and copy all (atomically)
+      await db.transaction(async (tx) => {
+        await tx
+          .delete(monthlyAllocations)
+          .where(
+            and(
+              eq(monthlyAllocations.budgetId, budgetId),
+              eq(monthlyAllocations.year, toYear),
+              eq(monthlyAllocations.month, toMonth)
+            )
+          );
+        await tx.insert(monthlyAllocations).values(allocationsToCreate);
+      });
 
       return successResponse({
         copiedCount: allocationsToCreate.length,

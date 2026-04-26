@@ -92,9 +92,11 @@ export {
 export {
   upsertAllocationSchema,
   copyAllocationsSchema,
+  upsertGroupAllocationSchema,
   upsertIncomeAllocationSchema,
   type UpsertAllocationInput,
   type CopyAllocationsInput,
+  type UpsertGroupAllocationInput,
   type UpsertIncomeAllocationInput,
 } from "./allocation.schema";
 

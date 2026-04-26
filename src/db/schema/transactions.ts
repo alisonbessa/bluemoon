@@ -38,7 +38,7 @@ export const transactions = pgTable("transactions", {
   type: text("type").$type<FinancialTransactionType>().notNull(),
   status: text("status").$type<FinancialTransactionStatus>().notNull().default("pending"),
 
-  amount: bigint("amount", { mode: "number" }).notNull(), // In cents (positive for income, negative for expense)
+  amount: bigint("amount", { mode: "number" }).notNull(), // In cents, always stored as a positive integer; sign is applied at balance computation time
   description: text("description"),
   notes: text("notes"),
 
