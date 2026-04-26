@@ -28,15 +28,32 @@ const semanticColors = [
 
 const chartColors = ["chart-1", "chart-2", "chart-3", "chart-4", "chart-5"];
 
+const brandColors = [
+  "brand-violet-300",
+  "brand-violet-500",
+  "brand-violet-700",
+  "brand-honey-300",
+  "brand-honey-500",
+  "brand-honey-700",
+];
+
 const radii = [
   { name: "sm", value: "calc(var(--radius) - 4px)" },
   { name: "md", value: "calc(var(--radius) - 2px)" },
   { name: "lg (default)", value: "var(--radius)" },
   { name: "xl", value: "calc(var(--radius) + 4px)" },
+  { name: "cartoon", value: "var(--radius-cartoon)" },
   { name: "full", value: "9999px" },
 ];
 
 const shadows = ["2xs", "xs", "sm", "", "md", "lg", "xl", "2xl"] as const;
+
+const cartoonShadows = [
+  { name: "cartoon-xs", value: "var(--shadow-cartoon-xs)" },
+  { name: "cartoon-sm", value: "var(--shadow-cartoon-sm)" },
+  { name: "cartoon", value: "var(--shadow-cartoon)" },
+  { name: "cartoon-lg", value: "var(--shadow-cartoon-lg)" },
+];
 
 const typography = [
   { label: "PageTitle (h1)", className: "text-2xl sm:text-3xl font-bold tracking-tight" },
@@ -53,6 +70,7 @@ const fonts = [
   { name: "Sans", className: "font-sans", sample: "Plus Jakarta Sans" },
   { name: "Serif", className: "font-serif", sample: "Source Serif 4" },
   { name: "Mono", className: "font-mono", sample: "JetBrains Mono" },
+  { name: "Hand", className: "font-hand", sample: "Caveat — Oi, Maria!" },
 ];
 
 function Swatch({ name }: { name: string }) {
@@ -74,8 +92,19 @@ export default function TokensPage() {
     <div className="space-y-8">
       <PageHeading
         title="Tokens"
-        description="Variáveis de design definidas em globals.css. Light e dark modes seguem os mesmos nomes."
+        description="Variáveis de design definidas em globals.css. Light e dark modes seguem os mesmos nomes. Tema atual: Cartoon (violeta + mel)."
       />
+
+      <Showcase
+        title="Paleta de marca"
+        description="Escala violeta + mel. Usada para variantes específicas — para uso geral, prefira os tokens semânticos abaixo."
+      >
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {brandColors.map((c) => (
+            <Swatch key={c} name={c} />
+          ))}
+        </div>
+      </Showcase>
 
       <Showcase
         title="Cores semânticas"
@@ -85,6 +114,26 @@ export default function TokensPage() {
           {semanticColors.map((c) => (
             <Swatch key={c} name={c} />
           ))}
+        </div>
+      </Showcase>
+
+      <Showcase
+        title="Ink (cartoon)"
+        description="Cor base para bordas grossas e sombras hard-offset. Adapta entre light/dark para manter contraste."
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Swatch name="ink" />
+          <div className="flex items-center justify-center rounded-md border bg-card p-6">
+            <div
+              className="rounded-[var(--radius-cartoon)] bg-card px-6 py-4 text-sm font-semibold"
+              style={{
+                border: "1.5px solid var(--ink)",
+                boxShadow: "var(--shadow-cartoon)",
+              }}
+            >
+              Sticker preview
+            </div>
+          </div>
         </div>
       </Showcase>
 
@@ -136,7 +185,7 @@ export default function TokensPage() {
         </div>
       </Showcase>
 
-      <Showcase title="Sombras">
+      <Showcase title="Sombras suaves" description="Para popovers, tooltips, cards utilitários.">
         <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
           {shadows.map((s) => {
             const cls = s ? `shadow-${s}` : "shadow";
@@ -148,6 +197,23 @@ export default function TokensPage() {
               </div>
             );
           })}
+        </div>
+      </Showcase>
+
+      <Showcase
+        title="Sombras cartoon"
+        description="Hard-offset, sem blur. Aplique em widgets, botões e chips para o feel sticker."
+      >
+        <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+          {cartoonShadows.map((s) => (
+            <div key={s.name} className="flex flex-col items-center gap-3">
+              <div
+                className="h-16 w-full rounded-[var(--radius-cartoon)] bg-card"
+                style={{ border: "1.5px solid var(--ink)", boxShadow: s.value }}
+              />
+              <p className="font-mono text-xs">{s.name}</p>
+            </div>
+          ))}
         </div>
       </Showcase>
 

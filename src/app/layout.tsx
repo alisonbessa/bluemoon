@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono, Caveat } from "next/font/google";
 import "./globals.css";
 import { appConfig } from "@/shared/lib/config";
 import Providers from "./Providers";
@@ -11,12 +11,20 @@ import { CookieConsent } from "@/shared/components/cookie-consent";
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
+  variable: "--font-plus-jakarta",
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-mono",
+  variable: "--font-jetbrains-mono",
+});
+
+const caveat = Caveat({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-caveat",
+  weight: ["400", "500", "600", "700"],
 });
 
 function getBaseUrl() {
@@ -56,7 +64,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#8b5cf6" />
         <link rel="preconnect" href="https://api.dicebear.com" />
       </head>
-      <body className={`${plusJakarta.className} ${jetbrainsMono.variable} antialiased bg-background`} suppressHydrationWarning>
+      <body className={`${plusJakarta.variable} ${jetbrainsMono.variable} ${caveat.variable} font-sans antialiased bg-background`} suppressHydrationWarning>
         <a href="#main-content" className="skip-to-content">
           Pular para o conteúdo
         </a>

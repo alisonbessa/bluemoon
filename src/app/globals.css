@@ -5,47 +5,88 @@
 @custom-variant dark (&:is(.dark *));
 @config "../../tailwind.config.ts";
 
+/* ----------------------------------------------------------------------------
+   HiveBudget — "Cartoon" theme
+   Violet primary + honey secondary, ink borders, hard-offset cartoon shadows,
+   and a `--font-hand` (Caveat) for accents. Light + dark variants both adopt
+   the cartoon identity; a future theme switcher will scope alternate themes.
+---------------------------------------------------------------------------- */
 :root {
-  --background: oklch(0.9824 0.0013 286.3757);
-  --foreground: oklch(0.3211 0 0);
-  --card: oklch(1.0000 0 0);
-  --card-foreground: oklch(0.3211 0 0);
-  --popover: oklch(1.0000 0 0);
-  --popover-foreground: oklch(0.3211 0 0);
-  --primary: oklch(0.6487 0.1538 150.3071);
-  --primary-foreground: oklch(1.0000 0 0);
-  --secondary: oklch(0.6746 0.1414 261.3380);
-  --secondary-foreground: oklch(1.0000 0 0);
-  --muted: oklch(0.8828 0.0285 98.1033);
-  --muted-foreground: oklch(0.5382 0 0);
-  --accent: oklch(0.94 0.04 150.31);
-  --accent-foreground: oklch(0.3211 0 0);
-  --destructive: oklch(0.6368 0.2078 25.3313);
-  --destructive-foreground: oklch(1.0000 0 0);
-  --success: oklch(0.6487 0.1538 150.3071);
-  --success-foreground: oklch(1.0000 0 0);
-  --warning: oklch(0.7686 0.1647 70.0804);
-  --warning-foreground: oklch(0.2300 0 0);
-  --border: oklch(0.8699 0 0);
-  --input: oklch(0.8699 0 0);
-  --ring: oklch(0.6487 0.1538 150.3071);
-  --chart-1: oklch(0.6487 0.1538 150.3071);
-  --chart-2: oklch(0.6746 0.1414 261.3380);
-  --chart-3: oklch(0.8269 0.1080 211.9627);
-  --chart-4: oklch(0.5880 0.0993 245.7394);
-  --chart-5: oklch(0.5905 0.1608 148.2409);
-  --sidebar: oklch(0.9824 0.0013 286.3757);
-  --sidebar-foreground: oklch(0.3211 0 0);
-  --sidebar-primary: oklch(0.6487 0.1538 150.3071);
-  --sidebar-primary-foreground: oklch(1.0000 0 0);
-  --sidebar-accent: oklch(0.94 0.04 150.31);
-  --sidebar-accent-foreground: oklch(0.3211 0 0);
-  --sidebar-border: oklch(0.8699 0 0);
-  --sidebar-ring: oklch(0.6487 0.1538 150.3071);
-  --font-sans: Plus Jakarta Sans, sans-serif;
+  /* Brand */
+  --brand-violet-300: oklch(0.78 0.13 295);
+  --brand-violet-500: oklch(0.51 0.21 295);
+  --brand-violet-700: oklch(0.4 0.2 295);
+  --brand-honey-300: oklch(0.85 0.16 90);
+  --brand-honey-500: oklch(0.78 0.18 80);
+  --brand-honey-700: oklch(0.7 0.18 75);
+
+  /* Surface */
+  --background: oklch(0.985 0.008 90);
+  --foreground: oklch(0.22 0.04 295);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.04 295);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.04 295);
+
+  /* Semantic */
+  --primary: var(--brand-violet-500);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: var(--brand-honey-300);
+  --secondary-foreground: oklch(0.3 0.1 295);
+  --muted: oklch(0.95 0.018 90);
+  --muted-foreground: oklch(0.5 0.03 295);
+  --accent: oklch(0.94 0.05 90);
+  --accent-foreground: var(--brand-violet-700);
+  --destructive: oklch(0.6 0.22 25);
+  --destructive-foreground: oklch(1 0 0);
+  --success: oklch(0.62 0.16 145);
+  --success-foreground: oklch(1 0 0);
+  --warning: oklch(0.77 0.17 70);
+  --warning-foreground: oklch(0.23 0 0);
+
+  /* Borders — soft default; cartoon components opt into `--ink` directly */
+  --border: oklch(0.88 0.02 295);
+  --input: oklch(0.88 0.02 295);
+  --ring: var(--brand-violet-500);
+
+  /* Charts */
+  --chart-1: var(--brand-violet-500);
+  --chart-2: var(--brand-honey-500);
+  --chart-3: oklch(0.62 0.16 145);
+  --chart-4: oklch(0.65 0.13 230);
+  --chart-5: oklch(0.6 0.22 25);
+
+  /* Sidebar */
+  --sidebar: oklch(0.985 0.008 90);
+  --sidebar-foreground: oklch(0.22 0.04 295);
+  --sidebar-primary: var(--brand-violet-500);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.94 0.05 90);
+  --sidebar-accent-foreground: var(--brand-violet-700);
+  --sidebar-border: oklch(0.88 0.02 295);
+  --sidebar-ring: var(--brand-violet-500);
+
+  /* ---- Cartoon-specific tokens ---- */
+  /* Deep purple-black used for the chunky borders + hard-offset shadows. */
+  --ink: oklch(0.22 0.04 295);
+  /* Hard-offset shadows (no blur) — the signature "sticker" feel. */
+  --shadow-cartoon-xs: 1px 1px 0 0 var(--ink);
+  --shadow-cartoon-sm: 2px 2px 0 0 var(--ink);
+  --shadow-cartoon: 4px 4px 0 0 var(--ink);
+  --shadow-cartoon-lg: 6px 6px 0 0 var(--ink);
+
+  /* Fonts */
+  --font-sans: var(--font-plus-jakarta), Plus Jakarta Sans, sans-serif;
   --font-serif: Source Serif 4, serif;
-  --font-mono: JetBrains Mono, monospace;
-  --radius: 0.5rem;
+  --font-mono: var(--font-jetbrains-mono), JetBrains Mono, monospace;
+  /* Manuscript accent — used sparingly for greetings, callouts, decorative labels. */
+  --font-hand: var(--font-caveat), Caveat, cursive;
+
+  --radius: 0.625rem;
+  /* Generous radius for cartoon-style cards/widgets. */
+  --radius-cartoon: 1rem;
+
+  /* Soft drop shadows kept for non-cartoon surfaces (popovers, tooltips). */
   --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
@@ -66,46 +107,66 @@
 }
 
 .dark {
-  --background: oklch(0.2303 0.0125 264.2926);
-  --foreground: oklch(0.9219 0 0);
-  --card: oklch(0.3210 0.0078 223.6661);
-  --card-foreground: oklch(0.9219 0 0);
-  --popover: oklch(0.3210 0.0078 223.6661);
-  --popover-foreground: oklch(0.9219 0 0);
-  --primary: oklch(0.6487 0.1538 150.3071);
-  --primary-foreground: oklch(1.0000 0 0);
-  --secondary: oklch(0.5880 0.0993 245.7394);
-  --secondary-foreground: oklch(0.9219 0 0);
-  --muted: oklch(0.3867 0 0);
-  --muted-foreground: oklch(0.7155 0 0);
-  --accent: oklch(0.6746 0.1414 261.3380);
-  --accent-foreground: oklch(0.9219 0 0);
-  --destructive: oklch(0.6368 0.2078 25.3313);
-  --destructive-foreground: oklch(1.0000 0 0);
-  --success: oklch(0.7227 0.1920 149.5793);
-  --success-foreground: oklch(0.1500 0 0);
-  --warning: oklch(0.8290 0.1550 84.4290);
-  --warning-foreground: oklch(0.1500 0 0);
-  --border: oklch(0.3867 0 0);
-  --input: oklch(0.3867 0 0);
-  --ring: oklch(0.6487 0.1538 150.3071);
-  --chart-1: oklch(0.6487 0.1538 150.3071);
-  --chart-2: oklch(0.5880 0.0993 245.7394);
-  --chart-3: oklch(0.6746 0.1414 261.3380);
-  --chart-4: oklch(0.8269 0.1080 211.9627);
-  --chart-5: oklch(0.5905 0.1608 148.2409);
-  --sidebar: oklch(0.2303 0.0125 264.2926);
-  --sidebar-foreground: oklch(0.9219 0 0);
-  --sidebar-primary: oklch(0.6487 0.1538 150.3071);
-  --sidebar-primary-foreground: oklch(1.0000 0 0);
-  --sidebar-accent: oklch(0.6746 0.1414 261.3380);
-  --sidebar-accent-foreground: oklch(0.9219 0 0);
-  --sidebar-border: oklch(0.3867 0 0);
-  --sidebar-ring: oklch(0.6487 0.1538 150.3071);
-  --font-sans: Plus Jakarta Sans, sans-serif;
+  /* Dark cartoon: deep violet bg, lighter cards, ink shifts to a mid-tone so
+     hard-offset shadows still read against the dark surfaces. */
+  --background: oklch(0.18 0.03 295);
+  --foreground: oklch(0.96 0.01 90);
+  --card: oklch(0.24 0.04 295);
+  --card-foreground: oklch(0.96 0.01 90);
+  --popover: oklch(0.24 0.04 295);
+  --popover-foreground: oklch(0.96 0.01 90);
+
+  --primary: oklch(0.65 0.2 295);
+  --primary-foreground: oklch(0.18 0.03 295);
+  --secondary: oklch(0.7 0.15 80);
+  --secondary-foreground: oklch(0.18 0.03 295);
+  --muted: oklch(0.3 0.03 295);
+  --muted-foreground: oklch(0.72 0.02 295);
+  --accent: oklch(0.32 0.06 295);
+  --accent-foreground: var(--brand-honey-300);
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --success: oklch(0.72 0.19 149);
+  --success-foreground: oklch(0.15 0 0);
+  --warning: oklch(0.83 0.155 84);
+  --warning-foreground: oklch(0.15 0 0);
+
+  --border: oklch(0.36 0.04 295);
+  --input: oklch(0.36 0.04 295);
+  --ring: oklch(0.65 0.2 295);
+
+  --chart-1: oklch(0.65 0.2 295);
+  --chart-2: oklch(0.78 0.18 80);
+  --chart-3: oklch(0.72 0.19 149);
+  --chart-4: oklch(0.7 0.13 230);
+  --chart-5: oklch(0.65 0.22 25);
+
+  --sidebar: oklch(0.18 0.03 295);
+  --sidebar-foreground: oklch(0.96 0.01 90);
+  --sidebar-primary: oklch(0.65 0.2 295);
+  --sidebar-primary-foreground: oklch(0.18 0.03 295);
+  --sidebar-accent: oklch(0.32 0.06 295);
+  --sidebar-accent-foreground: var(--brand-honey-300);
+  --sidebar-border: oklch(0.36 0.04 295);
+  --sidebar-ring: oklch(0.65 0.2 295);
+
+  /* In dark mode the "ink" needs to be lighter than card surfaces so the
+     hard-offset shadow remains visible. Using a near-white that still reads
+     as a deliberate stroke (not a glow). */
+  --ink: oklch(0.92 0.02 295);
+  --shadow-cartoon-xs: 1px 1px 0 0 var(--ink);
+  --shadow-cartoon-sm: 2px 2px 0 0 var(--ink);
+  --shadow-cartoon: 4px 4px 0 0 var(--ink);
+  --shadow-cartoon-lg: 6px 6px 0 0 var(--ink);
+
+  --font-sans: var(--font-plus-jakarta), Plus Jakarta Sans, sans-serif;
   --font-serif: Source Serif 4, serif;
-  --font-mono: JetBrains Mono, monospace;
-  --radius: 0.5rem;
+  --font-mono: var(--font-jetbrains-mono), JetBrains Mono, monospace;
+  --font-hand: var(--font-caveat), Caveat, cursive;
+
+  --radius: 0.625rem;
+  --radius-cartoon: 1rem;
+
   --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
@@ -162,14 +223,18 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: Plus Jakarta Sans, sans-serif;
-  --font-mono: JetBrains Mono, monospace;
-  --font-serif: Source Serif 4, serif;
+  --color-ink: var(--ink);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+  --font-hand: var(--font-hand);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-cartoon: var(--radius-cartoon);
 
   --shadow-2xs: var(--shadow-2xs);
   --shadow-xs: var(--shadow-xs);
@@ -179,6 +244,10 @@
   --shadow-lg: var(--shadow-lg);
   --shadow-xl: var(--shadow-xl);
   --shadow-2xl: var(--shadow-2xl);
+  --shadow-cartoon-xs: var(--shadow-cartoon-xs);
+  --shadow-cartoon-sm: var(--shadow-cartoon-sm);
+  --shadow-cartoon: var(--shadow-cartoon);
+  --shadow-cartoon-lg: var(--shadow-cartoon-lg);
   --radius: 0.5rem;
   --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
   --tracking-tight: calc(var(--tracking-normal) - 0.025em);
