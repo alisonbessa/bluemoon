@@ -17,7 +17,9 @@ const Hero2 = () => {
           </Badge>
           <h1 className="text-3xl font-extrabold lg:text-6xl">
             Organize o dinheiro do casal{" "}
-            <span className="text-primary">sem planilha e sem estresse</span>
+            <span className="font-hand text-[1.15em] font-bold text-primary">
+              sem planilha e sem estresse
+            </span>
           </h1>
           <p className="text-balance text-muted-foreground lg:text-lg max-w-2xl mx-auto">
             Planejem juntos, registrem gastos por mensagem e saibam exatamente

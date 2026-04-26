@@ -265,6 +265,51 @@
   --color-shadow-color: var(--shadow-color);
 }
 
+@layer components {
+  /* ---- Cartoon utilities ----------------------------------------------------
+     Pair with the inline SVG filter defs (id="scribble" / "scribble-light")
+     rendered once in the root layout so `filter: url(#…)` resolves.
+
+     `.cartoon-chrome` — small bordered chrome (Button, Badge, Input, Chip).
+       Crisp ink border + hard-offset shadow + tactile press behavior.
+     `.cartoon-panel` — large surfaces (Card, Dialog, Widget).
+       Wobbled hand-drawn border painted via ::before so body text stays crisp.
+  ---------------------------------------------------------------------------- */
+  .cartoon-chrome {
+    border: 1.5px solid var(--ink);
+    box-shadow: var(--shadow-cartoon-sm);
+    transition: transform 120ms ease, box-shadow 120ms ease;
+  }
+  .cartoon-chrome:hover:not(:disabled):not([data-state="checked"]) {
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 0 var(--ink);
+  }
+  .cartoon-chrome:active:not(:disabled) {
+    transform: translate(1px, 1px);
+    box-shadow: 0 0 0 0 var(--ink);
+  }
+
+  .cartoon-panel {
+    position: relative;
+    border-color: transparent !important;
+    box-shadow: var(--shadow-cartoon);
+  }
+  .cartoon-panel::before {
+    content: "";
+    position: absolute;
+    inset: -1.5px;
+    border: 1.5px solid var(--ink);
+    border-radius: inherit;
+    pointer-events: none;
+    filter: url(#scribble);
+  }
+
+  /* Hand-drawn accent for greetings/callouts. */
+  .font-hand {
+    font-family: var(--font-hand);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

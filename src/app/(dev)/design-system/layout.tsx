@@ -17,6 +17,7 @@ const sections = [
   { href: "/design-system/overlays", label: "Overlays" },
   { href: "/design-system/data", label: "Data display" },
   { href: "/design-system/molecules", label: "Molecules" },
+  { href: "/design-system/playground", label: "Playground" },
 ];
 
 export default function DesignSystemLayout({

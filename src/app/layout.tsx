@@ -65,6 +65,20 @@ export default function RootLayout({
         <link rel="preconnect" href="https://api.dicebear.com" />
       </head>
       <body className={`${plusJakarta.variable} ${jetbrainsMono.variable} ${caveat.variable} font-sans antialiased bg-background`} suppressHydrationWarning>
+        {/* Scribble filter defs — referenced by .cartoon-panel ::before to
+            paint a hand-drawn wobbled border. Hidden but globally available. */}
+        <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
+          <defs>
+            <filter id="scribble" x="-8%" y="-8%" width="116%" height="116%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="3" result="t" />
+              <feDisplacementMap in="SourceGraphic" in2="t" scale="1.6" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="scribble-light" x="-12%" y="-12%" width="124%" height="124%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="7" result="t" />
+              <feDisplacementMap in="SourceGraphic" in2="t" scale="0.9" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+          </defs>
+        </svg>
         <a href="#main-content" className="skip-to-content">
           Pular para o conteúdo
         </a>
