@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/shared/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -16,8 +17,8 @@ import {
   WalletIcon,
   TrendingUpIcon,
   TrendingDownIcon,
-  ArrowRightIcon,
   LayoutGridIcon,
+  Maximize2 as Maximize2Icon,
   ReceiptIcon,
   SettingsIcon,
   TargetIcon,
@@ -217,6 +218,16 @@ export function DashboardClient({
             <CardDescription>
               Suas metas financeiras
             </CardDescription>
+            {goals.filter((g) => !g.isCompleted).length > 0 && (
+              <CardAction>
+                <Button asChild variant="ghost" size="sm" className="gap-1.5">
+                  <Link href="/app/goals" aria-label="Ver todas as metas">
+                    <span className="hidden sm:inline">Ver tudo</span>
+                    <Maximize2Icon className="size-4" />
+                  </Link>
+                </Button>
+              </CardAction>
+            )}
           </CardHeader>
           <CardContent className="flex flex-col flex-1">
             {goalsLoading ? (
@@ -251,14 +262,6 @@ export function DashboardClient({
                         />
                       </div>
                     ))}
-                </div>
-                <div className="mt-auto pt-3">
-                  <Button asChild variant="ghost" size="sm" className="w-full">
-                    <Link href="/app/goals">
-                      Ver {goals.filter((g) => !g.isCompleted).length > 5 ? `todas as ${goals.filter((g) => !g.isCompleted).length} metas` : "mais"}
-                      <ArrowRightIcon className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
                 </div>
               </div>
             ) : (

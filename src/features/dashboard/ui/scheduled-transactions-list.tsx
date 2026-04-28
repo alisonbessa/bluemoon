@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/shared/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -17,6 +18,7 @@ import {
   ArrowRightIcon,
   Check,
   Loader2,
+  Maximize2,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { formatCurrencyCompact } from "@/shared/lib/formatters";
@@ -167,6 +169,16 @@ export function ScheduledTransactionsList({
         <CardDescription>
           Contas a pagar e receber neste mês
         </CardDescription>
+        {totalUnpaid > 0 && (
+          <CardAction>
+            <Button asChild variant="ghost" size="sm" className="gap-1.5">
+              <Link href="/app/transactions" aria-label="Ver todas as transações">
+                <span className="hidden sm:inline">Ver tudo</span>
+                <Maximize2 className="size-4" />
+              </Link>
+            </Button>
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent className="flex flex-col flex-1">
         {isLoading ? (
@@ -234,14 +246,6 @@ export function ScheduledTransactionsList({
                   </div>
                 );
               })}
-            </div>
-            <div className="mt-auto pt-3">
-              <Button asChild variant="ghost" size="sm" className="w-full">
-                <Link href="/app/transactions">
-                  Ver {totalUnpaid > 5 ? `todas as ${totalUnpaid} pendentes` : "mais"}
-                  <ArrowRightIcon className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
             </div>
           </div>
         ) : (
