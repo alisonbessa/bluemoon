@@ -22,11 +22,11 @@ export function CartoonForCouples() {
   return (
     <section
       id="para-casais"
-      className="bg-gradient-to-b from-accent/30 to-background px-6 py-22 md:py-28"
+      className="bg-linear-to-b from-accent/30 to-background px-6 py-22 md:py-28"
     >
       <div className="mx-auto max-w-(--breakpoint-lg)">
         <div className="text-center">
-          <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.12em] text-primary">
+          <p className="font-hand mb-1 inline-block -rotate-1 text-2xl font-bold text-primary">
             Feito pra dois
           </p>
           <h2 className="text-3xl font-extrabold tracking-tight md:text-[42px] md:leading-[1.1]">

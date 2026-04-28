@@ -5,9 +5,9 @@ import { appConfig } from "@/shared/lib/config";
 
 export function CartoonFinalCTA() {
   return (
-    <section className="bg-gradient-to-b from-card to-accent/40 px-6 py-22 md:py-28">
+    <section className="bg-linear-to-b from-card to-accent/40 px-6 py-22 md:py-28">
       <div className="mx-auto max-w-3xl">
-        <div className="relative overflow-hidden rounded-[28px] border-2 border-[var(--ink)] bg-gradient-to-br from-[var(--brand-violet-500)] to-[oklch(0.55_0.18_310)] p-12 text-center text-primary-foreground shadow-[var(--shadow-cartoon-lg)] md:p-14">
+        <div className="cartoon-panel-strong relative overflow-hidden rounded-[28px] bg-linear-to-br from-(--brand-violet-500) to-[oklch(0.55_0.18_310)] p-12 text-center text-primary-foreground md:p-14">
           <div
             className="pointer-events-none absolute inset-0"
             style={{
@@ -46,6 +46,9 @@ export function CartoonFinalCTA() {
                 <Link href="#como-funciona">Ver como funciona</Link>
               </Button>
             </div>
+            <p className="font-hand mt-8 text-xl text-secondary -rotate-1 inline-block">
+              — pra vocês dois 🍯
+            </p>
           </div>
         </div>
       </div>

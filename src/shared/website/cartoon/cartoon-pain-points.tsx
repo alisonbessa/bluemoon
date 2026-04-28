@@ -6,10 +6,10 @@ const PAINS = [
 
 export function CartoonPainPoints() {
   return (
-    <section className="bg-gradient-to-b from-background to-card px-6 py-22 md:py-28">
+    <section className="bg-linear-to-b from-background to-card px-6 py-22 md:py-28">
       <div className="mx-auto max-w-(--breakpoint-lg)">
         <div className="text-center">
-          <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.12em] text-primary">
+          <p className="font-hand mb-1 text-2xl font-bold text-primary -rotate-1 inline-block">
             Soa familiar?
           </p>
           <h2 className="text-3xl font-extrabold tracking-tight md:text-[42px] md:leading-[1.1]">
@@ -44,7 +44,7 @@ export function CartoonPainPoints() {
         </div>
 
         {/* Reframe block */}
-        <div className="cartoon-panel mx-auto mt-12 max-w-2xl rounded-[22px] bg-gradient-to-b from-accent/70 to-card p-7 text-center">
+        <div className="cartoon-panel mx-auto mt-12 max-w-2xl rounded-[22px] bg-linear-to-b from-accent/70 to-card p-7 text-center">
           <p className="text-sm text-muted-foreground">O problema não é falta de dinheiro.</p>
           <p className="mt-1.5 text-2xl font-extrabold leading-snug tracking-tight">
             É falta de <span className="text-primary">organização juntos</span>.

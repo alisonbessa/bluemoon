@@ -1,7 +1,26 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { appConfig } from "@/shared/lib/config";
+
+interface PlanPricing {
+  price: number | null;
+  priceFormatted: string | null;
+  monthlyEquivalent?: string | null;
+}
+
+interface Plan {
+  id: string;
+  name: string;
+  codename: string;
+  pricing: {
+    monthly: PlanPricing | null;
+    yearly: PlanPricing | null;
+  };
+}
 
 const SOLO_FEATURES = [
   "1 pessoa",
@@ -11,20 +30,44 @@ const SOLO_FEATURES = [
 ];
 
 const DUO_FEATURES = [
-  "Tudo do Solo, pra vocês dois",
-  "Orçamento compartilhado",
-  "Acerto do mês automático",
-  "Privacidade configurável",
-  "Suporte prioritário",
+  { text: "Tudo do Solo, pra vocês dois", strong: "Tudo do Solo" },
+  { text: "Orçamento compartilhado" },
+  { text: "Acerto do mês automático" },
+  { text: "Privacidade configurável" },
+  { text: "Suporte prioritário" },
 ];
 
 export function CartoonPricing() {
   const isWaitlist = appConfig.waitlistMode;
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/app/plans")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!active) return;
+        setPlans(data.plans ?? []);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const solo = plans.find((p) => p.codename === "solo");
+  const duo = plans.find((p) => p.codename === "duo");
+
   return (
     <section id="pricing" className="px-6 py-22 md:py-28">
       <div className="mx-auto max-w-(--breakpoint-lg)">
         <div className="text-center">
-          <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.12em] text-primary">
+          <p className="font-hand mb-1 inline-block -rotate-1 text-2xl font-bold text-primary">
             Preços honestos
           </p>
           <h2 className="text-3xl font-extrabold tracking-tight md:text-[42px] md:leading-[1.1]">
@@ -44,20 +87,18 @@ export function CartoonPricing() {
             <p className="text-[13px] font-extrabold uppercase tracking-wider text-muted-foreground">
               Solo
             </p>
-            <p className="font-extrabold leading-none">
-              <span className="align-top text-xl font-semibold text-muted-foreground">R$</span>
-              <span className="text-[44px] tracking-tight">19</span>
-              <span className="text-[15px] font-medium text-muted-foreground"> /mês</span>
-            </p>
+            <PlanPrice
+              priceCents={solo?.pricing.monthly?.price ?? null}
+              suffix="/mês"
+              loading={loading}
+            />
             <p className="text-[13.5px] text-muted-foreground">
               Pra quem ainda tá organizando sozinho.
             </p>
             <ul className="flex flex-1 flex-col gap-2.5 text-[14.5px]">
               {SOLO_FEATURES.map((f) => (
                 <li key={f} className="flex items-start gap-2.5">
-                  <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[oklch(from_var(--success)_l_c_h/0.12)] text-[var(--success)]">
-                    <Check className="size-3" strokeWidth={3.5} />
-                  </span>
+                  <CheckPill />
                   {f}
                 </li>
               ))}
@@ -70,30 +111,35 @@ export function CartoonPricing() {
           </article>
 
           {/* Duo */}
-          <article className="cartoon-panel relative flex flex-col gap-5 overflow-visible rounded-[22px] bg-gradient-to-b from-[oklch(from_var(--brand-violet-300)_l_c_h/0.18)] to-card p-8 shadow-[var(--shadow-cartoon-lg)]">
+          <article className="cartoon-panel relative flex flex-col gap-5 overflow-visible rounded-[22px] bg-linear-to-b from-[oklch(from_var(--brand-violet-300)_l_c_h/0.18)] to-card p-8 shadow-cartoon-lg">
             <span className="cartoon-chrome absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-3.5 py-1.5 text-xs font-bold text-primary-foreground">
               ✨ Recomendado pra casais
             </span>
-            <p className="text-[13px] font-extrabold uppercase tracking-wider text-[var(--brand-violet-700)]">
+            <p className="text-[13px] font-extrabold uppercase tracking-wider text-(--brand-violet-700)">
               Duo
             </p>
-            <p className="font-extrabold leading-none">
-              <span className="align-top text-xl font-semibold text-muted-foreground">R$</span>
-              <span className="text-[44px] tracking-tight">29</span>
-              <span className="text-[15px] font-medium text-muted-foreground">
-                {" "}/mês · pelos dois
-              </span>
-            </p>
-            <p className="text-[13.5px] font-semibold text-[var(--brand-violet-700)]">
+            <PlanPrice
+              priceCents={duo?.pricing.monthly?.price ?? null}
+              suffix="/mês · pelos dois"
+              loading={loading}
+            />
+            <p className="text-[13.5px] font-semibold text-(--brand-violet-700)">
               🐝 Plano do casal. O parceiro(a) entra grátis.
             </p>
             <ul className="flex flex-1 flex-col gap-2.5 text-[14.5px]">
               {DUO_FEATURES.map((f) => (
-                <li key={f} className="flex items-start gap-2.5">
-                  <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[oklch(from_var(--success)_l_c_h/0.12)] text-[var(--success)]">
-                    <Check className="size-3" strokeWidth={3.5} />
+                <li key={f.text} className="flex items-start gap-2.5">
+                  <CheckPill />
+                  <span>
+                    {f.strong ? (
+                      <>
+                        <b className="text-foreground">{f.strong}</b>
+                        {f.text.replace(f.strong, "")}
+                      </>
+                    ) : (
+                      f.text
+                    )}
                   </span>
-                  <span dangerouslySetInnerHTML={{ __html: highlight(f) }} />
                 </li>
               ))}
             </ul>
@@ -110,9 +156,51 @@ export function CartoonPricing() {
   );
 }
 
-function highlight(text: string) {
-  return text.replace(
-    /Tudo do Solo/,
-    '<b class="text-foreground">Tudo do Solo</b>'
+function CheckPill() {
+  return (
+    <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-[oklch(from_var(--success)_l_c_h/0.12)] text-(--success)">
+      <Check className="size-3" strokeWidth={3.5} />
+    </span>
+  );
+}
+
+function PlanPrice({
+  priceCents,
+  suffix,
+  loading,
+}: {
+  priceCents: number | null;
+  suffix: string;
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <p className="flex items-center gap-2 text-muted-foreground">
+        <Loader2 className="size-5 animate-spin" />
+        <span className="text-sm">Carregando preço…</span>
+      </p>
+    );
+  }
+
+  if (priceCents == null) {
+    return (
+      <p className="text-sm text-muted-foreground">Preço indisponível no momento.</p>
+    );
+  }
+
+  const reais = Math.floor(priceCents / 100);
+  const cents = priceCents % 100;
+
+  return (
+    <p className="font-extrabold leading-none">
+      <span className="align-top text-xl font-semibold text-muted-foreground">R$</span>
+      <span className="text-[44px] tracking-tight">{reais}</span>
+      {cents > 0 && (
+        <span className="align-top text-xl font-semibold text-muted-foreground">
+          ,{cents.toString().padStart(2, "0")}
+        </span>
+      )}
+      <span className="text-[15px] font-medium text-muted-foreground"> {suffix}</span>
+    </p>
   );
 }

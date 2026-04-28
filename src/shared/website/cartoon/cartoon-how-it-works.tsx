@@ -25,11 +25,11 @@ export function CartoonHowItWorks() {
   return (
     <section
       id="como-funciona"
-      className="bg-gradient-to-b from-card to-background px-6 py-22 md:py-28"
+      className="bg-linear-to-b from-card to-background px-6 py-22 md:py-28"
     >
       <div className="mx-auto max-w-(--breakpoint-lg)">
         <div className="text-center">
-          <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.12em] text-primary">
+          <p className="font-hand mb-1 inline-block -rotate-1 text-2xl font-bold text-primary">
             Como funciona
           </p>
           <h2 className="text-3xl font-extrabold tracking-tight md:text-[42px] md:leading-[1.1]">
@@ -50,7 +50,7 @@ export function CartoonHowItWorks() {
               className="cartoon-panel relative rounded-[20px] bg-card p-7 transition-transform duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5"
             >
               <span className="hb-step-numeral select-none">{n}</span>
-              <div className="cartoon-chrome mb-4 flex size-[54px] items-center justify-center rounded-[14px] bg-accent/70 text-[var(--brand-violet-700)]">
+              <div className="cartoon-chrome mb-4 flex size-[54px] items-center justify-center rounded-[14px] bg-accent/70 text-(--brand-violet-700)">
                 <Icon className="size-6" />
               </div>
               <h3 className="text-lg font-bold tracking-tight">{title}</h3>

@@ -8,7 +8,7 @@ const BULLETS = [
     text: (
       <>
         Texto:{" "}
-        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[13.5px] text-[var(--brand-violet-700)]">
+        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[13.5px] text-(--brand-violet-700)">
           gastei 80 no mercado
         </span>
       </>
@@ -20,7 +20,7 @@ const BULLETS = [
     text: (
       <>
         Consultas rápidas:{" "}
-        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[13.5px] text-[var(--brand-violet-700)]">
+        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[13.5px] text-(--brand-violet-700)">
           quanto sobra de lazer?
         </span>
       </>
@@ -34,7 +34,7 @@ export function CartoonTelegramFeature() {
     <section className="px-6 py-22 md:py-28">
       <div className="mx-auto grid max-w-(--breakpoint-xl) items-center gap-14 md:grid-cols-2">
         <div>
-          <p className="mb-3 text-[11px] font-extrabold uppercase tracking-[0.12em] text-primary">
+          <p className="font-hand mb-1 inline-block -rotate-1 text-2xl font-bold text-primary">
             Por mensagem
           </p>
           <h2 className="text-3xl font-extrabold tracking-tight md:text-[42px] md:leading-[1.1]">
@@ -68,15 +68,18 @@ export function CartoonTelegramFeature() {
         </div>
 
         {/* Chat preview */}
-        <div className="rounded-[22px] border-2 border-[var(--ink)] bg-card p-5 shadow-[var(--shadow-cartoon-lg)]">
+        <div className="cartoon-panel-strong relative rounded-[22px] bg-card p-5">
+          <span className="font-hand cartoon-chrome-wobble pointer-events-none absolute -right-3 -top-4 z-10 rotate-3 rounded-2xl rounded-bl-sm border-[1.5px] border-ink bg-card px-3 py-1.5 text-lg font-bold text-primary shadow-cartoon-sm">
+            viu? fácil.
+          </span>
           <div className="mb-3 flex items-center gap-2.5 border-b-[1.5px] border-border px-1 pb-3 pt-1">
-            <div className="flex size-9 items-center justify-center rounded-full border-[1.5px] border-[var(--ink)] bg-primary text-xs font-extrabold text-primary-foreground">
+            <div className="flex size-9 items-center justify-center rounded-full border-[1.5px] border-ink bg-primary text-xs font-extrabold text-primary-foreground">
               HB
             </div>
             <div className="flex-1">
               <div className="text-sm font-bold">HiveBudget Bot</div>
-              <div className="flex items-center gap-1.5 text-[11px] text-[var(--success)]">
-                <span className="size-1.5 rounded-full bg-[var(--success)]" />
+              <div className="flex items-center gap-1.5 text-[11px] text-(--success)">
+                <span className="size-1.5 rounded-full bg-(--success)" />
                 WhatsApp · para vocês dois
               </div>
             </div>
@@ -84,7 +87,7 @@ export function CartoonTelegramFeature() {
 
           <Bubble side="me">📎 comprovante-pix.jpg</Bubble>
           <Bubble side="bot">
-            <b className="text-[var(--brand-violet-700)]">✅ Registrado!</b>
+            <b className="text-(--brand-violet-700)">✅ Registrado!</b>
             <br />
             Mercado Extra · R$ 127,50
             <br />
@@ -92,12 +95,12 @@ export function CartoonTelegramFeature() {
           </Bubble>
           <Bubble side="me">quanto gastamos com mercado?</Bubble>
           <Bubble side="bot">
-            Em outubro, vocês gastaram <b className="text-[var(--brand-violet-700)]">R$ 611</b> em 4
+            Em outubro, vocês gastaram <b className="text-(--brand-violet-700)">R$ 611</b> em 4
             compras. Maior: Mercado Extra · R$ 127,50 🛒
           </Bubble>
           <Bubble side="me">🎤 áudio (0:06)</Bubble>
           <Bubble side="bot">
-            <b className="text-[var(--brand-violet-700)]">✅ Registrado!</b>
+            <b className="text-(--brand-violet-700)">✅ Registrado!</b>
             <br />
             &ldquo;uber pro aeroporto&rdquo; · Transporte · R$ 62
           </Bubble>
@@ -116,13 +119,13 @@ function Bubble({
 }) {
   if (side === "me") {
     return (
-      <div className="my-1.5 ml-auto max-w-[85%] rounded-2xl rounded-br-[4px] bg-[oklch(0.93_0.06_150)] px-3.5 py-2.5 text-sm leading-snug text-[oklch(0.28_0.1_150)]">
+      <div className="my-1.5 ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-[oklch(0.93_0.06_150)] px-3.5 py-2.5 text-sm leading-snug text-[oklch(0.28_0.1_150)]">
         {children}
       </div>
     );
   }
   return (
-    <div className="my-1.5 max-w-[85%] rounded-2xl rounded-bl-[4px] bg-muted px-3.5 py-2.5 text-sm leading-snug text-foreground">
+    <div className="my-1.5 max-w-[85%] rounded-2xl rounded-bl-sm bg-muted px-3.5 py-2.5 text-sm leading-snug text-foreground">
       {children}
     </div>
   );

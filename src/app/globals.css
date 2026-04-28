@@ -6,10 +6,17 @@
 @config "../../tailwind.config.ts";
 
 /* ----------------------------------------------------------------------------
-   HiveBudget — "Cartoon" theme
-   Violet primary + honey secondary, ink borders, hard-offset cartoon shadows,
-   and a `--font-hand` (Caveat) for accents. Light + dark variants both adopt
-   the cartoon identity; a future theme switcher will scope alternate themes.
+   HiveBudget — Theming architecture
+   ----------------------------------------------------------------------------
+   Two orthogonal axes:
+     1. Color scheme — `light` (root) vs `dark` (.dark class), as before.
+     2. Visual theme — `data-theme="<name>"` on <html>. `cartoon` is the
+        default and only shipped theme today; the structure leaves room for
+        `minimal`, `professional`, etc. without touching any component.
+   Cartoon-specific tokens (--ink, --shadow-cartoon-*, --font-hand,
+   --radius-cartoon) and the cartoon-only component utilities live inside
+   `[data-theme="cartoon"]` blocks — `:root` carries safe fallbacks so a
+   user with no data-theme set still gets a coherent neutral surface.
 ---------------------------------------------------------------------------- */
 :root {
   /* Brand */
@@ -66,25 +73,28 @@
   --sidebar-border: oklch(0.88 0.02 295);
   --sidebar-ring: var(--brand-violet-500);
 
-  /* ---- Cartoon-specific tokens ---- */
-  /* Deep purple-black used for the chunky borders + hard-offset shadows. */
-  --ink: oklch(0.22 0.04 295);
-  /* Hard-offset shadows (no blur) — the signature "sticker" feel. */
-  --shadow-cartoon-xs: 1px 1px 0 0 var(--ink);
-  --shadow-cartoon-sm: 2px 2px 0 0 var(--ink);
-  --shadow-cartoon: 4px 4px 0 0 var(--ink);
-  --shadow-cartoon-lg: 6px 6px 0 0 var(--ink);
+  /* ---- Theme-shaped tokens (safe fallbacks) ----
+     These are referenced by component utilities (`.cartoon-chrome`,
+     `.cartoon-panel`, etc). When no data-theme is active they fall back
+     to neutral values so the UI still reads cleanly. The `cartoon` theme
+     overrides them below to deliver the sticker / hand-drawn identity. */
+  --ink: var(--border);
+  --shadow-cartoon-xs: var(--shadow-2xs);
+  --shadow-cartoon-sm: var(--shadow-xs);
+  --shadow-cartoon: var(--shadow-sm);
+  --shadow-cartoon-lg: var(--shadow-md);
+  --cartoon-filter: none;
+  --radius-cartoon: var(--radius);
 
   /* Fonts */
   --font-sans: var(--font-plus-jakarta), Plus Jakarta Sans, sans-serif;
   --font-serif: Source Serif 4, serif;
   --font-mono: var(--font-jetbrains-mono), JetBrains Mono, monospace;
-  /* Manuscript accent — used sparingly for greetings, callouts, decorative labels. */
+  /* Manuscript accent (Caveat) — only the cartoon theme actually styles
+     copy with this; other themes can re-point it to var(--font-sans). */
   --font-hand: var(--font-caveat), Caveat, cursive;
 
   --radius: 0.625rem;
-  /* Generous radius for cartoon-style cards/widgets. */
-  --radius-cartoon: 1rem;
 
   /* Soft drop shadows kept for non-cartoon surfaces (popovers, tooltips). */
   --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
@@ -150,23 +160,9 @@
   --sidebar-border: oklch(0.36 0.04 295);
   --sidebar-ring: oklch(0.65 0.2 295);
 
-  /* In dark mode the "ink" needs to be lighter than card surfaces so the
-     hard-offset shadow remains visible. Using a near-white that still reads
-     as a deliberate stroke (not a glow). */
-  --ink: oklch(0.92 0.02 295);
-  --shadow-cartoon-xs: 1px 1px 0 0 var(--ink);
-  --shadow-cartoon-sm: 2px 2px 0 0 var(--ink);
-  --shadow-cartoon: 4px 4px 0 0 var(--ink);
-  --shadow-cartoon-lg: 6px 6px 0 0 var(--ink);
-
-  --font-sans: var(--font-plus-jakarta), Plus Jakarta Sans, sans-serif;
-  --font-serif: Source Serif 4, serif;
-  --font-mono: var(--font-jetbrains-mono), JetBrains Mono, monospace;
-  --font-hand: var(--font-caveat), Caveat, cursive;
-
-  --radius: 0.625rem;
-  --radius-cartoon: 1rem;
-
+  /* `.dark` keeps only color-scheme overrides. Cartoon-only tokens
+     (--ink, --shadow-cartoon-*, --font-hand, --radius-cartoon) live
+     inside `[data-theme="cartoon"]` blocks below. */
   --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
   --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.10), 0 1px 2px -1px hsl(0 0% 0% / 0.10);
@@ -183,6 +179,30 @@
   --shadow-offset-y: 1px;
   --letter-spacing: 0em;
   --spacing: 0.25rem;
+}
+
+/* ---- Theme: cartoon ----------------------------------------------------
+   The default and only shipped visual theme. Adds a deep ink color, hard-
+   offset shadows, the `Caveat` handwriting accent and a generous radius
+   for cards. To add another theme, copy this block, swap the values and
+   pick a new `data-theme` value. */
+[data-theme="cartoon"] {
+  --ink: oklch(0.22 0.04 295);
+  --shadow-cartoon-xs: 1px 1px 0 0 var(--ink);
+  --shadow-cartoon-sm: 2px 2px 0 0 var(--ink);
+  --shadow-cartoon: 4px 4px 0 0 var(--ink);
+  --shadow-cartoon-lg: 6px 6px 0 0 var(--ink);
+  --cartoon-filter: url(#scribble-light);
+  --cartoon-filter-strong: url(#scribble);
+  --cartoon-filter-hero: url(#scribble-strong);
+  --radius-cartoon: 1rem;
+  --font-hand: var(--font-caveat), Caveat, cursive;
+}
+
+[data-theme="cartoon"].dark {
+  /* In dark mode the "ink" lifts to a near-white so the hard-offset shadow
+     keeps reading as a deliberate stroke and not as a glow. */
+  --ink: oklch(0.92 0.02 295);
 }
 
 @theme inline {
@@ -279,6 +299,11 @@
     border: 1.5px solid var(--ink);
     box-shadow: var(--shadow-cartoon-sm);
     transition: transform 120ms ease, box-shadow 120ms ease;
+    /* Hand-drawn ink-pen wobble. Pulled from --cartoon-filter so non-cartoon
+       themes can opt out by setting it to `none`. Filter creates a stacking
+       context, so focus rings/box-shadows are clipped to the filter region —
+       kept generous via the filter's `x/y/width/height` in layout.tsx. */
+    filter: var(--cartoon-filter, none);
   }
   .cartoon-chrome:hover:not(:disabled):not([data-state="checked"]) {
     transform: translate(-1px, -1px);
@@ -297,11 +322,36 @@
   .cartoon-panel::before {
     content: "";
     position: absolute;
-    inset: -1.5px;
-    border: 1.5px solid var(--ink);
+    inset: -2px;
+    border: 2px solid var(--ink);
     border-radius: inherit;
     pointer-events: none;
-    filter: url(#scribble);
+    filter: var(--cartoon-filter-strong, none);
+  }
+
+  /* `.cartoon-panel-strong` — hero device, featured pricing card, final CTA.
+     Thicker stroke + a stronger ink-pen tremor to read as the cover line of
+     a notebook sketch. Drops into any element that already has a radius. */
+  .cartoon-panel-strong {
+    position: relative;
+    border-color: transparent !important;
+    box-shadow: var(--shadow-cartoon-lg);
+  }
+  .cartoon-panel-strong::before {
+    content: "";
+    position: absolute;
+    inset: -2.5px;
+    border: 2.5px solid var(--ink);
+    border-radius: inherit;
+    pointer-events: none;
+    filter: var(--cartoon-filter-hero, none);
+  }
+
+  /* `.cartoon-chrome-wobble` — opt-in wobble for elements with an inline ink
+     border + offset shadow that don't use `.cartoon-chrome` (hero blobs,
+     custom chrome). Falls back to `none` outside the cartoon theme. */
+  .cartoon-chrome-wobble {
+    filter: var(--cartoon-filter, none);
   }
 
   /* Hand-drawn accent for greetings/callouts. */

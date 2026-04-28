@@ -56,7 +56,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" data-theme="cartoon" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/assets/logo.png" sizes="32x32" />
         <link rel="apple-touch-icon" href="/assets/logo.png" />
@@ -66,16 +66,22 @@ export default function RootLayout({
       </head>
       <body className={`${plusJakarta.variable} ${jetbrainsMono.variable} ${caveat.variable} font-sans antialiased bg-background`} suppressHydrationWarning>
         {/* Scribble filter defs — referenced by .cartoon-panel ::before to
-            paint a hand-drawn wobbled border. Hidden but globally available. */}
+            paint a hand-drawn wobbled border. Hidden but globally available.
+            Higher displacement scale + lower base frequency = more pronounced
+            ink-pen tremor; multiple seeds keep neighbouring borders varied. */}
         <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden>
           <defs>
-            <filter id="scribble" x="-8%" y="-8%" width="116%" height="116%">
-              <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="3" result="t" />
-              <feDisplacementMap in="SourceGraphic" in2="t" scale="1.6" xChannelSelector="R" yChannelSelector="G" />
+            <filter id="scribble" x="-15%" y="-15%" width="130%" height="130%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="3" seed="3" result="t" />
+              <feDisplacementMap in="SourceGraphic" in2="t" scale="3.4" xChannelSelector="R" yChannelSelector="G" />
             </filter>
-            <filter id="scribble-light" x="-12%" y="-12%" width="124%" height="124%">
-              <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="7" result="t" />
-              <feDisplacementMap in="SourceGraphic" in2="t" scale="0.9" xChannelSelector="R" yChannelSelector="G" />
+            <filter id="scribble-strong" x="-18%" y="-18%" width="136%" height="136%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="3" seed="11" result="t" />
+              <feDisplacementMap in="SourceGraphic" in2="t" scale="4.6" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="scribble-light" x="-20%" y="-20%" width="140%" height="140%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="7" result="t" />
+              <feDisplacementMap in="SourceGraphic" in2="t" scale="1.6" xChannelSelector="R" yChannelSelector="G" />
             </filter>
           </defs>
         </svg>

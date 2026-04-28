@@ -32,7 +32,7 @@ export function CartoonHero() {
       <div className="relative mx-auto grid max-w-(--breakpoint-xl) items-center gap-14 md:grid-cols-[1.1fr_1fr]">
         <div>
           {/* Eyebrow chip */}
-          <span className="cartoon-chrome inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground">
+          <span className="cartoon-chrome cartoon-chrome-wobble inline-flex items-center gap-2 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground">
             <span className="hb-pulse-dot" aria-hidden />
             🐝 {appConfig.waitlistMode ? "Beta aberto · sem cobrança" : "Feito para casais brasileiros"}
           </span>
@@ -65,7 +65,7 @@ export function CartoonHero() {
 
           {appConfig.waitlistMode && (
             <p className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Check className="size-3.5 text-[var(--success)]" />
+              <Check className="size-3.5 text-(--success)" />
               Sem cartão. Sem compromisso. Enquanto dura o beta, é de graça.
             </p>
           )}
@@ -85,7 +85,7 @@ export function CartoonHero() {
               ))}
             </div>
             <div className="text-xs leading-snug text-muted-foreground">
-              <b className="block text-[13px] text-foreground">
+              <b className="font-hand block text-2xl font-bold text-foreground -rotate-1">
                 +120 casais no beta
               </b>
               <span className="inline-flex gap-px text-[oklch(0.78_0.17_85)]">
@@ -100,23 +100,23 @@ export function CartoonHero() {
 
         {/* Hero visual — cartoon device */}
         <div className="relative">
-          <div className="hb-blob-mandou-bem font-hand pointer-events-none absolute -right-2 -top-7 z-10 inline-flex rotate-6 items-center gap-1.5 rounded-2xl rounded-br-[4px] border-[1.5px] border-[var(--ink)] bg-card px-3.5 py-2 text-2xl font-bold shadow-[var(--shadow-cartoon-sm)]">
+          <div className="cartoon-chrome-wobble font-hand pointer-events-none absolute -right-2 -top-7 z-10 inline-flex rotate-6 items-center gap-1.5 rounded-2xl rounded-br-sm border-[1.5px] border-ink bg-card px-3.5 py-2 text-2xl font-bold shadow-cartoon-sm">
             mandou bem!
           </div>
-          <div className="pointer-events-none absolute -bottom-3 -left-5 z-10 inline-flex -rotate-[5deg] items-center gap-1.5 rounded-xl border-[1.5px] border-[var(--ink)] bg-secondary px-3.5 py-2.5 text-sm font-bold text-secondary-foreground shadow-[var(--shadow-cartoon-sm)]">
+          <div className="cartoon-chrome-wobble pointer-events-none absolute -bottom-3 -left-5 z-10 inline-flex -rotate-[5deg] items-center gap-1.5 rounded-xl border-[1.5px] border-ink bg-secondary px-3.5 py-2.5 text-sm font-bold text-secondary-foreground shadow-cartoon-sm">
             🍯 + R$ 1.260 pra meta Europa
           </div>
 
-          <div className="-rotate-[1.5deg] rounded-3xl border-2 border-[var(--ink)] bg-card p-4 shadow-[var(--shadow-cartoon-lg)]">
+          <div className="cartoon-panel-strong -rotate-[1.5deg] rounded-3xl bg-card p-4">
             {/* device head */}
             <div className="mb-3 flex items-center gap-2.5 border-b-[1.5px] border-border px-1 pb-3 pt-1">
-              <div className="flex size-9 items-center justify-center rounded-full border-[1.5px] border-[var(--ink)] bg-primary text-xs font-extrabold text-primary-foreground">
+              <div className="flex size-9 items-center justify-center rounded-full border-[1.5px] border-ink bg-primary text-xs font-extrabold text-primary-foreground">
                 HB
               </div>
               <div className="flex-1">
                 <div className="text-sm font-bold">HiveBudget Bot</div>
-                <div className="flex items-center gap-1.5 text-[11px] text-[var(--success)]">
-                  <span className="size-1.5 rounded-full bg-[var(--success)]" />
+                <div className="flex items-center gap-1.5 text-[11px] text-(--success)">
+                  <span className="size-1.5 rounded-full bg-(--success)" />
                   WhatsApp
                 </div>
               </div>
@@ -125,7 +125,7 @@ export function CartoonHero() {
             <ChatBubble side="me">gastei 45 no ifood</ChatBubble>
             <p className="mr-1 text-right text-[11px] text-muted-foreground">14:02 ✓✓</p>
             <ChatBubble side="bot">
-              <b className="text-[var(--brand-violet-700)]">✅ Registrado!</b>
+              <b className="text-(--brand-violet-700)">✅ Registrado!</b>
               <br />
               Alimentação · R$ 45,00
               <br />
@@ -133,7 +133,7 @@ export function CartoonHero() {
             </ChatBubble>
             <ChatBubble side="me">quanto falta pra europa?</ChatBubble>
             <ChatBubble side="bot">
-              Vocês já têm <b className="text-[var(--brand-violet-700)]">R$ 7.400</b> guardados 🇮🇹
+              Vocês já têm <b className="text-(--brand-violet-700)">R$ 7.400</b> guardados 🇮🇹
               <br />
               Faltam R$ 7.600 · julho 2026
             </ChatBubble>
@@ -161,13 +161,13 @@ function ChatBubble({
 }) {
   if (side === "me") {
     return (
-      <div className="my-1.5 ml-auto max-w-[85%] rounded-2xl rounded-br-[4px] bg-[oklch(0.93_0.06_150)] px-3.5 py-2.5 text-sm leading-snug text-[oklch(0.28_0.1_150)]">
+      <div className="my-1.5 ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-[oklch(0.93_0.06_150)] px-3.5 py-2.5 text-sm leading-snug text-[oklch(0.28_0.1_150)]">
         {children}
       </div>
     );
   }
   return (
-    <div className="my-1.5 max-w-[85%] rounded-2xl rounded-bl-[4px] bg-muted px-3.5 py-2.5 text-sm leading-snug text-foreground">
+    <div className="my-1.5 max-w-[85%] rounded-2xl rounded-bl-sm bg-muted px-3.5 py-2.5 text-sm leading-snug text-foreground">
       {children}
     </div>
   );
