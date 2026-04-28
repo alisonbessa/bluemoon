@@ -409,6 +409,61 @@
   }
 }
 
+/* ---- Landing / cartoon marketing utilities ----
+   Visual primitives used by the landing page sections to match the
+   "sticker / comic" identity (honey-underlined keywords, hand-drawn
+   numerals, decorative honeycomb backgrounds, primary-tinted blobs). */
+
+/* Soft three-stop honeycomb glow, used behind the hero. */
+.hb-honeycomb-bg {
+  background-image:
+    radial-gradient(circle at 15% 10%, oklch(0.92 0.12 88 / .35) 0, transparent 42%),
+    radial-gradient(circle at 85% 20%, oklch(0.88 0.09 295 / .30) 0, transparent 48%),
+    radial-gradient(circle at 50% 90%, oklch(0.95 0.06 350 / .25) 0, transparent 55%);
+}
+
+/* Honey-yellow underline behind a keyword. */
+.hb-honey-underline {
+  position: relative;
+  white-space: nowrap;
+}
+.hb-honey-underline::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  bottom: 3px;
+  height: 12px;
+  background: var(--brand-honey-300);
+  opacity: 0.55;
+  z-index: -1;
+  border-radius: 4px;
+  transform: skewX(-6deg);
+}
+
+/* Hand-drawn arrow + number used for "step" indicators. */
+.hb-step-numeral {
+  font-family: var(--font-hand);
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 1;
+  color: var(--brand-violet-300);
+  opacity: 0.55;
+  position: absolute;
+  top: 16px;
+  right: 22px;
+  letter-spacing: 0;
+}
+
+/* Small "pulse" dot used inside the eyebrow chip. */
+.hb-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--success);
+  box-shadow: 0 0 0 3px oklch(from var(--success) l c h / 0.2);
+}
+
 /* Decorative grid overlay used on marketing hero sections */
 .bg-grid-lines {
   background-image: linear-gradient(

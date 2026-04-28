@@ -1,18 +1,14 @@
 import type { Metadata } from "next";
 import { WebsiteFAQs } from "@/shared/website/faqs";
-import { CTA2 } from "@/shared/website/cta-2";
-import Hero2 from "@/shared/sections/hero-2";
-import MonthlyAnnualPricing from "@/shared/website/monthly-annual-pricing";
-import TextRevealByWord from "@/shared/ui/text-reveal";
 import { StructuredData } from "@/shared/seo/StructuredData";
-import { PainPoints } from "@/shared/website/pain-points";
-import { Solution } from "@/shared/website/solution";
-import HowItWorks from "@/shared/website/how-it-works";
-import { BudgetExample } from "@/shared/website/budget-example";
-import { TelegramFeature } from "@/shared/website/telegram-feature";
-import { ForCouples } from "@/shared/website/for-couples";
-import { ComparisonTable } from "@/shared/website/comparison-table";
 import { TestimonialsGrid } from "@/shared/website/testimonials-grid";
+import { CartoonHero } from "@/shared/website/cartoon/cartoon-hero";
+import { CartoonPainPoints } from "@/shared/website/cartoon/cartoon-pain-points";
+import { CartoonHowItWorks } from "@/shared/website/cartoon/cartoon-how-it-works";
+import { CartoonTelegramFeature } from "@/shared/website/cartoon/cartoon-telegram-feature";
+import { CartoonForCouples } from "@/shared/website/cartoon/cartoon-for-couples";
+import { CartoonPricing } from "@/shared/website/cartoon/cartoon-pricing";
+import { CartoonFinalCTA } from "@/shared/website/cartoon/cartoon-final-cta";
 
 function FAQPageSchema({ items }: { items: { question: string; answer: string }[] }) {
   const schema = {
@@ -139,68 +135,36 @@ export default function WebsiteHomepage() {
       <StructuredData type="Organization" />
       <FAQPageSchema items={faqItems} />
 
-      {/* 1. Hero — Identidade + Promessa */}
-      <div className="relative bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950/30 dark:via-purple-950/20 dark:to-pink-950/20">
-        <Hero2 />
-      </div>
+      {/* Hero — handwritten + cartoon device */}
+      <CartoonHero />
 
-      {/* 2. Dor Emocional — Problema + Agitação */}
-      <div className="relative bg-background">
-        <PainPoints />
-      </div>
+      {/* Pain points — quoted cards + reframe */}
+      <CartoonPainPoints />
 
-      {/* Transição emocional */}
-      <TextRevealByWord text="Pela primeira vez, a gente sabe para onde cada real vai. Não é sobre gastar menos — é sobre gastar juntos, com intenção." />
+      {/* How it works — 3 steps */}
+      <CartoonHowItWorks />
 
-      {/* 3. Solução — Resposta simples */}
-      <div className="relative bg-background">
-        <Solution />
-      </div>
+      {/* Telegram / WhatsApp registration */}
+      <CartoonTelegramFeature />
 
-      {/* 4. Diferencial Principal — Registro por mensagem (DESTAQUE MÁXIMO) */}
-      <div className="relative bg-background">
-        <TelegramFeature />
-      </div>
+      {/* For couples — privacy / settlement / shared goals */}
+      <CartoonForCouples />
 
-      {/* 5. Para Casais — Reforça identidade */}
-      <div className="relative bg-muted/5 dark:bg-muted/5">
-        <ForCouples />
-      </div>
-
-      {/* 6. Como Funciona — Processo em 4 passos */}
-      <div id="como-funciona" className="relative bg-muted/5 dark:bg-muted/5">
-        <HowItWorks />
-      </div>
-
-      {/* 7. Tabela Comparativa — Contexto competitivo */}
-      <div className="relative bg-background">
-        <ComparisonTable />
-      </div>
-
-      {/* 8. Exemplo Prático — Prova concreta */}
-      <div className="relative bg-background">
-        <BudgetExample />
-      </div>
-
-      {/* 9. Depoimentos — Prova social */}
-      <div id="depoimentos" className="relative bg-muted/5 dark:bg-muted/5">
+      {/* Testimonials — kept from previous landing */}
+      <div id="depoimentos" className="bg-card/40">
         <TestimonialsGrid />
       </div>
 
-      {/* 10. Pricing */}
-      <div id="pricing" className="relative pt-16 bg-background">
-        <MonthlyAnnualPricing />
-      </div>
+      {/* Pricing — Solo + Duo */}
+      <CartoonPricing />
 
-      {/* 11. FAQ */}
-      <div id="faq" className="relative bg-background">
+      {/* FAQ — kept for SEO */}
+      <div id="faq">
         <WebsiteFAQs items={faqItems} />
       </div>
 
-      {/* 12. CTA Final */}
-      <div className="relative bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
-        <CTA2 />
-      </div>
+      {/* Final CTA — gradient violet card */}
+      <CartoonFinalCTA />
     </>
   );
 }
