@@ -365,6 +365,25 @@
     filter: var(--cartoon-filter, none);
   }
 
+  /* `.cartoon-input` — bordered field that needs a "press in" focus effect.
+     Used by Input, Textarea, Select trigger, etc. Isolated from
+     `.cartoon-chrome` because hover-translate would feel wrong on a
+     focused input. Theme tokens decide the look; non-cartoon themes
+     fall back to neutral border + shadow automatically. */
+  .cartoon-input {
+    border: 1.5px solid var(--ink);
+    box-shadow: var(--shadow-cartoon-xs);
+    transition: box-shadow 150ms ease, transform 150ms ease;
+  }
+  .cartoon-input:focus-visible {
+    box-shadow: var(--shadow-cartoon-sm);
+    transform: translate(-1px, -1px);
+  }
+  .cartoon-input[aria-invalid="true"] {
+    border-color: var(--destructive);
+    box-shadow: 2px 2px 0 0 var(--destructive);
+  }
+
   /* Hand-drawn accent for greetings/callouts. */
   .font-hand {
     font-family: var(--font-hand);
