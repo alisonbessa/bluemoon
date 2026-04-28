@@ -34,7 +34,7 @@ export function CartoonHowItWorks() {
           </p>
           <h2 className="text-3xl font-extrabold tracking-tight md:text-[42px] md:leading-[1.1]">
             Três passos,{" "}
-            <em className="font-hand text-[1.15em] not-italic font-bold leading-none text-primary">
+            <em className="font-serif-italic text-[1.2em] font-normal italic leading-none text-primary">
               cinco minutos
             </em>
           </h2>

@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono, Caveat } from "next/font/google";
+import {
+  Plus_Jakarta_Sans,
+  JetBrains_Mono,
+  Caveat,
+  Instrument_Serif,
+} from "next/font/google";
 import "./globals.css";
 import { appConfig } from "@/shared/lib/config";
 import Providers from "./Providers";
@@ -25,6 +30,16 @@ const caveat = Caveat({
   display: "swap",
   variable: "--font-caveat",
   weight: ["400", "500", "600", "700"],
+});
+
+// Editorial italic accent — used inside h2 `<em>`s on the landing for
+// emphasised words ("conversa", "cinco minutos", "cabe", etc).
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-instrument-serif",
+  weight: "400",
+  style: ["normal", "italic"],
 });
 
 function getBaseUrl() {
@@ -64,7 +79,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#8b5cf6" />
         <link rel="preconnect" href="https://api.dicebear.com" />
       </head>
-      <body className={`${plusJakarta.variable} ${jetbrainsMono.variable} ${caveat.variable} font-sans antialiased bg-background`} suppressHydrationWarning>
+      <body className={`${plusJakarta.variable} ${jetbrainsMono.variable} ${caveat.variable} ${instrumentSerif.variable} font-sans antialiased bg-background`} suppressHydrationWarning>
         {/* Scribble filter defs — referenced by .cartoon-panel ::before to
             paint a hand-drawn wobbled border. Hidden but globally available.
             Higher displacement scale + lower base frequency = more pronounced
