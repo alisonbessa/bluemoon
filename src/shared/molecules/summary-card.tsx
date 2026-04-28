@@ -29,9 +29,14 @@ export function SummaryCard({
   className,
 }: SummaryCardProps) {
   return (
-    <div className={cn("rounded-lg border bg-card p-2 sm:p-3", className)}>
-      <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
-        <span className="h-3 w-3 sm:h-4 sm:w-4 flex items-center justify-center shrink-0">
+    <div
+      className={cn(
+        "cartoon-panel rounded-cartoon border bg-card p-3 sm:p-4",
+        className
+      )}
+    >
+      <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-muted-foreground">
+        <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center sm:h-4 sm:w-4">
           {icon}
         </span>
         <span className="truncate">{label}</span>
@@ -39,14 +44,16 @@ export function SummaryCard({
       </div>
       <div
         className={cn(
-          "mt-1 text-lg sm:text-2xl font-bold text-center",
+          "mt-2 text-center text-xl font-extrabold tabular-nums tracking-tight sm:text-2xl",
           valueColorClasses[valueColor]
         )}
       >
         {value}
       </div>
       {subtitle && (
-        <p className="text-xs text-muted-foreground text-center">{subtitle}</p>
+        <p className="mt-1 text-center text-xs text-muted-foreground">
+          {subtitle}
+        </p>
       )}
     </div>
   );

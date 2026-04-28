@@ -197,9 +197,14 @@
   --shadow-cartoon-sm: 2px 2px 0 0 var(--ink);
   --shadow-cartoon: 4px 4px 0 0 var(--ink);
   --shadow-cartoon-lg: 6px 6px 0 0 var(--ink);
-  --cartoon-filter: url(#scribble-light);
-  --cartoon-filter-strong: url(#scribble);
-  --cartoon-filter-hero: url(#scribble-strong);
+  /* Borders stay crisp — the cartoon identity comes from ink color +
+     hard-offset shadow + chunky stroke, not from a hand-drawn wobble.
+     The SVG `#scribble*` filters are still defined in layout.tsx for
+     future opt-in (e.g. a "sketch" sub-variant) but the cartoon theme
+     keeps everything geometric. */
+  --cartoon-filter: none;
+  --cartoon-filter-strong: none;
+  --cartoon-filter-hero: none;
   --radius-cartoon: 1rem;
   --font-hand: var(--font-caveat), Caveat, cursive;
 }
