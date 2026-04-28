@@ -77,8 +77,11 @@
      These are referenced by component utilities (`.cartoon-chrome`,
      `.cartoon-panel`, etc). When no data-theme is active they fall back
      to neutral values so the UI still reads cleanly. The `cartoon` theme
-     overrides them below to deliver the sticker / hand-drawn identity. */
+     overrides them below to deliver the sticker / hand-drawn identity.
+     `--ink-shadow` is decoupled from `--ink` so dark themes can have a
+     light border with a darker offset shadow (or vice versa). */
   --ink: var(--border);
+  --ink-shadow: var(--ink);
   --shadow-cartoon-xs: var(--shadow-2xs);
   --shadow-cartoon-sm: var(--shadow-xs);
   --shadow-cartoon: var(--shadow-sm);
@@ -193,10 +196,11 @@
    pick a new `data-theme` value. */
 [data-theme="cartoon"] {
   --ink: oklch(0.22 0.04 295);
-  --shadow-cartoon-xs: 1px 1px 0 0 var(--ink);
-  --shadow-cartoon-sm: 2px 2px 0 0 var(--ink);
-  --shadow-cartoon: 4px 4px 0 0 var(--ink);
-  --shadow-cartoon-lg: 6px 6px 0 0 var(--ink);
+  --ink-shadow: var(--ink);
+  --shadow-cartoon-xs: 1px 1px 0 0 var(--ink-shadow);
+  --shadow-cartoon-sm: 2px 2px 0 0 var(--ink-shadow);
+  --shadow-cartoon: 4px 4px 0 0 var(--ink-shadow);
+  --shadow-cartoon-lg: 6px 6px 0 0 var(--ink-shadow);
   /* Borders stay crisp — the cartoon identity comes from ink color +
      hard-offset shadow + chunky stroke, not from a hand-drawn wobble.
      The SVG `#scribble*` filters are still defined in layout.tsx for
@@ -210,12 +214,13 @@
 }
 
 [data-theme="cartoon"].dark {
-  /* Dark mode "ink" — soft violet-gray instead of near-white so the
-     hard-offset shadow reads as an intentional stroke without glaring
-     against the deep violet surfaces. Sits ~0.65 in lightness so it
-     still pops next to card (~0.24) and background (~0.18) but doesn't
-     burn the eyes on long sessions. */
-  --ink: oklch(0.62 0.04 295);
+  /* Dark mode: cartoon ink "drawn on dark paper". Both border and
+     offset shadow share a deep violet-black tone — the same drawing,
+     just on a darker page. The border lifts a touch (l ~0.42) so it
+     reads against the card surface (l ~0.24), and the offset shadow
+     drops near-black (l ~0.10) to show through the gap. */
+  --ink: oklch(0.42 0.05 295);
+  --ink-shadow: oklch(0.1 0.04 295);
 }
 
 @theme inline {
@@ -321,11 +326,11 @@
   }
   .cartoon-chrome:hover:not(:disabled):not([data-state="checked"]) {
     transform: translate(-1px, -1px);
-    box-shadow: 3px 3px 0 0 var(--ink);
+    box-shadow: 3px 3px 0 0 var(--ink-shadow);
   }
   .cartoon-chrome:active:not(:disabled) {
     transform: translate(1px, 1px);
-    box-shadow: 0 0 0 0 var(--ink);
+    box-shadow: 0 0 0 0 var(--ink-shadow);
   }
 
   .cartoon-panel {
