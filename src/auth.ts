@@ -101,15 +101,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user, account, profile }) {
       if (process.env.NEXT_PUBLIC_SIGNIN_ENABLED !== "true") return false;
 
-      // Update profile image from Google on each sign-in
-      if (account?.provider === "google" && profile?.picture && user?.id) {
-        try {
-          await db
-            .update(users)
-            .set({ image: profile.picture as string })
-            .where(eq(users.id, user.id));
-        } catch (error) {
-          logger.error("Failed to update Google profile image", error);
+      // Sync profile data from Google: always refresh image, and backfill name
+      // for users who signed up via magic link and never set one.
+      if (account?.provider === "google" && user?.id) {
+        const updates: { image?: string; name?: string } = {};
+
+        if (profile?.picture) {
+          updates.image = profile.picture as string;
+        }
+        if (profile?.name && !user.name) {
+          updates.name = profile.name as string;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          try {
+            await db.update(users).set(updates).where(eq(users.id, user.id));
+          } catch (error) {
+            logger.error("Failed to sync Google profile data", error);
+          }
         }
       }
 
