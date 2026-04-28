@@ -210,9 +210,12 @@
 }
 
 [data-theme="cartoon"].dark {
-  /* In dark mode the "ink" lifts to a near-white so the hard-offset shadow
-     keeps reading as a deliberate stroke and not as a glow. */
-  --ink: oklch(0.92 0.02 295);
+  /* Dark mode "ink" — soft violet-gray instead of near-white so the
+     hard-offset shadow reads as an intentional stroke without glaring
+     against the deep violet surfaces. Sits ~0.65 in lightness so it
+     still pops next to card (~0.24) and background (~0.18) but doesn't
+     burn the eyes on long sessions. */
+  --ink: oklch(0.62 0.04 295);
 }
 
 @theme inline {
