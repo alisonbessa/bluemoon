@@ -14,14 +14,14 @@ import {
   CalendarIcon,
   CheckIcon,
   ClockIcon,
-  ArrowRightIcon,
-  MaximizeIcon,
+  Maximize2,
 } from "lucide-react";
 
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -139,34 +139,24 @@ function ExpandableMockWidget({
   return (
     <>
       <Card className="flex h-full flex-col gap-4">
-        <CardHeader className="flex-row items-start gap-3">
-          <div className="flex-1">
-            <CardTitle className="flex items-center gap-2 text-base">
-              {icon}
-              {title}
-            </CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </div>
-          <div className="flex items-center gap-1">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            {icon}
+            {title}
+          </CardTitle>
+          <CardDescription>{description}</CardDescription>
+          <CardAction>
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs"
+              className="gap-1.5"
               onClick={() => setOpen(true)}
+              aria-label={`Ver tudo · ${title}`}
             >
-              Ver tudo
-              <ArrowRightIcon className="size-3" />
+              <span className="hidden sm:inline">Ver tudo</span>
+              <Maximize2 className="size-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              aria-label="Expandir"
-              onClick={() => setOpen(true)}
-            >
-              <MaximizeIcon className="size-3.5" />
-            </Button>
-          </div>
+          </CardAction>
         </CardHeader>
         <CardContent>{children}</CardContent>
       </Card>
