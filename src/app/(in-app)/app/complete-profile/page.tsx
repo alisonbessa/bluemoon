@@ -59,7 +59,7 @@ export default function CompleteProfilePage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-8">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md space-y-6 rounded-2xl border bg-card p-6 sm:p-8 shadow-sm"
+        className="cartoon-panel-strong w-full max-w-md space-y-6 rounded-cartoon border bg-card p-6 sm:p-8"
       >
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold tracking-tight">

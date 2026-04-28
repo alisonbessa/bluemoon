@@ -63,7 +63,7 @@ export function BudgetComparison({
   }
 
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="cartoon-panel rounded-cartoon border bg-card">
       {/* Header */}
       <div className="flex items-center gap-2 p-3 border-b bg-muted/30">
         <BarChart3 className="h-4 w-4 text-primary" />
@@ -74,7 +74,7 @@ export function BudgetComparison({
         {/* Summary Cards */}
         <div className="grid grid-cols-3 gap-3">
           {/* Budget Utilization */}
-          <div className="rounded-lg border p-3 space-y-1">
+          <div className="cartoon-panel rounded-lg border p-3 space-y-1">
             <div className="text-xs text-muted-foreground">Uso do Orçamento</div>
             <div className="flex items-center gap-2">
               <span className={cn(
@@ -99,7 +99,7 @@ export function BudgetComparison({
           </div>
 
           {/* Income Utilization */}
-          <div className="rounded-lg border p-3 space-y-1">
+          <div className="cartoon-panel rounded-lg border p-3 space-y-1">
             <div className="text-xs text-muted-foreground">Renda Comprometida</div>
             <div className="flex items-center gap-2">
               <span className={cn(
@@ -117,7 +117,7 @@ export function BudgetComparison({
           </div>
 
           {/* Savings */}
-          <div className="rounded-lg border p-3 space-y-1">
+          <div className="cartoon-panel rounded-lg border p-3 space-y-1">
             <div className="text-xs text-muted-foreground">Sobra Estimada</div>
             <div className="flex items-center gap-2">
               <span className={cn(

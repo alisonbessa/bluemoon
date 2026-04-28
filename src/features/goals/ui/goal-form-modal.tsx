@@ -359,7 +359,7 @@ export function GoalFormModal({
               allowNone={false}
               placeholder="Onde guardar"
             />
-            <div className="rounded-lg border p-3 grid gap-3">
+            <div className="cartoon-panel rounded-lg border p-3 grid gap-3">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contribuicao mensal por membro</p>
               {members.map((member) => {
                 const setting = memberSettings.find((s) => s.memberId === member.id);

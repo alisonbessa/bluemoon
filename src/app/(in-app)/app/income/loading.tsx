@@ -19,7 +19,7 @@ export default function Loading() {
       </div>
 
       {/* Income table */}
-      <div className="rounded-lg border bg-card">
+      <div className="cartoon-panel rounded-cartoon border bg-card">
         {/* Table header */}
         <Skeleton className="h-10 w-full rounded-t-lg" />
 

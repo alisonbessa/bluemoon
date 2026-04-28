@@ -216,7 +216,7 @@ export function CreditCardSpending({
         <CardContent className="space-y-4">
           {/* Closed bill section */}
           {displayClosedBill > 0 && (
-            <div className="rounded-lg border p-3 space-y-2">
+            <div className="cartoon-panel rounded-lg border p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Fatura fechada</span>
                 <span className="text-lg font-bold text-red-600">

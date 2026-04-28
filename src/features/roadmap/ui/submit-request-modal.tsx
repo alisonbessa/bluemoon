@@ -243,7 +243,7 @@ export function SubmitRequestModal({
             </p>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border p-3">
+          <div className="cartoon-panel flex items-center justify-between rounded-lg border p-3">
             <div>
               <Label htmlFor="roadmap-anon" className="text-sm font-medium">
                 Enviar como anônimo

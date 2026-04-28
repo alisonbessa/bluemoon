@@ -237,7 +237,7 @@ export function TransactionWidget({
   }
 
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="cartoon-panel rounded-cartoon border bg-card">
       {/* Header with Month Navigator */}
       <div className="flex items-center justify-end p-3 border-b">
         <PeriodNavigator

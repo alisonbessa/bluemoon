@@ -318,7 +318,7 @@ export function IncomeSourceFormModal({
         )}
 
         {/* Confirmação Automática */}
-        <div className="flex items-center justify-between rounded-lg border p-3">
+        <div className="cartoon-panel flex items-center justify-between rounded-lg border p-3">
           <div className="space-y-0.5">
             <Label htmlFor="incomeAutoConfirm" className="cursor-pointer">
               Confirmação automática

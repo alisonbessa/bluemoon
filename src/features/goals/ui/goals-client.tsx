@@ -197,7 +197,7 @@ export function GoalsClient() {
           {activeGoals.map((goal) => (
             <div
               key={goal.id}
-              className="rounded-lg border bg-card p-4 hover:shadow-md transition-shadow"
+              className="cartoon-panel rounded-cartoon border bg-card p-4 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform"
               style={{ borderLeftColor: goal.color, borderLeftWidth: "4px" }}
             >
               <div className="flex items-start justify-between mb-3">
@@ -331,7 +331,7 @@ export function GoalsClient() {
             {completedGoals.map((goal) => (
               <div
                 key={goal.id}
-                className="rounded-lg border bg-card/50 p-3 opacity-75"
+                className="cartoon-panel rounded-cartoon border bg-card/50 p-3 opacity-75"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">

@@ -27,7 +27,7 @@ function formatDate(dateString: string): string {
 export function GoalCard({ goal, onEdit, onArchive, onContribute }: GoalCardProps) {
   return (
     <div
-      className="rounded-lg border bg-card p-4 hover:shadow-md transition-shadow"
+      className="cartoon-panel rounded-cartoon border bg-card p-4 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform"
       style={{ borderLeftColor: goal.color, borderLeftWidth: '4px' }}
     >
       <div className="flex items-start justify-between mb-3">

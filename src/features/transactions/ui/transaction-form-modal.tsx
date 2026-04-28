@@ -328,7 +328,7 @@ export function TransactionFormModal({
 
           {/* Series editing option (when editing an installment) */}
           {showSeriesOption && onApplyToSeriesChange && (
-            <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+            <div className="cartoon-panel flex items-center justify-between rounded-lg border p-3 bg-muted/30">
               <div className="grid gap-0.5">
                 <Label htmlFor="applyToSeries" className="cursor-pointer">
                   Aplicar em todas as parcelas
@@ -347,7 +347,7 @@ export function TransactionFormModal({
 
           {/* Installment option (only for credit card expenses, not when editing or recurring) */}
           {showInstallmentOption && (
-            <div className="grid gap-3 rounded-lg border p-3 bg-muted/30">
+            <div className="cartoon-panel grid gap-3 rounded-lg border p-3 bg-muted/30">
               <div className="flex items-center justify-between">
                 <Label htmlFor="installment" className="cursor-pointer">
                   Parcelar compra
@@ -398,7 +398,7 @@ export function TransactionFormModal({
 
           {/* Recurring option (expenses only, not editing or installment) */}
           {showRecurringOption && (
-            <div className="grid gap-3 rounded-lg border p-3 bg-muted/30">
+            <div className="cartoon-panel grid gap-3 rounded-lg border p-3 bg-muted/30">
               <div className="flex items-center justify-between">
                 <div className="grid gap-0.5">
                   <Label htmlFor="recurring" className="cursor-pointer">

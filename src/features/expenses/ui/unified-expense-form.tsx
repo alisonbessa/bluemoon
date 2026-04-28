@@ -266,7 +266,7 @@ export function UnifiedExpenseForm({
 
         {/* Toggle Recorrente (só para nova despesa) */}
         {!editingBill && (
-          <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+          <div className="cartoon-panel flex items-center justify-between rounded-lg border p-3 bg-muted/30">
             <div className="space-y-0.5">
               <Label
                 htmlFor="expense-recurring"
@@ -438,7 +438,7 @@ export function UnifiedExpenseForm({
         {/* Período e opções extras (só recorrente) */}
         {isRecurring && (
           <>
-            <div className="grid gap-2 rounded-lg border p-3">
+            <div className="cartoon-panel grid gap-2 rounded-lg border p-3">
               <p className="text-xs text-muted-foreground">
                 <strong>Opcional.</strong> Deixe em branco para a despesa aparecer em todos os meses.
                 Use apenas se a despesa tem data de início ou fim específica (ex: parcelamento).
@@ -496,7 +496,7 @@ export function UnifiedExpenseForm({
               </div>
             </div>
 
-            <div className="grid gap-3 rounded-lg border p-3">
+            <div className="cartoon-panel grid gap-3 rounded-lg border p-3">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label htmlFor="expense-autoDebit" className="text-sm">

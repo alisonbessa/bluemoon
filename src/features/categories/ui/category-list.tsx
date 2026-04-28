@@ -33,7 +33,7 @@ export function CategoryList({
   }
 
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="cartoon-panel rounded-cartoon border bg-card">
       {/* Table Header */}
       <div
         className={COMPACT_TABLE_STYLES.header}

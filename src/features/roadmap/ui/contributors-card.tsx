@@ -21,7 +21,7 @@ export function ContributorsCard() {
   if (list.length === 0) return null;
 
   return (
-    <div className="rounded-lg border bg-card p-4">
+    <div className="cartoon-panel rounded-cartoon border bg-card p-4">
       <div className="flex items-center gap-2 mb-3">
         <Trophy className="size-4 text-amber-500" />
         <h3 className="font-semibold text-sm">Top betas colaboradores</h3>
